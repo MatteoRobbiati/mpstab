@@ -1,2 +1,2 @@
 # tn-enhanced-cdr
-Tensor Network enhanced Clifford data regression
+Tensor Network enhanced Clifford data regression.
