@@ -9,11 +9,12 @@ from qibo import Circuit, gates
 class Ansatz(ABC):
     """Abstract ansatz to generate quantum states."""
     nqubits: int
+    density_matrix: bool = False
 
     def __post_init__(
         self,
     ):
-        self._circuit = Circuit(self.nqubits)
+        self._circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
 
     @property
     def circuit(
@@ -64,5 +65,6 @@ class HardwareEfficient(Ansatz):
                 self.circuit.add(gates.RY(q=q, theta=0.))
                 self.circuit.add(gates.RZ(q=q, theta=0.))
             [ self.circuit.add(gates.CNOT(q0=q%self.nqubits, q1=(q+1)%self.nqubits)) for q in range(self.nqubits) ]
+        self.circuit.add(gates.M(*range(self.nqubits)))
     
 
