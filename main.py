@@ -1,7 +1,7 @@
 from qibo import set_backend
 
-from targets.ansatze import HardwareEfficient
-from targets.entropies import stabilizer_renyi_entropy
+from tncdr.targets.ansatze import HardwareEfficient
+from tncdr.targets.entropies import stabilizer_renyi_entropy
 
 # qibojit if we will use more than 20 qubits
 set_backend("numpy")
