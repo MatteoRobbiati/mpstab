@@ -71,7 +71,7 @@ print(f"Absolute difference exact-mitigated: {np.abs(exact_exp - mit_exp)}")
 
 
 delta = 0.2
-x = np.linspace(min(training_data["noisy"]) - delta, max(training_data["noisy"]) + delta, 100)
+x = np.linspace(min(training_data["noisy"]) - delta, max(training_data["noisy"]) + delta, 100)git s
 y = fit_params[0] * x + fit_params[1]
 
 # plot the CDR results
