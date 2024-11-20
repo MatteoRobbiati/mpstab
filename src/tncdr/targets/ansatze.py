@@ -25,13 +25,13 @@ class Ansatz(ABC):
     def nparams(self):
         return len(self.circuit.get_parameters())
     
-    def sample_random_state(self, random_seed: int = 42):
+    def random_unitary(self, random_seed: int = 42):
         """Sample circuit's params in [-pi, pi], execute and return state."""
         np.random.seed(random_seed)
         self.circuit.set_parameters(np.random.uniform(-np.pi, np.pi, self.nparams))
-        return self.circuit().state()
+        return self.circuit
 
-    def sample_random_quasi_clifford_state(self, cliff_fraction: float = 0.7, random_seed: int = 42):
+    def random_quasi_clifford_unitary(self, cliff_fraction: float = 0.7, random_seed: int = 42):
         """
         Sample circuit's params so that a portion `0 < cliff_fraction < 1` 
         of the gates are cliffordized by setting an angle which is a multiple
@@ -46,8 +46,11 @@ class Ansatz(ABC):
             else:
                 new_parameters.append(np.random.randint(-5, 6) * np.pi / 2)
         self.circuit.set_parameters(new_parameters)
-        return self.circuit().state() 
-
+        return self.circuit
+    
+    def execute(self, nshots: int = None):
+        """Execute the circuit and return the outcome."""
+        return self.circuit(nshots=nshots)
 
 @dataclass
 class HardwareEfficient(Ansatz):
