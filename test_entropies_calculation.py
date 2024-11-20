@@ -1,5 +1,7 @@
 import click
+
 from qibo import set_backend
+
 from tncdr.targets.ansatze import HardwareEfficient
 from tncdr.targets.entropies import stabilizer_renyi_entropy
 
