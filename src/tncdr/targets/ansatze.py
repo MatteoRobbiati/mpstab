@@ -45,7 +45,7 @@ class Ansatz(ABC):
             if coin >= cliff_fraction:
                 new_parameters.append(np.random.uniform(-np.pi, np.pi))
             else:
-                new_parameters.append(np.random.randint(-5, 6) * np.pi / 2)
+                new_parameters.append(np.random.randint(-2, 3) * np.pi / 2)
         self.circuit.set_parameters(new_parameters)
         return self.circuit
     
