@@ -1,0 +1,71 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "tncdr"
+version = "0.0.1"
+description = "Tensor Network enhanced learning-based quantum error mitigation"
+authors = ["Matteo Robbiati", "Giulio Crognaletti", "Michele Grossi"]
+readme = "README.md"
+repository = "https://github.com/MatteoRobbiati/tncdr/"
+packages = [{ include = "tncdr", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+numpy = "^1.26.4"
+qibo = {git="https://github.com/qiboteam/qibo"}
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+Sphinx = "^5.3.0"
+furo = "^2023.3.27"
+sphinxcontrib-bibtex = "^2.5.0"
+sphinx-copybutton = "^0.5.2"
+sphinxcontrib-katex = "^0.9.9"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^7.34"
+pdbpp = "^0.10.3"
+
+[tool.poetry.group.tests]
+optional = true
+
+[tool.poetry.group.tests.dependencies]
+pytest = "^7.2.1"
+pylint = "3.1.0"
+pytest-cov = "4.0.0"
+
+[tool.poetry.group.benchmark.dependencies]
+pytest-benchmark = { version = "^4.0.0", extras = ["histogram"] }
+
+[tool.poe.tasks]
+bench = "pytest benchmarks/"
+test = "pytest"
+lint = "pylint src/**/*.py -E"
+lint-warnings = "pylint src/**/*.py --exit-zero"
+docs = "make -C doc html"
+docs-clean = "make -C doc clean"
+test-docs = "make -C doc doctest"
+
+[tool.pytest.ini_options]
+testpaths = ['tests/', 'benchmarks/']
+python_files = ['test_*.py', 'bench_*.py']
+python_classes = ['Test*', 'Benchmark*']
+python_functions = ['test_*', 'bench_*']
+addopts = [
+  "--benchmark-warmup=on",
+  "--benchmark-warmup-iterations=100000",
+  "--benchmark-disable-gc",
+  "--benchmark-histogram=bench-hists/bench",
+  '--cov=qiboml',
+  '--cov-append',
+  '--cov-report=xml',
+  '--cov-report=html',
+  '--durations=60',
+]
