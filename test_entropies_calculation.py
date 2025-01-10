@@ -1,5 +1,7 @@
 import click
 
+import numpy as np
+
 from qibo import set_backend
 
 from tncdr.targets.ansatze import HardwareEfficient
@@ -21,6 +23,9 @@ def main(nqubits, nlayers, qibo_backend):
 
     # Draw the circuit
     ansatz.circuit.draw()
+
+    # Set all zeros at the beginning
+    ansatz.circuit.set_parameters([np.pi] * ansatz.nparams)
 
     # Execute the circuit and collect the final state
     state = ansatz.circuit(nshots=1000).state()

@@ -71,8 +71,8 @@ class HardwareEfficient(Ansatz):
         super().__post_init__()
         for _ in range(self.nlayers):
             for q in range(self.nqubits):
-                self.circuit.add(gates.RY(q=q, theta=0.))
-                self.circuit.add(gates.RZ(q=q, theta=0.))
+                self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
+                self.circuit.add(gates.RZ(q=q, theta=np.random.uniform(-np.pi, np.pi)))
             self.circuit += self.entanglement_layer()
         self.circuit.add(gates.M(*range(self.nqubits)))
 
@@ -90,6 +90,23 @@ class HardwareEfficient(Ansatz):
         T blocks are composed of some of the rotations which preserve their original 
         random angles, while C blocks are composed of the remaining rotations combined 
         with the layer of CNOTS.
+
+        Args:
+            n_partitions (int): number of partitions. For example if 2 is chosen,
+                then the partitioned circuit is composed as T2 - C2 - T1 - C1;
+            magic_gates_per_partition (int): since the partitions are defined 
+                starting from the layered structure, we need to decide how many 
+                gates in the target layers are kept as magic. The selected gates 
+                in the target layer are then used to compose the magic layer T.
+
+        Returns:
+            partitioned_circuit (Circuit): a circuit of the same shape of the original one,
+                but with some of the gates magic and the other Clifford, according 
+                to the chosen strategy;
+            magic_layers (List[Circuit]): list of circuits corresponding to each 
+                magic layer T1, T2, T3, ...
+            stabilizer_layers (List[Circuit]): list of circuits corresponding to 
+                each stabilizer layer C1, C2, C3, ...
         """
         target_layers = [0]
         target_layers.extend(list(random.sample(range(1, self.nlayers), n_partitions - 1)))
@@ -98,7 +115,8 @@ class HardwareEfficient(Ansatz):
         layers_map = {str(value): index for index, value in enumerate(target_layers)}
         # These list will contain the circuits composing the partitionate circuit
         # Each list will be containing a sub-circuit
-        magic_layers, stabilizer_layers = [Circuit(self.nqubits)] * n_partitions, [Circuit(self.nqubits)] * n_partitions
+        magic_layers = [Circuit(self.nqubits) for _ in range(n_partitions)]
+        stabilizer_layers = [Circuit(self.nqubits) for _ in range(n_partitions)]
 
         partitioned_circuit = Circuit(self.nqubits)
 
@@ -109,7 +127,7 @@ class HardwareEfficient(Ansatz):
                 target_gates = list(random.sample(range(0, self.parameters_per_layers - 1), magic_gates_per_partition))
                 layer_gates = self.parametric_layer(layer_index=i)
 
-                for j, gate in layer_gates:
+                for j, gate in enumerate(layer_gates):
                     if j in target_gates:
                         partitioned_circuit.add(gate)
                         magic_layers[partition_block].add(gate)
@@ -117,10 +135,19 @@ class HardwareEfficient(Ansatz):
                         gate.parameters = np.random.randint(-2, 3) * np.pi / 2
                         partitioned_circuit.add(gate)
                         stabilizer_layers[partition_block].add(gate)
-                
+            else:
+                layer_gates = self.parametric_layer(layer_index=i)
+                for j, gate in enumerate(layer_gates):
+                    gate.parameters = np.random.randint(-2, 3) * np.pi / 2
+                    partitioned_circuit.add(gate)
+                    stabilizer_layers[partition_block].add(gate)
+ 
+            partitioned_circuit += self.entanglement_layer()
+            stabilizer_layers[partition_block] += self.entanglement_layer()
+        
+        partitioned_circuit.add(gates.M(*range(self.nqubits)))
 
-
-
+        return partitioned_circuit, magic_layers, stabilizer_layers
 
 
     def parametric_layer(self, layer_index: int):
