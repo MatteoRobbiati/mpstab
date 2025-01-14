@@ -9,12 +9,11 @@ class HalfTableau():
     Stores the rules to update either the X or Z components of a Pauli in the XZ encoding
     """
 
-    def __init__(self, qubits:List[int], signs:List[int], conjugates:List[Pauli])->None:
+    def __init__(self, qubits:List[int], conjugates:List[Pauli])->None:
         
         assert len(qubits) == len(conjugates), 'Number of qubits must match the number of conjugates.'
         
         self.qubits = qubits # Qubits over which we act on with the Tableau 
-        self.signs = signs # List of the signs (phases) to be added to the updated strings
         self.conjugates = conjugates # Updated strings after the application of the operation
 
     def __repr__(self):
@@ -50,8 +49,8 @@ class CNOT(Tableau):
 
     def __init__(self, control:int, target:int,)->None:
 
-        XTableau = HalfTableau([control, target], signs=[0, 0], conjugates=[Pauli('XX'),Pauli('XI')])
-        ZTableau = HalfTableau([control, target], signs=[0, 0], conjugates=[Pauli('ZZ'),Pauli('ZI')])
+        XTableau = HalfTableau([control, target], conjugates=[Pauli('X'),Pauli('XX')])
+        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZZ'),Pauli('ZI')])
 
         super().__init__(XTableau, ZTableau, name=f'CNOT({control}->{target})')
 
@@ -62,8 +61,8 @@ class H(Tableau):
 
     def __init__(self, target:int,)->None:
 
-        XTableau = HalfTableau([target], signs=[0], conjugates=[Pauli('Z')])
-        ZTableau = HalfTableau([target], signs=[0], conjugates=[Pauli('X')])
+        XTableau = HalfTableau([target], conjugates=[Pauli('Z')])
+        ZTableau = HalfTableau([target], conjugates=[Pauli('X')])
 
         super().__init__(XTableau, ZTableau, name=f'H({target})')
 
@@ -74,7 +73,55 @@ class S(Tableau):
 
     def __init__(self, target:int,)->None:
 
-        XTableau = HalfTableau([target], signs=[0], conjugates=[Pauli('Y')])
-        ZTableau = HalfTableau([target], signs=[0], conjugates=[Pauli('Z')])
+        XTableau = HalfTableau([target], conjugates=[Pauli('Y')])
+        ZTableau = HalfTableau([target], conjugates=[Pauli('Z')])
 
         super().__init__(XTableau, ZTableau, name=f'S({target})')
+
+class SWAP(Tableau):
+    """
+    Implements the Swap (SWAP) Tableau
+    """
+
+    def __init__(self, control:int, target:int,)->None:
+
+        XTableau = HalfTableau([control, target], conjugates=[Pauli('XI'),Pauli('X')])
+        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZI'),Pauli('Z')])
+
+        super().__init__(XTableau, ZTableau, name=f'SWAP({control}<->{target})')
+
+class X(Tableau):
+    """
+    Implements the bit-filp (X) Tableau
+    """
+
+    def __init__(self, target:int,)->None:
+
+        XTableau = HalfTableau([target], conjugates=[Pauli('X')])
+        ZTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
+
+        super().__init__(XTableau, ZTableau, name=f'X({target})')
+
+class Z(Tableau):
+    """
+    Implements the phase-flip (X) Tableau
+    """
+
+    def __init__(self, target:int,)->None:
+
+        XTableau = HalfTableau([target], conjugates=[Pauli('-X')])
+        ZTableau = HalfTableau([target], conjugates=[Pauli('Z')])
+
+        super().__init__(XTableau, ZTableau, name=f'Z({target})')
+
+class Y(Tableau):
+    """
+    Implements the phase and bit-flip (Y) Tableau
+    """
+
+    def __init__(self, target:int,)->None:
+
+        XTableau = HalfTableau([target], conjugates=[Pauli('-X')])
+        ZTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
+
+        super().__init__(XTableau, ZTableau, name=f'Y({target})')

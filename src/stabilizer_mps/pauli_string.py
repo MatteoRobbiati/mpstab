@@ -170,10 +170,10 @@ class Pauli():
         for i,q in enumerate(T.qubits):
             if self._has_X(q):
                 new_sub_space = new_sub_space@T.XTableau.conjugates[i]
-                new_sub_space._update_phase(T.XTableau.signs[i])
+                #new_sub_space._update_phase(T.XTableau.signs[i])
             if self._has_Z(q):
                 new_sub_space = new_sub_space@T.ZTableau.conjugates[i]
-                new_sub_space._update_phase(T.ZTableau.signs[i])
+                #new_sub_space._update_phase(T.ZTableau.signs[i])
 
         # Replace the qubits to be updated into the full Pauli string
         for i,q in enumerate(T.qubits):
