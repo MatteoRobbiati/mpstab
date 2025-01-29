@@ -114,14 +114,6 @@ class TensorNetwork:
             axes=(directions_in, directions_out),
         )
 
-        # Construct physical map linking new dimensions with old index
-        _, reverse_lookup_map = _construct_physical_map(
-            non_contracted_index_in=non_contracted_index_in,
-            non_contracted_index_out=non_contracted_index_out,
-            new_physical_dimensions=list(new_tensor.shape)
-        )
-
-
         # Remove the edges from the graph
         for edge_id in edge_ids:
             self.remove_edge(node_in=node_in, node_out=node_out, edge_id=edge_id)
@@ -129,71 +121,46 @@ class TensorNetwork:
         # Add new node, containing contracted tensors
         self.add_tensor(id=new_node_id, tensor=new_tensor)
 
-        self.reconnect_edges(
-            node=node_in, new_node_id=new_node_id, direction_label="in", reverse_lookup_map=reverse_lookup_map
+        # Transfer the edge connections from the old to the new node and delete it
+        self._reconnect_edges(
+            node=node_in, 
+            new_node_id=new_node_id, 
+            survived_directions=non_contracted_index_in,
         )
-        self.reconnect_edges(
-            node=node_out, new_node_id=new_node_id, direction_label="out", reverse_lookup_map=reverse_lookup_map
+        self._reconnect_edges(
+            node=node_out, 
+            new_node_id=new_node_id, 
+            survived_directions=non_contracted_index_out, 
+            shift=len(non_contracted_index_in), # Comply with indexing convention of numpy tensordot
         )
-
     
-    def reconnect_edges(self, node, new_node_id, direction_label, reverse_lookup_map):
+    def _reconnect_edges(self, node:str, new_node_id:str, survived_directions:list, shift:int=0):
 
-        # first we take all the edges entering the node
-        for edge in list(self.tensornet.in_edges(nbunch=node, keys=True, data=True)):
-            u, edge_id, original_directions = edge[0], edge[2], edge[3]["directions"]
-            self.remove_edge(*edge[:3])
+        # First we take all the edges entering the node
+        for u,v,edge_id,metadata in list(self.tensornet.out_edges(nbunch=node, keys=True, data=True)):
+
             directions = (
-                original_directions[0], 
-                reverse_lookup_map[(direction_label, original_directions[1])]
+                # Updated tensor direction in the new node corresponding to the edge
+                survived_directions.index(metadata['directions'][0]) + shift,
+                # Kept direction on the connected node
+                metadata['directions'][1], 
             )
-            self.add_edge(node_in=u, node_out=new_node_id, edge_id=edge_id, directions=directions)
-        
-        # second we take all the edges exiting the node
-        for edge in list(self.tensornet.out_edges(nbunch=node, keys=True, data=True)):
-            v, edge_id, original_directions = edge[1], edge[2], edge[3]["directions"]
-            self.remove_edge(*edge[:3])
-            directions = (
-                reverse_lookup_map[(direction_label, original_directions[0])],
-                original_directions[1],
-            )
+
+            self.remove_edge(node_in=u, node_out=v, edge_id=edge_id)
             self.add_edge(node_in=new_node_id, node_out=v, edge_id=edge_id, directions=directions)
+        
+        # Second we take all the edges exiting the node
+        for u,v,edge_id,metadata in list(self.tensornet.in_edges(nbunch=node, keys=True, data=True)):
+            
+            directions = (
+                # Kept direction on the connected node
+                metadata['directions'][0],
+                # Updated tensor direction in the new node corresponding to the edge
+                survived_directions.index(metadata['directions'][1]) + shift,
+            )
+            self.remove_edge(node_in=u, node_out=v, edge_id=edge_id)
+            self.add_edge(node_in=u, node_out=new_node_id, edge_id=edge_id, directions=directions)
 
         # Remove node
         self.tensornet.remove_node(node)
-
-def _construct_physical_map(
-        non_contracted_index_in: list[int],
-        non_contracted_index_out: list[int],
-        new_physical_dimensions: tuple[int],
-):
-    if (len(non_contracted_index_in) + len(non_contracted_index_out) != len(new_physical_dimensions)):
-        raise ValueError(
-            f"Number of physical dimensions has to match the sum of the lengths of non contracted index lists."
-        )  
-    
-    index_map, reverse_lookup = {}, {}
-
-    # Concatenate lists
-    non_contracted_index_list = non_contracted_index_in + non_contracted_index_out
-
-    for i, phys_dim in enumerate(new_physical_dimensions):
-        if i < len(non_contracted_index_in):
-            label = "in"
-        else:
-            label = "out"
-        index_map.update(
-            {
-                f"{i}": {
-                    "direction_type": label,
-                    "physical_dim": phys_dim,
-                    "old_index": non_contracted_index_list[i]
-                }
-            }
-        )
-
-        # Store in reverse lookup
-        reverse_lookup[(label, non_contracted_index_list[i])] = i  # Store as integer
-
-    return index_map, reverse_lookup
     
