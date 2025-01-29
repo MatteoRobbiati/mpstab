@@ -54,6 +54,34 @@ class TensorNetwork:
         self.tensornet.nodes[node_in]['free_directions'][d_in] = True
         self.tensornet.nodes[node_out]['free_directions'][d_out] = True
 
+    def draw(self):
+        
+        from matplotlib import pyplot as plt
+        pos = nx.spring_layout(self.tensornet)
+
+        # Draw nodes and labels
+        nx.draw_networkx_nodes(self.tensornet, pos, node_size=450)
+        nx.draw_networkx_labels(self.tensornet, pos)
+
+        for u, v, key in self.tensornet.edges(keys=True):
+            nx.draw_networkx_edges(
+                self.tensornet,
+                pos,
+                edgelist=[(u, v)],
+                connectionstyle=f"arc3",
+            )
+
+        # Manually add edge labels for multi-edges
+        for u, v, key, metadata in self.tensornet.edges(keys=True, data=True):
+            x, y = (pos[u][0] + pos[v][0]) / 2, (pos[u][1] + pos[v][1]) / 2  # Midpoint of edge
+            plt.text(
+                x, y, f'{key} - {metadata["directions"]}', fontsize=7, color="red", ha="center", bbox=dict(facecolor="white", alpha=0.7)
+            )
+
+        # Display the graph
+        plt.title("TensorNetwork")
+        plt.show()
+
     def contract(self, node_in:str, node_out:str, edge_ids:Union[str, list[str]], new_node_id:str):
         
         # Constructing a list of edges ids, useful later
