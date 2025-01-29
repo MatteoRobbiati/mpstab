@@ -1,4 +1,4 @@
-from pauli_string import Pauli
+from .pauli_string import Pauli
 
 from typing import List
 
