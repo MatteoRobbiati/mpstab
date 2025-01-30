@@ -1,13 +1,8 @@
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.patches import FancyArrowPatch, Patch
-from collections import defaultdict
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
 
 from typing import Union
-from tncdr.stabilizer_mps.tn_utils import paulis
+from tncdr.stabilizer_mps.tn_utils import paulis, draw_tn, multi_trace
 
 from dataclasses import dataclass
 
@@ -15,10 +10,7 @@ from dataclasses import dataclass
 class TensorNetwork:
 
     #TODO Add key tensors:
-    # - Measurement: shape -> (2,)
     # - Copy: shape -> (n,n,n), n given in input
-    # - Pauli: shape -> (2,2)
-    # - PauliRot: shape -> (2,2,2)
 
     def __post_init__(self):
         self.tensornet = nx.MultiDiGraph()
@@ -41,10 +33,10 @@ class TensorNetwork:
             tensor=np.array([alpha, beta])
         )
 
-    def add_pauli_pair(self, p0:str, p1:str):
+    def add_pauli_pair(self, id:str, p0:str, p1:str):
         tensor = np.array([paulis[p0], paulis[p1]])
         self.add_tensor(
-            id=f'{p0}{p1} pair',
+            id=id,
             tensor=tensor,
         )
 
@@ -85,7 +77,7 @@ class TensorNetwork:
         return draw_tn(tn=self, show_labels=show_labels, title=title)
 
     def contract(self, node_in:str, node_out:str, edge_ids:Union[str, list[str]], new_node_id:str):
-        
+               
         # Constructing a list of edges ids, useful later
         if type(edge_ids) is str: 
             edge_ids = [edge_ids]
@@ -100,7 +92,29 @@ class TensorNetwork:
         for metadata in edge_metadatas:
             directions_in.append(metadata['directions'][0])
             directions_out.append(metadata['directions'][1])
+        
+        # Remove the edges from the graph
+        for edge_id in edge_ids:
+            self.remove_edge(node_in=node_in, node_out=node_out, edge_id=edge_id)
 
+        if node_in==node_out:
+            return self._partial_trace(
+                node=node_in,
+                new_node_id=new_node_id,
+                directions_in=directions_in,
+                directions_out=directions_out
+            )
+        else:
+            return self._contract_separate_nodes(
+                node_in=node_in,
+                node_out=node_out,
+                new_node_id=new_node_id,
+                directions_in=directions_in,
+                directions_out=directions_out
+            )
+
+    def _contract_separate_nodes(self, node_in:str, node_out:str, new_node_id:str, directions_in:list, directions_out:list):
+        
         # Collecting all non-contracted index (in and out)
         non_contracted_index_in = [
             i for i in range(len(self.tensornet.nodes[node_in]['shape'])) if i not in directions_in
@@ -115,10 +129,6 @@ class TensorNetwork:
             b=self.tensornet.nodes[node_out]['tensor'],
             axes=(directions_in, directions_out),
         )
-
-        # Remove the edges from the graph
-        for edge_id in edge_ids:
-            self.remove_edge(node_in=node_in, node_out=node_out, edge_id=edge_id)
             
         # Add new node, containing contracted tensors
         self.add_tensor(id=new_node_id, tensor=new_tensor)
@@ -136,8 +146,27 @@ class TensorNetwork:
             shift=len(non_contracted_index_in), # Comply with indexing convention of numpy tensordot
         )
     
-    def _partial_trace(self, *args):
-        pass
+    def _partial_trace(self, node:str, new_node_id:str, directions_in:list, directions_out:list):
+
+        non_contracted_index = [
+            i for i in range(len(self.tensornet.nodes[node]['shape'])) if i not in (directions_in+directions_out)
+        ]
+
+        new_tensor = multi_trace(
+            tensor=self.tensornet.nodes[node]['tensor'],
+            directions_in=directions_in,
+            directions_out=directions_out,
+        )
+    
+        # Add new node, containing contracted tensors
+        self.add_tensor(id=new_node_id, tensor=new_tensor)
+        
+        # Transfer the edge connections from the old to the new node and delete it
+        self._reconnect_edges(
+            node=node, 
+            new_node_id=new_node_id, 
+            survived_directions=non_contracted_index,
+        )
 
     def _reconnect_edges(self, node:str, new_node_id:str, survived_directions:list, shift:int=0):
 

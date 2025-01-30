@@ -227,3 +227,17 @@ def draw_tn(tn, show_labels=False, title=""):
         plt.tight_layout()
         plt.show()
 
+def multi_trace(tensor, directions_in, directions_out):
+    
+    while len(directions_in)>0:
+
+        d_in, d_out = directions_in[0], directions_out[0]
+        tensor = np.trace(tensor, axis1=d_in, axis2=d_out)
+        
+        if not len(directions_in): break
+
+        # Adjust remaining indices dynamically
+        directions_in = [d - (d>d_in) - (d>d_out) for d in directions_in[1:]]
+        directions_out = [d - (d>d_in) - (d>d_out) for d in directions_out[1:]]
+
+    return tensor
