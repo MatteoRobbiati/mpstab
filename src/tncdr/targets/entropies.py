@@ -30,4 +30,4 @@ def stabilizer_renyi_entropy(state: np.ndarray, alpha: int):
         obs = SymbolicHamiltonian(form=symbolic_obs)
         expval_to_2n += (obs.expectation(state) ** (2 * alpha)) / (2 ** nqubits)
     
-    return (1. / (1 - alpha)) * np.log(expval_to_2n) - nqubits * np.log(2)
+    return (1. / (1 - alpha)) * np.log(expval_to_2n) 
