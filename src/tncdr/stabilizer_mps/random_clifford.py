@@ -1,8 +1,8 @@
 import random as rnd
 from typing import Generator
 
-from .pauli_string import Pauli
-from .tableaus import Tableau, CNOT, SWAP, H, S, X, Z
+from tncdr.stabilizer_mps.pauli_string import Pauli
+from  tncdr.stabilizer_mps.tableaus import Tableau, CNOT, SWAP, H, S, X, Z
 
 def random_pauli(n:int)->Pauli:
     """
