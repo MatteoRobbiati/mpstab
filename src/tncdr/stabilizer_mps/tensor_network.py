@@ -1,10 +1,12 @@
+from dataclasses import dataclass
+from typing import Union
+import functools
+
 import networkx as nx
 import numpy as np
 
-from typing import Union
 from tncdr.stabilizer_mps.tn_utils import paulis, draw_tn, multi_trace
 
-from dataclasses import dataclass
 
 @dataclass
 class TensorNetwork:
@@ -39,6 +41,55 @@ class TensorNetwork:
             id=id,
             tensor=tensor,
         )
+
+    @functools.cached_property
+    def copy_tensor_2d(self):
+        """Cached property for a copy tensor of dimension 2."""
+        return self._make_copy_ndarray(2, 3)
+
+    @functools.cached_property
+    def copy_tensor_3d(self):
+        """Cached property for a copy tensor of dimension 3."""
+        return self._make_copy_ndarray(3, 3)
+
+    @staticmethod
+    @functools.lru_cache(128)
+    def _make_copy_ndarray(d: int, ndim: int, dtype=float) -> np.ndarray:
+        """
+        Create a copy tensor enforcing identity-like constraints.
+
+        Parameters:
+        - d (int): Dimension of the tensor (size of each index).
+        - ndim (int): Number of dimensions (tensor rank).
+        - dtype (type): Data type of the tensor (default: float).
+
+        Returns:
+        - Immutable numpy array representing the copy tensor.
+        """
+        c = np.zeros([d] * ndim, dtype=dtype)
+        for i in range(d):
+            c[(i,) * ndim] = 1  
+        c.setflags(write=False)  
+        return c
+
+    def add_copy_tensor(self, id: str, n: int):
+        """
+        Adds a cached, immutable copy tensor to the tensor network.
+
+        Parameters:
+        - id (str): Identifier for the tensor.
+        - n (int): Dimension of the copy tensor.
+        """
+        # Use cached properties for commonly used dimensions
+        if n == 2:
+            copy_tensor = self.copy_tensor_2d
+        elif n == 3:
+            copy_tensor = self.copy_tensor_3d
+        else:
+            copy_tensor = self._make_copy_ndarray(d=n, ndim=3)  # Uses cached tensor
+
+        self.add_tensor(id=id, tensor=copy_tensor)
+
 
     def add_edge(self, node_in:str, node_out:str, edge_id:str, directions:tuple[int, int], **edge_metadata):
 
