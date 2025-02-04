@@ -13,7 +13,7 @@ xz_to_phase = {0:'', 1:'i', 2:'-', 3:'-i'}
 
 def string_to_xz(description:str)->int:
     """
-    Converts a Pauli string, provided as an explicit string of 'I', 'X', 'Y' and 'Z' into the corresponding XZ encoding.
+    Convert a Pauli string, provided as an explicit string of 'I', 'X', 'Y' and 'Z' into the corresponding XZ encoding.
     """
     return sum((single_pauli_to_xz[p]<<(2*q) for q,p in enumerate(reversed(description))), start=0)
 
