@@ -40,6 +40,14 @@ class TensorNetwork:
             tensor=tensor,
         )
 
+    def add_copy_tensor(self, id:str, n:int):
+        tensor = np.zeros(shape=(n,n,n))
+        np.fill_diagonal(tensor, 1)
+        self.add_tensor(
+            id=id,
+            tensor=tensor
+        )
+
     def add_edge(self, node_in:str, node_out:str, edge_id:str, directions:tuple[int, int], **edge_metadata):
 
         d_in, d_out = directions
