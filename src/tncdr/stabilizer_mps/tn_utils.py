@@ -241,3 +241,12 @@ def multi_trace(tensor, directions_in, directions_out):
         directions_out = [d - (d>d_in) - (d>d_out) for d in directions_out[1:]]
 
     return tensor
+
+def _bond_dimension_cut(U, D, V, bond_dimension):
+    
+    if bond_dimension is None:
+        bond_dimension = np.count_nonzero(D)
+    else:
+        bond_dimension = np.min(bond_dimension, np.count_nonzero(D))
+
+    return U[:,:bond_dimension], D[:bond_dimension], V[:bond_dimension,:]

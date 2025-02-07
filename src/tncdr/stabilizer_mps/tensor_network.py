@@ -1,16 +1,13 @@
 import networkx as nx
 import numpy as np
 
-from typing import Union
-from tncdr.stabilizer_mps.tn_utils import paulis, draw_tn, multi_trace
+from typing import Optional, Union
+from tncdr.stabilizer_mps.tn_utils import paulis, draw_tn, multi_trace, _bond_dimension_cut
 
 from dataclasses import dataclass
 
 @dataclass
 class TensorNetwork:
-
-    #TODO Add key tensors:
-    # - Copy: shape -> (n,n,n), n given in input
 
     def __post_init__(self):
         self.tensornet = nx.MultiDiGraph()
@@ -106,20 +103,119 @@ class TensorNetwork:
             self.remove_edge(node_in=node_in, node_out=node_out, edge_id=edge_id)
 
         if node_in==node_out:
-            return self._partial_trace(
+            self._partial_trace(
                 node=node_in,
-                new_node_id=new_node_id,
+                new_node_id=0,
                 directions_in=directions_in,
                 directions_out=directions_out
             )
         else:
-            return self._contract_separate_nodes(
+            self._contract_separate_nodes(
                 node_in=node_in,
                 node_out=node_out,
-                new_node_id=new_node_id,
+                new_node_id=0,
                 directions_in=directions_in,
                 directions_out=directions_out
             )
+
+        nx.relabel_nodes(self.tensornet, {0:new_node_id}, copy=False)
+
+    def svd_decomposition(
+            self, 
+            node:str,
+            left_node_id:str, 
+            left_node_edges:Union[str, list[str]],
+            right_node_id:str, 
+            right_node_edges:Union[str, list[str]],
+            middle_node_id:str,
+            middle_edge:str,
+            bond_dimension:Optional[int]=None,
+        ):
+        
+        if type(left_node_edges) is str: 
+            left_node_edges = [left_node_edges]
+        
+        if type(right_node_edges) is str: 
+            right_node_edges = [right_node_edges]
+        
+        tensor = self.tensornet.nodes[node]['tensor']
+        
+        # Transpose and reshape into a matrix
+        transposition_vector = self._svd_transposition_vector(node, left_node_edges, right_node_edges)
+        np.transpose(tensor, transposition_vector)
+        matrix_shape = (
+            np.prod(tensor.shape[:len(left_node_edges)]),
+            np.prod(tensor.shape[len(left_node_edges):])
+        )
+        new_l_shape = *tensor.shape[:len(left_node_edges)],-1
+        new_r_shape = -1,*tensor.shape[:len(left_node_edges)]
+        tensor=np.reshape(tensor, matrix_shape)
+
+        # Perform SVD
+        svd_result = np.linalg.svd(tensor, full_matrices=False)
+        left_tensor, middle_tensor, right_tensor = _bond_dimension_cut(*svd_result, bond_dimension)
+
+        # Reshape into the original tensor dimensions
+        left_tensor = np.reshape(left_tensor, new_l_shape)
+        right_tensor = np.reshape(right_tensor, new_r_shape)
+        middle_tensor = np.diag(middle_tensor)
+
+        # Create the new tensors and connect them
+        self.add_tensor(id=left_node_id, tensor=left_tensor)
+        self.add_tensor(id=right_node_id, tensor=right_tensor)
+        self.add_tensor(id=middle_node_id, tensor=middle_tensor)
+
+        self.add_edge(node_in=left_node_id, node_out=middle_node_id, edge_id=f'{middle_edge}_l', directions=(len(left_node_edges),0))
+        self.add_edge(node_in=right_node_id, node_out=middle_node_id, edge_id=f'{middle_edge}_r', directions=(0,1))
+        
+        # Re-establish the old connections
+        self._reconnect_edges(
+            node=node,
+            new_node_id=left_node_id,
+            survived_directions=transposition_vector,
+            allowed_edges=left_node_edges,
+        )
+        self._reconnect_edges(
+            node=node,
+            new_node_id=right_node_id,
+            survived_directions=transposition_vector,
+            shift=1-len(left_node_edges),
+            allowed_edges=right_node_edges,
+        )
+
+        self.tensornet.remove_node(node)
+
+    def _svd_transposition_vector(
+            self,
+            node:str,
+            left_node_edges:Union[str, list[str]],
+            right_node_edges:Union[str, list[str]],
+        ):
+
+        transposition_vector = [-1]*(len(left_node_edges)+len(right_node_edges))
+
+        def _update_tv(tv, edge_id, dir):
+
+            if edge_id in left_node_edges:
+                tv[left_node_edges.index(edge_id)] = dir
+                return
+            
+            if edge_id in right_node_edges:
+                tv[len(left_node_edges)+right_node_edges.index(edge_id)] = dir
+                return 
+            
+            raise ValueError(f'Each edge must be assigned to either the left or right child tensors during SVD. Unassigned edge: {edge_id}.')
+
+        for *_,edge_id,metadata in list(self.tensornet.out_edges(nbunch=node, keys=True, data=True)):
+            _update_tv(transposition_vector, edge_id, metadata['directions'][0])
+        
+        for *_,edge_id,metadata in list(self.tensornet.in_edges(nbunch=node, keys=True, data=True)):
+            _update_tv(transposition_vector, edge_id, metadata['directions'][1])
+
+        for t in transposition_vector:
+            if t < 0: raise ValueError(f'Too many indices assigned to the tensor {node}. Make sure they are correct.')
+
+        return transposition_vector
 
     def _contract_separate_nodes(self, node_in:str, node_out:str, new_node_id:str, directions_in:list, directions_out:list):
         
@@ -153,6 +249,9 @@ class TensorNetwork:
             survived_directions=non_contracted_index_out, 
             shift=len(non_contracted_index_in), # Comply with indexing convention of numpy tensordot
         )
+
+        self.tensornet.remove_node(node_in)
+        self.tensornet.remove_node(node_out)
     
     def _partial_trace(self, node:str, new_node_id:str, directions_in:list, directions_out:list):
 
@@ -176,10 +275,14 @@ class TensorNetwork:
             survived_directions=non_contracted_index,
         )
 
-    def _reconnect_edges(self, node:str, new_node_id:str, survived_directions:list, shift:int=0):
+        self.tensornet.remove_node(node)
+
+    def _reconnect_edges(self, node:str, new_node_id:str, survived_directions:list, shift:int=0, allowed_edges:Optional[list[str]]=None):
 
         # First we take all the edges entering the node
         for u,v,edge_id,metadata in list(self.tensornet.out_edges(nbunch=node, keys=True, data=True)):
+            
+            if not allowed_edges is None and not edge_id in allowed_edges: continue
 
             directions = (
                 # Updated tensor direction in the new node corresponding to the edge
@@ -193,16 +296,17 @@ class TensorNetwork:
         
         # Second we take all the edges exiting the node
         for u,v,edge_id,metadata in list(self.tensornet.in_edges(nbunch=node, keys=True, data=True)):
-
+            
+            if not allowed_edges is None and not edge_id in allowed_edges: continue
+            
             directions = (
                 # Kept direction on the connected node
                 metadata['directions'][0],
                 # Updated tensor direction in the new node corresponding to the edge
                 survived_directions.index(metadata['directions'][1]) + shift,
             )
+
             self.remove_edge(node_in=u, node_out=v, edge_id=edge_id)
             self.add_edge(node_in=u, node_out=new_node_id, edge_id=edge_id, directions=directions)
 
-        # Remove node
-        self.tensornet.remove_node(node)
      
