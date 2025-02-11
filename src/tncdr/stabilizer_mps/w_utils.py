@@ -32,7 +32,7 @@ def theta_pauli_expansion(theta:float)->np.ndarray:
     c, s = np.cos(theta/2), np.sin(theta/2)
 
     # Projection in *normalized* the pauli basis
-    return np.array([1.0,0.0,-2*c*s,c**2-s**2])/np.sqrt(2)
+    return np.array([1.0,0.0,2*c*s,c**2-s**2])/np.sqrt(2)
 
 def X_pauli_expansion():
     return np.array([1.0,1.0,0.0,0.0])*np.sqrt(2)
