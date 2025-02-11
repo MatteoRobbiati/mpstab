@@ -1,10 +1,15 @@
+from dataclasses import dataclass
+
 import networkx as nx
 import numpy as np
 
 from typing import Optional, Union
-from tncdr.stabilizer_mps.tn_utils import paulis, draw_tn, multi_trace, _bond_dimension_cut
-
-from dataclasses import dataclass
+from tncdr.evolutors.tensor_network.tn_utils import (
+    paulis, 
+    draw_tn, 
+    multi_trace, 
+    _bond_dimension_cut
+)
 
 @dataclass
 class TensorNetwork:

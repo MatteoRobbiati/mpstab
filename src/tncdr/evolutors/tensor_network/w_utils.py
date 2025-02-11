@@ -1,7 +1,7 @@
 import numpy as np
 
-from tncdr.stabilizer_mps.tensor_network import TensorNetwork
-from tncdr.stabilizer_mps.tn_utils import paulis
+from tncdr.evolutors.tensor_network.tensor_network import TensorNetwork 
+from tncdr.evolutors.tensor_network.tn_utils import paulis
 
 # Compute W tensors
 def _compute_all_w_tensors()->np.ndarray:
