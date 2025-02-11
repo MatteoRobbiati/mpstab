@@ -3,6 +3,9 @@ import numpy as np
 from tncdr.stabilizer_mps.tensor_network import TensorNetwork
 from tncdr.stabilizer_mps.tn_utils import paulis
 
+# Tensor containg the full pauli basis
+all_pauli_tensor = np.array([paulis['I'], paulis['X'], paulis['Y'],paulis['Z']])
+
 # Compute W tensors
 def _compute_all_w_tensors()->np.ndarray:
 
@@ -18,12 +21,12 @@ def pauli_pauli_expansion(p:str)->np.ndarray:
     tensor['IXYZ'.find(p)] = np.sqrt(2)
     return tensor
 
-def basis_pauli_expansion(desc:str)->np.ndarray:
-    if desc=='0': return np.array([1.0,0.0,0.0,1.0])/np.sqrt(2)
-    if desc=='1': return np.array([1.0,0.0,0.0,-1.0])/np.sqrt(2)
-    if desc=='+': return np.array([1.0,1.0,0.0,0.0])/np.sqrt(2)
-    if desc=='-': return np.array([1.0,-1.0,0.0,0.0])/np.sqrt(2)
-    raise ValueError(f'Basis element descriptor must be either 0,1,+ or -. "Given {desc}".')
+def basis_pauli_expansion(initial_state_name:str)->np.ndarray:
+    if initial_state_name=='0': return np.array([1.0,0.0,0.0,1.0])/np.sqrt(2)
+    if initial_state_name=='1': return np.array([1.0,0.0,0.0,-1.0])/np.sqrt(2)
+    if initial_state_name=='+': return np.array([1.0,1.0,0.0,0.0])/np.sqrt(2)
+    if initial_state_name=='-': return np.array([1.0,-1.0,0.0,0.0])/np.sqrt(2)
+    raise ValueError(f'Basis element descriptor must be either 0,1,+ or -. "Given {initial_state_name}".')
 
 def theta_pauli_expansion(theta:float)->np.ndarray:
     c, s = np.cos(theta/2), np.sin(theta/2)
@@ -46,7 +49,6 @@ def _W_tn(p:str)->TensorNetwork:
     tn.add_pauli_pair('P+', p0='I', p1=p)
 
     # Create the nodes responsible for the projection into the Pauli basis
-    all_pauli_tensor = np.array([paulis['I'], paulis['X'], paulis['Y'],paulis['Z']])
     tn.add_tensor('mu_basis', all_pauli_tensor)
     tn.add_tensor('nu_basis', all_pauli_tensor)
     tn.add_tensor('alpha_basis', all_pauli_tensor)
