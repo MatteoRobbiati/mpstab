@@ -22,19 +22,75 @@ def pauli_tensors(pauli_string:str):
         if 'IXYZ'.find(p) >= 0:
             yield Ws[p]
 
+def _pointwise_expectation(state, pauli):
+
+    expect = 1
+    for s,p in zip(list(state), list(pauli)):
+        if s == '1':
+            if p == 'I': continue
+            if p == 'Z': expect *= -1
+            else: return 0
+        if s == '0':
+            if p in list('IZ'): continue
+            else: return 0
+
+        if s == '-':
+            if p == 'I': continue
+            if p == 'X': expect *= -1
+            else: return 0
+        if s == '+':
+            if p in list('IX'): continue
+            else: return 0
+
+        #assert False, f'State must composed only of "10+-", given {s}, {p}'
+    return expect
+
+def _get_phase_and_string(pauli):
+    string_repr = str(pauli)
+    phase = 1
+    if string_repr[0]=='-':
+        phase *= -1
+        string_repr = string_repr[1:]
+    if string_repr[0]=='i':
+        phase *= 1j
+        string_repr = string_repr[1:]
+
+    return phase, string_repr
+    
+
+def analytical_solution(rotation_pauli, observable, theta, initial_state):
+
+    from tncdr.stabilizer_mps.pauli_string import Pauli
+    f = Pauli(rotation_pauli)@Pauli(observable)@Pauli(rotation_pauli)
+    l = Pauli(observable)@Pauli(rotation_pauli)
+    r = Pauli(rotation_pauli)@Pauli(observable)
+
+    pf, sf = _get_phase_and_string(f)
+    pl, sl = _get_phase_and_string(l)
+    pr, sr = _get_phase_and_string(r)
+
+    c,s = np.cos(theta/2), np.sin(theta/2)
+    solution = c**2*_pointwise_expectation(initial_state, observable)
+    solution += s**2*_pointwise_expectation(initial_state, sf)*pf
+    solution += 1j*s*c*_pointwise_expectation(initial_state, sl)*pl
+    solution -= 1j*s*c*_pointwise_expectation(initial_state, sr)*pr
+    return np.real(solution)
+
+
 def main():
 
     N=3
     
-    rotation_pauli = sample_random_pauli(N)
-    observable = sample_random_pauli(N)
-    theta =  2*np.pi*np.random.rand()
+    rotation_pauli = 'YXZ'#sample_random_pauli(N)
+    observable = 'XXZ'#sample_random_pauli(N)
+    theta =  2.5943124162115114#2*np.pi*np.random.rand()
     intial_state = '1'*N
 
     print(f'Rotation generator: {rotation_pauli}')
     print(f'H: {observable}')
     print(f'rho_0: |{intial_state}X{intial_state}|')
-    print(f'theta: {theta}, {1-2*np.sin(theta/2)**2}, {2*np.sin(theta/2)*np.cos(theta/2)}')
+    print(f'theta: {theta}')
+    print(f'Analytical solution: {analytical_solution(rotation_pauli, observable, theta, intial_state)}')
 
     # Build TensorNetwork
     tn = TensorNetwork()
@@ -74,7 +130,7 @@ def main():
     tn.contract('tmp3', 'X', 'h_link', 'F')
 
     # Output the result
-    print(tn.tensornet.nodes['F']['tensor'].item())
+    print(f'TN solution: {tn.tensornet.nodes['F']['tensor'].item()}')
 
 if __name__ == '__main__':
     main()
