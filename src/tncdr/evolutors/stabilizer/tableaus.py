@@ -1,6 +1,6 @@
-from .pauli_string import Pauli
-
 from typing import List
+
+from tncdr.evolutors.stabilizer.pauli_string import Pauli
 
 # GENERAL STRUCTURE
 
