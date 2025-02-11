@@ -16,7 +16,6 @@ paulis = {
     'Z':np.array([[1,0],[0,-1]], dtype=np.complex64)
 }
 
-
 def draw_tn(tn, show_labels=False, title=""):
     # --- Step 1: Group Nodes by Label ---
     # For example, if a node’s name begins with "L" followed by digits,
@@ -190,7 +189,6 @@ def draw_tn(tn, show_labels=False, title=""):
     plt.tight_layout()
     plt.show()
 
-
 def multi_trace(tensor, directions_in, directions_out):
     
     while len(directions_in)>0:
@@ -206,11 +204,11 @@ def multi_trace(tensor, directions_in, directions_out):
 
     return tensor
 
-def _bond_dimension_cut(U, D, V, bond_dimension):
+def _bond_dimension_cut(U, D, V, max_bond_dimension):
     
-    if bond_dimension is None:
+    if max_bond_dimension is None:
         bond_dimension = np.count_nonzero(D)
     else:
-        bond_dimension = np.min(bond_dimension, np.count_nonzero(D))
+        bond_dimension = np.min(max_bond_dimension, np.count_nonzero(D))
 
     return U[:,:bond_dimension], D[:bond_dimension], V[:bond_dimension,:]

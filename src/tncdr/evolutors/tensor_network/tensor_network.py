@@ -134,7 +134,7 @@ class TensorNetwork:
             right_node_edges:Union[str, list[str]],
             middle_node_id:str,
             middle_edge:str,
-            bond_dimension:Optional[int]=None,
+            max_bond_dimension:Optional[int]=None,
         ):
         
         if type(left_node_edges) is str: 
@@ -147,7 +147,7 @@ class TensorNetwork:
         
         # Transpose and reshape into a matrix
         transposition_vector = self._svd_transposition_vector(node, left_node_edges, right_node_edges)
-        np.transpose(tensor, transposition_vector)
+        tensor = np.ascontiguousarray(np.transpose(tensor, transposition_vector))
         matrix_shape = (
             np.prod(tensor.shape[:len(left_node_edges)]),
             np.prod(tensor.shape[len(left_node_edges):])
@@ -158,7 +158,7 @@ class TensorNetwork:
 
         # Perform SVD
         svd_result = np.linalg.svd(tensor, full_matrices=False)
-        left_tensor, middle_tensor, right_tensor = _bond_dimension_cut(*svd_result, bond_dimension)
+        left_tensor, middle_tensor, right_tensor = _bond_dimension_cut(*svd_result, max_bond_dimension)
 
         # Reshape into the original tensor dimensions
         left_tensor = np.reshape(left_tensor, new_l_shape)
