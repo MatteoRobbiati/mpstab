@@ -71,7 +71,6 @@ class HardwareEfficient(Ansatz):
         for _ in range(self.nlayers):
             for q in range(self.nqubits):
                 self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
-                self.circuit.add(gates.RZ(q=q, theta=np.random.uniform(-np.pi, np.pi)))
             self.circuit += self.entanglement_layer()
         self.circuit.add(gates.M(*range(self.nqubits)))
 
@@ -160,5 +159,5 @@ class HardwareEfficient(Ansatz):
     def entanglement_layer(self):
         """Construct an entanglement layer compatible with the target quantum circuit."""
         ent_circuit = Circuit(self.nqubits)
-        [ ent_circuit.add(gates.CNOT(q0=q%self.nqubits, q1=(q+1)%self.nqubits)) for q in range(self.nqubits) ]
+        [ ent_circuit.add(gates.CZ(q0=q%self.nqubits, q1=(q+1)%self.nqubits)) for q in range(self.nqubits) ]
         return ent_circuit

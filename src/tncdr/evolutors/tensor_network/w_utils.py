@@ -91,4 +91,4 @@ def _W_contract(tn:TensorNetwork)->np.ndarray:
     # Division by 4 restores the normalization w.r.t. to the Pauli basis, 
     # which in the _w_tn() are un-normalized. It is done here rather than
     # earlier to improve numerical stability.
-    return tn.tensornet.nodes['F']['tensor'].astype(float)/4
+    return np.real(tn.tensornet.nodes['F']['tensor']).astype(float)/4
