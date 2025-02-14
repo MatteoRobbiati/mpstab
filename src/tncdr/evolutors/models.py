@@ -39,14 +39,6 @@ class HybridSurrogate:
     @property
     def nqubits(self):
         return self.ansatz.circuit.nqubits
-    
-    @property
-    def n_rotation_layers(self):
-        """
-        Returns:
-            int: The number of rotation layers in the MPO.
-        """
-        return sum(1 for node in self.tn.tensornet.nodes if "Theta" in str(node))
 
     def sample_partition(self):
         """Sample a partition of the given ansatz."""
@@ -104,6 +96,9 @@ class HybridSurrogate:
             if gate.clifford:
                 raise ValueError("Ensure all the gates of the given circuit are magic!")
             
+        # Number of rotation layers
+        self.n_rotation_layers = len(magic_circuit.queue)
+            
         # construct the Network 
         for i, gate in enumerate(magic_circuit.queue):
             self.build_one_rotation_layer(gate, layer_number=i)
@@ -140,8 +135,7 @@ class HybridSurrogate:
                 new_label = f"temp{layer_number - 1}{q}"
             self.tn.draw(title="after_obs")
             # Contracting
-            print(up_label, down_label, new_label)
-            self.tn.contract(up_label, down_label, "v_link", new_label)
+            self.tn.contract(down_label, up_label, "v_link", new_label)
 
 
     def contract_mpo_on_obs(self, observable: str):
@@ -152,6 +146,8 @@ class HybridSurrogate:
         Args:
             observable (str): expected to be a string of Paulis.
         """
+
+        # TODO: shall we make a copy and re-use the same network structure?
 
         # Connect to the observable
         for n, pauli in enumerate(observable):
@@ -165,7 +161,8 @@ class HybridSurrogate:
         for n in range(len(observable)):
             self.tn.contract(f"O{n}", f"W{self.n_rotation_layers - 1}{n}", "v_link", f"temp{self.n_rotation_layers - 1}{n}")
 
-        # Now loop over the rotation layers and contract them all (in the Land of Mordor, where the Shadows lie)
+        # Now loop over the rotation layers and contract them all 
+        # (in the Land of Mordor, where the Shadows lie)
         for l in reversed(range(self.n_rotation_layers)):
             self.contract_rotation_layer(layer_number=l)
             self.tn.draw(title=f"h_layer{l}")
@@ -177,7 +174,8 @@ class HybridSurrogate:
             else:
                 temp_label = f"temp{q - 1}"
             self.tn.contract(temp_label, f"F{q + 1}", self._retrieve_h_links(qubit=q), f"temp{q}")
-        
+
+        print(self.tn.tensornet.nodes["temp1"])        
 
     def _retrieve_h_links(self, qubit: int):
         """Construct list of all existing horizontal links for `qubit`."""
