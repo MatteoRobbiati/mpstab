@@ -81,7 +81,9 @@ class HybridSurrogate:
 
         # Horizontal links
         for q in range(self.nqubits - 1):
-            self.tn.add_edge(f"W{layer_number}{q}", f"W{layer_number}{q + 1}", "h_link", (0,1))
+            # Adding custom name to the edges because we need to collect all of 
+            # them at the end of the contraction
+            self.tn.add_edge(f"W{layer_number}{q}", f"W{layer_number}{q + 1}", f"h_link{layer_number}{q}", (0,1))
 
         # Link with X projection
         self.tn.add_edge(f"W{layer_number}{self.nqubits - 1}", f"X{layer_number}", "h_link", (0,0))
@@ -113,13 +115,34 @@ class HybridSurrogate:
         already contracted.
         """
         # Contract Theta with the first W
-        self.tn.contract(f"Theta{layer_number}", f"W{layer_number}0", "h_link", "")
-        # Contract the horizontal links among the Ws
-        for q in range(self.nqubits - 1):
-            self.tn.contract(f"W{layer_number}{q}", f"W{layer_number}{q + 1}", "h_link", (0,1))
+        self.tn.contract(
+            f"Theta{layer_number}", f"temp{layer_number}0", "h_link", f"temp_left"
+        )
         # Contract the last W with X
-        self.tn.contract(f"W{layer_number}{self.nqubits - 1}", f"X{layer_number}", "h_link", (0,0))
-        # Contract the 
+        self.tn.contract(
+            f"temp{layer_number}{self.nqubits - 1}", f"X{layer_number}", "h_link", f"temp_right"
+        )
+        # Contract the vertical edges of the nodes in the middle
+        for q in range(self.nqubits):
+            # Isolating the three cases (Theta, X and Ws)
+            if q == 0:
+                up_label = "temp_left"
+            elif q == self.nqubits - 1:
+                up_label = "temp_right"
+            else:
+                up_label = f"temp{layer_number}{q}"
+            # Distinguishing a general case from last layer case (involving initial state)
+            if layer_number ==  0:
+                down_label = f"T{q}"
+                new_label = f"F{q}"
+            else:
+                down_label = f"W{layer_number - 1}{q}"
+                new_label = f"temp{layer_number - 1}{q}"
+            self.tn.draw(title="after_obs")
+            # Contracting
+            print(up_label, down_label, new_label)
+            self.tn.contract(up_label, down_label, "v_link", new_label)
+
 
     def contract_mpo_on_obs(self, observable: str):
         """
@@ -135,17 +158,31 @@ class HybridSurrogate:
             self.tn.add_tensor(f'O{n}', tensor=pauli_pauli_expansion(pauli))
             self.tn.add_edge(f'O{n}', f'W{self.n_rotation_layers - 1}{n}', 'v_link', (0,3))
 
+        self.tn.draw(title="start")
+
         # Contract the O on the last layer of Ws
+        # Replace all Ws with temp nodes
         for n in range(len(observable)):
-            self.tn.contract(f"O{n}", f"W{self.n_rotation_layers - 1}{n}", "v_link", (0,3))
-        
+            self.tn.contract(f"O{n}", f"W{self.n_rotation_layers - 1}{n}", "v_link", f"temp{self.n_rotation_layers - 1}{n}")
+
         # Now loop over the rotation layers and contract them all (in the Land of Mordor, where the Shadows lie)
         for l in reversed(range(self.n_rotation_layers)):
+            self.contract_rotation_layer(layer_number=l)
+            self.tn.draw(title=f"h_layer{l}")
+        
+        # Contract all the final h_links
+        for q in range(self.nqubits - 1):
+            if q == 0:
+                temp_label = "F0"
+            else:
+                temp_label = f"temp{q - 1}"
+            self.tn.contract(temp_label, f"F{q + 1}", self._retrieve_h_links(qubit=q), f"temp{q}")
+        
 
+    def _retrieve_h_links(self, qubit: int):
+        """Construct list of all existing horizontal links for `qubit`."""
+        return [f"h_link{n}{qubit}" for n in range(self.n_rotation_layers)]
 
-        import matplotlib.pyplot as plt
-        self.tn.draw()
-        plt.show()
 
 
 

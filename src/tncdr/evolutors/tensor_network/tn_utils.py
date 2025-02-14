@@ -187,7 +187,10 @@ def draw_tn(tn, show_labels=False, title=""):
     plt.title(title)
     plt.axis('off')
     plt.tight_layout()
-    plt.show()
+    
+    if title is not None:
+        plt.savefig(f"../plots/{title}.png", bbox_inches="tight")
+
 
 def multi_trace(tensor, directions_in, directions_out):
     
