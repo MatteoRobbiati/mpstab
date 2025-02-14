@@ -63,10 +63,10 @@ class HybridSurrogate:
 
             # If it is the first layer, connect to initial state
             if layer_number == 0:
-                self.tn.add_edge(f"T{q}", f"W0{q}", "v_link", (0,2))
+                self.tn.add_edge(f"T{q}", f"W0{q}", "v_link", (0,3))
             # Else, connect with the previous layer
             else:
-                self.tn.add_edge(f"W{layer_number - 1}{q}", f"W{layer_number}{q}", "v_link", (3,2))
+                self.tn.add_edge(f"W{layer_number - 1}{q}", f"W{layer_number}{q}", "v_link", (2,3))
 
         # Connect the first W of the row with the Theta node
         self.tn.add_edge(f"Theta{layer_number}", f"W{layer_number}0", 'h_link', (0,1))
@@ -152,14 +152,14 @@ class HybridSurrogate:
         # Connect to the observable
         for n, pauli in enumerate(observable):
             self.tn.add_tensor(f'O{n}', tensor=pauli_pauli_expansion(pauli))
-            self.tn.add_edge(f'O{n}', f'W{self.n_rotation_layers - 1}{n}', 'v_link', (0,3))
+            self.tn.add_edge(f'W{self.n_rotation_layers - 1}{n}', f'O{n}', 'v_link', (2,0))
 
         self.tn.draw(title="start")
 
         # Contract the O on the last layer of Ws
         # Replace all Ws with temp nodes
         for n in range(len(observable)):
-            self.tn.contract(f"O{n}", f"W{self.n_rotation_layers - 1}{n}", "v_link", f"temp{self.n_rotation_layers - 1}{n}")
+            self.tn.contract(f"W{self.n_rotation_layers - 1}{n}", f"O{n}", "v_link", f"temp{self.n_rotation_layers - 1}{n}")
 
         # Now loop over the rotation layers and contract them all 
         # (in the Land of Mordor, where the Shadows lie)
