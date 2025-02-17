@@ -3,3 +3,15 @@ gate2generator = {
     "ry": "Y",
     "rz": "Z",
 }
+
+gate2tableau = {
+    "cnot": "CNOT",
+    "h": "H",
+    "s": "S",
+    "x": "X",
+    "y": "Y",
+    "z": "Z",
+    "swap": "SWAP",
+    "cz": "CZ",
+    "ry": "RY",
+}

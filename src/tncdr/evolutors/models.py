@@ -12,7 +12,9 @@ from tncdr.evolutors.tensor_network.w_utils import (
     X_pauli_expansion,
     theta_pauli_expansion
 )
-from tncdr.evolutors.utils import gate2generator
+from tncdr.evolutors.stabilizer.pauli_string import Pauli
+from tncdr.evolutors.stabilizer import tableaus
+from tncdr.evolutors.utils import gate2generator, gate2tableau
 from tncdr.targets.ansatze import Ansatz
 
 
@@ -63,10 +65,10 @@ class HybridSurrogate:
 
             # If it is the first layer, connect to initial state
             if layer_number == 0:
-                self.tn.add_edge(f"T{q}", f"W0{q}", "v_link", (0,3))
+                self.tn.add_edge(f"T{q}", f"W0{q}", "v_link", (0,2))
             # Else, connect with the previous layer
             else:
-                self.tn.add_edge(f"W{layer_number - 1}{q}", f"W{layer_number}{q}", "v_link", (2,3))
+                self.tn.add_edge(f"W{layer_number - 1}{q}", f"W{layer_number}{q}", "v_link", (3,2))
 
         # Connect the first W of the row with the Theta node
         self.tn.add_edge(f"Theta{layer_number}", f"W{layer_number}0", 'h_link', (0,1))
@@ -152,7 +154,7 @@ class HybridSurrogate:
         # Connect to the observable
         for n, pauli in enumerate(observable):
             self.tn.add_tensor(f'O{n}', tensor=pauli_pauli_expansion(pauli))
-            self.tn.add_edge(f'W{self.n_rotation_layers - 1}{n}', f'O{n}', 'v_link', (2,0))
+            self.tn.add_edge(f'W{self.n_rotation_layers - 1}{n}', f'O{n}', 'v_link', (3,0))
 
         self.tn.draw(title="start")
 
@@ -166,6 +168,11 @@ class HybridSurrogate:
         for l in reversed(range(self.n_rotation_layers)):
             self.contract_rotation_layer(layer_number=l)
             self.tn.draw(title=f"h_layer{l}")
+
+        print(self.tn.tensornet.nodes["F0"])
+        print(self.tn.tensornet.nodes["F1"])
+        print(self.tn.tensornet.nodes["F2"])
+
         
         # Contract all the final h_links
         for q in range(self.nqubits - 1):
@@ -175,7 +182,24 @@ class HybridSurrogate:
                 temp_label = f"temp{q - 1}"
             self.tn.contract(temp_label, f"F{q + 1}", self._retrieve_h_links(qubit=q), f"temp{q}")
 
-        print(self.tn.tensornet.nodes["temp1"])        
+        print(self.tn.tensornet.nodes["temp2"])
+
+
+    def backpropagate_pauli(self, observable: str, stabilizer_circuit: Circuit):
+        """
+        Process a given Pauli string applying a `stabilizer_circuit` in 
+        Heisenberg picture.
+        """
+        # Construct the propagator and apply the inverse of the circuit gate by gate
+        propagator = Pauli(observable)
+        for gate in stabilizer_circuit.invert().queue:
+            if len(gate.parameters) != 0:
+                params = {"angle": gate.parameters[0]}
+            else:
+                params = {}
+            propagator.apply(getattr(tableaus, gate2tableau[gate.name])(*gate.qubits, **params))
+        return propagator.__repr__()
+
 
     def _retrieve_h_links(self, qubit: int):
         """Construct list of all existing horizontal links for `qubit`."""
