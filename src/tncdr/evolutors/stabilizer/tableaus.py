@@ -1,3 +1,4 @@
+import math
 from typing import List
 
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
@@ -125,3 +126,36 @@ class Y(Tableau):
         ZTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
 
         super().__init__(XTableau, ZTableau, name=f'Y({target})')
+
+
+class CZ(Tableau):
+    """
+    Implement the Controlled-Z (CZ) Tableau using its conjugation properties.
+    """
+    def __init__(self, control: int, target: int) -> None:
+
+        XTableau = HalfTableau([control, target], conjugates=[Pauli('XZ'), Pauli('ZX')])
+        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZI'), Pauli('IZ')])
+        
+        super().__init__(XTableau, ZTableau, name=f'CZ({control},{target})')
+
+
+class RY(Tableau):
+    """
+    Implement a rotation about the Y axis by an angle which is a multiple of π/2.
+    """
+    def __init__(self, target: int, angle: float = math.pi/2) -> None:
+        # Compute the multiple k so that angle = k * (pi/2)
+        k = round(angle / (math.pi / 2))
+        k_mod = k % 4  # Only 4 distinct rotations
+        
+        # Define the mapping for X and Z components based on k_mod
+        mapping_X = {0: 'X', 1: 'Z', 2: '-X', 3: '-Z'}
+        mapping_Z = {0: 'Z', 1: '-X', 2: '-Z', 3: 'X'}
+        
+        # Create the HalfTableaus using the appropriate Pauli string updates
+        XTableau = HalfTableau([target], conjugates=[Pauli(mapping_X[k_mod])])
+        ZTableau = HalfTableau([target], conjugates=[Pauli(mapping_Z[k_mod])])
+        
+        # Name the gate accordingly
+        super().__init__(XTableau, ZTableau, name=f'RY({angle})({target})')
