@@ -37,28 +37,41 @@ class HybridSurrogate:
         # Add the initial state, which is |0> by default
         for q in range(self.nqubits):
             self.tn.add_tensor(f"T{q}", tensor=basis_pauli_expansion('0'))
-
+        
     @property
     def nqubits(self):
         return self.ansatz.circuit.nqubits
 
-    def sample_partition(self):
+    def expectation_from_partition(self, n_partitions, magic_gates_per_partition, observable):
         """Sample a partition of the given ansatz."""
+        _, mag_layers, stab_layers = self.ansatz.partitionate_circuit(
+            n_partitions=n_partitions,
+            magic_gates_per_partition=magic_gates_per_partition,
+        )
+        # TODO: fix this! because this works only then npartitions is 1!
+        # TODO: fix the problem of sign! It is counted as element in the list
+        new_observable = self.backpropagate_pauli(observable, stab_layers[0])
+        stab_layers[0].draw()
+        self.mpo_from_magic_circuit(magic_circuit=mag_layers[0])
+        self.contract_mpo_on_obs(new_observable)
         pass
 
     def build_one_rotation_layer(self, gate, layer_number):
         """Construct one horizontal layer of Ws, according to a given rotational gate."""
+
+        if gate.name not in ["rx", "ry", "rz"]:
+            raise ValueError("tncdr currently supports only rotational gates.")
         
         # Add theta projection and X projection (very left and very right nodes of each row)
-        self.tn.add_tensor(f"Theta{layer_number}", tensor=theta_pauli_expansion(theta=gate.parameters[0]))
+        self.tn.add_tensor(f"Angle{layer_number}", tensor=theta_pauli_expansion(theta=gate.parameters[0]))
         self.tn.add_tensor(id=f"X{layer_number}", tensor=X_pauli_expansion())
 
         # Add all the W operators
         for q in range(self.nqubits):
 
             # Add Pauli W only where the rotation is applied
-            if gate.target_qubits == q:
-                    self.tn.add_tensor(f"W{layer_number}{q}", tensor=self.ws_map[gate2generator[gate.name]])
+            if q in gate.target_qubits:
+                self.tn.add_tensor(f"W{layer_number}{q}", tensor=self.ws_map[gate2generator[gate.name]])
             # Add identity elsewhere
             else:
                 self.tn.add_tensor(f"W{layer_number}{q}", tensor=self.ws_map["I"])
@@ -70,8 +83,8 @@ class HybridSurrogate:
             else:
                 self.tn.add_edge(f"W{layer_number - 1}{q}", f"W{layer_number}{q}", "v_link", (3,2))
 
-        # Connect the first W of the row with the Theta node
-        self.tn.add_edge(f"Theta{layer_number}", f"W{layer_number}0", 'h_link', (0,1))
+        # Connect the first W of the row with the Angle node
+        self.tn.add_edge(f"Angle{layer_number}", f"W{layer_number}0", 'h_link', (0,1))
 
         # Horizontal links
         for q in range(self.nqubits - 1):
@@ -113,7 +126,7 @@ class HybridSurrogate:
         """
         # Contract Theta with the first W
         self.tn.contract(
-            f"Theta{layer_number}", f"temp{layer_number}0", "h_link", f"temp_left"
+            f"Angle{layer_number}", f"temp{layer_number}0", "h_link", f"temp_left"
         )
         # Contract the last W with X
         self.tn.contract(
@@ -169,10 +182,6 @@ class HybridSurrogate:
             self.contract_rotation_layer(layer_number=l)
             self.tn.draw(title=f"h_layer{l}")
 
-        print(self.tn.tensornet.nodes["F0"])
-        print(self.tn.tensornet.nodes["F1"])
-        print(self.tn.tensornet.nodes["F2"])
-
         
         # Contract all the final h_links
         for q in range(self.nqubits - 1):
@@ -181,8 +190,8 @@ class HybridSurrogate:
             else:
                 temp_label = f"temp{q - 1}"
             self.tn.contract(temp_label, f"F{q + 1}", self._retrieve_h_links(qubit=q), f"temp{q}")
-
-        print(self.tn.tensornet.nodes["temp2"])
+        print(self.tn.tensornet.nodes[f"temp{self.nqubits-2}"])
+        print(self.tn.tensornet.nodes["temp1"])
 
 
     def backpropagate_pauli(self, observable: str, stabilizer_circuit: Circuit):
