@@ -33,8 +33,5 @@ mag_layers[0].draw()
 
 form = Z(0) * Z(1) * Z(2) * Z(3)
 ham = hamiltonians.SymbolicHamiltonian(form=form)
-print("EXPVAL CIRC:", ham.expectation(mag_layers[0]().state()))
+print("EXPVAL CIRC:", ham.expectation(ansatz.circuit().state()))
 
-
-p = evo.backpropagate_pauli(observable="ZZZZ", stabilizer_circuit=stab_layers[0])
-print("XYZ", p)

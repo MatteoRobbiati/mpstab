@@ -53,8 +53,8 @@ class HybridSurrogate:
         new_observable = self.backpropagate_pauli(observable, stab_layers[0])
         stab_layers[0].draw()
         self.mpo_from_magic_circuit(magic_circuit=mag_layers[0])
-        self.contract_mpo_on_obs(new_observable)
-        pass
+        return self.contract_mpo_on_obs(new_observable)
+        
 
     def build_one_rotation_layer(self, gate, layer_number):
         """Construct one horizontal layer of Ws, according to a given rotational gate."""
@@ -164,6 +164,12 @@ class HybridSurrogate:
 
         # TODO: shall we make a copy and re-use the same network structure?
 
+        if observable[0] == "-":
+            final_sign = -1.
+            observable = observable[1:]
+        else:
+            final_sign = 1.
+
         # Connect to the observable
         for n, pauli in enumerate(observable):
             self.tn.add_tensor(f'O{n}', tensor=pauli_pauli_expansion(pauli))
@@ -190,9 +196,9 @@ class HybridSurrogate:
             else:
                 temp_label = f"temp{q - 1}"
             self.tn.contract(temp_label, f"F{q + 1}", self._retrieve_h_links(qubit=q), f"temp{q}")
-        print(self.tn.tensornet.nodes[f"temp{self.nqubits-2}"])
-        print(self.tn.tensornet.nodes["temp1"])
-
+        
+        result = final_sign * float(self.tn.tensornet.nodes[f"temp{self.nqubits-2}"]["tensor"])
+        return result
 
     def backpropagate_pauli(self, observable: str, stabilizer_circuit: Circuit):
         """
