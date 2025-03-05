@@ -1,4 +1,3 @@
-import math
 from typing import List
 
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
@@ -50,10 +49,34 @@ class CNOT(Tableau):
 
     def __init__(self, control:int, target:int,)->None:
 
-        XTableau = HalfTableau([control, target], conjugates=[Pauli('X'),Pauli('XX')])
-        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZZ'),Pauli('ZI')])
+        XTableau = HalfTableau([control, target], conjugates=[Pauli('XX'),Pauli('IX')])
+        ZTableau = HalfTableau([control, target], conjugates=[Pauli('IZ'),Pauli('ZZ')])
 
         super().__init__(XTableau, ZTableau, name=f'CNOT({control}->{target})')
+
+class SWAP(Tableau):
+    """
+    Implements the Swap (SWAP) Tableau
+    """
+
+    def __init__(self, control:int, target:int,)->None:
+
+        XTableau = HalfTableau([control, target], conjugates=[Pauli('IX'),Pauli('XI')])
+        ZTableau = HalfTableau([control, target], conjugates=[Pauli('IZ'),Pauli('ZI')])
+
+        super().__init__(XTableau, ZTableau, name=f'SWAP({control}<->{target})')
+
+class CZ(Tableau):
+    """
+    Implements the Swap (SWAP) Tableau
+    """
+
+    def __init__(self, control:int, target:int,)->None:
+
+        XTableau = HalfTableau([control, target], conjugates=[Pauli('XZ'),Pauli('ZX')])
+        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZI'),Pauli('IZ')])
+
+        super().__init__(XTableau, ZTableau, name=f'SWAP({control}<->{target})')
 
 class H(Tableau):
     """
@@ -78,18 +101,6 @@ class S(Tableau):
         ZTableau = HalfTableau([target], conjugates=[Pauli('Z')])
 
         super().__init__(XTableau, ZTableau, name=f'S({target})')
-
-class SWAP(Tableau):
-    """
-    Implements the Swap (SWAP) Tableau
-    """
-
-    def __init__(self, control:int, target:int,)->None:
-
-        XTableau = HalfTableau([control, target], conjugates=[Pauli('XI'),Pauli('X')])
-        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZI'),Pauli('Z')])
-
-        super().__init__(XTableau, ZTableau, name=f'SWAP({control}<->{target})')
 
 class X(Tableau):
     """
@@ -126,33 +137,3 @@ class Y(Tableau):
         ZTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
 
         super().__init__(XTableau, ZTableau, name=f'Y({target})')
-
-
-class CZ(Tableau):
-    """
-    Implement the Controlled-Z (CZ) Tableau using its conjugation properties.
-    """
-    def __init__(self, control: int, target: int) -> None:
-
-        XTableau = HalfTableau([control, target], conjugates=[Pauli('X'), Pauli('XI')])
-        ZTableau = HalfTableau([control, target], conjugates=[Pauli('XZ'), Pauli('ZX')])
-        
-        super().__init__(XTableau, ZTableau, name=f'CZ({control},{target})')
-
-
-class RY(Tableau):
-    def __init__(self, target: int, angle: float = math.pi/2) -> None:
-        # Compute the integer k so that angle should equal k*(pi/2)
-        k = round(angle / (math.pi / 2))
-        # Check that the angle is close enough to a multiple of pi/2
-        if not math.isclose(angle, k * (math.pi / 2), rel_tol=1e-9):
-            raise ValueError("RY gate angle must be a multiple of pi/2 for a Clifford operation.")
-        k_mod = k % 4  # Only 4 distinct rotations
-
-        mapping_X = {0: 'X', 1: 'Z', 2: '-X', 3: '-Z'}
-        mapping_Z = {0: 'Z', 1: '-X', 2: '-Z', 3: 'X'}
-
-        XTableau = HalfTableau([target], conjugates=[Pauli(mapping_X[k_mod])])
-        ZTableau = HalfTableau([target], conjugates=[Pauli(mapping_Z[k_mod])])
-
-        super().__init__(XTableau, ZTableau, name=f'RY({angle})({target})')

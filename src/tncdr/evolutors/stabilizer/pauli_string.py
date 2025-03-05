@@ -14,13 +14,13 @@ def string_to_xz(description:str)->int:
     """
     Convert a Pauli string, provided as an explicit string of 'I', 'X', 'Y' and 'Z' into the corresponding XZ encoding.
     """
-    return sum((single_pauli_to_xz[p]<<(2*q) for q,p in enumerate(reversed(description))), start=0)
+    return sum((single_pauli_to_xz[p]<<(2*q) for q,p in enumerate(description)), start=0)
 
 def xz_to_string(xz_desc:int)->str:
     """
     Converts a python integer, interpreted as the XZ encoding of a Pauli string, into the corresponfing explicit string.
     """
-    return ''.join([xz_to_single_pauli[3 & xz_desc >> (2*q)] for q in range(num_qubits(xz_desc)-1,-1,-1)])
+    return ''.join([xz_to_single_pauli[3 & xz_desc >> (2*q)] for q in range(num_qubits(xz_desc))])
 
 def xz_to_string_phase(xz_desc:int, phase:int, n:int)->str:
     """
