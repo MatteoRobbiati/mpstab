@@ -105,7 +105,7 @@ def update_phase(phase, shift):
 
 class Pauli():
     """
-    Pauli string XZ representation, including a global phase in {1,-1,i,-i}.
+    Pauli string XZ representation, including a global phase in {1, -1, i, -i}.
     """
 
     def __init__(self, description:str|int, n:int|None=None)->None:

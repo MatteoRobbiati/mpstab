@@ -65,13 +65,15 @@ class Ansatz(ABC):
 class HardwareEfficient(Ansatz):
     """Hardware Efficient ansatz."""
     nlayers: int = 1
+    entangling: bool = True
 
     def __post_init__(self):
         super().__post_init__()
         for _ in range(self.nlayers):
             for q in range(self.nqubits):
                 self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
-            self.circuit += self.entanglement_layer()
+            if self.entangling:
+                self.circuit += self.entanglement_layer()
         self.circuit.add(gates.M(*range(self.nqubits)))
 
     
@@ -139,9 +141,10 @@ class HardwareEfficient(Ansatz):
                     gate.parameters = np.random.randint(-2, 3) * np.pi / 2
                     partitioned_circuit.add(gate)
                     stabilizer_layers[partition_block].add(gate)
- 
-            partitioned_circuit += self.entanglement_layer()
-            stabilizer_layers[partition_block] += self.entanglement_layer()
+            
+            if self.entangling:
+                partitioned_circuit += self.entanglement_layer()
+                stabilizer_layers[partition_block] += self.entanglement_layer()
         
         partitioned_circuit.add(gates.M(*range(self.nqubits)))
 

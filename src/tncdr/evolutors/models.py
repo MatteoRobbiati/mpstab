@@ -42,18 +42,35 @@ class HybridSurrogate:
     def nqubits(self):
         return self.ansatz.circuit.nqubits
 
-    def expectation_from_partition(self, n_partitions, magic_gates_per_partition, observable):
+    def expectation_from_partition(
+            self, 
+            n_partitions, 
+            magic_gates_per_partition, 
+            observable,
+            return_partitions=False,
+        ):
         """Sample a partition of the given ansatz."""
+        # Partitionate circuit
         _, mag_layers, stab_layers = self.ansatz.partitionate_circuit(
             n_partitions=n_partitions,
             magic_gates_per_partition=magic_gates_per_partition,
         )
+
         # TODO: fix this! because this works only then npartitions is 1!
         # TODO: fix the problem of sign! It is counted as element in the list
         new_observable = self.backpropagate_pauli(observable, stab_layers[0])
-        stab_layers[0].draw()
         self.mpo_from_magic_circuit(magic_circuit=mag_layers[0])
-        return self.contract_mpo_on_obs(new_observable)
+
+        # Collect partitions into a dictionary in case we want to return it
+        if return_partitions:
+            partitions = {
+                "magic_layers": mag_layers,
+                "stabilizer_layers": stab_layers,
+            }
+        else:
+            partitions = None
+
+        return self.contract_mpo_on_obs(new_observable), partitions
         
 
     def build_one_rotation_layer(self, gate, layer_number):

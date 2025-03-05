@@ -11,28 +11,33 @@ nqubits = 4
 # Circuit with only Clifford gates
 stab_circ = Circuit(nqubits)
 [stab_circ.add(gates.H(q)) for q in range(nqubits)]
-[stab_circ.add(gates.CNOT(q % nqubits, (q + 1) % nqubits)) for q in range(nqubits)]
+[stab_circ.add(gates.CZ(q % nqubits, (q + 1) % nqubits)) for q in range(nqubits)]
 # [circ.add(gates.H(q)) for q in range(nqubits)]
-stab_circ.add(gates.CNOT(1,2))
 
+stab_circ_inv = Circuit(nqubits)
+[stab_circ_inv.add(gates.H(q)) for q in range(nqubits)]
+[stab_circ_inv.add(gates.CZ((nqubits - q - 1) % nqubits, (nqubits - q) % nqubits)) for q in range(nqubits)]
+# [circ.add(gates.H(q)) for q in range(nqubits)]
 
 # Empty circuit
 empty_circ = Circuit(nqubits)
-[empty_circ.add(gates.RY(q, 0.1 + q)) for q in range(nqubits)]
-[empty_circ.add(gates.RZ(q, 0.4 + q)) for q in range(nqubits)]
-
+[empty_circ.add(gates.RY(q=q, theta=0.2 + q)) for q in range(nqubits)]
+[empty_circ.add(gates.RZ(q=q, theta=0.4 + q)) for q in range(nqubits)]
 
 # Full circ
 circ = empty_circ + stab_circ
 
+empty_circ.draw()
+print("\n\n")
+circ.draw()
 
 # Pauli string
-obs_str = "XIZZ"
-obs_form = symbols.X(0) * symbols.I(1)  * symbols.Z(2) * symbols.Z(3)
+obs_str = "ZZZY"
+obs_form = symbols.Z(0) * symbols.Z(1)  * symbols.Z(2) * symbols.Y(3)
 ham = hamiltonians.SymbolicHamiltonian(form=obs_form)
 
 p = Pauli(obs_str)
-for gate in stab_circ.invert().queue:
+for gate in stab_circ_inv.invert().queue:
     if len(gate.parameters) != 0:
         params = {"angle": gate.parameters[0]}
     else:
@@ -41,6 +46,7 @@ for gate in stab_circ.invert().queue:
     p.apply(getattr(tableaus, gate2tableau[gate.name])(*gate.qubits, **params))
 
 p = p.__repr__()
+print(p)
 
 if p[0] == "-":
     p = p[1:]

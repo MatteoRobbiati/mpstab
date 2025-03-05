@@ -5,7 +5,7 @@ gate2generator = {
 }
 
 gate2tableau = {
-    "cnot": "CNOT",
+    "cx": "CNOT",
     "h": "H",
     "s": "S",
     "x": "X",
