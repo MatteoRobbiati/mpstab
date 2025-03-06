@@ -60,8 +60,11 @@ class HybridSurrogate:
         # TODO: fix this! because this works only then npartitions is 1!
         # TODO: fix the problem of sign! It is counted as element in the list
 
-        new_observable = self.backpropagate_pauli(observable, stab_layers[0])
+        # Evolve observable under ( C1 - C2 - C3 )_inv
+        new_observable = self.backpropagate_pauli(observable, sum(stab_layers, start=Circuit(self.nqubits)))
         self.mpo_from_magic_circuit(magic_circuit=mag_layers[0])
+
+
 
         # Collect partitions into a dictionary in case we want to return it
         if return_partitions:

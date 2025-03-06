@@ -7,10 +7,10 @@ from tncdr.targets.ansatze import HardwareEfficient
 
 set_backend("numpy")
 
-obs = "ZZZZ"
+obs = "ZZZ"
 
 # Construct the ansatz
-ansatz = HardwareEfficient(nqubits=4, nlayers=1, entangling=True)
+ansatz = HardwareEfficient(nqubits=3, nlayers=3, entangling=True)
 ansatz.circuit.set_parameters(np.random.randn(len(ansatz.circuit.get_parameters())))
 ansatz.circuit.draw()
 
@@ -21,8 +21,8 @@ evo = HybridSurrogate(ansatz)
 
 # Easy test to prove our hybrid evolutor works
 result, partitions = evo.expectation_from_partition(
-    n_partitions=1,
-    magic_gates_per_partition=3,
+    n_partitions=2,
+    magic_gates_per_partition=2,
     observable=obs,
     return_partitions=True,
 )
