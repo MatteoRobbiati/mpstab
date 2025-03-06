@@ -12,12 +12,8 @@ nqubits = 4
 stab_circ = Circuit(nqubits)
 [stab_circ.add(gates.H(q)) for q in range(nqubits)]
 [stab_circ.add(gates.CZ(q % nqubits, (q + 1) % nqubits)) for q in range(nqubits)]
-# [circ.add(gates.H(q)) for q in range(nqubits)]
+# [stab_circ.add(gates.H(q)) for q in range(nqubits)]
 
-stab_circ_inv = Circuit(nqubits)
-[stab_circ_inv.add(gates.H(q)) for q in range(nqubits)]
-[stab_circ_inv.add(gates.CZ((nqubits - q - 1) % nqubits, (nqubits - q) % nqubits)) for q in range(nqubits)]
-# [circ.add(gates.H(q)) for q in range(nqubits)]
 
 # Empty circuit
 empty_circ = Circuit(nqubits)
@@ -37,7 +33,7 @@ obs_form = symbols.Z(0) * symbols.Z(1)  * symbols.Z(2) * symbols.Y(3)
 ham = hamiltonians.SymbolicHamiltonian(form=obs_form)
 
 p = Pauli(obs_str)
-for gate in stab_circ_inv.invert().queue:
+for gate in stab_circ.invert().queue:
     if len(gate.parameters) != 0:
         params = {"angle": gate.parameters[0]}
     else:

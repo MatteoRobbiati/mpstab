@@ -9,6 +9,8 @@ from qibo import Circuit, gates
 from dataclasses import dataclass
 from abc import ABC
 
+from tncdr.evolutors.utils import sample_random_pauli_gate
+
 @dataclass
 class Ansatz(ABC):
     """Abstract ansatz to generate quantum states."""
@@ -89,7 +91,7 @@ class HardwareEfficient(Ansatz):
         where C blocks are stabilizer circuits and T blocks are full of magic 🧙.
         T blocks are composed of some of the rotations which preserve their original 
         random angles, while C blocks are composed of the remaining rotations combined 
-        with the layer of CNOTS.
+        with the layer of CZ.
 
         Args:
             n_partitions (int): number of partitions. For example if 2 is chosen,
@@ -108,22 +110,32 @@ class HardwareEfficient(Ansatz):
             stabilizer_layers (List[Circuit]): list of circuits corresponding to 
                 each stabilizer layer C1, C2, C3, ...
         """
+
+        if n_partitions > self.nlayers:
+            raise ValueError(
+                f"Number of partitions (now {n_partitions}) have to be <= number of layers (which is {self.nlayers})"
+            )
+
+        # Layer 0 is selected
         target_layers = [0]
+        # Select random `n_partitions - 1` layers from layers != layer 0
         target_layers.extend(list(random.sample(range(1, self.nlayers), n_partitions - 1)))
         target_layers = np.sort(target_layers)
+
+
         # Mapping layers into a dictionary
         layers_map = {str(value): index for index, value in enumerate(target_layers)}
         # These list will contain the circuits composing the partitionate circuit
         # Each list will be containing a sub-circuit
         magic_layers = [Circuit(self.nqubits) for _ in range(n_partitions)]
         stabilizer_layers = [Circuit(self.nqubits) for _ in range(n_partitions)]
-
         partitioned_circuit = Circuit(self.nqubits)
 
         partition_block = 0
         for i in range(self.nlayers):
             if i in target_layers:
                 partition_block = layers_map[str(i)]
+                # Sampling which rotations will remain magic
                 target_gates = list(random.sample(range(0, self.parameters_per_layers - 1), magic_gates_per_partition))
                 layer_gates = self.parametric_layer(layer_index=i)
 
@@ -132,15 +144,15 @@ class HardwareEfficient(Ansatz):
                         partitioned_circuit.add(gate)
                         magic_layers[partition_block].add(gate)
                     else:
-                        gate.parameters = np.random.randint(-2, 3) * np.pi / 2
-                        partitioned_circuit.add(gate)
-                        stabilizer_layers[partition_block].add(gate)
+                        new_gate = sample_random_pauli_gate(qubit=gate.qubits[0])
+                        partitioned_circuit.add(new_gate)
+                        stabilizer_layers[partition_block].add(new_gate)
             else:
                 layer_gates = self.parametric_layer(layer_index=i)
                 for j, gate in enumerate(layer_gates):
-                    gate.parameters = np.random.randint(-2, 3) * np.pi / 2
-                    partitioned_circuit.add(gate)
-                    stabilizer_layers[partition_block].add(gate)
+                    new_gate = sample_random_pauli_gate(qubit=gate.qubits[0])
+                    partitioned_circuit.add(new_gate)
+                    stabilizer_layers[partition_block].add(new_gate)
             
             if self.entangling:
                 partitioned_circuit += self.entanglement_layer()

@@ -50,14 +50,16 @@ class HybridSurrogate:
             return_partitions=False,
         ):
         """Sample a partition of the given ansatz."""
+
         # Partitionate circuit
-        _, mag_layers, stab_layers = self.ansatz.partitionate_circuit(
+        full_circuit, mag_layers, stab_layers = self.ansatz.partitionate_circuit(
             n_partitions=n_partitions,
             magic_gates_per_partition=magic_gates_per_partition,
         )
 
         # TODO: fix this! because this works only then npartitions is 1!
         # TODO: fix the problem of sign! It is counted as element in the list
+
         new_observable = self.backpropagate_pauli(observable, stab_layers[0])
         self.mpo_from_magic_circuit(magic_circuit=mag_layers[0])
 
@@ -66,6 +68,7 @@ class HybridSurrogate:
             partitions = {
                 "magic_layers": mag_layers,
                 "stabilizer_layers": stab_layers,
+                "full_circuit": full_circuit,
             }
         else:
             partitions = None
@@ -225,11 +228,7 @@ class HybridSurrogate:
         # Construct the propagator and apply the inverse of the circuit gate by gate
         propagator = Pauli(observable)
         for gate in stabilizer_circuit.invert().queue:
-            if len(gate.parameters) != 0:
-                params = {"angle": gate.parameters[0]}
-            else:
-                params = {}
-            propagator.apply(getattr(tableaus, gate2tableau[gate.name])(*gate.qubits, **params))
+            propagator.apply(getattr(tableaus, gate2tableau[gate.name])(*gate.qubits))
         return propagator.__repr__()
 
 
