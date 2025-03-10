@@ -51,7 +51,7 @@ class CNOT(Tableau):
     def __init__(self, control:int, target:int,)->None:
 
         XTableau = HalfTableau([control, target], conjugates=[Pauli('XX'),Pauli('IX')])
-        ZTableau = HalfTableau([control, target], conjugates=[Pauli('IZ'),Pauli('ZZ')])
+        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZI'),Pauli('ZZ')])
 
         super().__init__(XTableau, ZTableau, name=f'CNOT({control}->{target})')
 
