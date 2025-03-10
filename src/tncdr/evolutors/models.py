@@ -11,7 +11,8 @@ from tncdr.evolutors.tensor_network.w_utils import (
     pauli_pauli_expansion,
     basis_pauli_expansion,
     X_pauli_expansion,
-    theta_pauli_expansion
+    theta_pauli_expansion,
+    initial_state_on_pauli_basis,
 )
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
 from tncdr.evolutors.stabilizer import tableaus
@@ -27,10 +28,16 @@ class HybridSurrogate:
     Args:
         circuit (tncdr.targets.Ansatz): given quantum circuit in the form of a 
             tncdr ansatz class.
+        initial_state (qibo.models.Circuit): quantum circuit preparing the inital
+            state. It has to be composed of single-qubit gates only.
     """
     ansatz: Ansatz
+    initial_state: Circuit = None
 
     def __post_init__(self):
+        # Initial state is zero by default
+        if self.initial_state is None:
+            self.initial_state = Circuit(self.ansatz.nqubits)
 
         # Initializing the tensor network
         self.tn = TensorNetwork()
@@ -40,10 +47,27 @@ class HybridSurrogate:
         self._init_tn()
     
     def _init_tn(self):
-
-        #TODO Add first layer if available
+        # Check whether the initial state is constructed properly
+        # (with one-qubit gates only)
         for q in range(self.nqubits):
-            self.tn.add_tensor(f"T{q}", tensor=basis_pauli_expansion('0'))
+
+            light_circ, light_dict = self.initial_state.light_cone(q)
+            if len(light_dict.items()) > 1:
+                raise ValueError (
+                    "Ensure only 1-qubit gates compose the initial state preparation circuit."
+                )
+            else:
+                # Collecting amplitudes qubit per qubit
+                if len(light_circ.queue) == 0:
+                    init_tensor = basis_pauli_expansion('0')
+                else:
+                    amplitudes = light_circ().state()
+                    init_tensor = initial_state_on_pauli_basis(
+                        alpha = amplitudes[0],
+                        beta = amplitudes[1],
+                    )
+
+            self.tn.add_tensor(f"T{q}", tensor=init_tensor)
             
             #Add dummy nodes D to track the free edges mu
             self.tn.add_tensor(f'D{q}', tensor=basis_pauli_expansion('0'))

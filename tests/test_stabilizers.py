@@ -17,14 +17,14 @@ stab_circ.add(gates.Z(2))
 
 
 # Empty circuit
-empty_circ = Circuit(nqubits)
-[empty_circ.add(gates.RY(q=q, theta=0.2 + q)) for q in range(nqubits)]
-[empty_circ.add(gates.RZ(q=q, theta=0.4 + q)) for q in range(nqubits)]
+init_circ = Circuit(nqubits)
+[init_circ.add(gates.RY(q=q, theta=0.2 + q)) for q in range(nqubits)]
+[init_circ.add(gates.RZ(q=q, theta=0.4 + q)) for q in range(nqubits)]
 
 # Full circ
-circ = empty_circ + stab_circ
+circ = init_circ + stab_circ
 
-empty_circ.draw()
+init_circ.draw()
 print("\n\n")
 circ.draw()
 

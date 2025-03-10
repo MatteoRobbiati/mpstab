@@ -24,6 +24,15 @@ def pauli_pauli_expansion(p:str)->np.ndarray:
     return tensor
 
 @lru_cache(maxsize=None)
+def initial_state_on_pauli_basis(alpha: complex, beta: complex)->np.ndarray:
+    return np.array([
+                1., 
+                2 * np.real(alpha * np.conj(beta)),
+                2 * np.imag(alpha * np.conj(beta)),
+                np.abs(alpha)**2 - np.abs(beta)**2,
+            ]) / np.sqrt(2)
+
+@lru_cache(maxsize=None)
 def basis_pauli_expansion(initial_state_name:str)->np.ndarray:
     if initial_state_name=='0': return np.array([1.0,0.0,0.0,1.0])/np.sqrt(2)
     if initial_state_name=='1': return np.array([1.0,0.0,0.0,-1.0])/np.sqrt(2)

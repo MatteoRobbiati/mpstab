@@ -9,7 +9,7 @@ from scipy.stats import median_abs_deviation
 from qibo import hamiltonians, set_backend, symbols
 from tncdr.evolutors.models import HybridSurrogate
 from tncdr.targets.ansatze import HardwareEfficient
-from tncdr.evolutors.stabilizer.random_clifford import random_pauli
+# from tncdr.evolutors.stabilizer.random_clifford import random_pauli
 
 @click.command()
 @click.option('--nqubits', default=3, type=int, help='Number of qubits.')
