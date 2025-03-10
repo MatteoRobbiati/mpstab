@@ -1,6 +1,7 @@
 """Hybrid Stabilizer-MPO evolutor"""
 
 from dataclasses import dataclass
+from copy import deepcopy
 
 from qibo import Circuit
 
@@ -30,14 +31,24 @@ class HybridSurrogate:
     ansatz: Ansatz
 
     def __post_init__(self):
+
         # Initializing the tensor network
         self.tn = TensorNetwork()
         # Compute all the possible W tensors
         self.ws_map = _compute_all_w_tensors()
         # Add the initial state, which is |0> by default
+        self._init_tn()
+    
+    def _init_tn(self):
+
+        #TODO Add first layer if available
         for q in range(self.nqubits):
             self.tn.add_tensor(f"T{q}", tensor=basis_pauli_expansion('0'))
-        
+            
+            #Add dummy nodes D to track the free edges mu
+            self.tn.add_tensor(f'D{q}', tensor=basis_pauli_expansion('0'))
+            self.tn.add_edge(f"T{q}", f"D{q}", f"mu{q}", (0,0))
+
     @property
     def nqubits(self):
         return self.ansatz.circuit.nqubits
@@ -56,16 +67,11 @@ class HybridSurrogate:
             n_partitions=n_partitions,
             magic_gates_per_partition=magic_gates_per_partition,
         )
-
-        # TODO: fix this! because this works only then npartitions is 1!
-        # TODO: fix the problem of sign! It is counted as element in the list
-
-        # Evolve observable under ( C1 - C2 - C3 )_inv
-        new_observable = self.backpropagate_pauli(observable, sum(stab_layers, start=Circuit(self.nqubits)))
-        self.mpo_from_magic_circuit(magic_circuit=mag_layers[0])
-
-
-
+        
+        # Compute tn of the ansatz
+        self._build_tn_from_partition(mag_layers, stab_layers)
+        # Compute the conjugate of the observable
+        phase, new_observable = self.backpropagate_pauli(observable, sum(stab_layers, start=Circuit(self.nqubits)))
         # Collect partitions into a dictionary in case we want to return it
         if return_partitions:
             partitions = {
@@ -76,107 +82,103 @@ class HybridSurrogate:
         else:
             partitions = None
 
-        return self.contract_mpo_on_obs(new_observable), partitions
+        return phase*self.contract_tn_on_obs(new_observable), partitions
         
+    def _build_tn_from_partition(self, mag_layers, stab_layers):
+        """
+        Construct an MPO layer according to: https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604
+        and contract it from left to right.
+        """
 
-    def build_one_rotation_layer(self, gate, layer_number):
-        """Construct one horizontal layer of Ws, according to a given rotational gate."""
+        # check the stab layers, might be wrong
+        for i, magic_circuit in enumerate(mag_layers):
+            for gate in magic_circuit.queue:
 
+                phase, generator = self._conjugate_generator(gate, stab_layers[:i])
+                self._build_rotation_layer(-phase*gate.parameters[0], generator)
+                self._contract_rotation_layer()
+
+    def _conjugate_generator(self, gate, stabs):
+        """Conjugate a given gate generator by a sequence of Clifford circuits."""
+        
         if gate.name not in ["rx", "ry", "rz"]:
             raise ValueError("tncdr currently supports only rotational gates.")
         
+        generator = ''.join([gate2generator[gate.name] if q in gate.target_qubits else 'I' for q in range(self.nqubits)])
+        return self.backpropagate_pauli(generator, sum(stabs, start=Circuit(self.nqubits)))
+
+    def _build_rotation_layer(self, angle, generator):
+        """Construct one horizontal layer of Ws, according to a given generator."""
+
         # Add theta projection and X projection (very left and very right nodes of each row)
-        self.tn.add_tensor(f"Angle{layer_number}", tensor=theta_pauli_expansion(theta=gate.parameters[0]))
-        self.tn.add_tensor(id=f"X{layer_number}", tensor=X_pauli_expansion())
+        self.tn.add_tensor(f"Angle", tensor=theta_pauli_expansion(theta=angle))
+        self.tn.add_tensor(id=f"X", tensor=X_pauli_expansion())
 
-        # Add all the W operators
+        # Generate the rotation tensors
         for q in range(self.nqubits):
+            self.tn.add_tensor(f"W{q}", tensor=self.ws_map[generator[q]])
 
-            # Add Pauli W only where the rotation is applied
-            if q in gate.target_qubits:
-                self.tn.add_tensor(f"W{layer_number}{q}", tensor=self.ws_map[gate2generator[gate.name]])
-            # Add identity elsewhere
-            else:
-                self.tn.add_tensor(f"W{layer_number}{q}", tensor=self.ws_map["I"])
+        # Add Angle and X edges
+        self.tn.add_edge(f"Angle", f"W0", "w_link", (0,1))
+        self.tn.add_edge(f"W{self.nqubits-1}", f"X", "w_link", (0,0))
 
-            # If it is the first layer, connect to initial state
-            if layer_number == 0:
-                self.tn.add_edge(f"T{q}", f"W0{q}", "v_link", (0,2))
-            # Else, connect with the previous layer
-            else:
-                self.tn.add_edge(f"W{layer_number - 1}{q}", f"W{layer_number}{q}", "v_link", (3,2))
-
-        # Connect the first W of the row with the Angle node
-        self.tn.add_edge(f"Angle{layer_number}", f"W{layer_number}0", 'h_link', (0,1))
-
-        # Horizontal links
-        for q in range(self.nqubits - 1):
-            # Adding custom name to the edges because we need to collect all of 
-            # them at the end of the contraction
-            self.tn.add_edge(f"W{layer_number}{q}", f"W{layer_number}{q + 1}", f"h_link{layer_number}{q}", (0,1))
-
-        # Link with X projection
-        self.tn.add_edge(f"W{layer_number}{self.nqubits - 1}", f"X{layer_number}", "h_link", (0,0))
-  
-
-    def mpo_from_magic_circuit(self, magic_circuit:Circuit):
-        """
-        Construct an MPO layer according to: https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604
-        given a specific circuit made of magic gates only.
-
-        Args:
-            magic_circuit (qibo.Circuit): a circuit which is supposed to be composed 
-                of only magic gates.
-        """
-
-        # Sanity check - only magic gates are allowed here
-        for gate in magic_circuit.queue:
-            if gate.clifford:
-                raise ValueError("Ensure all the gates of the given circuit are magic!")
-            
-        # Number of rotation layers
-        self.n_rotation_layers = len(magic_circuit.queue)
-            
-        # construct the Network 
-        for i, gate in enumerate(magic_circuit.queue):
-            self.build_one_rotation_layer(gate, layer_number=i)
-
-
-    def contract_rotation_layer(self, layer_number: int):
-        """
-        Contract one rotation layer of the MPO. The upper directions are considered 
-        already contracted.
-        """
-        # Contract Theta with the first W
-        self.tn.contract(
-            f"Angle{layer_number}", f"temp{layer_number}0", "h_link", f"temp_left"
-        )
-        # Contract the last W with X
-        self.tn.contract(
-            f"temp{layer_number}{self.nqubits - 1}", f"X{layer_number}", "h_link", f"temp_right"
-        )
-        # Contract the vertical edges of the nodes in the middle
+        # Add horizontal edges
+        for q in range(self.nqubits-1):
+            self.tn.add_edge(f"W{q}", f"W{q+1}", "w_link", (0,1))
+        
+        # Add vertical edges and shift mu
         for q in range(self.nqubits):
-            # Isolating the three cases (Theta, X and Ws)
-            if q == 0:
-                up_label = "temp_left"
-            elif q == self.nqubits - 1:
-                up_label = "temp_right"
-            else:
-                up_label = f"temp{layer_number}{q}"
-            # Distinguishing a general case from last layer case (involving initial state)
-            if layer_number ==  0:
-                down_label = f"T{q}"
-                new_label = f"F{q}"
-            else:
-                down_label = f"W{layer_number - 1}{q}"
-                new_label = f"temp{layer_number - 1}{q}"
-            self.tn.draw(title="after_obs")
-            # Contracting
-            self.tn.contract(down_label, up_label, "v_link", new_label)
+            mu_direction = self.tn.tensornet.edges[f"T{q}", f"D{q}", f"mu{q}"]["directions"][0]
+            self.tn.remove_edge(f"T{q}", f"D{q}", f"mu{q}")
+            self.tn.add_edge(f"T{q}", f"W{q}", "v_link", (mu_direction,2))
+            self.tn.add_edge(f"W{q}", f"D{q}", f"mu{q}", (3,0))
 
+    def _contract_rotation_layer(self, bond_dimension=None):
 
-    def contract_mpo_on_obs(self, observable: str):
+        # Contract Angle and X edges
+        self.tn.contract("Angle", "W0", "w_link", f"W0")
+        self.tn.contract(f"W{self.nqubits-1}","X","w_link",f"W{self.nqubits-1}")
+        # Contract and SVD all the rest
+        self.tn.contract("T0", "W0", "v_link", f"T0")
+
+        for q in range(1,self.nqubits):
+            
+            horizontal_links, left_links, right_links = self._links(q)
+
+            self.tn.contract(f"T{q}", f"W{q}", "v_link", f"T{q}")
+            self.tn.contract(f"T{q-1}", f"T{q}", horizontal_links, f"tmp")
+            self.tn.svd_decomposition(
+                node='tmp',
+                left_node_id=f'T{q-1}',
+                left_node_edges=left_links,
+                right_node_id=f'T{q}',
+                right_node_edges=right_links,
+                middle_edge_left=f'chi{q}',
+                middle_edge_right='tmp_link',
+                max_bond_dimension=bond_dimension,
+            )
+            self.tn.contract(f"T{q}", "Lambda" ,'tmp_link', f"T{q}")
+
+    def _links(self, q):
+
+        horizontal_links = ['w_link']
+        left_links = [f'mu{q-1}']
+        right_links = [f'mu{q}']
+
+        if self.tn.tensornet.number_of_edges(f'T{q-1}',f'T{q}'):
+            horizontal_links.append(f'chi{q}')
+
+        if q > 1 and self.tn.tensornet.number_of_edges(f'T{q-2}',f'T{q-1}'):
+            left_links.append(f'chi{q-1}')
+
+        if q < self.nqubits-1: 
+            right_links.append(f'w_link')
+            if self.tn.tensornet.number_of_edges(f'T{q}',f'T{q+1}'):
+                right_links.append(f'chi{q+1}')
+            
+        return horizontal_links, left_links, right_links
+
+    def contract_tn_on_obs(self, observable: str):
         """
         Append the observable to the MPO and compute the contraction of 
         the whole structure to get the expectation value. 
@@ -185,43 +187,24 @@ class HybridSurrogate:
             observable (str): expected to be a string of Paulis.
         """
 
-        # TODO: shall we make a copy and re-use the same network structure?
+        tn = deepcopy(self.tn)
 
-        if observable[0] == "-":
-            final_sign = -1.
-            observable = observable[1:]
-        else:
-            final_sign = 1.
-
-        # Connect to the observable
+        # Connect to the observable and remove dummy tensor
         for n, pauli in enumerate(observable):
-            self.tn.add_tensor(f'O{n}', tensor=pauli_pauli_expansion(pauli))
-            self.tn.add_edge(f'W{self.n_rotation_layers - 1}{n}', f'O{n}', 'v_link', (3,0))
+            tn.add_tensor(f'O{n}', tensor=pauli_pauli_expansion(pauli))
+            
+            mu_direction = tn.tensornet.edges[f"T{n}", f"D{n}", f"mu{n}"]["directions"][0]
+            tn.remove_edge(f"T{n}", f"D{n}", f"mu{n}")
+            tn.add_edge(f'T{n}', f'O{n}', 'v_link', (mu_direction,0))
+            tn.tensornet.remove_node(f"D{n}")
 
-        self.tn.draw(title="start")
+        # Contract the last layer
+        for n in range(len(observable)-1):
+            tn.contract(f"T{n}", f"O{n}", "v_link", f"T{n}")
+            tn.contract(f"T{n}", f"T{n+1}", f"chi{n+1}", f"T{n+1}")
 
-        # Contract the O on the last layer of Ws
-        # Replace all Ws with temp nodes
-        for n in range(len(observable)):
-            self.tn.contract(f"W{self.n_rotation_layers - 1}{n}", f"O{n}", "v_link", f"temp{self.n_rotation_layers - 1}{n}")
-
-        # Now loop over the rotation layers and contract them all 
-        # (in the Land of Mordor, where the Shadows lie)
-        for l in reversed(range(self.n_rotation_layers)):
-            self.contract_rotation_layer(layer_number=l)
-            self.tn.draw(title=f"h_layer{l}")
-
-        
-        # Contract all the final h_links
-        for q in range(self.nqubits - 1):
-            if q == 0:
-                temp_label = "F0"
-            else:
-                temp_label = f"temp{q - 1}"
-            self.tn.contract(temp_label, f"F{q + 1}", self._retrieve_h_links(qubit=q), f"temp{q}")
-        
-        result = final_sign * float(self.tn.tensornet.nodes[f"temp{self.nqubits-2}"]["tensor"])
-        return result
+        tn.contract(f"T{len(observable)-1}", f"O{len(observable)-1}", "v_link", f"F")
+        return float(tn.tensornet.nodes["F"]["tensor"])
 
     def backpropagate_pauli(self, observable: str, stabilizer_circuit: Circuit):
         """
@@ -232,17 +215,5 @@ class HybridSurrogate:
         propagator = Pauli(observable)
         for gate in stabilizer_circuit.invert().queue:
             propagator.apply(getattr(tableaus, gate2tableau[gate.name])(*gate.qubits))
-        return propagator.__repr__()
 
-
-    def _retrieve_h_links(self, qubit: int):
-        """Construct list of all existing horizontal links for `qubit`."""
-        return [f"h_link{n}{qubit}" for n in range(self.n_rotation_layers)]
-
-
-
-
-
-
-        
-        
+        return propagator.complex_phase(), propagator.to_string(ignore_phase=True)
