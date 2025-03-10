@@ -207,6 +207,11 @@ def multi_trace(tensor, directions_in, directions_out):
 
     return tensor
 
+def _complex_conjugate(tensornet):
+    for t in list(tensornet.nodes):
+        tensornet.nodes[t]['tensor'] = np.conj(tensornet.nodes[t]['tensor'])
+        nx.relabel_nodes(tensornet, {t:f'{t}_dg'}, copy=False)
+
 def _bond_dimension_cut(U, D, V, max_bond_dimension):
     
     if max_bond_dimension is None:

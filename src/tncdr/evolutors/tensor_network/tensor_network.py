@@ -8,7 +8,8 @@ from tncdr.evolutors.tensor_network.tn_utils import (
     paulis, 
     draw_tn, 
     multi_trace, 
-    _bond_dimension_cut
+    _bond_dimension_cut,
+    _complex_conjugate,
 )
 
 @dataclass
@@ -49,6 +50,9 @@ class TensorNetwork:
             id=id,
             tensor=tensor
         )
+
+    def complex_conjugate(self):
+        return _complex_conjugate(self.tensornet)
 
     def add_edge(self, node_in:str, node_out:str, edge_id:str, directions:tuple[int, int], **edge_metadata):
 
@@ -315,4 +319,10 @@ class TensorNetwork:
             self.remove_edge(node_in=u, node_out=v, edge_id=edge_id)
             self.add_edge(node_in=u, node_out=new_node_id, edge_id=edge_id, directions=directions)
 
-     
+def merge_tns(tn1:TensorNetwork, tn2:TensorNetwork):
+
+    new_tensornet = nx.union(tn1.tensornet, tn2.tensornet)
+    new_tn = TensorNetwork()
+    new_tn.tensornet = new_tensornet
+
+    return new_tn
