@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import numpy as np
 
 from tncdr.evolutors.tensor_network.tensor_network import TensorNetwork 
@@ -8,7 +10,6 @@ all_pauli_tensor = np.array([paulis['I'], paulis['X'], paulis['Y'],paulis['Z']])
 
 # Compute W tensors
 def _compute_all_w_tensors()->np.ndarray:
-
     Ws = {}
     for p in paulis.keys():
         tn = _W_tn(p)
@@ -16,11 +17,13 @@ def _compute_all_w_tensors()->np.ndarray:
     return Ws
 
 # Measurements
+@lru_cache(maxsize=None)
 def pauli_pauli_expansion(p:str)->np.ndarray:
     tensor = np.zeros(4)
     tensor['IXYZ'.find(p)] = np.sqrt(2)
     return tensor
 
+@lru_cache(maxsize=None)
 def basis_pauli_expansion(initial_state_name:str)->np.ndarray:
     if initial_state_name=='0': return np.array([1.0,0.0,0.0,1.0])/np.sqrt(2)
     if initial_state_name=='1': return np.array([1.0,0.0,0.0,-1.0])/np.sqrt(2)
@@ -28,12 +31,13 @@ def basis_pauli_expansion(initial_state_name:str)->np.ndarray:
     if initial_state_name=='-': return np.array([1.0,-1.0,0.0,0.0])/np.sqrt(2)
     raise ValueError(f'Basis element descriptor must be either 0,1,+ or -. "Given {initial_state_name}".')
 
+@lru_cache(maxsize=None)
 def theta_pauli_expansion(theta:float)->np.ndarray:
     c, s = np.cos(theta/2), np.sin(theta/2)
-
     # Projection in *normalized* the pauli basis
     return np.array([1.0,0.0,2*c*s,c**2-s**2])/np.sqrt(2)
 
+@lru_cache(maxsize=None)
 def X_pauli_expansion():
     return np.array([1.0,1.0,0.0,0.0])*np.sqrt(2)
 
