@@ -1,5 +1,5 @@
-from tncdr.stabilizer_mps.tableaus import CNOT, H, S
-from tncdr.stabilizer_mps.pauli_string import Pauli
+from tncdr.evolutors.stabilizer.tableaus import CNOT, H, S
+from tncdr.evolutors.stabilizer.pauli_string import Pauli
 
 two_qubit_pauli = ['I', 'X', 'Y', 'Z', 'XI', 'XX', 'XY', 'XZ', 'YI', 'YX', 'YY', 'YZ','ZI', 'ZX', 'ZY', 'ZZ']
 single_qubit_pauli = ['I', 'X', 'Y', 'Z']

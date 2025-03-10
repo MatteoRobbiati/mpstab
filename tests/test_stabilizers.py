@@ -11,7 +11,8 @@ nqubits = 4
 # Circuit with only Clifford gates
 stab_circ = Circuit(nqubits)
 [stab_circ.add(gates.H(q)) for q in range(nqubits)]
-[stab_circ.add(gates.CZ(q % nqubits, (q + 1) % nqubits)) for q in range(nqubits)]
+[stab_circ.add(gates.CNOT(q % nqubits, (q + 1) % nqubits)) for q in range(nqubits)]
+stab_circ.add(gates.Z(2))
 # [stab_circ.add(gates.H(q)) for q in range(nqubits)]
 
 
