@@ -132,8 +132,9 @@ class TensorNetwork:
             left_node_edges:Union[str, list[str]],
             right_node_id:str, 
             right_node_edges:Union[str, list[str]],
-            middle_node_id:str,
-            middle_edge:str,
+            middle_node_id:str='Lambda',
+            middle_edge_left:str='chi',
+            middle_edge_right:str='chi',
             max_bond_dimension:Optional[int]=None,
         ):
         
@@ -153,7 +154,7 @@ class TensorNetwork:
             np.prod(tensor.shape[len(left_node_edges):])
         )
         new_l_shape = *tensor.shape[:len(left_node_edges)],-1
-        new_r_shape = -1,*tensor.shape[:len(left_node_edges)]
+        new_r_shape = -1,*tensor.shape[len(left_node_edges):]
         tensor=np.reshape(tensor, matrix_shape)
 
         # Perform SVD
@@ -170,8 +171,8 @@ class TensorNetwork:
         self.add_tensor(id=right_node_id, tensor=right_tensor)
         self.add_tensor(id=middle_node_id, tensor=middle_tensor)
 
-        self.add_edge(node_in=left_node_id, node_out=middle_node_id, edge_id=f'{middle_edge}_l', directions=(len(left_node_edges),0))
-        self.add_edge(node_in=right_node_id, node_out=middle_node_id, edge_id=f'{middle_edge}_r', directions=(0,1))
+        self.add_edge(node_in=left_node_id, node_out=middle_node_id, edge_id=middle_edge_left, directions=(len(left_node_edges),0))
+        self.add_edge(node_in=right_node_id, node_out=middle_node_id, edge_id=middle_edge_right, directions=(0,1))
         
         # Re-establish the old connections
         self._reconnect_edges(
