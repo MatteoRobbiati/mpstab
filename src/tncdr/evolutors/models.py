@@ -5,18 +5,18 @@ from copy import deepcopy
 
 from qibo import Circuit
 
-from tncdr.evolutors.tensor_network import TensorNetwork
-from tncdr.evolutors.tensor_network.w_utils import (
-    _compute_all_w_tensors,
-    pauli_pauli_expansion,
-    basis_pauli_expansion,
-    X_pauli_expansion,
-    theta_pauli_expansion,
-    initial_state_on_pauli_basis,
+from tncdr.evolutors.tensor_network import TensorNetwork, merge_tns
+from tncdr.evolutors.tensor_network.s_utils import (
+    _compute_all_s_tensors,
+    basis,
+    theta_state,
+    generic_state,
+    X_state,
 )
+from tncdr.evolutors.tensor_network.tn_utils import paulis
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
 from tncdr.evolutors.stabilizer import tableaus
-from tncdr.evolutors.utils import gate2generator, gate2tableau
+from tncdr.evolutors.utils import gate2generator, gate2tableau, _link_to_dummy
 from tncdr.targets.ansatze import Ansatz
 
 
@@ -42,7 +42,7 @@ class HybridSurrogate:
         # Initializing the tensor network
         self.tn = TensorNetwork()
         # Compute all the possible W tensors
-        self.ws_map = _compute_all_w_tensors()
+        self.s_map = _compute_all_s_tensors()
         # Add the initial state, which is |0> by default
         self._init_tn()
     
@@ -59,10 +59,10 @@ class HybridSurrogate:
             else:
                 # Collecting amplitudes qubit per qubit
                 if len(light_circ.queue) == 0:
-                    init_tensor = basis_pauli_expansion('0')
+                    init_tensor = basis('0')
                 else:
                     amplitudes = light_circ().state()
-                    init_tensor = initial_state_on_pauli_basis(
+                    init_tensor = generic_state(
                         alpha = amplitudes[0],
                         beta = amplitudes[1],
                     )
@@ -70,7 +70,7 @@ class HybridSurrogate:
             self.tn.add_tensor(f"T{q}", tensor=init_tensor)
             
             #Add dummy nodes D to track the free edges mu
-            self.tn.add_tensor(f'D{q}', tensor=basis_pauli_expansion('0'))
+            self.tn.add_tensor(f'D{q}', tensor=basis('0'))
             self.tn.add_edge(f"T{q}", f"D{q}", f"mu{q}", (0,0))
 
     @property
@@ -119,7 +119,7 @@ class HybridSurrogate:
             for gate in magic_circuit.queue:
 
                 phase, generator = self._conjugate_generator(gate, stab_layers[:i])
-                self._build_rotation_layer(-phase*gate.parameters[0], generator)
+                self._build_rotation_layer(phase*gate.parameters[0], generator)
                 self._contract_rotation_layer()
 
     def _conjugate_generator(self, gate, stabs):
@@ -135,41 +135,42 @@ class HybridSurrogate:
         """Construct one horizontal layer of Ws, according to a given generator."""
 
         # Add theta projection and X projection (very left and very right nodes of each row)
-        self.tn.add_tensor(f"Angle", tensor=theta_pauli_expansion(theta=angle))
-        self.tn.add_tensor(id=f"X", tensor=X_pauli_expansion())
+        self.tn.add_tensor(f"Angle", tensor=theta_state(theta=angle))
+        self.tn.add_tensor(id=f"X", tensor=X_state())
 
         # Generate the rotation tensors
         for q in range(self.nqubits):
-            self.tn.add_tensor(f"W{q}", tensor=self.ws_map[generator[q]])
+            self.tn.add_tensor(f"S{q}", tensor=self.s_map[generator[q]])
 
         # Add Angle and X edges
-        self.tn.add_edge(f"Angle", f"W0", "w_link", (0,1))
-        self.tn.add_edge(f"W{self.nqubits-1}", f"X", "w_link", (0,0))
+        self.tn.add_edge(f"Angle", f"S0", "s_link", (0,2))
+        self.tn.add_edge(f"S{self.nqubits-1}", f"X", "s_link", (3,0))
 
         # Add horizontal edges
         for q in range(self.nqubits-1):
-            self.tn.add_edge(f"W{q}", f"W{q+1}", "w_link", (0,1))
+            self.tn.add_edge(f"S{q}", f"S{q+1}", "s_link", (3,2))
         
         # Add vertical edges and shift mu
         for q in range(self.nqubits):
             mu_direction = self.tn.tensornet.edges[f"T{q}", f"D{q}", f"mu{q}"]["directions"][0]
             self.tn.remove_edge(f"T{q}", f"D{q}", f"mu{q}")
-            self.tn.add_edge(f"T{q}", f"W{q}", "v_link", (mu_direction,2))
-            self.tn.add_edge(f"W{q}", f"D{q}", f"mu{q}", (3,0))
+            self.tn.add_edge(f"T{q}", f"S{q}", "v_link", (mu_direction,1))
+            self.tn.add_edge(f"S{q}", f"D{q}", f"mu{q}", (0,0))
 
     def _contract_rotation_layer(self, bond_dimension=None):
 
         # Contract Angle and X edges
-        self.tn.contract("Angle", "W0", "w_link", f"W0")
-        self.tn.contract(f"W{self.nqubits-1}","X","w_link",f"W{self.nqubits-1}")
+        self.tn.contract("Angle", "S0", "s_link", f"S0")
+        self.tn.contract(f"S{self.nqubits-1}","X","s_link",f"S{self.nqubits-1}")
+
         # Contract and SVD all the rest
-        self.tn.contract("T0", "W0", "v_link", f"T0")
+        self.tn.contract("T0", "S0", "v_link", f"T0")
 
         for q in range(1,self.nqubits):
             
             horizontal_links, left_links, right_links = self._links(q)
 
-            self.tn.contract(f"T{q}", f"W{q}", "v_link", f"T{q}")
+            self.tn.contract(f"T{q}", f"S{q}", "v_link", f"T{q}")
             self.tn.contract(f"T{q-1}", f"T{q}", horizontal_links, f"tmp")
             self.tn.svd_decomposition(
                 node='tmp',
@@ -185,7 +186,7 @@ class HybridSurrogate:
 
     def _links(self, q):
 
-        horizontal_links = ['w_link']
+        horizontal_links = ['s_link']
         left_links = [f'mu{q-1}']
         right_links = [f'mu{q}']
 
@@ -196,7 +197,7 @@ class HybridSurrogate:
             left_links.append(f'chi{q-1}')
 
         if q < self.nqubits-1: 
-            right_links.append(f'w_link')
+            right_links.append(f's_link')
             if self.tn.tensornet.number_of_edges(f'T{q}',f'T{q+1}'):
                 right_links.append(f'chi{q+1}')
             
@@ -212,22 +213,27 @@ class HybridSurrogate:
         """
 
         tn = deepcopy(self.tn)
+        tn_dg = deepcopy(self.tn)
+        tn_dg.complex_conjugate()
 
+        tn = merge_tns(tn, tn_dg)
+        
         # Connect to the observable and remove dummy tensor
-        for n, pauli in enumerate(observable):
-            tn.add_tensor(f'O{n}', tensor=pauli_pauli_expansion(pauli))
-            
-            mu_direction = tn.tensornet.edges[f"T{n}", f"D{n}", f"mu{n}"]["directions"][0]
-            tn.remove_edge(f"T{n}", f"D{n}", f"mu{n}")
-            tn.add_edge(f'T{n}', f'O{n}', 'v_link', (mu_direction,0))
-            tn.tensornet.remove_node(f"D{n}")
+        for n, p in enumerate(observable):
+            tn.add_tensor(f'O{n}', tensor=paulis[p])
+            _link_to_dummy(tn, f'D{n}', f'O{n}', 0)
+            _link_to_dummy(tn, f'D{n}_dg', f'O{n}', 1)
 
         # Contract the last layer
-        for n in range(len(observable)-1):
-            tn.contract(f"T{n}", f"O{n}", "v_link", f"T{n}")
-            tn.contract(f"T{n}", f"T{n+1}", f"chi{n+1}", f"T{n+1}")
+        tn.contract(f"T{0}", f"O{0}", "v_link", "F")
+        tn.contract(f"T{0}_dg", "F", "v_link", "F")
+        
+        for n in range(1,len(observable)):
+            tn.contract("F", f"T{n}", f"chi{n}", "F")
+            tn.contract("F", f"O{n}", "v_link", "F")
+            tn.contract("F", f"T{n}_dg", f"chi{n}", "F")
+            tn.contract("F", "F", "v_link", "F")
 
-        tn.contract(f"T{len(observable)-1}", f"O{len(observable)-1}", "v_link", f"F")
         return float(tn.tensornet.nodes["F"]["tensor"])
 
     def backpropagate_pauli(self, observable: str, stabilizer_circuit: Circuit):
