@@ -192,7 +192,13 @@ def draw_tn(tn, show_labels=False, title=""):
         plt.savefig(f"../plots/{title}.png", bbox_inches="tight")
 
 
-def multi_trace(tensor, directions_in, directions_out):
+def multi_trace(tensor, directions_in:list[int], directions_out:list[int]):
+    """
+    Trace out the indices correpoding to the directios specified.
+    
+    Uses np.trace iteratively to achieve it, in addition to dynamical handling of the directions
+    to be conrtracted 
+    """
     
     while len(directions_in)>0:
 
@@ -207,12 +213,22 @@ def multi_trace(tensor, directions_in, directions_out):
 
     return tensor
 
-def _complex_conjugate(tensornet):
+def _complex_conjugate(tensornet:nx.MultiDiGraph):
+    """
+    Given a graph corresponding to a TensorNetwork, take the complex conjugate of each tensor.
+    """
+
     for t in list(tensornet.nodes):
         tensornet.nodes[t]['tensor'] = np.conj(tensornet.nodes[t]['tensor'])
         nx.relabel_nodes(tensornet, {t:f'{t}_dg'}, copy=False)
 
 def _bond_dimension_cut(U, D, V, max_bond_dimension):
+    """
+    Given the output of an SVD procedure, remove the smallest singular values that exceed the 
+    maximum allowed number, max_bond_dimension.
+
+    Assumes that the singular values are stored in descending order in D.
+    """
     
     if max_bond_dimension is None:
         bond_dimension = np.count_nonzero(D)
