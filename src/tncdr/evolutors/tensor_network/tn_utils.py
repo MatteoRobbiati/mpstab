@@ -233,6 +233,6 @@ def _bond_dimension_cut(U, D, V, max_bond_dimension):
     if max_bond_dimension is None:
         bond_dimension = np.count_nonzero(D)
     else:
-        bond_dimension = np.min(max_bond_dimension, np.count_nonzero(D))
+        bond_dimension = np.min([max_bond_dimension, np.count_nonzero(D)])
 
     return U[:,:bond_dimension], D[:bond_dimension], V[:bond_dimension,:]
