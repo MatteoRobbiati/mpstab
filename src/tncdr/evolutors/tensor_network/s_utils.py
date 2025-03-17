@@ -28,7 +28,7 @@ def theta_state(theta:float)->np.ndarray:
 def X_state()->np.ndarray:
     return np.array([1.0,1.0])
 
-@lru_cache(maxsize=None)
+# @lru_cache(maxsize=None)
 def generic_state(alpha:complex, beta:complex)->np.ndarray:
     
     # Projection in *normalized* the pauli basis

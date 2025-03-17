@@ -6,7 +6,13 @@ from pathlib import Path
 import numpy as np
 from scipy.stats import median_abs_deviation
 
-from qibo import hamiltonians, set_backend, symbols
+from qibo import (
+    hamiltonians, 
+    set_backend, 
+    symbols,
+    Circuit,
+    gates,
+)
 from tncdr.evolutors.models import HybridSurrogate
 from tncdr.targets.ansatze import HardwareEfficient
 # from tncdr.evolutors.stabilizer.random_clifford import random_pauli
@@ -37,6 +43,10 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed, 
     # Construct the ansatz with the given number of qubits and layers
     ansatz = HardwareEfficient(nqubits=nqubits, nlayers=nlayers, entangling=True)
 
+    # Initial state preparation
+    init_state = Circuit(nqubits=nqubits)
+    [init_state.add(gates.RY(q=q, theta=0.)) for q in range(nqubits)]
+
     times, circuit_expvals, surrogate_expvals = [], [], []
     # TODO: optimize this loop
     for i in range(n_runs):
@@ -49,9 +59,12 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed, 
         # Set random parameters for the circuit
         params = np.random.randn(len(ansatz.circuit.get_parameters()))
         ansatz.circuit.set_parameters(params)
+
+        # New random params in the state
+        init_state.set_parameters(np.random.uniform(-np.pi, np.pi, nqubits))
             
         # Construct the hybrid surrogate evolutor using the ansatz
-        evo = HybridSurrogate(ansatz)
+        evo = HybridSurrogate(ansatz=ansatz, initial_state=init_state)
 
         # Compute the expectation value using the given number of partitions and magic gates per partition
         result, partitions = evo.expectation_from_partition(
@@ -68,7 +81,7 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed, 
 
         # Compute the expectation value using the symbolic Hamiltonian
         ham = hamiltonians.SymbolicHamiltonian(form=form)
-        exact_expval = ham.expectation(partitions["full_circuit"]().state())
+        exact_expval = ham.expectation((init_state + partitions["full_circuit"])().state())
 
         # Compute elapsed time
         elapsed_time = time.time() - start_time

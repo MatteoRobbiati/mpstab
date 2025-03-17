@@ -5,6 +5,7 @@ import random
 import numpy as np
 
 from qibo import Circuit, gates
+from qibo.noise import NoiseModel
 
 from dataclasses import dataclass
 from abc import ABC
@@ -19,6 +20,8 @@ class Ansatz(ABC):
 
     def __post_init__(self):
         self._circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
+        self.noise_model = None
+        self.noisy_circuit = None
 
     @property
     def circuit(self):
@@ -57,10 +60,29 @@ class Ansatz(ABC):
         self.circuit.set_parameters(new_parameters)
         return self.circuit
     
-    def execute(self, nshots: int = None):
+    def execute(self, nshots: int = None, initial_state: Circuit = None, with_noise : bool = False):
         """Execute the circuit and return the outcome."""
-        return self.circuit(nshots=nshots)
+        # Default empty initial circuit
+        if initial_state is None:
+            init_circuit = Circuit(self.nqubits)
         
+        if with_noise:
+            if self.noisy_circuit is None:
+                raise ValueError(
+                    f"Before asking for noisy simulation, ensure the noise model is set via the `update_noise_model` method."
+                )
+            if len(init_circuit.queue) != 0:
+                init_circuit = self.noise_model.apply(init_circuit)
+            result = (init_circuit + self.noisy_circuit)(nshots=nshots)
+        else:
+            result = (init_circuit + self.circuit)(nshots=nshots)
+        return result
+        
+    def update_noise_model(self, noise_model: NoiseModel):
+        """Construct an attribute which is the noisy version of circuit."""
+        self.noise_model = noise_model
+        self.noisy_circuit = noise_model.apply(self.circuit)
+
 
 
 @dataclass
@@ -127,9 +149,9 @@ class HardwareEfficient(Ansatz):
         layers_map = {str(value): index for index, value in enumerate(target_layers)}
         # These list will contain the circuits composing the partitionate circuit
         # Each list will be containing a sub-circuit
-        magic_layers = [Circuit(self.nqubits) for _ in range(n_partitions)]
-        stabilizer_layers = [Circuit(self.nqubits) for _ in range(n_partitions)]
-        partitioned_circuit = Circuit(self.nqubits)
+        magic_layers = [Circuit(self.nqubits, density_matrix=self.density_matrix) for _ in range(n_partitions)]
+        stabilizer_layers = [Circuit(self.nqubits, density_matrix=self.density_matrix) for _ in range(n_partitions)]
+        partitioned_circuit = Circuit(self.nqubits, density_matrix=self.density_matrix)
 
         partition_block = 0
         for i in range(self.nlayers):
@@ -173,6 +195,6 @@ class HardwareEfficient(Ansatz):
     
     def entanglement_layer(self):
         """Construct an entanglement layer compatible with the target quantum circuit."""
-        ent_circuit = Circuit(self.nqubits)
+        ent_circuit = Circuit(self.nqubits, density_matrix=self.density_matrix)
         [ ent_circuit.add(gates.CZ(q0=q%self.nqubits, q1=(q+1)%self.nqubits)) for q in range(self.nqubits) ]
         return ent_circuit
