@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from copy import deepcopy
+from typing import Optional
 
 from qibo import Circuit
 
@@ -83,6 +84,7 @@ class HybridSurrogate:
             magic_gates_per_partition, 
             observable,
             return_partitions=False,
+            max_bond_dimension: Optional[int] = None 
         ):
         """Sample a partition of the given ansatz."""
 
@@ -93,7 +95,7 @@ class HybridSurrogate:
         )
         
         # Compute tn of the ansatz
-        self._build_tn_from_partition(mag_layers, stab_layers)
+        self._build_tn_from_partition(mag_layers, stab_layers, max_bond_dimension=max_bond_dimension)
         # Compute the conjugate of the observable
         phase, new_observable = self.backpropagate_pauli(observable, sum(stab_layers, start=Circuit(self.nqubits)))
         # Collect partitions into a dictionary in case we want to return it
@@ -108,7 +110,7 @@ class HybridSurrogate:
 
         return phase*self.contract_tn_on_obs(new_observable), partitions
         
-    def _build_tn_from_partition(self, mag_layers, stab_layers):
+    def _build_tn_from_partition(self, mag_layers, stab_layers, max_bond_dimension):
         """
         Construct an MPO layer according to: https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604
         and contract it from left to right.
@@ -120,7 +122,7 @@ class HybridSurrogate:
 
                 phase, generator = self._conjugate_generator(gate, stab_layers[:i])
                 self._build_rotation_layer(phase*gate.parameters[0], generator)
-                self._contract_rotation_layer()
+                self._contract_rotation_layer(bond_dimension=max_bond_dimension)
 
     def _conjugate_generator(self, gate, stabs):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""

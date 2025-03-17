@@ -64,18 +64,19 @@ class Ansatz(ABC):
         """Execute the circuit and return the outcome."""
         # Default empty initial circuit
         if initial_state is None:
-            init_circuit = Circuit(self.nqubits)
+            initial_state = Circuit(self.nqubits, density_matrix=self.density_matrix)
         
         if with_noise:
             if self.noisy_circuit is None:
                 raise ValueError(
                     f"Before asking for noisy simulation, ensure the noise model is set via the `update_noise_model` method."
                 )
-            if len(init_circuit.queue) != 0:
-                init_circuit = self.noise_model.apply(init_circuit)
-            result = (init_circuit + self.noisy_circuit)(nshots=nshots)
+            if len(initial_state.queue) != 0:
+                initial_state.density_matrix = True
+                initial_state = self.noise_model.apply(initial_state)
+            result = (initial_state + self.noisy_circuit)(nshots=nshots)
         else:
-            result = (init_circuit + self.circuit)(nshots=nshots)
+            result = (initial_state + self.circuit)(nshots=nshots)
         return result
         
     def update_noise_model(self, noise_model: NoiseModel):
@@ -166,13 +167,15 @@ class HardwareEfficient(Ansatz):
                         partitioned_circuit.add(gate)
                         magic_layers[partition_block].add(gate)
                     else:
-                        new_gate = sample_random_pauli_gate(qubit=gate.qubits[0])
+                        # new_gate = sample_random_pauli_gate(qubit=gate.qubits[0])
+                        new_gate = gates.Y(gate.qubits[0])
                         partitioned_circuit.add(new_gate)
                         stabilizer_layers[partition_block].add(new_gate)
             else:
                 layer_gates = self.parametric_layer(layer_index=i)
                 for j, gate in enumerate(layer_gates):
-                    new_gate = sample_random_pauli_gate(qubit=gate.qubits[0])
+                    # new_gate = sample_random_pauli_gate(qubit=gate.qubits[0])
+                    new_gate = gates.Y(gate.qubits[0])
                     partitioned_circuit.add(new_gate)
                     stabilizer_layers[partition_block].add(new_gate)
             

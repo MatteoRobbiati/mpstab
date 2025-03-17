@@ -2,6 +2,7 @@ from typing import Optional
 
 import numpy as np
 from scipy.optimize import curve_fit
+import tqdm
 
 from qibo import (
     Circuit,
@@ -24,7 +25,9 @@ def tncdr(
         ncircuits: int = 50,
         nshots: Optional[int] = None,
         random_seed: int = 42,
-        fit_map=lambda x, a, b: a * x + b  
+        fit_map=lambda x, a, b: a * x + b,
+        expval_threshold: float = 1e-7,  
+        max_bond_dimension: Optional[int] = None,
     ):
 
     # Fix the RNG seed for reproducibility
@@ -40,11 +43,8 @@ def tncdr(
     # Compute the expectation value using the symbolic Hamiltonian
     ham = hamiltonians.SymbolicHamiltonian(form=form)
 
-    # Update noise into the ansatz
-    ansatz.update_noise_model(noise_model)
-
-    # Construct the hybrid surrogate
-    evo = HybridSurrogate(ansatz=ansatz, initial_state=initial_state)
+    # # Update noise into the ansatz
+    # ansatz.update_noise_model(noise_model)
 
     # Here we collect the tncdr results
     training_data = {
@@ -53,20 +53,31 @@ def tncdr(
     }
 
     for i in range(ncircuits):
+        # Construct the hybrid surrogate
+        evo = HybridSurrogate(ansatz=ansatz, initial_state=initial_state)
+
         # Exact expval from surrogate
-        exact_expval, _ = evo.expectation_from_partition(
+        exact_expval, partitions = evo.expectation_from_partition(
             n_partitions=npartitions,
             magic_gates_per_partition=magic_gates_per_partition,
             observable=observable,
-            return_partitions=False,
+            return_partitions=True,
+            max_bond_dimension=max_bond_dimension,
         )
-        # Noisy expval from noisy simulator
-        noisy_result = ansatz.execute(
-            nshots=nshots, 
-            initial_state=initial_state, 
-            with_noise=True
+
+        if np.abs(exact_expval) < expval_threshold:
+            continue
+    
+        sampled_circuit = density_matrix_circuit(partitions["full_circuit"])
+        initialised_sampled_circuit = density_matrix_circuit(initial_state) + sampled_circuit
+        noisy_init_sampled_circuit = noise_model.apply(initialised_sampled_circuit)
+        noisy_expval = ham.expectation_from_samples(
+            noisy_init_sampled_circuit(
+                nshots=nshots
+            ).frequencies()
         )
-        noisy_expval = ham.expectation(noisy_result.state())
+
+        print(f"exact: {exact_expval}\t", f"noisy: {noisy_expval}")
 
         training_data["exact_expvals"].append(exact_expval)
         training_data["noisy_expvals"].append(noisy_expval)
@@ -79,3 +90,10 @@ def tncdr(
     popt, _ = curve_fit(fit_map, noisy_array, exact_array)
 
     return training_data, popt
+
+
+def density_matrix_circuit(circuit):
+    circ = Circuit(circuit.nqubits, density_matrix=True)
+    for gate in circuit.queue:
+        circ.add(gate)
+    return circ

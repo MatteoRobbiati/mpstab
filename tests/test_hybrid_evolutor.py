@@ -37,7 +37,7 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed):
     ansatz = HardwareEfficient(nqubits=nqubits, nlayers=nlayers, entangling=True)
 
     # Initial state
-    init_circ = Circuit(nqubits=nqubits)
+    init_circ = Circuit(nqubits=nqubits, density_matrix=False)
     for q in range(nqubits):
         init_circ.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
 

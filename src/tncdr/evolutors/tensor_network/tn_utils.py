@@ -8,6 +8,7 @@ from matplotlib.patches import FancyArrowPatch, Patch
 from collections import defaultdict
 import matplotlib.cm as cm
 
+SVD_CUT = 1e-10
 
 paulis = {
     'I':np.eye(2, dtype=np.complex64),
@@ -215,8 +216,8 @@ def _complex_conjugate(tensornet):
 def _bond_dimension_cut(U, D, V, max_bond_dimension):
     
     if max_bond_dimension is None:
-        bond_dimension = np.count_nonzero(D)
+        bond_dimension = np.count_nonzero(D > SVD_CUT)
     else:
-        bond_dimension = np.min(max_bond_dimension, np.count_nonzero(D))
+        bond_dimension = np.min([max_bond_dimension, np.count_nonzero(D > SVD_CUT)])
 
-    return U[:,:bond_dimension], D[:bond_dimension], V[:bond_dimension,:]
+    return U[:,:bond_dimension], D[:bond_dimension] / np.sqrt(np.sum(D[:bond_dimension]**2)), V[:bond_dimension,:]
