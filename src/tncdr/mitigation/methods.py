@@ -61,11 +61,12 @@ def tncdr(
             return_partitions=False,
         )
         # Noisy expval from noisy simulator
-        noisy_expval = ansatz.execute(
+        noisy_result = ansatz.execute(
             nshots=nshots, 
             initial_state=initial_state, 
             with_noise=True
         )
+        noisy_expval = ham.expectation(noisy_result.state())
 
         training_data["exact_expvals"].append(exact_expval)
         training_data["noisy_expvals"].append(noisy_expval)

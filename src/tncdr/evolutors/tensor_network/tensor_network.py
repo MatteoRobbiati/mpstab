@@ -152,7 +152,7 @@ class TensorNetwork:
         
         # Transpose and reshape into a matrix
         transposition_vector = self._svd_transposition_vector(node, left_node_edges, right_node_edges)
-        tensor = np.ascontiguousarray(np.transpose(tensor, transposition_vector))
+        # tensor = np.ascontiguousarray(np.transpose(tensor, transposition_vector))
         matrix_shape = (
             np.prod(tensor.shape[:len(left_node_edges)]),
             np.prod(tensor.shape[len(left_node_edges):])

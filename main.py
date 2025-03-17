@@ -18,7 +18,7 @@ from tncdr.targets.ansatze import HardwareEfficient
 # from tncdr.evolutors.stabilizer.random_clifford import random_pauli
 
 @click.command()
-@click.option('--nqubits', default=3, type=int, help='Number of qubits.')
+@click.option('--nqubits', default=7, type=int, help='Number of qubits.')
 @click.option('--nlayers', default=3, type=int, help='Number of layers in the ansatz.')
 @click.option('--npartitions', default=2, type=int, help='Number of partitions.')
 @click.option('--magic_gates_per_partition', default=1, type=int, help='Number of magic gates per partition.')
