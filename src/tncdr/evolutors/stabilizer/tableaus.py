@@ -138,3 +138,55 @@ class Y(Tableau):
         ZTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
 
         super().__init__(XTableau, ZTableau, name=f'Y({target})')
+
+
+class RY(Tableau):
+    """
+    Implements the single-qubit RY rotation as a Tableau.
+    
+    The angle must be an integer multiple of π/2 for the operation to be Clifford.
+    Acceptable angles include negative multiples. In particular,
+    
+      angle = k * (π/2)  with k ∈ ℤ
+      
+    For example, np.random.randint(-2, 3) * np.pi / 2 is allowed.
+    
+    The transformation rules on the target qubit are:
+      - RY(0) or equivalent: Identity (X → X, Z → Z)
+      - RY(π/2):    X → -Z, Z → X.
+      - RY(π)   or RY(-π):  X → -X, Z → -Z. (Equivalent to the Y gate)
+      - RY(3π/2) or equivalently RY(-π/2): X → Z, Z → -X.
+    """
+    def __init__(self, target: int, angle: float) -> None:
+        tol = 1e-8
+        # Check if the angle is a multiple of π/2.
+        factor = angle / (math.pi / 2)
+        if abs(factor - round(factor)) > tol:
+            raise ValueError("Angle must be a multiple of π/2 for a Clifford operation.")
+        
+        # Normalize the rotation: k ∈ {0,1,2,3} corresponding to 0, π/2, π, 3π/2.
+        # Negative values will be normalized modulo 4.
+        k = int(round(factor)) % 4
+
+        if k == 0:
+            # Identity transformation: no change on X and Z.
+            XTableau = HalfTableau([target], conjugates=[Pauli('X')])
+            ZTableau = HalfTableau([target], conjugates=[Pauli('Z')])
+            name = f"RY({angle}) Identity"
+        elif k == 1:
+            # RY(π/2): X -> -Z, Z -> X.
+            XTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
+            ZTableau = HalfTableau([target], conjugates=[Pauli('X')])
+            name = f"RY({angle})"
+        elif k == 2:
+            # RY(π): Equivalent to a Y gate: X -> -X, Z -> -Z.
+            XTableau = HalfTableau([target], conjugates=[Pauli('-X')])
+            ZTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
+            name = f"RY({angle})"
+        elif k == 3:
+            # RY(3π/2): X -> Z, Z -> -X.
+            XTableau = HalfTableau([target], conjugates=[Pauli('Z')])
+            ZTableau = HalfTableau([target], conjugates=[Pauli('-X')])
+            name = f"RY({angle})"
+        
+        super().__init__(XTableau, ZTableau, name=name)
