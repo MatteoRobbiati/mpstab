@@ -336,7 +336,7 @@ class TensorNetwork:
 
     def _contract_separate_nodes(self, node_in:str, node_out:str, new_node_id:str, directions_in:list, directions_out:list):
         """
-        Performs the contraction by applying tensordot, assuming both nodes are distinct. Finally removes the node.
+        Perform the contraction by applying tensordot, assuming both nodes are distinct. Finally removes the node.
         """
         
         # Collecting all non-contracted index (in and out)
