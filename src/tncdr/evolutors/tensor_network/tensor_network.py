@@ -81,7 +81,7 @@ class TensorNetwork:
     def add_edge(self, node_in:str, node_out:str, edge_id:str, directions:tuple[int, int], **edge_metadata):
         """
         Add an edge between two tensors, representing a potential contaction.
-        Edges are *directed*, meaning the order of node_in and node_out does matter during the contraction, i.e. the same order must be used.
+        Edges are *directed*, meaning the order of ``node_in`` and ``node_out`` does matter during the contraction, i.e. the same order must be used.
 
         Args:
             node_in (str): first tensor to be connected
