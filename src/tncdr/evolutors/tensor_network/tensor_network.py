@@ -297,7 +297,7 @@ class TensorNetwork:
             right_node_edges:Union[str, list[str]],
         ):
         """
-        Compute a trasposition vector by reordering the indices, groping together edges pertaining to either left or right child
+        Compute a trasposition vector by reordering the indices, grouping together edges pertaining to either left or right child
         of a SVD decompoition, thus establishing a conventional order, i.e. left edges first, and right edges second, in the order
         of appearence in the list.
 
