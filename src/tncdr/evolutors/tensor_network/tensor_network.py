@@ -375,7 +375,7 @@ class TensorNetwork:
     
     def _partial_trace(self, node:str, new_node_id:str, directions_in:list, directions_out:list):
         """
-        Performs the contraction by applying multitrace, assuming self loops. Finally removes the node.
+        Perform the contraction by applying multitrace, assuming self loops. Finally removes the node.
         """
         non_contracted_index = [
             i for i in range(len(self.tensornet.nodes[node]['shape'])) if i not in (directions_in+directions_out)
