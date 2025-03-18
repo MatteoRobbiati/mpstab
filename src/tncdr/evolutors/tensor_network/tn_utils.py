@@ -196,7 +196,7 @@ def multi_trace(tensor, directions_in:list[int], directions_out:list[int]):
     """
     Trace out the indices correpoding to the directios specified.
     
-    Uses np.trace iteratively to achieve it, in addition to dynamical handling of the directions
+    Use np.trace iteratively to achieve it, in addition to dynamical handling of the directions
     to be conrtracted 
     """
     
