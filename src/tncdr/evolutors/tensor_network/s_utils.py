@@ -42,7 +42,7 @@ def X_state()->np.ndarray:
 
 def _S(p:str)->TensorNetwork:
     """
-    Computes the S tensor corresponding to a Pauli matrix, by combining a pauli-pair and a copy tensor.
+    Compute the S tensor corresponding to a Pauli matrix, by combining a pauli-pair and a copy tensor.
     
     The order of the indices in the output tensor is the following: i,j,alpha, beta, where i,j refer to the 
     Pauli matrices in the Z basis and alpha and beta are edges of the copy tensor.
