@@ -20,9 +20,8 @@ class HalfTableau():
     def __repr__(self):
 
         conj_repr = []
-        for s, q, conj in zip(self.signs, self.qubits, self.conjugates):
-            sign = '-' if s else '+'
-            conj_repr.append(f'{q} -> {sign}{conj}')
+        for q, conj in zip(self.qubits, self.conjugates):
+            conj_repr.append(f'{q} -> {conj}')
         return'\n'.join(conj_repr)
 
 class Tableau():
