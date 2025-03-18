@@ -229,10 +229,10 @@ def _bond_dimension_cut(U, D, V, max_bond_dimension):
 
     Assumes that the singular values are stored in descending order in D.
     """
-    
+    tol = 1e-20
     if max_bond_dimension is None:
-        bond_dimension = np.count_nonzero(D)
+        bond_dimension = np.count_nonzero(D>tol)
     else:
-        bond_dimension = np.min([max_bond_dimension, np.count_nonzero(D)])
+        bond_dimension = np.min([max_bond_dimension, np.count_nonzero(D>tol)])
 
-    return U[:,:bond_dimension], D[:bond_dimension], V[:bond_dimension,:]
+    return U[:,:bond_dimension], D[:bond_dimension]/np.sqrt(np.sum(D[:bond_dimension]**2)), V[:bond_dimension,:]
