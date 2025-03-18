@@ -29,7 +29,13 @@ CNOT = MPSGateTensor(
 )
 
 CZ = MPSGateTensor(
-    tensor=np.array([[[[1,0],[0,1]],[[0,0],[0,0]]],[[[0,0],[0,0]],[[-1,0],[-1,0]]]]),
+    tensor=np.array([[[[1,0],[0,1]],[[0,0],[0,0]]],[[[0,0],[0,0]],[[1,0],[0,-1]]]]),
+    in_directions=[0,2],
+    out_directions=[1,3]
+)
+
+SWAP = MPSGateTensor(
+    tensor=np.array([[[[1,0],[0,0]],[[0,0],[1,0]]],[[[0,1],[0,0]],[[0,0],[0,1]]]]),
     in_directions=[0,2],
     out_directions=[1,3]
 )

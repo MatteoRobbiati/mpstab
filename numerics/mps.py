@@ -6,7 +6,7 @@ import numpy as np
 from tncdr.evolutors.tensor_network import TensorNetwork
 from tncdr.evolutors.tensor_network.s_utils import basis
 
-from mps_gates import MPSGateTensor, CNOT, CZ, H, X, Y, Z, S, T
+from mps_gates import MPSGateTensor, CNOT, CZ, SWAP, H, X, Y, Z, S, T
 
 class CircuitMPS(TensorNetwork):
 
@@ -40,12 +40,39 @@ class CircuitMPS(TensorNetwork):
         self.add_edge(f'T{n-1}','tmp','link', (1,0))
         self.contract(f'T{n-1}','tmp','link', f'T{n-1}')
 
+    def bipartite_entanglement_entropy(self, cut:int):
+
+        assert cut < self.n_qubits-1, 'Both partitions must be non-empty'
+        d = np.diagonal(self.tensornet.nodes[f'L{cut}']['tensor'])**2
+        return np.sum(-d*np.log(d))
+    
+    def amplitude(self, basis_element):
+        
+        assert len(basis_element) == self.n_qubits, 'Basis elements have the wrong number of qubits'
+        
+        mps = deepcopy(self)
+        for q, state in enumerate(basis_element):
+            mps.add_tensor('measurement', tensor=basis(state))
+            mps._link_to_dummy(f'D{q}', 'measurement', 0)
+            mps.contract(f'T{q}', 'measurement', 'v_link',f'T{q}')
+
+        mps.contract('T0', 'L0', 'chi0_l', 'F')
+        for q,q_next in zip(range(mps.n_qubits), range(1,mps.n_qubits-1)):
+            mps.contract(f'T{q_next}', 'F', f'chi{q}_r', 'F')
+            mps.contract('F', f'L{q_next}', f'chi{q_next}_l', 'F')
+
+        mps.contract(f'T{self.n_qubits-1}', 'F', f'chi{self.n_qubits-2}_r', 'F')
+        return mps.tensornet.nodes['F']['tensor'].item()
+
     def cnot(self, control, target):
         return self.apply(CNOT, [control, target])
     
     def cz(self, control, target):
         return self.apply(CZ, [control, target])
     
+    def swap(self, control, target):
+        return self.apply(SWAP, [control, target])
+
     def h(self, qubit):
         self.apply(H, qubit)
     
@@ -84,6 +111,14 @@ class CircuitMPS(TensorNetwork):
 
         if sites[0] > sites[1]: sites = [s for s in reversed(sites)]     
 
+        if sites[0] > 0:
+            Lleft = self.tensornet.nodes[f'L{sites[0]-1}']['tensor']
+            self.contract(f'T{sites[0]}', f'L{sites[0]-1}', f'chi{sites[0]-1}_r', f'T{sites[0]}')
+
+        if sites[1] < self.n_qubits-1:
+            Lright = self.tensornet.nodes[f'L{sites[1]}']['tensor']
+            self.contract(f'T{sites[1]}', f'L{sites[1]}', f'chi{sites[1]}_l', f'T{sites[1]}')
+
         self.contract(f'T{sites[0]}', f'L{sites[0]}', f'chi{sites[0]}_l', f'T{sites[0]}')
         self.contract(f'T{sites[0]}', 'gate', 'v_link', 'tmp')
         self.contract(f'T{sites[1]}', 'tmp', ['v_link', f'chi{sites[0]}_r'], 'tmp')
@@ -91,32 +126,22 @@ class CircuitMPS(TensorNetwork):
         self.svd_decomposition(
             node='tmp',
             left_node_id=f'T{sites[0]}',
-            left_node_edges=[f'physical{sites[0]}'] + ([f'chi{sites[0]-1}_r'] if sites[0] > 0 else []),
+            left_node_edges=[f'physical{sites[0]}'] + ([f'chi{sites[0]-1}_l'] if sites[0] > 0 else []),
             right_node_id=f'T{sites[1]}',
-            right_node_edges=[f'physical{sites[1]}'] + ([f'chi{sites[1]}_l'] if sites[1] < self.n_qubits-1 else []),
+            right_node_edges=[f'physical{sites[1]}'] + ([f'chi{sites[1]}_r'] if sites[1] < self.n_qubits-1 else []),
             middle_node_id=f'L{sites[0]}',
             middle_edge_left=f'chi{sites[0]}_l',
             middle_edge_right=f'chi{sites[0]}_r',
             max_bond_dimension=self.max_bond_dimension,
         )
 
-    def amplitude(self, basis_element):
-        
-        assert len(basis_element) == self.n_qubits, 'Basis elements have the wrong number of qubits'
-        
-        mps = deepcopy(self)
-        for q, state in enumerate(basis_element):
-            mps.add_tensor('measurement', tensor=basis(state))
-            mps._link_to_dummy(f'D{q}', 'measurement', 0)
-            mps.contract(f'T{q}', 'measurement', 'v_link',f'T{q}')
+        if sites[0] > 0:
+            self._add_gauge_matrix(f'T{sites[0]-1}', f'T{sites[0]}', f'chi{sites[0]-1}_l', Lleft, f'L{sites[0]-1}', f'chi{sites[0]-1}_r')
+            self.contract(f'T{sites[0]}', f'L{sites[0]-1}^-1', f'chi{sites[0]-1}_l', f'T{sites[0]}')
 
-        mps.contract('T0', 'L0', 'chi0_l', 'F')
-        for q,q_next in zip(range(mps.n_qubits), range(1,mps.n_qubits-1)):
-            mps.contract(f'T{q_next}', 'F', f'chi{q}_r', 'F')
-            mps.contract('F', f'L{q_next}', f'chi{q_next}_l', 'F')
-
-        mps.contract(f'T{self.n_qubits-1}', 'F', f'chi{self.n_qubits-2}_r', 'F')
-        return mps.tensornet.nodes['F']['tensor'].item()
+        if sites[1] < self.n_qubits-1:
+            self._add_gauge_matrix(f'T{sites[1]+1}', f'T{sites[1]}', f'chi{sites[1]}_r', Lright, f'L{sites[1]}', f'chi{sites[1]}_l')
+            self.contract(f'T{sites[1]}', f'L{sites[1]}^-1', f'chi{sites[1]}_r', f'T{sites[1]}')
 
     def _apply_single_site_tensor(self, gate:MPSGateTensor, site:int):
         
@@ -135,3 +160,21 @@ class CircuitMPS(TensorNetwork):
         dummy_direction = data["directions"][0]
         self.remove_edge(T,d,e)
         self.add_edge(T, tensor, edge_id, (dummy_direction,tensor_direction))
+    
+    def _add_gauge_matrix(
+            self, 
+            left_node:str, 
+            right_node:str, 
+            edge:str, 
+            gauge_matrix:np.ndarray,
+            gauge_matrix_name:str,
+            middle_edge_name:str, 
+        ):
+        
+        dleft, dright = self.tensornet.edges[left_node, right_node, edge]['directions']
+        self.add_tensor(gauge_matrix_name, tensor=gauge_matrix)
+        self.add_tensor(gauge_matrix_name+'^-1', tensor=np.linalg.inv(gauge_matrix))
+        self.add_edge(gauge_matrix_name+'^-1', gauge_matrix_name, middle_edge_name, (1,0))
+        self.remove_edge(left_node, right_node, edge)
+        self.add_edge(left_node, gauge_matrix_name, edge, (dleft, 1))
+        self.add_edge(right_node, gauge_matrix_name+'^-1', edge, (dright,0))
