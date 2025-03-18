@@ -17,7 +17,7 @@ class TensorNetwork:
     """
     Flexible tensor-network implementation, allowing complex tensor manipulations at an abstract level.
 
-    Tensors are implemented as numpy arrays, while contractions paths are implemented as a directed graph, specifically a networkz MultiDiGraph.
+    Tensors are implemented as numpy arrays, while contractions paths are implemented as a directed graph, specifically a NetworkX MultiDiGraph.
     """
 
     def __post_init__(self):
