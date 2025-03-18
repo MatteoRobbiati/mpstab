@@ -114,6 +114,6 @@ def random_clifford_circuit(n:int)->Generator[Tableau, None, None]:
     and yields the gates as a python generator.
     """
 
-    for i in range(n, 0, -1):
+    for i in range(n, 1, -1):
         tabx, tabz = sample_anticommuting(n)
         yield from layer(tabx, tabz, n-i)
