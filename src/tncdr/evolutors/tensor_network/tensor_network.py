@@ -203,7 +203,7 @@ class TensorNetwork:
         ):
         
         """
-        Performs the SVD decomposition (T=ULV*) to a tensor (T), splitting it into two child tensors (U and V*), each retaining a certain
+        Perform the SVD decomposition (T=ULV*) to a tensor (T), splitting it into two child tensors (U and V*), each retaining a certain
         subset of the original tensor's connections, and connected to each other by a diagonal middle node (L). By default the middle 
         tensor is named 'Lambda' and the edge connections to the child nodes are named 'chi'.
 
