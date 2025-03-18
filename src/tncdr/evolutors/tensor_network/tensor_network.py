@@ -15,7 +15,7 @@ from tncdr.evolutors.tensor_network.tn_utils import (
 @dataclass
 class TensorNetwork:
     """
-    Flexible tensor-network implemention, allowing complex tensor manipulations at an abstract level.
+    Flexible tensor-network implementation, allowing complex tensor manipulations at an abstract level.
 
     Tensors are implemented as numpy arrays, while contractions paths are implemented as a directed graph, specifically a networkz MultiDiGraph.
     """
