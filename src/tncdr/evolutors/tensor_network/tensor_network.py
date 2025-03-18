@@ -71,7 +71,7 @@ class TensorNetwork:
 
     def complex_conjugate(self):
         """
-        Returns the complex conjugate of the network.
+        Return the complex conjugate of the network.
 
         After this procedure, node names are updated according to the following convention: 'nodename' -> 'nodename_dg'.
         Edges are left unchanged.
