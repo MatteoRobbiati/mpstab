@@ -10,12 +10,18 @@ from qibo import (
     hamiltonians,
     set_backend
 )
+from qibo.models.error_mitigation import (
+    CDR,
+    vnCDR,
+)
 
 from tncdr.targets.ansatze import HardwareEfficient
-from tncdr.mitigation.methods import tncdr, density_matrix_circuit
+from tncdr.mitigation.methods import TNCDR, density_matrix_circuit
 
 nqubits = 5
 nlayers = 3
+nshots = 10000
+ncircuits = 20
 
 set_backend("numpy")
 
@@ -45,15 +51,15 @@ for q in range(nqubits):
     )
 
 
-training_data, params = tncdr(
+training_data, params = TNCDR(
     observable=observable,
     ansatz=ansatz,
     initial_state=init_circ,
     noise_model=noise_model,
     npartitions=2,
-    nshots=10000,
+    nshots=nshots,
     magic_gates_per_partition=1,
-    ncircuits=20,
+    ncircuits=ncircuits,
     max_bond_dimension=None,
 )
 
@@ -94,7 +100,22 @@ noisy_main_circ = noise_model.apply(density_matrix_circuit(ansatz.circuit))
 noisy_outcome = (noisy_init_circ + noisy_main_circ)() 
 noisy_value = ham.expectation(noisy_outcome.state())
 
+(init_circ + ansatz.circuit).draw()
+print((init_circ + ansatz.circuit).get_parameters())
+
+cdr_mit_val, _, _, _ = CDR(
+    circuit=density_matrix_circuit(init_circ + ansatz.circuit),
+    observable=ham,
+    noise_model=noise_model,
+    nshots=nshots,
+    n_training_samples=ncircuits,
+    replacement_gates=[(gates.RY, {"theta": n * np.pi / 2}) for n in range(4)],
+    target_non_clifford_gates=[gates.RY],
+    full_output=True
+)
+
 print("################################\n\n")
 print(f"Exact value: {exact_value}")
 print(f"Noisy value: {noisy_value}")
-print(f"Mitigated value: {noisy_value * params[0] + params[1]}")
+print(f"TNCDR mitigated value: {noisy_value * params[0] + params[1]}")
+print(f"CDR mitigated value: {cdr_mit_val}")

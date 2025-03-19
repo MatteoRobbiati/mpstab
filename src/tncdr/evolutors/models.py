@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from copy import deepcopy
 from typing import Optional
+import numpy as np
 
 from qibo import Circuit
 
@@ -214,6 +215,11 @@ class HybridSurrogate:
             observable (str): expected to be a string of Paulis.
         """
 
+        if len(observable) != self.nqubits:
+            raise ValueError(
+                f"Observable {observable} length doesn't match nqubits, which is {self.nqubits}."
+            )
+
         tn = deepcopy(self.tn)
         tn_dg = deepcopy(self.tn)
         tn_dg.complex_conjugate()
@@ -236,7 +242,7 @@ class HybridSurrogate:
             tn.contract("F", f"T{n}_dg", f"chi{n}", "F")
             tn.contract("F", "F", "v_link", "F")
 
-        return float(tn.tensornet.nodes["F"]["tensor"])
+        return float(np.real(tn.tensornet.nodes["F"]["tensor"]))
 
     def backpropagate_pauli(self, observable: str, stabilizer_circuit: Circuit):
         """

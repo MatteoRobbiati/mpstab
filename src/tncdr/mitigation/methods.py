@@ -15,7 +15,7 @@ from qibo.noise import NoiseModel
 from tncdr.evolutors.models import HybridSurrogate
 from tncdr.targets.ansatze import Ansatz
 
-def tncdr(
+def TNCDR(
         observable: str,
         ansatz: Ansatz,
         initial_state: Circuit,
@@ -76,8 +76,6 @@ def tncdr(
                 nshots=nshots
             ).frequencies()
         )
-
-        print(f"exact: {exact_expval}\t", f"noisy: {noisy_expval}")
 
         training_data["exact_expvals"].append(exact_expval)
         training_data["noisy_expvals"].append(noisy_expval)
