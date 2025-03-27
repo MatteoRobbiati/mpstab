@@ -1,3 +1,4 @@
+import math
 from typing import List
 
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
@@ -49,10 +50,34 @@ class CNOT(Tableau):
 
     def __init__(self, control:int, target:int,)->None:
 
-        XTableau = HalfTableau([control, target], conjugates=[Pauli('X'),Pauli('XX')])
-        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZZ'),Pauli('ZI')])
+        XTableau = HalfTableau([control, target], conjugates=[Pauli('XX'),Pauli('IX')])
+        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZI'),Pauli('ZZ')])
 
         super().__init__(XTableau, ZTableau, name=f'CNOT({control}->{target})')
+
+class SWAP(Tableau):
+    """
+    Implements the Swap (SWAP) Tableau
+    """
+
+    def __init__(self, control:int, target:int,)->None:
+
+        XTableau = HalfTableau([control, target], conjugates=[Pauli('IX'),Pauli('XI')])
+        ZTableau = HalfTableau([control, target], conjugates=[Pauli('IZ'),Pauli('ZI')])
+
+        super().__init__(XTableau, ZTableau, name=f'SWAP({control}<->{target})')
+
+class CZ(Tableau):
+    """
+    Implements the Swap (SWAP) Tableau
+    """
+
+    def __init__(self, control:int, target:int,)->None:
+
+        XTableau = HalfTableau([control, target], conjugates=[Pauli('XZ'),Pauli('ZX')])
+        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZI'),Pauli('IZ')])
+
+        super().__init__(XTableau, ZTableau, name=f'SWAP({control}<->{target})')
 
 class H(Tableau):
     """
@@ -77,18 +102,6 @@ class S(Tableau):
         ZTableau = HalfTableau([target], conjugates=[Pauli('Z')])
 
         super().__init__(XTableau, ZTableau, name=f'S({target})')
-
-class SWAP(Tableau):
-    """
-    Implements the Swap (SWAP) Tableau
-    """
-
-    def __init__(self, control:int, target:int,)->None:
-
-        XTableau = HalfTableau([control, target], conjugates=[Pauli('XI'),Pauli('X')])
-        ZTableau = HalfTableau([control, target], conjugates=[Pauli('ZI'),Pauli('Z')])
-
-        super().__init__(XTableau, ZTableau, name=f'SWAP({control}<->{target})')
 
 class X(Tableau):
     """

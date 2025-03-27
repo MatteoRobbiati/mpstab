@@ -9,18 +9,19 @@ xz_to_single_pauli = {0:'I', 1:'X', 2:'Z', 3:'Y'}
 
 phase_to_xz = {'i':1, '-':2, '-i':3}
 xz_to_phase = {0:'', 1:'i', 2:'-', 3:'-i'}
+string_to_complex = {'':1.0, 'i':1.0j, '-':-1.0, '-i':-1.0j}
 
 def string_to_xz(description:str)->int:
     """
     Convert a Pauli string, provided as an explicit string of 'I', 'X', 'Y' and 'Z' into the corresponding XZ encoding.
     """
-    return sum((single_pauli_to_xz[p]<<(2*q) for q,p in enumerate(reversed(description))), start=0)
+    return sum((single_pauli_to_xz[p]<<(2*q) for q,p in enumerate(description)), start=0)
 
-def xz_to_string(xz_desc:int)->str:
+def xz_to_string(xz_desc:int, n:int)->str:
     """
     Converts a python integer, interpreted as the XZ encoding of a Pauli string, into the corresponfing explicit string.
     """
-    return ''.join([xz_to_single_pauli[3 & xz_desc >> (2*q)] for q in range(num_qubits(xz_desc)-1,-1,-1)])
+    return ''.join([xz_to_single_pauli[3 & xz_desc >> (2*q)] for q in range(n)])
 
 def xz_to_string_phase(xz_desc:int, phase:int, n:int)->str:
     """
@@ -105,7 +106,7 @@ def update_phase(phase, shift):
 
 class Pauli():
     """
-    Pauli string XZ representation, including a global phase in {1,-1,i,-i}.
+    Pauli string XZ representation, including a global phase in {1, -1, i, -i}.
     """
 
     def __init__(self, description:str|int, n:int|None=None)->None:
@@ -129,7 +130,17 @@ class Pauli():
         self.phase = initial_phase(self.xz, self.n, phase0)
 
     def __repr__(self)->str:
-        return xz_to_string_phase(self.xz, self.phase, self.n)+xz_to_string(self.xz)
+        return self.to_string(ignore_phase=False)
+
+    def to_string(self, ignore_phase=False):
+
+        string = xz_to_string(self.xz, self.n)
+        if not ignore_phase:
+            string = xz_to_string_phase(self.xz, self.phase, self.n)+string
+        return string 
+
+    def complex_phase(self):
+        return string_to_complex[xz_to_string_phase(self.xz, self.phase, self.n)]
 
     def __matmul__(self, other:'Pauli')->'Pauli':
 
