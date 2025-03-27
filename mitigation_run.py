@@ -6,7 +6,7 @@ import numpy as np
 from scipy.stats import median_abs_deviation
 
 # Qibo and tncdr imports
-from qibo import Circuit, gates, symbols, hamiltonians, set_backend
+from qibo import Circuit, gates, symbols, hamiltonians, set_backend, get_backend
 from qibo.models.error_mitigation import CDR, vnCDR  # vnCDR imported if needed later
 
 from tncdr.targets.ansatze import HardwareEfficient
@@ -90,6 +90,7 @@ def main(
     
     # Set the Qibo backend.
     set_backend("numpy")
+
     if observable is None:
         observable = "Z" * nqubits
 
@@ -108,6 +109,8 @@ def main(
     # Fix random seed.
     np.random.seed(random_seed)
     random.seed(random_seed)
+    backend = get_backend()
+    backend.set_seed(random_seed)
 
     # The whole experiment will be repeated nruns times.
     exact_values, noisy_values, mit_values = [], [], []
@@ -188,6 +191,7 @@ def main(
         if mitigation_method_upper == "TNCDR":
             # For TNCDR, assume the output is a tuple where index 1 contains [slope, intercept].
             mit_map_params = mitigation_output[1]
+            # TODO: return the mitigated value directly from the function
             mit_value = mit_map_params[0] * noisy_value + mit_map_params[1]
         elif mitigation_method_upper == "CDR":
             mit_value = mitigation_output[0]

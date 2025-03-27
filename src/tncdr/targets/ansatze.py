@@ -1,16 +1,19 @@
-from dataclasses import dataclass
+from typing import Optional, List
 from copy import deepcopy
 import random 
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
+import networkx as nx
 import numpy as np
 
 from qibo import Circuit, gates
 from qibo.noise import NoiseModel
 
-from dataclasses import dataclass
-from abc import ABC
-
-from tncdr.evolutors.utils import sample_random_pauli_gate
+from tncdr.targets.circuit_utils import (
+    hardware_compatible_circuit,
+    replace_non_clifford_gate,
+)
 
 @dataclass
 class Ansatz(ABC):
@@ -37,29 +40,6 @@ class Ansatz(ABC):
     def nparams(self):
         return len(self.circuit.get_parameters())
     
-    def random_unitary(self, random_seed: int = 42):
-        """Sample circuit's params in [-pi, pi], execute and return state."""
-        np.random.seed(random_seed)
-        self.circuit.set_parameters(np.random.uniform(-np.pi, np.pi, self.nparams))
-        return self.circuit
-
-    def random_quasi_clifford_unitary(self, cliff_fraction: float = 0.7, random_seed: int = 42):
-        """
-        Sample circuit's params so that a portion `0 < cliff_fraction < 1` 
-        of the gates are cliffordized by setting an angle which is a multiple
-        of pi/2.
-        """
-        np.random.seed(random_seed)
-        new_parameters = []
-        for _ in range(self.nparams):
-            coin = np.random.uniform(0,1)
-            if coin >= cliff_fraction:
-                new_parameters.append(np.random.uniform(-np.pi, np.pi))
-            else:
-                new_parameters.append(np.random.randint(-2, 3) * np.pi / 2)
-        self.circuit.set_parameters(new_parameters)
-        return self.circuit
-    
     def execute(self, nshots: int = None, initial_state: Circuit = None, with_noise : bool = False):
         """Execute the circuit and return the outcome."""
         # Default empty initial circuit
@@ -84,7 +64,18 @@ class Ansatz(ABC):
         self.noise_model = noise_model
         self.noisy_circuit = noise_model.apply(self.circuit)
 
+    @abstractmethod
+    def partitionate_circuit(self):
+        raise NotImplementedError(
+            f"Partitioning strategy not implemented for Ansatz {self}."
+        )
 
+    def prepare_partitions(self, n_partitions):
+        """Helper method to prepare partitions."""
+        magic_layers = [Circuit(self.nqubits, density_matrix=self.density_matrix) for _ in range(n_partitions)]
+        stabilizer_layers = [Circuit(self.nqubits, density_matrix=self.density_matrix) for _ in range(n_partitions)]
+        partitioned_circuit = Circuit(self.nqubits, density_matrix=self.density_matrix)
+        return partitioned_circuit, magic_layers, stabilizer_layers
 
 @dataclass
 class HardwareEfficient(Ansatz):
@@ -150,9 +141,7 @@ class HardwareEfficient(Ansatz):
         layers_map = {str(value): index for index, value in enumerate(target_layers)}
         # These list will contain the circuits composing the partitionate circuit
         # Each list will be containing a sub-circuit
-        magic_layers = [Circuit(self.nqubits, density_matrix=self.density_matrix) for _ in range(n_partitions)]
-        stabilizer_layers = [Circuit(self.nqubits, density_matrix=self.density_matrix) for _ in range(n_partitions)]
-        partitioned_circuit = Circuit(self.nqubits, density_matrix=self.density_matrix)
+        partitioned_circuit, magic_layers, stabilizer_layers = self.prepare_partitions(n_partitions)
 
         partition_block = 0
         for i in range(self.nlayers):
@@ -201,3 +190,97 @@ class HardwareEfficient(Ansatz):
         ent_circuit = Circuit(self.nqubits, density_matrix=self.density_matrix)
         [ ent_circuit.add(gates.CZ(q0=q%self.nqubits, q1=(q+1)%self.nqubits)) for q in range(self.nqubits) ]
         return ent_circuit
+    
+@dataclass(kw_only=True)
+class TranspiledAnsatz(Ansatz):
+    """
+    Any ansatz which is also transpiled into native gates of a given quantum device
+    presenting a given connectivity.
+    
+    Args:
+        original_circuit: The circuit to be transpiled.
+        native_gates: Optional[List]: list of native gates of the used device.
+            Default is [gates.GPI2, gates.RZ, gates.Z, gates.CZ].
+        connectivity: Optional[nx.Graph]: graph representing the topology of the 
+            used device. Default is None and in this case the transpilation 
+            does not take into account any connectivity constraint.
+    """
+    original_circuit: Circuit
+    native_gates: Optional[List] = field(default_factory=lambda: [gates.GPI2, gates.RZ, gates.Z, gates.CZ])
+    connectivity: Optional[nx.Graph] = None
+    # Override nqubits so it is not passed in __init__
+    nqubits: int = field(init=False)
+
+    def __post_init__(self):
+        # Set nqubits from the provided circuit.
+        self.nqubits = self.original_circuit.nqubits
+        # Now call the parent's __post_init__ to initialize _circuit and other attributes.
+        super().__post_init__()
+        # Overwrite the circuit with the original one.
+        self._circuit = self.original_circuit
+
+    @property
+    def circuit(self):
+        return hardware_compatible_circuit(
+            circuit=self._circuit,
+            native_gates=self.native_gates,
+            connectivity=self.connectivity,
+        )
+    
+    def partitionate_circuit(self, replacement_probability: float):
+        """
+        Partitionate the circuit replacing non-Clifford (magic) gates with a given probability.
+        
+        For each gate in the original circuit:
+        - If the gate is non-Clifford, with probability replacement_probability it is
+            replaced by a Clifford gate via replace_non_clifford_gate.
+        - The processed gate (whether replaced or not) is added to the overall circuit.
+        - Simultaneously, consecutive gates of the same type (Clifford or non-Clifford)
+            are collected into blocks.
+        
+        Returns:
+            partitioned_circuit (Circuit): the complete processed circuit.
+            clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive Clifford gates.
+            non_clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive non-Clifford gates.
+        """
+        original_circuit = deepcopy(self.circuit)
+        partitioned_circuit = Circuit(self.nqubits)
+        stabilizer_layers = []
+        magic_layers = []
+        current_block = Circuit(self.nqubits)
+        current_block_type = None
+
+        for gate in original_circuit.queue:
+            if not gate.clifford and not isinstance(gate, gates.M):
+                if random.random() < replacement_probability:
+                    new_gate = replace_non_clifford_gate(gate)
+                else:
+                    new_gate = gate
+            else:
+                new_gate = gate
+
+            partitioned_circuit.add(new_gate)
+            gate_type = 'clifford' if new_gate.clifford else 'non_clifford'
+
+            if current_block_type is None:
+                current_block_type = gate_type
+                current_block.add(new_gate)
+            else:
+                if current_block_type == gate_type:
+                    current_block.add(new_gate)
+                else:
+                    if current_block_type == 'clifford':
+                        stabilizer_layers.append(current_block)
+                    else:
+                        magic_layers.append(current_block)
+                    current_block = Circuit(self.nqubits)
+                    current_block.add(new_gate)
+                    current_block_type = gate_type
+
+        if current_block.queue:
+            if current_block_type == 'clifford':
+                stabilizer_layers.append(current_block)
+            else:
+                magic_layers.append(current_block)
+
+        return partitioned_circuit, magic_layers[:-1], stabilizer_layers

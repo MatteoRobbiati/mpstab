@@ -1,12 +1,12 @@
 #!/bin/bash
 
 python mitigation_run.py \
-  --nqubits 6 \
-  --nlayers 4 \
+  --nqubits 7 \
+  --nlayers 6 \
   --nshots 2000 \
   --ncircuits 20 \
   --ansatz HardwareEfficient \
-  --observable ZZZZZZ \
+  --observable ZZZZZZZ \
   --readout_bitflip_probability 0.005 \
   --local_pauli_noise_sigma 0.005 \
   --mitigation_method TNCDR \
