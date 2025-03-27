@@ -193,7 +193,13 @@ def draw_tn(tn, show_labels=False, title=""):
         plt.savefig(f"../plots/{title}.png", bbox_inches="tight")
 
 
-def multi_trace(tensor, directions_in, directions_out):
+def multi_trace(tensor, directions_in:list[int], directions_out:list[int]):
+    """
+    Trace out the indices correpoding to the directios specified.
+    
+    Use np.trace iteratively to achieve it, in addition to dynamical handling of the directions
+    to be conrtracted 
+    """
     
     while len(directions_in)>0:
 

@@ -14,6 +14,11 @@ from tncdr.evolutors.tensor_network.tn_utils import (
 
 @dataclass
 class TensorNetwork:
+    """
+    Flexible tensor-network implementation, allowing complex tensor manipulations at an abstract level.
+
+    Tensors are implemented as numpy arrays, while contractions paths are implemented as a directed graph, specifically a NetworkX MultiDiGraph.
+    """
 
     def __post_init__(self):
         self.tensornet = nx.MultiDiGraph()
@@ -52,9 +57,28 @@ class TensorNetwork:
         )
 
     def complex_conjugate(self):
+        """
+        Return the complex conjugate of the network.
+
+        After this procedure, node names are updated according to the following convention: 'nodename' -> 'nodename_dg'.
+        Edges are left unchanged.
+        """
         return _complex_conjugate(self.tensornet)
 
     def add_edge(self, node_in:str, node_out:str, edge_id:str, directions:tuple[int, int], **edge_metadata):
+        """
+        Add an edge between two tensors, representing a potential contaction.
+        Edges are *directed*, meaning the order of ``node_in`` and ``node_out`` does matter during the contraction, i.e. the same order must be used.
+
+        Args:
+            node_in (str): first tensor to be connected
+            node_out (str): second tensor to be connected
+            edge_id (str): name of the contraction path
+            directions (tuple[int, int]): pair of integers representing which of the tensor axes (indices) are to be connected by this edge.
+        
+        Raises:
+            ValueError: When attempting to connect already connected tensors, or when connecting indices with incompatible dimensions.
+        """
 
         d_in, d_out = directions
         if self.tensornet.nodes[node_in]['shape'][d_in] != self.tensornet.nodes[node_out]['shape'][d_out]:
@@ -142,6 +166,41 @@ class TensorNetwork:
             max_bond_dimension:Optional[int]=None,
         ):
         
+        """
+        Perform the SVD decomposition (T=ULV*) to a tensor (T), splitting it into two child tensors (U and V*), each retaining a certain
+        subset of the original tensor's connections, and connected to each other by a diagonal middle node (L). By default the middle 
+        tensor is named 'Lambda' and the edge connections to the child nodes are named 'chi'.
+
+        Edges across the TensorNetwork are updated to preserve the validity of the connections (i.e. the old indices are updated to
+        match those of the new tensors). All tensor indices must be assigned to an edge before this decomposition takes place.
+
+        When specified, can perform a cut in the bond dimension, by discarding the smallest singular values exeeding the specified number,
+        hence limiting the scaling of the cost of computation. Otherwise the full rank child tensors are kept, discarding only the zeros.
+
+        Args:
+            node (str): 
+                tensor to undergo SVD decomposition
+            left_node_id (strg): 
+                name of the 'left unitary' child tensor, i.e. U
+            left_node_edges (Union[str, list[str]]): 
+                edges pertaining to U
+            right_node_id (str): 
+                name of the 'right unitary' child tensor, i.e. V*
+            right_node_edges(Union[str, list[str]]): 
+                edges pertaining to V*
+            middle_node_id (str):
+                diagonal tensor, i.e. L
+            middle_edge_left (str):
+                edge representing the matrix multiplication 'UL'
+            middle_edge_right (str):
+                edge representing the matrix multiplication 'LV*'
+            max_bond_dimension (Optional[int]):
+                maximum number of singular values to be kept after performing the SVD
+
+        Raises:
+            ValueError: if either too many or too few edges are assigned to the child tensors.
+        """
+
         if type(left_node_edges) is str: 
             left_node_edges = [left_node_edges]
         
@@ -201,7 +260,18 @@ class TensorNetwork:
             left_node_edges:Union[str, list[str]],
             right_node_edges:Union[str, list[str]],
         ):
+        """
+        Compute a trasposition vector by reordering the indices, grouping together edges pertaining to either left or right child
+        of a SVD decompoition, thus establishing a conventional order, i.e. left edges first, and right edges second, in the order
+        of appearence in the list.
 
+        Returns:
+            transposition_vector (np.ndarray): A vector containing in position i, the index number in the tensor contained in node,
+            corresponding to the edge listed in position i according to the above convention, *before* the SVD decomposition.
+
+        Raises:
+            ValueError: if either too many or too few edges are assigned to the child nodes.
+        """
         transposition_vector = [-1]*(len(left_node_edges)+len(right_node_edges))
 
         def _update_tv(tv, edge_id, dir):
@@ -228,6 +298,9 @@ class TensorNetwork:
         return transposition_vector
 
     def _contract_separate_nodes(self, node_in:str, node_out:str, new_node_id:str, directions_in:list, directions_out:list):
+        """
+        Perform the contraction by applying tensordot, assuming both nodes are distinct. Finally removes the node.
+        """
         
         # Collecting all non-contracted index (in and out)
         non_contracted_index_in = [
@@ -264,7 +337,9 @@ class TensorNetwork:
         self.tensornet.remove_node(node_out)
     
     def _partial_trace(self, node:str, new_node_id:str, directions_in:list, directions_out:list):
-
+        """
+        Perform the contraction by applying multitrace, assuming self loops. Finally removes the node.
+        """
         non_contracted_index = [
             i for i in range(len(self.tensornet.nodes[node]['shape'])) if i not in (directions_in+directions_out)
         ]

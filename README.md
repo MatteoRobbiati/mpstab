@@ -1,6 +1,9 @@
 # tncdr
 Tensor Network enhanced Clifford data regression
 
+![tncdr](https://github.com/user-attachments/assets/37a09543-2948-444c-9d07-64ab32bbb490)
+
+
 ### Usage instructions
 
 #### Reccomended installation
