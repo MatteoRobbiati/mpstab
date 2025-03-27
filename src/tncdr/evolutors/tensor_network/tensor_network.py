@@ -265,6 +265,10 @@ class TensorNetwork:
         right_tensor = np.reshape(right_tensor, new_r_shape)
         middle_tensor = np.diag(middle_tensor)
 
+        # Node is relabled at the end to avoid name collisions with left_node and right_node, which can
+        # cause unwanted behavior
+        nx.relabel_nodes(self.tensornet, {node:0}, copy=False)
+
         # Create the new tensors and connect them
         self.add_tensor(id=left_node_id, tensor=left_tensor)
         self.add_tensor(id=right_node_id, tensor=right_tensor)
@@ -275,20 +279,20 @@ class TensorNetwork:
         
         # Re-establish the old connections
         self._reconnect_edges(
-            node=node,
+            node=0,
             new_node_id=left_node_id,
             survived_directions=transposition_vector,
             allowed_edges=left_node_edges,
         )
         self._reconnect_edges(
-            node=node,
+            node=0,
             new_node_id=right_node_id,
             survived_directions=transposition_vector,
             shift=1-len(left_node_edges),
             allowed_edges=right_node_edges,
         )
 
-        self.tensornet.remove_node(node)
+        self.tensornet.remove_node(0)
 
     def _svd_transposition_vector(
             self,
