@@ -253,7 +253,7 @@ class TranspiledAnsatz(Ansatz):
         for gate in original_circuit.queue:
             if not gate.clifford and not isinstance(gate, gates.M):
                 if random.random() < replacement_probability:
-                    new_gate = replace_non_clifford_gate(gate)
+                    new_gate = replace_non_clifford_gate(gate, method="closest")
                 else:
                     new_gate = gate
             else:

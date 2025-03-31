@@ -16,7 +16,7 @@ gate2tableau = {
     "z": "Z",
     "swap": "SWAP",
     "cz": "CZ",
-    "ry": "RY",
+    "rz": "RZ",
 }
 
 one_qubit_cliff = "HXYZ"
