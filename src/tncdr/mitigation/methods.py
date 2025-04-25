@@ -2,7 +2,6 @@ from typing import Optional
 
 import numpy as np
 from scipy.optimize import curve_fit
-import tqdm
 
 from qibo import (
     Circuit,
@@ -42,9 +41,6 @@ def TNCDR(
 
     # Compute the expectation value using the symbolic Hamiltonian
     ham = hamiltonians.SymbolicHamiltonian(form=form)
-
-    # # Update noise into the ansatz
-    # ansatz.update_noise_model(noise_model)
 
     # Here we collect the tncdr results
     training_data = {

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 python mitigation_run.py \
-  --nqubits 7 \
-  --nlayers 6 \
+  --nqubits 5 \
+  --nlayers 3 \
   --nshots 2000 \
   --ncircuits 20 \
   --ansatz HardwareEfficient \

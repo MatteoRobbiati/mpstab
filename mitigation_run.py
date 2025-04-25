@@ -9,7 +9,7 @@ from scipy.stats import median_abs_deviation
 from qibo import Circuit, gates, symbols, hamiltonians, set_backend, get_backend
 from qibo.models.error_mitigation import CDR, vnCDR  # vnCDR imported if needed later
 
-from tncdr.targets.ansatze import HardwareEfficient
+from tncdr.targets.ansatze import HardwareEfficient, TranspiledAnsatz
 from tncdr.targets.noise_utils import build_noise_model
 from tncdr.mitigation.methods import TNCDR, density_matrix_circuit
 
@@ -104,7 +104,13 @@ def main(
     if ansatz != "HardwareEfficient":
         click.echo("Only 'HardwareEfficient' ansatz is supported.")
         return
-    ansatz_instance = HardwareEfficient(nqubits=nqubits, nlayers=nlayers)
+    
+    # Construct an HDW-efficient ansatz as a first instance
+    hdw_eff_ansatz_instance = HardwareEfficient(nqubits=nqubits, nlayers=nlayers)
+    # Collect the circuit
+    hdw_eff_circuit = hdw_eff_ansatz_instance.circuit
+    # Construct a Transpiled ansatz on top of this
+    ansatz_instance = TranspiledAnsatz(original_circuit=hdw_eff_circuit)
 
     # Fix random seed.
     np.random.seed(random_seed)
