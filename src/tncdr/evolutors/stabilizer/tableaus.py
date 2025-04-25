@@ -185,3 +185,28 @@ class RZ(Tableau):
             name = f"RZ({angle})"
         
         super().__init__(XTableau, ZTableau, name=name)
+
+
+class GPI2(Tableau):
+    """
+    π/2 rotation around the XY‐axis at angle phi, restricted to Clifford angles.
+    """
+    def __init__(self, target: int, angle: float) -> None:
+        tol = 1e-8
+        # Number of quarter‐turns in phi
+        k = int(round(angle / (math.pi/2))) % 4
+        if abs((angle/(math.pi/2)) - k) > tol:
+            raise ValueError("phi must be a multiple of π/2 for a Clifford GPI2.")
+
+        if k == 0:
+            x_conj, z_conj = Pauli('X'),  Pauli('-Y')
+        elif k == 1:
+            x_conj, z_conj = Pauli('-Z'), Pauli('X')
+        elif k == 2:
+            x_conj, z_conj = Pauli('X'),  Pauli('Y')
+        else:  # k == 3
+            x_conj, z_conj = Pauli('Z'),  Pauli('-X')
+
+        XTableau = HalfTableau([target], conjugates=[x_conj])
+        ZTableau = HalfTableau([target], conjugates=[z_conj])
+        super().__init__(XTableau, ZTableau, name=f'GPI2({target}, φ={angle})')

@@ -12,7 +12,6 @@ from tncdr.evolutors.tensor_network.s_utils import (
     _compute_all_s_tensors,
     basis,
     theta_state,
-    generic_state,
     X_state,
 )
 from tncdr.evolutors.tensor_network.tn_utils import paulis
@@ -49,31 +48,33 @@ class HybridSurrogate:
         self._init_tn()
     
     def _init_tn(self):
-        # Check whether the initial state is constructed properly
-        # (with one-qubit gates only)
+        """
+        Initialize the HybridEvolutor's tensor network to the factorized state specified by the initial state circuit.
+        """
+
         for q in range(self.nqubits):
 
             light_circ, light_dict = self.initial_state.light_cone(q)
+
+            # Check whether the initial state is constructed properly
+            # (with one-qubit gates only)
             if len(light_dict.items()) > 1:
                 raise ValueError (
                     "Ensure only 1-qubit gates compose the initial state preparation circuit."
                 )
-            else:
-                # Collecting amplitudes qubit per qubit
-                if len(light_circ.queue) == 0:
-                    init_tensor = basis('0')
-                else:
-                    amplitudes = light_circ().state()
-                    init_tensor = generic_state(
-                        alpha = amplitudes[0],
-                        beta = amplitudes[1],
-                    )
 
-            self.tn.add_tensor(f"T{q}", tensor=init_tensor)
-            
-            #Add dummy nodes D to track the free edges mu
+            # Add the initial state tensor
+            amplitudes = light_circ().state()
+            self.tn.add_measurement(
+                    id=f"T{q}",
+                    alpha = amplitudes[0],
+                    beta = amplitudes[1],
+                )
+                            
+            # Add dummy nodes D to track the free edges mu
             self.tn.add_tensor(f'D{q}', tensor=basis('0'))
             self.tn.add_edge(f"T{q}", f"D{q}", f"mu{q}", (0,0))
+
 
     @property
     def nqubits(self):
@@ -81,8 +82,7 @@ class HybridSurrogate:
 
     def expectation_from_partition(
             self, 
-            n_partitions, 
-            magic_gates_per_partition, 
+            replacement_probability,
             observable,
             return_partitions=False,
             max_bond_dimension: Optional[int] = None 
@@ -97,8 +97,7 @@ class HybridSurrogate:
 
         # Partitionate circuit
         full_circuit, mag_layers, stab_layers = self.ansatz.partitionate_circuit(
-            n_partitions=n_partitions,
-            magic_gates_per_partition=magic_gates_per_partition,
+            replacement_probability=replacement_probability,
         )
         
         # Compute tn of the ansatz
@@ -258,6 +257,11 @@ class HybridSurrogate:
         # Construct the propagator and apply the inverse of the circuit gate by gate
         propagator = Pauli(observable)
         for gate in stabilizer_circuit.invert().queue:
-            propagator.apply(getattr(tableaus, gate2tableau[gate.name])(*gate.qubits))
+            if len(gate.parameters) != 0:
+                # This is working for one-parameters gates right now
+                angle = gate.parameters[0]
+                propagator.apply(getattr(tableaus, gate2tableau[gate.name])(*gate.qubits, angle=angle))
+            else:
+                propagator.apply(getattr(tableaus, gate2tableau[gate.name])(*gate.qubits))
 
         return propagator.complex_phase(), propagator.to_string(ignore_phase=True)

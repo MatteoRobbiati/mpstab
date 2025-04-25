@@ -3,6 +3,7 @@ import json
 import click
 import random
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.stats import median_abs_deviation
 
 # Qibo and tncdr imports
@@ -38,9 +39,10 @@ class NumpyEncoder(json.JSONEncoder):
               help='Error mitigation method to use (e.g., TNCDR, CDR).')
 @click.option('--mitigation_args', default='{}', type=str,
               help='JSON string of additional arguments for the mitigation method. '
-                   'For TNCDR, e.g.: \'{"npartitions": 2, "magic_gates_per_partition": 1, "max_bond_dimension": null}\'')
+                   'For TNCDR, e.g.: \'{"replacement_probability": 0.4, "max_bond_dimension": null}\'')
 @click.option('--random_seed', default=42, type=int, help='Seed of the random number generator.')
 @click.option('--nruns', default=20, type=int, help='Number of times the exercise is repeated.')
+@click.option('--plot', default=False, type=bool, help='If True, plot the regression results.')
 def main(
     nqubits, 
     nlayers, 
@@ -54,6 +56,7 @@ def main(
     mitigation_args, 
     random_seed,
     nruns,
+    plot,
 ):
 
     # Parse extra mitigation arguments.
@@ -231,6 +234,16 @@ def main(
             "mad_abs_dist_exact_mit": float(median_abs_deviation(abs_dist_mit_exact)),
         }
     )
+
+    if plot:
+        plt.figure(figsize=(5, 5 * 6 / 8))
+        x = np.linspace(min(noisy_values),max(noisy_values),100)
+        plt.scatter(noisy_values, exact_values, c="black", alpha=0.5, s=10)
+        plt.plot(x, mit_map_params[0] * x + mit_map_params[1], color="red", alpha=0.7, label="Map")
+        plt.xlabel("Exact")
+        plt.ylabel("Noisy")
+        plt.savefig(f"{folder_path}/regression_report.pdf", bbox_inches="tight")
+
 
     # Dump output into a JSON file using the custom encoder.
     results_file = os.path.join(folder_path, "results.json")

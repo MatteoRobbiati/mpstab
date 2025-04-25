@@ -12,9 +12,9 @@ nqubits = 10
 # Circuit with only Clifford gates
 stab_circ = Circuit(nqubits)
 [stab_circ.add(gates.H(q)) for q in range(nqubits)]
-[stab_circ.add(gates.RZ(q, theta=np.random.randint(-2,2)*np.pi/2)) for q in range(nqubits)]
+[stab_circ.add(gates.GPI2(q, phi=np.random.randint(-2,2)*np.pi/2)) for q in range(nqubits)]
 [stab_circ.add(gates.CNOT(q % nqubits, (q + 1) % nqubits)) for q in range(nqubits)]
-[stab_circ.add(gates.RZ(q, theta=np.random.randint(-2,2)*np.pi/2)) for q in range(nqubits)]
+[stab_circ.add(gates.GPI2(q, phi=np.random.randint(-2,2)*np.pi/2)) for q in range(nqubits)]
 stab_circ.add(gates.Z(2))
 # [stab_circ.add(gates.H(q)) for q in range(nqubits)]
 
@@ -33,7 +33,7 @@ print("\n\n")
 circ.draw()
 
 # Pauli string
-obs_str = "Y" * nqubits
+obs_str = "Z" * nqubits
 obs_form = 1.
 for i, pauli in enumerate(obs_str):
     obs_form *= getattr(symbols, pauli)(i)

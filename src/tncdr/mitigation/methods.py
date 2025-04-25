@@ -19,8 +19,7 @@ def TNCDR(
         ansatz: Ansatz,
         initial_state: Circuit,
         noise_model: NoiseModel,
-        npartitions: int,
-        magic_gates_per_partition: int,
+        replacement_probability: float,
         ncircuits: int = 50,
         nshots: Optional[int] = None,
         random_seed: int = 42,
@@ -54,8 +53,7 @@ def TNCDR(
 
         # Exact expval from surrogate
         exact_expval, partitions = evo.expectation_from_partition(
-            n_partitions=npartitions,
-            magic_gates_per_partition=magic_gates_per_partition,
+            replacement_probability=replacement_probability,
             observable=observable,
             return_partitions=True,
             max_bond_dimension=max_bond_dimension,
@@ -82,6 +80,9 @@ def TNCDR(
 
     # Perform the curve fit using the provided mapping (default: linear)
     popt, _ = curve_fit(fit_map, noisy_array, exact_array)
+
+    import pdb
+    pdb.set_trace()
 
     return training_data, popt
 
