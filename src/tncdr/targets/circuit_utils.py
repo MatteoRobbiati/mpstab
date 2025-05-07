@@ -44,22 +44,41 @@ def get_closest_angle(old_angle, candidates):
     return candidates[closest_index]
 
 def replace_non_clifford_gate(gate, candidates=None, method="random"):
-    """Replace non Clifford gate with a Clifford gate."""
-
-    if gate.name not in ["rx", "ry", "rz"]:
-        raise NotImplementedError(
-            f"This function does not support gate of type {gate.name}"
-        )
-
-    if candidates is None:
-        candidates = np.arange(-2,3,1) * np.pi / 2.
-    
-    new_gate = deepcopy(gate)
-    if gate.name in ["rx", "ry", "rz"]:
+    """Replace non‐Clifford RX/RY/RZ or GPI2 gate with a Clifford one."""
+    # RX/RY/RZ branch
+    if gate.name in ("rx", "ry", "rz"):
+        if candidates is None:
+            candidates = np.arange(-2, 3) * np.pi/2.0
         old_angle = gate.parameters[0]
         if method == "random":
-            new_gate.parameters = random.choice(candidates)
+            new_angle = random.choice(candidates)
         elif method == "closest":
-            new_gate.parameters = get_closest_angle(old_angle=old_angle, candidates=candidates)
+            new_angle = get_closest_angle(old_angle, candidates)
+        else:
+            raise ValueError(f"Unknown method {method!r}")
+        new_gate = deepcopy(gate)
+        new_gate.parameters = [new_angle]
+        return new_gate
 
-    return new_gate
+    # GPI2 branch
+    elif isinstance(gate, gates.GPI2):
+        # only multiples of π/2 are legal Clifford GPI2 angles
+        if candidates is None:
+            candidates = np.arange(4) * (np.pi/2.0)   # [0, π/2, π, 3π/2]
+        # extract the current angle; assuming you stored it as gate.angle
+        old_angle = gate.parameters[0]
+        if method == "random":
+            new_angle = random.choice(candidates)
+        elif method == "closest":
+            new_angle = get_closest_angle(old_angle, candidates)
+        else:
+            raise ValueError(f"Unknown method {method!r}")
+        # re-instantiate a fresh GPI2 at the chosen Clifford angle
+        new_gate = deepcopy(gate)
+        new_gate.parameters = [new_angle]
+        return new_gate
+
+    else:
+        raise NotImplementedError(
+            f"replace_non_clifford_gate does not support gate type {gate.name}"
+        )

@@ -1,7 +1,10 @@
 from typing import Optional
+import copy
 
+import random
 import numpy as np
 from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
 
 from qibo import (
     Circuit,
@@ -21,7 +24,7 @@ def TNCDR(
         noise_model: NoiseModel,
         replacement_probability: float,
         ncircuits: int = 50,
-        nshots: Optional[int] = None,
+        nshots: Optional[int] = None, # TODO: discuss it
         random_seed: int = 42,
         fit_map=lambda x, a, b: a * x + b,
         expval_threshold: float = 1e-7,  
@@ -29,6 +32,7 @@ def TNCDR(
     ):
 
     # Fix the RNG seed for reproducibility
+    random.seed(random_seed)
     np.random.seed(random_seed)
     backend = get_backend()
     backend.set_seed(random_seed)
@@ -59,20 +63,29 @@ def TNCDR(
             max_bond_dimension=max_bond_dimension,
         )
 
+        # TODO: discuss this
         if np.abs(exact_expval) < expval_threshold:
             continue
     
         sampled_circuit = density_matrix_circuit(partitions["full_circuit"])
-        initialised_sampled_circuit = density_matrix_circuit(initial_state) + sampled_circuit
+        density_init_state = density_matrix_circuit(copy.deepcopy(initial_state))
+        initialised_sampled_circuit = density_init_state + sampled_circuit
         noisy_init_sampled_circuit = noise_model.apply(initialised_sampled_circuit)
-        noisy_expval = ham.expectation_from_samples(
-            noisy_init_sampled_circuit(
-                nshots=nshots
-            ).frequencies()
-        )
+        noisy_expval = ham.expectation(noisy_init_sampled_circuit().state())
+
 
         training_data["exact_expvals"].append(exact_expval)
         training_data["noisy_expvals"].append(noisy_expval)
+
+        print(
+            exact_expval, 
+            ham.expectation((density_init_state + sampled_circuit)().state()), 
+            noisy_expval,
+        )
+
+    plt.figure()
+    plt.scatter(training_data["noisy_expvals"], training_data["exact_expvals"])
+    plt.savefig(f"scatter{random_seed}.pdf")
 
     # Convert lists to numpy arrays for curve_fit
     noisy_array = np.array(training_data["noisy_expvals"])
@@ -80,9 +93,6 @@ def TNCDR(
 
     # Perform the curve fit using the provided mapping (default: linear)
     popt, _ = curve_fit(fit_map, noisy_array, exact_array)
-
-    import pdb
-    pdb.set_trace()
 
     return training_data, popt
 
@@ -92,3 +102,8 @@ def density_matrix_circuit(circuit):
     for gate in circuit.queue:
         circ.add(gate)
     return circ
+
+
+def save_plot(data):
+    plt.scatter(data["noisy_expvals"], data["exact_expvals"])
+    plt.savefig("testino.pdf")

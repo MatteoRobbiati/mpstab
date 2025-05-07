@@ -90,7 +90,7 @@ class HardwareEfficient(Ansatz):
                 self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
             if self.entangling:
                 self.circuit += self.entanglement_layer()
-        self.circuit.add(gates.M(*range(self.nqubits)))
+        #self.circuit.add(gates.M(*range(self.nqubits)))
 
     
     @property
@@ -217,15 +217,16 @@ class TranspiledAnsatz(Ansatz):
         # Now call the parent's __post_init__ to initialize _circuit and other attributes.
         super().__post_init__()
         # Overwrite the circuit with the original one.
-        self._circuit = self.original_circuit
+        self._circuit = hardware_compatible_circuit(self.original_circuit)
+
+        # Freeze the GPI2 gates
+        for g in self._circuit.parametrized_gates:
+            if isinstance(g, gates.GPI2) and g.clifford:
+                g.trainable = False
 
     @property
     def circuit(self):
-        return hardware_compatible_circuit(
-            circuit=self._circuit,
-            native_gates=self.native_gates,
-            connectivity=self.connectivity,
-        )
+        return self._circuit
     
     def partitionate_circuit(self, replacement_probability: float):
         """
@@ -243,7 +244,7 @@ class TranspiledAnsatz(Ansatz):
             clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive Clifford gates.
             non_clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive non-Clifford gates.
         """
-        original_circuit = deepcopy(self.circuit)
+        original_circuit = self.circuit
         partitioned_circuit = Circuit(self.nqubits)
         stabilizer_layers = []
         magic_layers = []
@@ -252,7 +253,8 @@ class TranspiledAnsatz(Ansatz):
 
         for gate in original_circuit.queue:
             if not gate.clifford and not isinstance(gate, gates.M):
-                if random.random() < replacement_probability:
+                r = random.random()
+                if r < replacement_probability:
                     new_gate = replace_non_clifford_gate(gate, method="closest")
                 else:
                     new_gate = gate
@@ -283,4 +285,4 @@ class TranspiledAnsatz(Ansatz):
             else:
                 magic_layers.append(current_block)
 
-        return partitioned_circuit, magic_layers[:-1], stabilizer_layers
+        return partitioned_circuit, magic_layers, stabilizer_layers

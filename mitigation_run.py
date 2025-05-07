@@ -2,6 +2,7 @@ import os
 import json
 import click
 import random
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import median_abs_deviation
@@ -95,7 +96,7 @@ def main(
     set_backend("numpy")
 
     if observable is None:
-        observable = "Z" * nqubits
+        observable = "Y" * nqubits
 
     # Construct Hamiltonian.
     form = 1
@@ -115,6 +116,8 @@ def main(
     # Construct a Transpiled ansatz on top of this
     ansatz_instance = TranspiledAnsatz(original_circuit=hdw_eff_circuit)
 
+    original_circuit_copy = copy.deepcopy(ansatz_instance.circuit)
+
     # Fix random seed.
     np.random.seed(random_seed)
     random.seed(random_seed)
@@ -127,8 +130,10 @@ def main(
         click.echo(f"Running experiment {i+1}/{nruns}")
         
         # Update parameters in the ansatz.
-        ansatz_instance.circuit.set_parameters(np.random.randn(ansatz_instance.nparams))
-
+        for gate in ansatz_instance.circuit.parametrized_gates:
+            if not gate.clifford:
+                gate.parameters = np.random.randn()
+        
         # Build the initial state circuit.
         init_circ = Circuit(nqubits=nqubits)
         for q in range(nqubits):
@@ -189,10 +194,10 @@ def main(
         mitigation_output = method_func(**method_params)
 
         # Compute extra info common to all methods: the exact and noisy expectation values.
-        exact_circ = init_circ + ansatz_instance.circuit
+        exact_circ = init_circ + original_circuit_copy
         exact_value = ham.expectation(exact_circ().state())
         noisy_init_circ = noise_model.apply(density_matrix_circuit(init_circ))
-        noisy_main_circ = noise_model.apply(density_matrix_circuit(ansatz_instance.circuit))
+        noisy_main_circ = noise_model.apply(density_matrix_circuit(original_circuit_copy))
         noisy_outcome = (noisy_init_circ + noisy_main_circ)()
         noisy_value = ham.expectation(noisy_outcome.state())
 

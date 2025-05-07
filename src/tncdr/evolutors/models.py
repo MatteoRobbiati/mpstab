@@ -95,15 +95,19 @@ class HybridSurrogate:
         If specified, returns the partitions used to generate the lower-magic circuit.
         """
 
+        self.tn = TensorNetwork()       
+        self._init_tn()
+
         # Partitionate circuit
         full_circuit, mag_layers, stab_layers = self.ansatz.partitionate_circuit(
             replacement_probability=replacement_probability,
         )
-        
+
         # Compute tn of the ansatz
         self._build_tn_from_partition(mag_layers, stab_layers, max_bond_dimension=max_bond_dimension)
         # Compute the conjugate of the observable
         phase, new_observable = self.backpropagate_pauli(observable, sum(stab_layers, start=Circuit(self.nqubits)))
+
         # Collect partitions into a dictionary in case we want to return it
         if return_partitions:
             partitions = {
@@ -133,14 +137,17 @@ class HybridSurrogate:
     def _conjugate_generator(self, gate, stabs):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
         
-        if gate.name not in ["rx", "ry", "rz"]:
+        if gate.name not in ["rx", "ry", "rz", "gpi2"]:
             raise ValueError("tncdr currently supports only rotational gates.")
         
         generator = ''.join([gate2generator[gate.name] if q in gate.target_qubits else 'I' for q in range(self.nqubits)])
         return self.backpropagate_pauli(generator, sum(stabs, start=Circuit(self.nqubits)))
 
     def _build_rotation_layer(self, angle, generator):
-        """Construct one horizontal layer of Ws, according to a given generator."""
+        """
+        Construct one horizontal layer of tensors, representing a multi-qubit rotation U with a specified generator,
+        i.e. U = e^{i*angle*generator/2} following https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604.
+        """
 
         # Add theta projection and X projection (very left and very right nodes of each row)
         self.tn.add_tensor(f"Angle", tensor=theta_state(theta=angle))
@@ -166,6 +173,13 @@ class HybridSurrogate:
             self.tn.add_edge(f"S{q}", f"D{q}", f"mu{q}", (0,0))
 
     def _contract_rotation_layer(self, bond_dimension=None):
+        """
+        Contract a single rotation layer, re-establishing the conventional MPS form for the tn.
+        A SVD step is included to avoid the un-necessary exponential scaling for lowly entangled MPSs.
+
+        If specified, the smallest singular values are dropped at each step to keep the 
+        bond-dimension under the provided threshold.
+        """
 
         # Contract Angle and X edges
         self.tn.contract("Angle", "S0", "s_link", f"S0")
@@ -193,7 +207,12 @@ class HybridSurrogate:
             self.tn.contract(f"T{q}", "Lambda" ,'tmp_link', f"T{q}")
 
     def _links(self, q):
-
+        """
+        Read the connections present between Tq-1, Tq and Sq from the TensorNetwork and output the ones
+        that need to be contracted in the conventional MPS form (i.e. horizontal_links) and those pertaining
+        to the left and right unitary nodes arising from the SVD respectively (i.e. left_links and right_links).
+        """
+        
         horizontal_links = ['s_link']
         left_links = [f'mu{q-1}']
         right_links = [f'mu{q}']
@@ -213,41 +232,53 @@ class HybridSurrogate:
 
     def contract_tn_on_obs(self, observable: str):
         """
-        Append the observable to the MPO and compute the contraction of 
-        the whole structure to get the expectation value. 
-        
-        Args:
-            observable (str): expected to be a string of Paulis.
+        Compute the expectation value of the TensorNetwork MPS wrt the observable.
         """
 
-        if len(observable) != self.nqubits:
-            raise ValueError(
-                f"Observable {observable} length doesn't match nqubits, which is {self.nqubits}."
-            )
-
+        # "Ket" TensorNetwork 
         tn = deepcopy(self.tn)
+
+        # "Bra" TensorNetwork
         tn_dg = deepcopy(self.tn)
         tn_dg.complex_conjugate()
 
+        # Merge ket + bra
         tn = merge_tns(tn, tn_dg)
         
-        # Connect to the observable and remove dummy tensor
+        # Attach observable tensors and connect to the dummy D nodes
         for n, p in enumerate(observable):
-            tn.add_tensor(f'O{n}', tensor=paulis[p])
-            _link_to_dummy(tn, f'D{n}', f'O{n}', 0)
-            _link_to_dummy(tn, f'D{n}_dg', f'O{n}', 1)
+            tn.add_tensor(f"O{n}", tensor=paulis[p])
+            _link_to_dummy(tn, f"D{n}",      f"O{n}", 0)
+            _link_to_dummy(tn, f"D{n}_dg",   f"O{n}", 1)
 
-        # Contract the last layer
-        tn.contract(f"T{0}", f"O{0}", "v_link", "F")
-        tn.contract(f"T{0}_dg", "F", "v_link", "F")
-        
-        for n in range(1,len(observable)):
-            tn.contract("F", f"T{n}", f"chi{n}", "F")
+        # Start by contracting qubit 0 into F
+        tn.contract("T0",    "O0",    "v_link", "F")
+        tn.contract("T0_dg", "F",     "v_link", "F")
+
+        # Then fold in the rest one by one
+        for n in range(1, len(observable)):
+            # 1) contract the MPS bond, preferring 'chi{n}' but falling back if missing
+            try:
+                tn.contract("F", f"T{n}", f"chi{n}", "F")
+            except KeyError:
+                # pick whatever edge ID is actually present
+                edge_ids = list(tn.tensornet.edges["F", f"T{n}"].keys())
+                tn.contract("F", f"T{n}", edge_ids[0], "F")
+
+            # 2) insert the Pauli tensor for qubit n
             tn.contract("F", f"O{n}", "v_link", "F")
-            tn.contract("F", f"T{n}_dg", f"chi{n}", "F")
+
+            # 3) contract the bra-layer qubit back in
+            try:
+                tn.contract("F", f"T{n}_dg", f"chi{n}", "F")
+            except KeyError:
+                edge_ids = list(tn.tensornet.edges["F", f"T{n}_dg"].keys())
+                tn.contract("F", f"T{n}_dg", edge_ids[0], "F")
+
+            # 4) finish off any dangling 'v_link'
             tn.contract("F", "F", "v_link", "F")
 
-        return float(np.real(tn.tensornet.nodes["F"]["tensor"]))
+        return float(tn.tensornet.nodes["F"]["tensor"])
 
     def backpropagate_pauli(self, observable: str, stabilizer_circuit: Circuit):
         """
