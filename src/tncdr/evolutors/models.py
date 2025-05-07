@@ -6,7 +6,7 @@ from copy import deepcopy
 from qibo import Circuit
 
 from tncdr.evolutors.tensor_network import TensorNetwork, merge_tns
-from tncdr.evolutors.tensor_network.s_utils import (
+from tncdr.evolutors.tensor_network.operators.utils import (
     _compute_all_s_tensors,
     basis,
     theta_state,
