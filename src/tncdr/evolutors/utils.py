@@ -5,7 +5,6 @@ gate2generator = {
     "rx": "X",
     "ry": "Y",
     "rz": "Z",
-    
 }
 
 gate2tableau = {
@@ -18,6 +17,7 @@ gate2tableau = {
     "swap": "SWAP",
     "cz": "CZ",
     "rz": "RZ",
+    "ry": "RY",
     "gpi2": "GPI2",
 }
 

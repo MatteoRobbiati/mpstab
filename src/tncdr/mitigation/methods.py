@@ -67,6 +67,9 @@ def TNCDR(
         if np.abs(exact_expval) < expval_threshold:
             continue
     
+        # import pdb 
+        # pdb.set_trace()
+
         sampled_circuit = density_matrix_circuit(partitions["full_circuit"])
         density_init_state = density_matrix_circuit(copy.deepcopy(initial_state))
         initialised_sampled_circuit = density_init_state + sampled_circuit

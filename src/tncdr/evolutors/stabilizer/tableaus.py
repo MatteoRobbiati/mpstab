@@ -186,6 +186,46 @@ class RZ(Tableau):
         
         super().__init__(XTableau, ZTableau, name=name)
 
+class RY(Tableau):
+    """
+    Implements the single-qubit RY rotation as a Tableau.
+
+    The angle must be an integer multiple of π/2 for the operation to be Clifford.
+    Acceptable angles include negative multiples.
+
+    The transformation rules on the target qubit are:
+      - RY(0):        Identity (X → X,  Z → Z)
+      - RY(π/2):      X → Z,  Z → -X
+      - RY(π) or -π:  X → -X, Z → -Z        (Equivalent to combined X and Z flips)
+      - RY(3π/2):     X → -Z, Z → X         (Equivalent to RY(-π/2))
+    """
+    def __init__(self, target: int, angle: float) -> None:
+        tol = 1e-8
+        factor = angle / (math.pi / 2)
+        if abs(factor - round(factor)) > tol:
+            raise ValueError("Angle must be a multiple of π/2 for a Clifford operation.")
+
+        k = int(round(factor)) % 4
+
+        if k == 0:
+            XTableau = HalfTableau([target], conjugates=[Pauli('X')])
+            ZTableau = HalfTableau([target], conjugates=[Pauli('Z')])
+            name = f"RY({angle}) Identity"
+        elif k == 1:
+            XTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
+            ZTableau = HalfTableau([target], conjugates=[Pauli('X')])
+            name = f"RY({angle})"
+        elif k == 2:
+            XTableau = HalfTableau([target], conjugates=[Pauli('-X')])
+            ZTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
+            name = f"RY({angle})"
+        else:  # k == 3
+            XTableau = HalfTableau([target], conjugates=[Pauli('Z')])
+            ZTableau = HalfTableau([target], conjugates=[Pauli('-X')])
+            name = f"RY({angle})"
+
+        super().__init__(XTableau, ZTableau, name=name)
+
 
 class GPI2(Tableau):
     """

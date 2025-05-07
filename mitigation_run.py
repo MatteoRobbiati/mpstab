@@ -114,7 +114,9 @@ def main(
     # Collect the circuit
     hdw_eff_circuit = hdw_eff_ansatz_instance.circuit
     # Construct a Transpiled ansatz on top of this
-    ansatz_instance = TranspiledAnsatz(original_circuit=hdw_eff_circuit)
+    
+    #ansatz_instance = TranspiledAnsatz(original_circuit=hdw_eff_circuit)
+    ansatz_instance = hdw_eff_ansatz_instance
 
     original_circuit_copy = copy.deepcopy(ansatz_instance.circuit)
 
