@@ -8,7 +8,7 @@ import numpy as np
 from qibo import Circuit
 
 from tncdr.evolutors.tensor_network import TensorNetwork, merge_tns
-from tncdr.evolutors.tensor_network.s_utils import (
+from tncdr.evolutors.tensor_network.operators.utils import (
     _compute_all_s_tensors,
     basis,
     theta_state,
@@ -19,6 +19,7 @@ from tncdr.evolutors.stabilizer.pauli_string import Pauli
 from tncdr.evolutors.stabilizer import tableaus
 from tncdr.evolutors.utils import gate2generator, gate2tableau, _link_to_dummy
 from tncdr.targets.ansatze import Ansatz
+from tncdr.evolutors.tensor_network.simulator.circuit_mps import CircuitMPS
 
 
 @dataclass
@@ -41,7 +42,10 @@ class HybridSurrogate:
             self.initial_state = Circuit(self.ansatz.nqubits)
 
         # Initializing the tensor network
-        self.tn = TensorNetwork()
+        self.tn = CircuitMPS(
+            n=self.ansatz.nqubits,
+            
+        )
         # Compute all the possible W tensors
         self.s_map = _compute_all_s_tensors()
         # Add the initial state, which is |0> by default
