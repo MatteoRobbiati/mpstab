@@ -3,19 +3,17 @@
 from dataclasses import dataclass
 from copy import deepcopy
 
+import numpy as np
+
 from qibo import Circuit
 
-from tncdr.evolutors.tensor_network import TensorNetwork, merge_tns
-from tncdr.evolutors.tensor_network.operators.utils import (
-    _compute_all_s_tensors,
-    basis,
-    theta_state,
-    X_state,
-)
-from tncdr.evolutors.tensor_network.tn_utils import paulis
+
+from tncdr.evolutors.tensor_network.simulator.circuit_mps import CircuitMPS
+from tncdr.evolutors.tensor_network.operators.observables import PauliMPO
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
 from tncdr.evolutors.stabilizer import tableaus
-from tncdr.evolutors.utils import gate2generator, gate2tableau, _link_to_dummy
+
+from tncdr.evolutors.utils import gate2generator, gate2tableau
 from tncdr.targets.ansatze import Ansatz
 
 
@@ -38,18 +36,15 @@ class HybridSurrogate:
         if self.initial_state is None:
             self.initial_state = Circuit(self.ansatz.nqubits)
 
-        # Initializing the tensor network
-        self.tn = TensorNetwork()
-        # Compute all the possible W tensors
-        self.s_map = _compute_all_s_tensors()
         # Add the initial state, which is |0> by default
         self._init_tn()
     
-    def _init_tn(self):
+    def _init_tn(self, max_bond_dimension:int|None=None):
         """
         Initialize the HybridEvolutor's tensor network to the factorized state specified by the initial state circuit.
         """
 
+        amplitudes = []
         for q in range(self.nqubits):
 
             light_circ, light_dict = self.initial_state.light_cone(q)
@@ -62,16 +57,13 @@ class HybridSurrogate:
                 )
 
             # Add the initial state tensor
-            amplitudes = light_circ().state()
-            self.tn.add_measurement(
-                    id=f"T{q}",
-                    alpha = amplitudes[0],
-                    beta = amplitudes[1],
-                )
-                            
-            # Add dummy nodes D to track the free edges mu
-            self.tn.add_tensor(f'D{q}', tensor=basis('0'))
-            self.tn.add_edge(f"T{q}", f"D{q}", f"mu{q}", (0,0))
+            amplitudes.append(light_circ().state())
+        
+        self.mps = CircuitMPS(
+            n=self.nqubits,
+            initial_state=np.array(amplitudes),
+            max_bond_dimension=max_bond_dimension,
+        )
 
     @property
     def nqubits(self):
@@ -98,11 +90,15 @@ class HybridSurrogate:
             magic_gates_per_partition=magic_gates_per_partition,
         )
         
-        # Compute tn of the ansatz
-        self._build_tn_from_partition(mag_layers, stab_layers)
+        # check the stab layers, might be wrong
+        for i, magic_circuit in enumerate(mag_layers):
+            for gate in magic_circuit.queue:
+
+                generator = self._conjugate_generator(gate, stab_layers[:i])
+                self.mps.pauli_rot(generator, gate.parameters[0])
 
         # Compute the conjugate of the observable
-        phase, new_observable = self.backpropagate_pauli(observable, sum(stab_layers, start=Circuit(self.nqubits)))
+        new_observable = self.backpropagate_pauli(observable, sum(stab_layers, start=Circuit(self.nqubits)))
 
         # Collect partitions into a dictionary in case we want to return it
         if return_partitions:
@@ -114,21 +110,7 @@ class HybridSurrogate:
         else:
             partitions = None
 
-        return phase*self.contract_tn_on_obs(new_observable), partitions
-        
-    def _build_tn_from_partition(self, mag_layers, stab_layers):
-        """
-        Construct an MPS layer according to: https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604
-        and contract it from left to right.
-        """
-
-        # check the stab layers, might be wrong
-        for i, magic_circuit in enumerate(mag_layers):
-            for gate in magic_circuit.queue:
-
-                phase, generator = self._conjugate_generator(gate, stab_layers[:i])
-                self._build_rotation_layer(phase*gate.parameters[0], generator)
-                self._contract_rotation_layer()
+        return self.mps.expval(PauliMPO(new_observable)), partitions
 
     def _conjugate_generator(self, gate, stabs):
         """
@@ -141,126 +123,6 @@ class HybridSurrogate:
         generator = ''.join([gate2generator[gate.name] if q in gate.target_qubits else 'I' for q in range(self.nqubits)])
         return self.backpropagate_pauli(generator, sum(stabs, start=Circuit(self.nqubits)))
 
-    def _build_rotation_layer(self, angle, generator):
-        """
-        Construct one horizontal layer of tensors, representing a multi-qubit rotation U with a specified generator,
-        i.e. U = e^{i*angle*generator/2} following https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604.
-        """
-
-        # Add theta projection and X projection (very left and very right nodes of each row)
-        self.tn.add_tensor(f"Angle", tensor=theta_state(theta=angle))
-        self.tn.add_tensor(id=f"X", tensor=X_state())
-
-        # Generate the rotation tensors
-        for q in range(self.nqubits):
-            self.tn.add_tensor(f"S{q}", tensor=self.s_map[generator[q]])
-
-        # Add Angle and X edges
-        self.tn.add_edge(f"Angle", f"S0", "s_link", (0,2))
-        self.tn.add_edge(f"S{self.nqubits-1}", f"X", "s_link", (3,0))
-
-        # Add horizontal edges
-        for q in range(self.nqubits-1):
-            self.tn.add_edge(f"S{q}", f"S{q+1}", "s_link", (3,2))
-        
-        # Add vertical edges and shift mu
-        for q in range(self.nqubits):
-            mu_direction = self.tn.tensornet.edges[f"T{q}", f"D{q}", f"mu{q}"]["directions"][0]
-            self.tn.remove_edge(f"T{q}", f"D{q}", f"mu{q}")
-            self.tn.add_edge(f"T{q}", f"S{q}", "v_link", (mu_direction,1))
-            self.tn.add_edge(f"S{q}", f"D{q}", f"mu{q}", (0,0))
-
-    def _contract_rotation_layer(self, bond_dimension=None):
-        """
-        Contract a single rotation layer, re-establishing the conventional MPS form for the tn.
-        A SVD step is included to avoid the un-necessary exponential scaling for lowly entangled MPSs.
-
-        If specified, the smallest singular values are dropped at each step to keep the 
-        bond-dimension under the provided threshold.
-        """
-
-        # Contract Angle and X edges
-        self.tn.contract("Angle", "S0", "s_link", f"S0")
-        self.tn.contract(f"S{self.nqubits-1}","X","s_link",f"S{self.nqubits-1}")
-
-        # Contract and SVD all the rest
-        self.tn.contract("T0", "S0", "v_link", f"T0")
-
-        for q in range(1,self.nqubits):
-            
-            horizontal_links, left_links, right_links = self._links(q)
-
-            self.tn.contract(f"T{q}", f"S{q}", "v_link", f"T{q}")
-            self.tn.contract(f"T{q-1}", f"T{q}", horizontal_links, f"tmp")
-            self.tn.svd_decomposition(
-                node='tmp',
-                left_node_id=f'T{q-1}',
-                left_node_edges=left_links,
-                right_node_id=f'T{q}',
-                right_node_edges=right_links,
-                middle_edge_left=f'chi{q}',
-                middle_edge_right='tmp_link',
-                max_bond_dimension=bond_dimension,
-            )
-            self.tn.contract(f"T{q}", "Lambda" ,'tmp_link', f"T{q}")
-
-    def _links(self, q):
-        """
-        Read the connections present between Tq-1, Tq and Sq from the TensorNetwork and output the ones
-        that need to be contracted in the conventional MPS form (i.e. horizontal_links) and those pertaining
-        to the left and right unitary nodes arising from the SVD respectively (i.e. left_links and right_links).
-        """
-        
-        horizontal_links = ['s_link']
-        left_links = [f'mu{q-1}']
-        right_links = [f'mu{q}']
-
-        if self.tn.tensornet.number_of_edges(f'T{q-1}',f'T{q}'):
-            horizontal_links.append(f'chi{q}')
-
-        if q > 1 and self.tn.tensornet.number_of_edges(f'T{q-2}',f'T{q-1}'):
-            left_links.append(f'chi{q-1}')
-
-        if q < self.nqubits-1: 
-            right_links.append(f's_link')
-            if self.tn.tensornet.number_of_edges(f'T{q}',f'T{q+1}'):
-                right_links.append(f'chi{q+1}')
-            
-        return horizontal_links, left_links, right_links
-
-    def contract_tn_on_obs(self, observable: str):
-        """
-        Compute the expectation value of the TensorNetwork MPS wrt the observable.
-        """
-
-        # "Ket" TensorNewtork 
-        tn = deepcopy(self.tn)
-
-        # "Bra" TensorNetwork
-        tn_dg = deepcopy(self.tn)
-        tn_dg.complex_conjugate()
-
-        # Whole TensorNetework
-        tn = merge_tns(tn, tn_dg)
-        
-        # Connect to the observable and remove dummy tensor
-        for n, p in enumerate(observable):
-            tn.add_tensor(f'O{n}', tensor=paulis[p])
-            _link_to_dummy(tn, f'D{n}', f'O{n}', 0)
-            _link_to_dummy(tn, f'D{n}_dg', f'O{n}', 1)
-
-        # Contract the last layer
-        tn.contract(f"T{0}", f"O{0}", "v_link", "F")
-        tn.contract(f"T{0}_dg", "F", "v_link", "F")
-        
-        for n in range(1,len(observable)):
-            tn.contract("F", f"T{n}", f"chi{n}", "F")
-            tn.contract("F", f"O{n}", "v_link", "F")
-            tn.contract("F", f"T{n}_dg", f"chi{n}", "F")
-            tn.contract("F", "F", "v_link", "F")
-
-        return float(tn.tensornet.nodes["F"]["tensor"])
-
     def backpropagate_pauli(self, observable: str, stabilizer_circuit: Circuit):
         """
         Process a given Pauli string applying a `stabilizer_circuit` in 
@@ -271,4 +133,4 @@ class HybridSurrogate:
         for gate in stabilizer_circuit.invert().queue:
             propagator.apply(getattr(tableaus, gate2tableau[gate.name])(*gate.qubits))
 
-        return propagator.complex_phase(), propagator.to_string(ignore_phase=True)
+        return propagator
