@@ -3,7 +3,7 @@ from typing import Optional, Union
 import numpy as np
 
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
-from tncdr.evolutors.stabilizer.tableaus import CNOT, CZ, SWAP, H, S, X, Y, Z
+from tncdr.evolutors.stabilizer.tableaus import CNOT, CZ, SWAP, H, Sdg, X, Y, Z
 
 from tncdr.evolutors.tensor_network.simulator.circuit_mps import CircuitMPS
 from tncdr.evolutors.tensor_network.operators.gates import PauliExp
@@ -37,7 +37,7 @@ class CircuitStabilizerMPS(CircuitMPS):
         self.cliffords.append(Z(qubit))
     
     def s(self, qubit):
-        self.cliffords.append(S(qubit))
+        self.cliffords.append(Sdg(qubit))
     
     def t(self, qubit):
         
@@ -47,6 +47,14 @@ class CircuitStabilizerMPS(CircuitMPS):
 
         self.apply(PauliExp(p, np.pi/4))
     
+    def pauli_rot(self, pauli_generator, theta, qubits):
+
+        generator = Pauli(qubits[0]*'I'+pauli_generator+(self.n_qubits-qubits[0]-len(qubits))*'I')
+        for tab in reversed(self.cliffords):
+            generator.apply(tab)
+
+        return super().pauli_rot(generator, theta, qubits=None)
+
     def expval(self, obs:str, sites:Optional[list[int]]=None):
 
         obs = Pauli(obs)

@@ -102,6 +102,18 @@ class S(Tableau):
 
         super().__init__(XTableau, ZTableau, name=f'S({target})')
 
+class Sdg(Tableau):
+    """
+    Implements the Phase-gate (S) Tableau
+    """
+
+    def __init__(self, target:int,)->None:
+
+        XTableau = HalfTableau([target], conjugates=[Pauli('-Y')])
+        ZTableau = HalfTableau([target], conjugates=[Pauli('Z')])
+
+        super().__init__(XTableau, ZTableau, name=f'S({target})')
+
 class X(Tableau):
     """
     Implements the bit-filp (X) Tableau
