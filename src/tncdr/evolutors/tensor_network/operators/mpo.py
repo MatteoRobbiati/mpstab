@@ -24,7 +24,7 @@ class MPO(TensorNetwork):
             link_directions = [(2,3) if i < n_tensors-2 else (2,2) for i in range(n_tensors-1)] if n_tensors > 1 else []
         
         if physical_directions is None: 
-            physical_directions = [(0,1) for i in range(n_tensors)]
+            physical_directions = [(1,0) for i in range(n_tensors)]
         
         assert n_tensors == len(physical_directions), f'Mismatch in the number of tensors and physical legs, {n_tensors}!={len(physical_directions)}.'
         assert n_tensors == len(link_directions) + 1, f'Mismatch in the number of tensors ({n_tensors}) and link directions ({len(link_directions)}, should be {n_tensors-1}).' 
