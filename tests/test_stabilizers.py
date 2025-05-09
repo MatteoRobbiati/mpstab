@@ -18,6 +18,7 @@ stab_circ.add(gates.RY(2, theta=3*np.pi/2))
 [stab_circ.add(gates.CNOT(q % nqubits, (q + 1) % nqubits)) for q in range(nqubits)]
 stab_circ.add(gates.RY(0, theta=np.pi/2))
 stab_circ.add(gates.RY(3, theta=3*np.pi/2))
+stab_circ.add(gates.S(4))
 stab_circ.add(gates.Z(2))
 # [stab_circ.add(gates.H(q)) for q in range(nqubits)]
 

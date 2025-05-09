@@ -23,7 +23,7 @@ def basis(initial_state_name:str)->np.ndarray:
     if initial_state_name=='1': return np.array([0.0,1.0])
     if initial_state_name=='+': return np.array([1.0,1.0])/np.sqrt(2)
     if initial_state_name=='-': return np.array([1.0,-1.0])/np.sqrt(2)
-    raise ValueError(f'Basis element descriptor must be either 0,1,+ or -. "Given {initial_state_name}".')
+    raise ValueError(f'Basis element descriptor must be either 0,1,+ or -. Given "{initial_state_name}".')
 
 @lru_cache(maxsize=None)
 def theta_state(theta:float)->np.ndarray:

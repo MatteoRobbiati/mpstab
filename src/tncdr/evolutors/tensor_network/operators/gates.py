@@ -31,7 +31,7 @@ class PauliExp(MPO):
     
         super().__init__(tensors, tensor_prefix=f'exp(-i{theta/2:.2f}{desc})')
 
-        self.add_tensor('Angle', tensor=theta_state(phase*theta))
+        self.add_tensor('Angle', tensor=theta_state(-phase*theta))
         self.add_edge('Angle', self.prefix+'0', 'tmp', (0,3))
         self.add_tensor('X', tensor=X_state())
         self.add_edge('X', self.prefix+f'{len(desc)-1}', 'tmp', (0,3 if len(tensors) > 1 else 2))

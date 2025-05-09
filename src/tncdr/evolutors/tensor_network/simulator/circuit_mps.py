@@ -33,24 +33,25 @@ class CircuitMPS(TensorNetwork):
     """
 
 
-    def __init__(self, n:int, initial_state:Optional[str]=None, max_bond_dimension:Optional[int]=None):
+    def __init__(self, n:int, initial_state:Optional[str|np.ndarray]=None, max_bond_dimension:Optional[int]=None):
         
         self.n_qubits = n
         self.max_bond_dimension = max_bond_dimension
 
         if initial_state is None: initial_state = n*'0'
+        if type(initial_state) is str: initial_state = [basis(bit) for bit in initial_state]
         assert n >=2, 'This implementation only supports 2-qubit or more MPSs'
         assert n == len(initial_state), f'Intial state qubits ({len(initial_state)}) and circuit qubits ({n}) must match.'
 
         super().__init__()
 
         # Add qubits (3-legged tensors)
-        self.add_tensor('T0', tensor = np.reshape(basis(initial_state[0]), (2,1)))
+        self.add_tensor('T0', tensor = np.reshape(initial_state[0], (2,1)))
         self.add_measurement('D0')
         self.add_edge('T0', 'D0', 'phyisical0', (0,0))
 
         for q, s in enumerate(initial_state[1:], 1):
-            self.add_tensor(f'T{q}', tensor = np.reshape(basis(s), (2,1,1)))
+            self.add_tensor(f'T{q}', tensor = np.reshape(s, (2,1,1)))
             self.add_tensor(f'L{q-1}', tensor = np.reshape(np.array([1]), (1,1)))
             self.add_measurement(f'D{q}')
 
@@ -150,7 +151,7 @@ class CircuitMPS(TensorNetwork):
         """
         self.apply(T, [qubit])
     
-    def pauli_rot(self, pauli_generator, theta, qubits):
+    def pauli_rot(self, pauli_generator, theta, qubits=None):
         """
         Apply the gate exp(-i `theta`/2 P), where P is a generic pauli string generating the rotation.
         """
