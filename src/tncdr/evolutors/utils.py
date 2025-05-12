@@ -19,6 +19,7 @@ gate2tableau = {
     "rz": "RZ",
     "ry": "RY",
     "gpi2": "GPI2",
+    "sdg" : "Sdg",
 }
 
 one_qubit_cliff = "HXYZ"

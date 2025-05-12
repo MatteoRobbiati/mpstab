@@ -131,8 +131,6 @@ class HybridSurrogate:
         """
         # Construct the propagator and apply the inverse of the circuit gate by gate
         propagator = Pauli(observable)
-        import pdb
-        pdb.set_trace()
         for gate in stabilizer_circuit.invert().queue:
             if len(gate.parameters) != 0:
                 # This is working for one-parameters gates right now

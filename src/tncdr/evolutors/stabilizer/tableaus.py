@@ -223,16 +223,16 @@ class RY(Tableau):
             ZTableau = HalfTableau([target], conjugates=[Pauli('Z')])
             name = f"RY({angle}) Identity"
         elif k == 1:
-            XTableau = HalfTableau([target], conjugates=[Pauli('Z')])
-            ZTableau = HalfTableau([target], conjugates=[Pauli('-X')])
+            XTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
+            ZTableau = HalfTableau([target], conjugates=[Pauli('X')])
             name = f"RY({angle})"
         elif k == 2:
             XTableau = HalfTableau([target], conjugates=[Pauli('-X')])
             ZTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
             name = f"RY({angle})"
         else:  # k == 3
-            XTableau = HalfTableau([target], conjugates=[Pauli('-Z')])
-            ZTableau = HalfTableau([target], conjugates=[Pauli('X')])
+            XTableau = HalfTableau([target], conjugates=[Pauli('Z')])
+            ZTableau = HalfTableau([target], conjugates=[Pauli('-X')])
             name = f"RY({angle})"
 
         super().__init__(XTableau, ZTableau, name=name)
@@ -252,7 +252,7 @@ class GPI2(Tableau):
         if k == 0:
             x_conj, z_conj = Pauli('X'),  Pauli('-Y')
         elif k == 1:
-            x_conj, z_conj = Pauli('X'), Pauli('Z')
+            x_conj, z_conj = Pauli('-Z'), Pauli('X')
         elif k == 2:
             x_conj, z_conj = Pauli('X'),  Pauli('Y')
         else:  # k == 3
