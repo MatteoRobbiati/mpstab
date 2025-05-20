@@ -3,9 +3,8 @@ from typing import Union
 import numpy as np
 
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
-
 from tncdr.evolutors.tensor_network.operators import MPO
-from tncdr.evolutors.tensor_network.tn_utils import paulis
+from tncdr.evolutors.tensor_network.utils import paulis
 
 
 class PauliMPO(MPO):

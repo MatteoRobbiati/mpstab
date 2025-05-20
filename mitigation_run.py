@@ -1,19 +1,20 @@
-import os
-import json
-import click
-import random
 import copy
-import numpy as np
+import json
+import os
+import random
+
+import click
 import matplotlib.pyplot as plt
-from scipy.stats import median_abs_deviation
+import numpy as np
 
 # Qibo and tncdr imports
-from qibo import Circuit, gates, symbols, hamiltonians, set_backend, get_backend
+from qibo import Circuit, gates, get_backend, hamiltonians, set_backend, symbols
 from qibo.models.error_mitigation import CDR, vnCDR  # vnCDR imported if needed later
+from scipy.stats import median_abs_deviation
 
-from tncdr.targets.ansatze import HardwareEfficient, TranspiledAnsatz
-from tncdr.targets.noise_utils import build_noise_model
 from tncdr.mitigation.methods import TNCDR, density_matrix_circuit
+from tncdr.targets.ansatze import HardwareEfficient, TranspiledAnsatz
+from tncdr.targets.utils import build_noise_model
 
 
 # Custom JSON encoder for NumPy objects
@@ -149,9 +150,7 @@ def main(
     # Collect the circuit
     hdw_eff_circuit = hdw_eff_ansatz_instance.circuit
     # Construct a Transpiled ansatz on top of this
-
-    # ansatz_instance = TranspiledAnsatz(original_circuit=hdw_eff_circuit)
-    ansatz_instance = hdw_eff_ansatz_instance
+    ansatz_instance = TranspiledAnsatz(original_circuit=hdw_eff_circuit)
 
     original_circuit_copy = copy.deepcopy(ansatz_instance.circuit)
 

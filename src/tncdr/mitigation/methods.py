@@ -1,12 +1,11 @@
-from typing import Optional
 import copy
-
 import random
-import numpy as np
-from scipy.optimize import curve_fit
+from typing import Optional
 
-from qibo import Circuit, hamiltonians, symbols, get_backend
+import numpy as np
+from qibo import Circuit, get_backend, hamiltonians, symbols
 from qibo.noise import NoiseModel
+from scipy.optimize import curve_fit
 
 from tncdr.evolutors.models import HybridSurrogate
 from tncdr.targets.ansatze import Ansatz
@@ -49,14 +48,17 @@ def TNCDR(
 
     for i in range(ncircuits):
         # Construct the hybrid surrogate
-        evo = HybridSurrogate(ansatz=ansatz, initial_state=initial_state)
+        evo = HybridSurrogate(
+            ansatz=ansatz,
+            initial_state=initial_state,
+            max_bond_dimension=max_bond_dimension,
+        )
 
         # Exact expval from surrogate
         exact_expval, partitions = evo.expectation_from_partition(
             replacement_probability=replacement_probability,
             observable=observable,
             return_partitions=True,
-            max_bond_dimension=max_bond_dimension,
             replacement_method=replacement_method,
         )
 

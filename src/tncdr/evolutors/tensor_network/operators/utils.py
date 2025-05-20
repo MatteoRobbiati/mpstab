@@ -3,7 +3,7 @@ from functools import lru_cache
 import numpy as np
 
 from tncdr.evolutors.tensor_network.tensor_network import TensorNetwork
-from tncdr.evolutors.tensor_network.tn_utils import paulis
+from tncdr.evolutors.tensor_network.utils import paulis
 
 
 # Compute S tensors

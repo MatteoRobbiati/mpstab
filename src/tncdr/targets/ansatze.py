@@ -1,19 +1,15 @@
-from typing import Optional, List
-from copy import deepcopy
 import random
 from abc import ABC
+from copy import deepcopy
 from dataclasses import dataclass, field
+from typing import List, Optional
 
 import networkx as nx
 import numpy as np
-
 from qibo import Circuit, gates
 from qibo.noise import NoiseModel
 
-from tncdr.targets.utils import (
-    hardware_compatible_circuit,
-    replace_non_clifford_gate,
-)
+from tncdr.targets.utils import hardware_compatible_circuit, replace_non_clifford_gate
 
 
 @dataclass
@@ -107,7 +103,9 @@ class Ansatz(ABC):
                     full_circuit.add(gate)
                     continue
 
-                gate = replace_non_clifford_gate(gate, method=replacement_method)
+                gate = replace_non_clifford_gate(
+                    gate, replacement_method=replacement_method
+                )
 
             break_point += 1
             clifford_only_circuit.add(gate)
