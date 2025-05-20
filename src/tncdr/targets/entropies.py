@@ -5,11 +5,13 @@ import numpy as np
 from qibo.hamiltonians import SymbolicHamiltonian
 from qibo import symbols
 
+
 def generate_pauli_strings(n):
     """Generate all possible N-bit Pauli strings."""
-    pauli_operators = ['I', 'X', 'Y', 'Z']
-    pauli_strings = [''.join(p) for p in product(pauli_operators, repeat=n)]
+    pauli_operators = ["I", "X", "Y", "Z"]
+    pauli_strings = ["".join(p) for p in product(pauli_operators, repeat=n)]
     return pauli_strings
+
 
 def stabilizer_renyi_entropy(state: np.ndarray, alpha: int):
     """
@@ -28,6 +30,6 @@ def stabilizer_renyi_entropy(state: np.ndarray, alpha: int):
             else:
                 symbolic_obs *= getattr(symbols, pauli_op)(i)
         obs = SymbolicHamiltonian(form=symbolic_obs)
-        expval_to_2n += (obs.expectation(state) ** (2 * alpha)) / (2 ** nqubits)
-    
-    return (1. / (1 - alpha)) * np.log(expval_to_2n) 
+        expval_to_2n += (obs.expectation(state) ** (2 * alpha)) / (2**nqubits)
+
+    return (1.0 / (1 - alpha)) * np.log(expval_to_2n)

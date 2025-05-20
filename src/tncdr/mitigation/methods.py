@@ -5,31 +5,27 @@ import random
 import numpy as np
 from scipy.optimize import curve_fit
 
-from qibo import (
-    Circuit,
-    hamiltonians,
-    symbols,
-    get_backend
-)
+from qibo import Circuit, hamiltonians, symbols, get_backend
 from qibo.noise import NoiseModel
 
 from tncdr.evolutors.models import HybridSurrogate
 from tncdr.targets.ansatze import Ansatz
 
+
 def TNCDR(
-        observable: str,
-        ansatz: Ansatz,
-        initial_state: Circuit,
-        noise_model: NoiseModel,
-        replacement_probability: float,
-        replacement_method: str = "closest",
-        ncircuits: int = 50,
-        nshots: Optional[int] = None, # TODO: discuss it
-        random_seed: int = 42,
-        fit_map=lambda x, a, b: a * x + b,
-        expval_threshold: float = 1e-7,  
-        max_bond_dimension: Optional[int] = None,
-    ):
+    observable: str,
+    ansatz: Ansatz,
+    initial_state: Circuit,
+    noise_model: NoiseModel,
+    replacement_probability: float,
+    replacement_method: str = "closest",
+    ncircuits: int = 50,
+    nshots: Optional[int] = None,  # TODO: discuss it
+    random_seed: int = 42,
+    fit_map=lambda x, a, b: a * x + b,
+    expval_threshold: float = 1e-7,
+    max_bond_dimension: Optional[int] = None,
+):
 
     # Fix the RNG seed for reproducibility
     random.seed(random_seed)
@@ -77,7 +73,6 @@ def TNCDR(
 
         training_data["exact_expvals"].append(exact_expval)
         training_data["noisy_expvals"].append(noisy_expval)
-
 
     # Convert lists to numpy arrays for curve_fit
     noisy_array = np.array(training_data["noisy_expvals"])

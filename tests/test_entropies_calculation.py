@@ -7,10 +7,17 @@ from qibo import set_backend
 from tncdr.targets.ansatze import HardwareEfficient
 from tncdr.targets.entropies import stabilizer_renyi_entropy
 
+
 @click.command()
-@click.option('--nqubits', type=int, required=True, help='Number of qubits.')
-@click.option('--nlayers', type=int, required=True, help='Number of layers.')
-@click.option('--qibo_backend', type=str, required=True, default="numpy", help='Qibo backend to use.')
+@click.option("--nqubits", type=int, required=True, help="Number of qubits.")
+@click.option("--nlayers", type=int, required=True, help="Number of layers.")
+@click.option(
+    "--qibo_backend",
+    type=str,
+    required=True,
+    default="numpy",
+    help="Qibo backend to use.",
+)
 def main(nqubits, nlayers, qibo_backend):
     """
     Execute the circuit with the specified parameters and compute SRE.
@@ -47,5 +54,6 @@ def main(nqubits, nlayers, qibo_backend):
     sre = stabilizer_renyi_entropy(state=state, alpha=2)
     print(f"SRE for circuit for a quasi-Clifford circuit: {sre}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -1,4 +1,5 @@
 """Simple test to check whether the stabilizer simulator is working."""
+
 import numpy as np
 
 from qibo import Circuit, gates, hamiltonians, symbols
@@ -12,13 +13,16 @@ nqubits = 10
 # Circuit with only Clifford gates
 stab_circ = Circuit(nqubits)
 [stab_circ.add(gates.H(q)) for q in range(nqubits)]
-stab_circ.add(gates.RY(1, theta=np.pi/2))
-stab_circ.add(gates.RY(2, theta=3*np.pi/2))
-stab_circ.add(gates.RY(2, theta=3*np.pi/2))
-[stab_circ.add(gates.GPI2(q, phi=np.random.randint(-2,2)*np.pi/2)) for q in range(nqubits)]
+stab_circ.add(gates.RY(1, theta=np.pi / 2))
+stab_circ.add(gates.RY(2, theta=3 * np.pi / 2))
+stab_circ.add(gates.RY(2, theta=3 * np.pi / 2))
+[
+    stab_circ.add(gates.GPI2(q, phi=np.random.randint(-2, 2) * np.pi / 2))
+    for q in range(nqubits)
+]
 [stab_circ.add(gates.CNOT(q % nqubits, (q + 1) % nqubits)) for q in range(nqubits)]
-stab_circ.add(gates.RZ(0, theta=np.pi/2))
-stab_circ.add(gates.RY(3, theta=3*np.pi/2))
+stab_circ.add(gates.RZ(0, theta=np.pi / 2))
+stab_circ.add(gates.RY(3, theta=3 * np.pi / 2))
 stab_circ.add(gates.S(4))
 stab_circ.add(gates.Z(2))
 # [stab_circ.add(gates.H(q)) for q in range(nqubits)]
@@ -39,7 +43,7 @@ circ.draw()
 
 # Pauli string
 obs_str = "Y" * nqubits
-obs_form = 1.
+obs_form = 1.0
 for i, pauli in enumerate(obs_str):
     obs_form *= getattr(symbols, pauli)(i)
 print("old obs: ", obs_form)
@@ -58,9 +62,9 @@ print(p)
 
 if p[0] == "-":
     p = p[1:]
-    sign = -1.
+    sign = -1.0
 else:
-    sign = 1.
+    sign = 1.0
 
 new_obs_form = sign
 for i, pauli in enumerate(p):

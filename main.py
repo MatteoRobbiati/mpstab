@@ -7,28 +7,37 @@ import numpy as np
 from scipy.stats import median_abs_deviation
 
 from qibo import (
-    hamiltonians, 
-    set_backend, 
+    hamiltonians,
+    set_backend,
     symbols,
     Circuit,
     gates,
 )
 from tncdr.evolutors.models import HybridSurrogate
 from tncdr.targets.ansatze import HardwareEfficient
+
 # from tncdr.evolutors.stabilizer.random_clifford import random_pauli
 
+
 @click.command()
-@click.option('--nqubits', default=7, type=int, help='Number of qubits.')
-@click.option('--nlayers', default=3, type=int, help='Number of layers in the ansatz.')
-@click.option('--npartitions', default=2, type=int, help='Number of partitions.')
-@click.option('--magic_gates_per_partition', default=1, type=int, help='Number of magic gates per partition.')
-@click.option('--random_seed', default=42, type=int, help='Random number generator seed.')
-@click.option('--n_runs', default=10, type=int, help='Number of runs computed.')
+@click.option("--nqubits", default=7, type=int, help="Number of qubits.")
+@click.option("--nlayers", default=3, type=int, help="Number of layers in the ansatz.")
+@click.option("--npartitions", default=2, type=int, help="Number of partitions.")
+@click.option(
+    "--magic_gates_per_partition",
+    default=1,
+    type=int,
+    help="Number of magic gates per partition.",
+)
+@click.option(
+    "--random_seed", default=42, type=int, help="Random number generator seed."
+)
+@click.option("--n_runs", default=10, type=int, help="Number of runs computed.")
 def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed, n_runs):
 
     # Automatically capture all function arguments
     out_results = locals().copy()
-    
+
     # Set backend to numpy
     set_backend("numpy")
 
@@ -45,13 +54,13 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed, 
 
     # Initial state preparation
     init_state = Circuit(nqubits=nqubits)
-    [init_state.add(gates.RY(q=q, theta=0.)) for q in range(nqubits)]
+    [init_state.add(gates.RY(q=q, theta=0.0)) for q in range(nqubits)]
 
     times, circuit_expvals, surrogate_expvals = [], [], []
     # TODO: optimize this loop
     for i in range(n_runs):
         # Define the observable string
-        obs = "Z" * nqubits      
+        obs = "Z" * nqubits
         print(f"Run {i+1}/{n_runs}")
         # Start timing
         start_time = time.time()
@@ -62,7 +71,7 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed, 
 
         # New random params in the state
         init_state.set_parameters(np.random.uniform(-np.pi, np.pi, nqubits))
-            
+
         # Construct the hybrid surrogate evolutor using the ansatz
         evo = HybridSurrogate(ansatz=ansatz, initial_state=init_state)
 
@@ -81,7 +90,9 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed, 
 
         # Compute the expectation value using the symbolic Hamiltonian
         ham = hamiltonians.SymbolicHamiltonian(form=form)
-        exact_expval = ham.expectation((init_state + partitions["full_circuit"])().state())
+        exact_expval = ham.expectation(
+            (init_state + partitions["full_circuit"])().state()
+        )
 
         # Compute elapsed time
         elapsed_time = time.time() - start_time
@@ -90,15 +101,16 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed, 
         times.append(elapsed_time)
         circuit_expvals.append(exact_expval)
         surrogate_expvals.append(result)
-    
 
     # Store results
-    out_results.update({
-        "median_time": np.median(times),
-        "error_times": median_abs_deviation(times),
-        "exact_expvals_list": circuit_expvals,
-        "surrogate_expvals_list": surrogate_expvals,
-    })
+    out_results.update(
+        {
+            "median_time": np.median(times),
+            "error_times": median_abs_deviation(times),
+            "exact_expvals_list": circuit_expvals,
+            "surrogate_expvals_list": surrogate_expvals,
+        }
+    )
 
     # Save results to JSON file
     json_path = folder_path / "results.json"
@@ -106,5 +118,5 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed, 
         json.dump(out_results, f, indent=4)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -15,6 +15,7 @@ from tncdr.targets.ansatze import HardwareEfficient, TranspiledAnsatz
 from tncdr.targets.noise_utils import build_noise_model
 from tncdr.mitigation.methods import TNCDR, density_matrix_circuit
 
+
 # Custom JSON encoder for NumPy objects
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -24,37 +25,71 @@ class NumpyEncoder(json.JSONEncoder):
             return float(obj)
         return super().default(obj)
 
+
 @click.command()
-@click.option('--nqubits', default=5, type=int, help='Number of qubits.')
-@click.option('--nlayers', default=3, type=int, help='Number of layers in the ansatz.')
-@click.option('--nshots', default=10000, type=int, help='Number of shots per circuit.')
-@click.option('--ncircuits', default=20, type=int, help='Number of circuits (training samples).')
-@click.option('--ansatz', default='HardwareEfficient', type=str, help='Ansatz name (currently only HardwareEfficient supported).')
-@click.option('--observable', default=None, type=str,
-              help='Observable as a string (e.g. "ZZZZZ"). Defaults to "Z" repeated nqubits times if not provided.')
-@click.option('--readout_bitflip_probability', default=0.005, type=float, 
-              help='Probability of applying bit-flip in the readout noise simulation.')
-@click.option('--local_pauli_noise_sigma', default=0.005, type=float, 
-              help='Local Pauli noise sigma: the noise rate is sampled from abs(N(0, sigma)).')
-@click.option('--mitigation_method', default='TNCDR', type=str,
-              help='Error mitigation method to use (e.g., TNCDR, CDR).')
-@click.option('--mitigation_args', default='{}', type=str,
-              help='JSON string of additional arguments for the mitigation method. '
-                   'For TNCDR, e.g.: \'{"replacement_probability": 0.4, "max_bond_dimension": null}\'')
-@click.option('--random_seed', default=42, type=int, help='Seed of the random number generator.')
-@click.option('--nruns', default=20, type=int, help='Number of times the exercise is repeated.')
-@click.option('--plot', default=False, type=bool, help='If True, plot the regression results.')
+@click.option("--nqubits", default=5, type=int, help="Number of qubits.")
+@click.option("--nlayers", default=3, type=int, help="Number of layers in the ansatz.")
+@click.option("--nshots", default=10000, type=int, help="Number of shots per circuit.")
+@click.option(
+    "--ncircuits", default=20, type=int, help="Number of circuits (training samples)."
+)
+@click.option(
+    "--ansatz",
+    default="HardwareEfficient",
+    type=str,
+    help="Ansatz name (currently only HardwareEfficient supported).",
+)
+@click.option(
+    "--observable",
+    default=None,
+    type=str,
+    help='Observable as a string (e.g. "ZZZZZ"). Defaults to "Z" repeated nqubits times if not provided.',
+)
+@click.option(
+    "--readout_bitflip_probability",
+    default=0.005,
+    type=float,
+    help="Probability of applying bit-flip in the readout noise simulation.",
+)
+@click.option(
+    "--local_pauli_noise_sigma",
+    default=0.005,
+    type=float,
+    help="Local Pauli noise sigma: the noise rate is sampled from abs(N(0, sigma)).",
+)
+@click.option(
+    "--mitigation_method",
+    default="TNCDR",
+    type=str,
+    help="Error mitigation method to use (e.g., TNCDR, CDR).",
+)
+@click.option(
+    "--mitigation_args",
+    default="{}",
+    type=str,
+    help="JSON string of additional arguments for the mitigation method. "
+    'For TNCDR, e.g.: \'{"replacement_probability": 0.4, "max_bond_dimension": null}\'',
+)
+@click.option(
+    "--random_seed", default=42, type=int, help="Seed of the random number generator."
+)
+@click.option(
+    "--nruns", default=20, type=int, help="Number of times the exercise is repeated."
+)
+@click.option(
+    "--plot", default=False, type=bool, help="If True, plot the regression results."
+)
 def main(
-    nqubits, 
-    nlayers, 
-    nshots, 
-    ncircuits, 
-    ansatz, 
+    nqubits,
+    nlayers,
+    nshots,
+    ncircuits,
+    ansatz,
     observable,
     readout_bitflip_probability,
-    local_pauli_noise_sigma, 
-    mitigation_method, 
-    mitigation_args, 
+    local_pauli_noise_sigma,
+    mitigation_method,
+    mitigation_args,
     random_seed,
     nruns,
     plot,
@@ -75,10 +110,10 @@ def main(
     # Base folder: results/nqubits_nlayers_ansatz_observable
     base_folder_name = f"{nqubits}qubits_{nlayers}layers_{ansatz}_{observable}"
     base_folder_path = os.path.join("results", base_folder_name)
-    
+
     # Create folder for mitigation method.
     method_folder_path = os.path.join(base_folder_path, mitigation_method_upper)
-    
+
     # Now, for each mitigation argument, create a subfolder.
     mitigation_subfolder = method_folder_path + f"/ncircuits_{ncircuits}"
     if mitigation_args_dict:
@@ -87,11 +122,11 @@ def main(
                 mitigation_subfolder += f"{key}_{value}"
             else:
                 mitigation_subfolder += f"_{key}_{value}"
-    
+
     # Add an extra slash (i.e. final directory) after the mitigation method.
     folder_path = mitigation_subfolder
     os.makedirs(folder_path, exist_ok=True)
-    
+
     # Set the Qibo backend.
     set_backend("numpy")
 
@@ -103,19 +138,19 @@ def main(
     for i, pauli in enumerate(observable):
         form *= getattr(symbols, pauli)(i)
     ham = hamiltonians.SymbolicHamiltonian(form=form)
-    
+
     # Build the ansatz (only HardwareEfficient is supported here).
     if ansatz != "HardwareEfficient":
         click.echo("Only 'HardwareEfficient' ansatz is supported.")
         return
-    
+
     # Construct an HDW-efficient ansatz as a first instance
     hdw_eff_ansatz_instance = HardwareEfficient(nqubits=nqubits, nlayers=nlayers)
     # Collect the circuit
     hdw_eff_circuit = hdw_eff_ansatz_instance.circuit
     # Construct a Transpiled ansatz on top of this
-    
-    #ansatz_instance = TranspiledAnsatz(original_circuit=hdw_eff_circuit)
+
+    # ansatz_instance = TranspiledAnsatz(original_circuit=hdw_eff_circuit)
     ansatz_instance = hdw_eff_ansatz_instance
 
     original_circuit_copy = copy.deepcopy(ansatz_instance.circuit)
@@ -130,12 +165,12 @@ def main(
     exact_values, noisy_values, mit_values = [], [], []
     for i in range(nruns):
         click.echo(f"Running experiment {i+1}/{nruns}")
-        
+
         # Update parameters in the ansatz.
         for gate in ansatz_instance.circuit.parametrized_gates:
             if not gate.clifford:
                 gate.parameters = np.random.randn()
-        
+
         # Build the initial state circuit.
         init_circ = Circuit(nqubits=nqubits)
         for q in range(nqubits):
@@ -143,16 +178,13 @@ def main(
 
         # Build the noise model.
         noise_model = build_noise_model(
-            nqubits=nqubits, 
-            readout_bit_flip_prob=readout_bitflip_probability, 
+            nqubits=nqubits,
+            readout_bit_flip_prob=readout_bitflip_probability,
             local_pauli_noise_sigma=local_pauli_noise_sigma,
         )
 
         # Define common parameters (used by all mitigation methods).
-        common_params = {
-            "noise_model": noise_model,
-            "nshots": nshots
-        }
+        common_params = {"noise_model": noise_model, "nshots": nshots}
 
         # Define mitigation methods mapping.
         methods = {
@@ -165,19 +197,23 @@ def main(
                     "ncircuits": ncircuits,
                     "random_seed": np.random.randint(0, 1000000),
                     # TNCDR-specific parameters will be provided via mitigation_args.
-                }
+                },
             },
             "CDR": {
                 "func": CDR,
                 "params": {
-                    "circuit": density_matrix_circuit(init_circ + ansatz_instance.circuit),
+                    "circuit": density_matrix_circuit(
+                        init_circ + ansatz_instance.circuit
+                    ),
                     "observable": ham,
                     "n_training_samples": ncircuits,
-                    "replacement_gates": [(gates.RY, {"theta": n * np.pi / 2}) for n in range(4)],
+                    "replacement_gates": [
+                        (gates.RY, {"theta": n * np.pi / 2}) for n in range(4)
+                    ],
                     "target_non_clifford_gates": [gates.RY],
-                    "full_output": True
-                }
-            }
+                    "full_output": True,
+                },
+            },
         }
 
         if mitigation_method_upper not in methods:
@@ -199,7 +235,9 @@ def main(
         exact_circ = init_circ + original_circuit_copy
         exact_value = ham.expectation(exact_circ().state())
         noisy_init_circ = noise_model.apply(density_matrix_circuit(init_circ))
-        noisy_main_circ = noise_model.apply(density_matrix_circuit(original_circuit_copy))
+        noisy_main_circ = noise_model.apply(
+            density_matrix_circuit(original_circuit_copy)
+        )
         noisy_outcome = (noisy_init_circ + noisy_main_circ)()
         noisy_value = ham.expectation(noisy_outcome.state())
 
@@ -236,7 +274,9 @@ def main(
         {
             "mitigation_output": mitigation_output,
             "median_abs_dist_exact_noisy": float(np.median(abs_dist_noisy_exact)),
-            "mad_abs_dist_exact_noisy": float(median_abs_deviation(abs_dist_noisy_exact)),
+            "mad_abs_dist_exact_noisy": float(
+                median_abs_deviation(abs_dist_noisy_exact)
+            ),
             "median_abs_dist_exact_mit": float(np.median(abs_dist_mit_exact)),
             "mad_abs_dist_exact_mit": float(median_abs_deviation(abs_dist_mit_exact)),
         }
@@ -244,13 +284,18 @@ def main(
 
     if plot:
         plt.figure(figsize=(5, 5 * 6 / 8))
-        x = np.linspace(min(noisy_values),max(noisy_values),100)
+        x = np.linspace(min(noisy_values), max(noisy_values), 100)
         plt.scatter(noisy_values, exact_values, c="black", alpha=0.5, s=10)
-        plt.plot(x, mit_map_params[0] * x + mit_map_params[1], color="red", alpha=0.7, label="Map")
+        plt.plot(
+            x,
+            mit_map_params[0] * x + mit_map_params[1],
+            color="red",
+            alpha=0.7,
+            label="Map",
+        )
         plt.xlabel("Exact")
         plt.ylabel("Noisy")
         plt.savefig(f"{folder_path}/regression_report.pdf", bbox_inches="tight")
-
 
     # Dump output into a JSON file using the custom encoder.
     results_file = os.path.join(folder_path, "results.json")
@@ -261,5 +306,6 @@ def main(
     click.echo("Mitigation output:")
     click.echo(json.dumps(mitigation_output, indent=4, cls=NumpyEncoder))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -1,15 +1,10 @@
 """A dummy example of tncdr"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from qibo.noise import NoiseModel, PauliError
-from qibo import (
-    Circuit, 
-    gates, 
-    symbols,
-    hamiltonians,
-    set_backend
-)
+from qibo import Circuit, gates, symbols, hamiltonians, set_backend
 from qibo.models.error_mitigation import (
     CDR,
     vnCDR,
@@ -26,9 +21,7 @@ ncircuits = 20
 set_backend("numpy")
 
 ansatz = HardwareEfficient(nqubits=nqubits, nlayers=nlayers)
-ansatz.circuit.set_parameters(
-    np.random.randn(ansatz.nparams)
-)
+ansatz.circuit.set_parameters(np.random.randn(ansatz.nparams))
 
 # Initial state
 init_circ = Circuit(nqubits=nqubits)
@@ -42,12 +35,13 @@ noise_model = NoiseModel()
 for q in range(nqubits):
     noise_model.add(
         PauliError(
-        [
-            ("X", np.abs(np.random.normal(0, 0.009))), 
-            ("Y", np.abs(np.random.normal(0, 0.009))), 
-            ("Z", np.abs(np.random.normal(0, 0.009)))
-        ]), 
-        qubits=q
+            [
+                ("X", np.abs(np.random.normal(0, 0.009))),
+                ("Y", np.abs(np.random.normal(0, 0.009))),
+                ("Z", np.abs(np.random.normal(0, 0.009))),
+            ]
+        ),
+        qubits=q,
     )
 
 
@@ -70,14 +64,16 @@ print(training_data)
 print(params)
 
 x = np.linspace(
-    min(training_data["noisy_expvals"]), 
+    min(training_data["noisy_expvals"]),
     max(training_data["noisy_expvals"]),
     100,
 )
 
 y = params[0] * x + params[1]
 
-plt.scatter(training_data["noisy_expvals"], training_data["exact_expvals"], color="purple")
+plt.scatter(
+    training_data["noisy_expvals"], training_data["exact_expvals"], color="purple"
+)
 plt.plot(x, y, color="black")
 plt.xlabel("Noisy")
 plt.ylabel("Exact")
@@ -97,7 +93,7 @@ exact_value = ham.expectation((init_circ + ansatz.circuit)().state())
 
 noisy_init_circ = noise_model.apply(density_matrix_circuit(init_circ))
 noisy_main_circ = noise_model.apply(density_matrix_circuit(ansatz.circuit))
-noisy_outcome = (noisy_init_circ + noisy_main_circ)() 
+noisy_outcome = (noisy_init_circ + noisy_main_circ)()
 noisy_value = ham.expectation(noisy_outcome.state())
 
 (init_circ + ansatz.circuit).draw()
@@ -111,7 +107,7 @@ cdr_mit_val, _, _, _ = CDR(
     n_training_samples=ncircuits,
     replacement_gates=[(gates.RY, {"theta": n * np.pi / 2}) for n in range(4)],
     target_non_clifford_gates=[gates.RY],
-    full_output=True
+    full_output=True,
 )
 
 print("################################\n\n")

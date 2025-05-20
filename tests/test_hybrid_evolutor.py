@@ -8,23 +8,33 @@ from qibo import hamiltonians, set_backend, symbols, Circuit, gates
 from tncdr.evolutors.models import HybridSurrogate
 from tncdr.targets.ansatze import HardwareEfficient
 
+
 @click.command()
-@click.option('--nqubits', default=6, type=int, help='Number of qubits.')
-@click.option('--nlayers', default=3, type=int, help='Number of layers in the ansatz.')
-@click.option('--npartitions', default=2, type=int, help='Number of partitions.')
-@click.option('--magic_gates_per_partition', default=1, type=int, help='Number of magic gates per partition.')
-@click.option('--random_seed', default=42, type=int, help='Random number generator seed.')
+@click.option("--nqubits", default=6, type=int, help="Number of qubits.")
+@click.option("--nlayers", default=3, type=int, help="Number of layers in the ansatz.")
+@click.option("--npartitions", default=2, type=int, help="Number of partitions.")
+@click.option(
+    "--magic_gates_per_partition",
+    default=1,
+    type=int,
+    help="Number of magic gates per partition.",
+)
+@click.option(
+    "--random_seed", default=42, type=int, help="Random number generator seed."
+)
 def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed):
 
     # Automatically capture all function arguments
     out_results = locals().copy()
-    
+
     # Set backend to numpy
     set_backend("numpy")
 
     np.random.seed(random_seed)
 
-    folder_path = Path(f"results/{nqubits}q_{nlayers}l_{npartitions}p_{magic_gates_per_partition}magic")
+    folder_path = Path(
+        f"results/{nqubits}q_{nlayers}l_{npartitions}p_{magic_gates_per_partition}magic"
+    )
     folder_path.mkdir(parents=True, exist_ok=True)
 
     # Start timing
@@ -41,11 +51,10 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed):
     for q in range(nqubits):
         init_circ.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
 
-
     # Set random parameters for the circuit
     params = np.random.randn(len(ansatz.circuit.get_parameters()))
     ansatz.circuit.set_parameters(params)
-        
+
     # Construct the hybrid surrogate evolutor using the ansatz
     evo = HybridSurrogate(ansatz=ansatz, initial_state=init_circ)
 
@@ -72,11 +81,13 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed):
     elapsed_time = time.time() - start_time
 
     # Store results
-    out_results.update({
-        "total_time": elapsed_time,
-        "exact_expval": exact_expval,
-        "my_result": result.tolist() if isinstance(result, np.ndarray) else result
-    })
+    out_results.update(
+        {
+            "total_time": elapsed_time,
+            "exact_expval": exact_expval,
+            "my_result": result.tolist() if isinstance(result, np.ndarray) else result,
+        }
+    )
 
     # Save results to JSON file
     json_path = folder_path / "results.json"
@@ -85,5 +96,6 @@ def main(nqubits, nlayers, npartitions, magic_gates_per_partition, random_seed):
 
     print(f"Results saved to {json_path}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
