@@ -1,15 +1,15 @@
 from dataclasses import dataclass
+from typing import Optional, Union
 
 import networkx as nx
 import numpy as np
 
-from typing import Optional, Union
-from tncdr.evolutors.tensor_network.tn_utils import (
-    paulis,
-    draw_tn,
-    multi_trace,
+from tncdr.evolutors.tensor_network.utils import (
     _bond_dimension_cut,
     _complex_conjugate,
+    draw_tn,
+    multi_trace,
+    paulis,
 )
 
 
