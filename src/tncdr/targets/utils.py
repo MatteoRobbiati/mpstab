@@ -45,19 +45,19 @@ def get_closest_angle(old_angle, candidates):
     closest_index = np.argmin(differences)
     return candidates[closest_index]
 
-def replace_non_clifford_gate(gate, candidates=None, method="random"):
+def replace_non_clifford_gate(gate, replacement_method, candidates=None):
     """Replace non‐Clifford RX/RY/RZ or GPI2 gate with a Clifford one."""
     # RX/RY/RZ branch
     if gate.name in ("rx", "ry", "rz"):
         if candidates is None:
             candidates = np.arange(-2, 3) * np.pi/2.0
         old_angle = gate.parameters[0]
-        if method == "random":
+        if replacement_method == "random":
             new_angle = random.choice(candidates)
-        elif method == "closest":
+        elif replacement_method == "closest":
             new_angle = get_closest_angle(old_angle, candidates)
         else:
-            raise ValueError(f"Unknown method {method!r}")
+            raise ValueError(f"Unknown method {replacement_method!r}")
         new_gate = deepcopy(gate)
         new_gate.parameters = [new_angle]
         return new_gate
@@ -69,12 +69,12 @@ def replace_non_clifford_gate(gate, candidates=None, method="random"):
             candidates = np.arange(4) * (np.pi/2.0)   # [0, π/2, π, 3π/2]
         # extract the current angle; assuming you stored it as gate.angle
         old_angle = gate.parameters[0]
-        if method == "random":
+        if replacement_method == "random":
             new_angle = random.choice(candidates)
-        elif method == "closest":
+        elif replacement_method == "closest":
             new_angle = get_closest_angle(old_angle, candidates)
         else:
-            raise ValueError(f"Unknown method {method!r}")
+            raise ValueError(f"Unknown method {replacement_method!r}")
         # re-instantiate a fresh GPI2 at the chosen Clifford angle
         new_gate = deepcopy(gate)
         new_gate.parameters = [new_angle]

@@ -1,8 +1,6 @@
 """Hybrid Stabilizer-MPO evolutor"""
 
 from dataclasses import dataclass
-from copy import deepcopy
-from typing import Optional
 import numpy as np
 
 import numpy as np
@@ -10,14 +8,14 @@ import numpy as np
 from qibo import Circuit
 
 
-from tncdr.evolutors.tensor_network.simulator.circuit_mps import CircuitMPS
+from tncdr.evolutors.tensor_network.circuit_mps import CircuitMPS
 from tncdr.evolutors.tensor_network.operators.observables import PauliMPO
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
 from tncdr.evolutors.stabilizer import tableaus
 
 from tncdr.evolutors.utils import gate2generator, gate2tableau
 from tncdr.targets.ansatze import Ansatz
-from tncdr.evolutors.tensor_network.simulator.circuit_mps import CircuitMPS
+from tncdr.evolutors.tensor_network.circuit_mps import CircuitMPS
 
 
 @dataclass
@@ -75,9 +73,10 @@ class HybridSurrogate:
 
     def expectation_from_partition(
             self, 
-            replacement_probability,
-            observable,
-            return_partitions=False,
+            observable:str,
+            replacement_probability:float,
+            replacement_method:str="closest",
+            return_partitions:bool=False,
         ):
         """
         Sample a lower-magic circuit from the ansatz, and compute its expectation value w.r.t. the observable.
@@ -90,6 +89,7 @@ class HybridSurrogate:
         # Partitionate circuit
         (magic_gates, clifford_circuit), full_circuit = self.ansatz.partitionate_circuit(
             replacement_probability=replacement_probability,
+            replacement_method=replacement_method,
         )
         
         # check the stab layers, might be wrong

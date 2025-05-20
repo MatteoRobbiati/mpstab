@@ -10,7 +10,7 @@ import numpy as np
 from qibo import Circuit, gates
 from qibo.noise import NoiseModel
 
-from tncdr.targets.circuit_utils import (
+from tncdr.targets.utils import (
     hardware_compatible_circuit,
     replace_non_clifford_gate,
 )
@@ -64,7 +64,7 @@ class Ansatz(ABC):
         self.noise_model = noise_model
         self.noisy_circuit = noise_model.apply(self.circuit)
     
-    def partitionate_circuit(self, replacement_probability: float, replacement_method:str='closest'):
+    def partitionate_circuit(self, replacement_probability: float, replacement_method: str):
         """
         Partitionate the circuit replacing non-Clifford (magic) gates with a given probability.
         

@@ -4,7 +4,6 @@ import copy
 import random
 import numpy as np
 from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
 
 from qibo import (
     Circuit,
@@ -23,6 +22,7 @@ def TNCDR(
         initial_state: Circuit,
         noise_model: NoiseModel,
         replacement_probability: float,
+        replacement_method: str = "closest",
         ncircuits: int = 50,
         nshots: Optional[int] = None, # TODO: discuss it
         random_seed: int = 42,
@@ -61,6 +61,7 @@ def TNCDR(
             observable=observable,
             return_partitions=True,
             max_bond_dimension=max_bond_dimension,
+            replacement_method=replacement_method,
         )
 
         # TODO: discuss this
@@ -86,10 +87,6 @@ def TNCDR(
             noisy_expval,
         )
 
-    plt.figure()
-    plt.scatter(training_data["noisy_expvals"], training_data["exact_expvals"])
-    plt.savefig(f"scatter{random_seed}.pdf")
-
     # Convert lists to numpy arrays for curve_fit
     noisy_array = np.array(training_data["noisy_expvals"])
     exact_array = np.array(training_data["exact_expvals"])
@@ -105,8 +102,3 @@ def density_matrix_circuit(circuit):
     for gate in circuit.queue:
         circ.add(gate)
     return circ
-
-
-def save_plot(data):
-    plt.scatter(data["noisy_expvals"], data["exact_expvals"])
-    plt.savefig("testino.pdf")
