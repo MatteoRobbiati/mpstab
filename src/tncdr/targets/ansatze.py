@@ -63,21 +63,8 @@ class Ansatz(ABC):
         """Construct an attribute which is the noisy version of circuit."""
         self.noise_model = noise_model
         self.noisy_circuit = noise_model.apply(self.circuit)
-
-    @abstractmethod
-    def partitionate_circuit(self):
-        raise NotImplementedError(
-            f"Partitioning strategy not implemented for Ansatz {self}."
-        )
-
-    def prepare_partitions(self, n_partitions):
-        """Helper method to prepare partitions."""
-        magic_layers = [Circuit(self.nqubits, density_matrix=self.density_matrix) for _ in range(n_partitions)]
-        stabilizer_layers = [Circuit(self.nqubits, density_matrix=self.density_matrix) for _ in range(n_partitions)]
-        partitioned_circuit = Circuit(self.nqubits, density_matrix=self.density_matrix)
-        return partitioned_circuit, magic_layers, stabilizer_layers
     
-    def partitionate_circuit(self, replacement_probability: float):
+    def partitionate_circuit(self, replacement_probability: float, replacement_method:str='closest'):
         """
         Partitionate the circuit replacing non-Clifford (magic) gates with a given probability.
         
@@ -93,61 +80,27 @@ class Ansatz(ABC):
             clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive Clifford gates.
             non_clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive non-Clifford gates.
         """
-        original_circuit = self.circuit
-        # Initialise partitioned circuit as an empty circuit of nqubits
-        partitioned_circuit = Circuit(self.nqubits)
-        stabilizer_layers = []
-        magic_layers = []
-        # Useful to process blocks of gates defined as Clifford gates 
-        # between single magic rotations
-        current_block = Circuit(self.nqubits)
-        current_block_type = None
+        magic_gates = []
+        clifford_only_circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
+        full_circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
 
-        for gate in original_circuit.queue:
-            # Check whether a gate is magic and, in case, try to replace
-            # Add the gate if Clifford, try to replace if not
+        break_point = 0
+        for gate in self.circuit.queue:
+
             if not gate.clifford and not isinstance(gate, gates.M):
                 r = random.random()
-                if r < replacement_probability:
-                    new_gate = replace_non_clifford_gate(gate, method="closest")
-                else:
-                    new_gate = gate
-            else:
-                new_gate = gate
-            partitioned_circuit.add(new_gate)
-
-            # Define the block type
-            gate_type = 'clifford' if new_gate.clifford else 'non_clifford'
-
-            # If gate is the first, sets the block type
-            if current_block_type is None:
-                current_block_type = gate_type
-                current_block.add(new_gate)
-            # Else, we have to check if gate is of the same type
-            # of the current block 
-            else:
-                # If yes, add the gate to the block and continue
-                if current_block_type == gate_type:
-                    current_block.add(new_gate)
-                # If not, archive the old block and start a new one 
-                # of a different type
-                else:
-                    if current_block_type == 'clifford':
-                        stabilizer_layers.append(current_block)
-                    else:
-                        magic_layers.append(current_block)
-                    current_block = Circuit(self.nqubits)
-                    current_block.add(new_gate)
-                    current_block_type = gate_type
-
-        # Append the last block
-        if current_block.queue:
-            if current_block_type == 'clifford':
-                stabilizer_layers.append(current_block)
-            else:
-                magic_layers.append(current_block)
-
-        return partitioned_circuit, magic_layers, stabilizer_layers
+                if r > replacement_probability:
+                    magic_gates.append((break_point, gate))
+                    full_circuit.add(gate)
+                    continue
+                
+                gate = replace_non_clifford_gate(gate, method=replacement_method)
+            
+            break_point+=1
+            clifford_only_circuit.add(gate)
+            full_circuit.add(gate)
+        
+        return (magic_gates, clifford_only_circuit), full_circuit
 
 @dataclass
 class HardwareEfficient(Ansatz):

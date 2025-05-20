@@ -32,6 +32,7 @@ class HybridSurrogate:
             state. It has to be composed of single-qubit gates only.
     """
     ansatz: Ansatz
+    max_bond_dimension: int = None
     initial_state: Circuit = None
 
     def __post_init__(self):
@@ -40,7 +41,7 @@ class HybridSurrogate:
             self.initial_state = Circuit(self.ansatz.nqubits)
 
         # Add the initial state, which is |0> by default
-        self._init_tn()
+        self._init_tn(self.max_bond_dimension)
     
     def _init_tn(self, max_bond_dimension:int|None=None):
         """
@@ -77,7 +78,6 @@ class HybridSurrogate:
             replacement_probability,
             observable,
             return_partitions=False,
-            max_bond_dimension: Optional[int] = None 
         ):
         """
         Sample a lower-magic circuit from the ansatz, and compute its expectation value w.r.t. the observable.
@@ -88,26 +88,24 @@ class HybridSurrogate:
         """
 
         # Partitionate circuit
-        full_circuit, mag_layers, stab_layers = self.ansatz.partitionate_circuit(
+        (magic_gates, clifford_circuit), full_circuit = self.ansatz.partitionate_circuit(
             replacement_probability=replacement_probability,
         )
         
         # check the stab layers, might be wrong
-        for i, magic_circuit in enumerate(mag_layers):
-            for gate in magic_circuit.queue:
-
-                generator = self._conjugate_generator(gate, stab_layers[:i])
-                print(generator)
-                self.mps.pauli_rot(generator, gate.parameters[0])
+        for k, magic_gate in magic_gates:
+            
+                generator = self._conjugate_generator(magic_gate, clifford_circuit, k)
+                self.mps.pauli_rot(generator, magic_gate.parameters[0])
 
         # Compute the conjugate of the observable
-        new_observable = self.backpropagate_pauli(observable, sum(stab_layers, start=Circuit(self.nqubits)))
+        new_observable = self.backpropagate_pauli(observable, clifford_circuit)
 
         # Collect partitions into a dictionary in case we want to return it
         if return_partitions:
             partitions = {
-                "magic_layers": mag_layers,
-                "stabilizer_layers": stab_layers,
+                "magic_gates": magic_gates,
+                "only_cliffords": clifford_circuit,
                 "full_circuit": full_circuit,
             }
         else:
@@ -115,23 +113,29 @@ class HybridSurrogate:
 
         return self.mps.expval(PauliMPO(new_observable)), partitions
 
-    def _conjugate_generator(self, gate, stabs):
+    def _conjugate_generator(self, gate, clifford_circuit, k):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
         
         if gate.name not in ["rx", "ry", "rz"]:
             raise ValueError("tncdr currently supports only rotational gates.")
         
         generator = ''.join([gate2generator[gate.name] if q in gate.target_qubits else 'I' for q in range(self.nqubits)])
-        return self.backpropagate_pauli(generator, sum(stabs, start=Circuit(self.nqubits)))
+        return self.backpropagate_pauli(generator, clifford_circuit, k)
 
-    def backpropagate_pauli(self, observable: str, stabilizer_circuit: Circuit):
+    def backpropagate_pauli(self, observable: str, stabilizer_circuit: Circuit, k:int=None):
         """
-        Process a given Pauli string applying a `stabilizer_circuit` in 
-        Heisenberg picture.
+        Process a given Pauli string applying a `stabilizer_circuit` in Heisenberg picture.
         """
         # Construct the propagator and apply the inverse of the circuit gate by gate
         propagator = Pauli(observable)
-        for gate in stabilizer_circuit.invert().queue:
+
+        # Cut the circuit queue to include only the appropriate clifford gates
+        cut_queue = stabilizer_circuit.queue[:k] if k is not None else stabilizer_circuit.queue
+       
+        for gate in reversed(cut_queue):
+
+            # Invert the circuit
+            gate = gate.dagger()
             if len(gate.parameters) != 0:
                 # This is working for one-parameters gates right now
                 angle = gate.parameters[0]
