@@ -1,20 +1,33 @@
 """Simple test to check whether the stabilizer simulator is working."""
 
+import numpy as np
+
 from qibo import Circuit, gates, hamiltonians, symbols
 
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
 from tncdr.evolutors.stabilizer import tableaus
 from tncdr.evolutors.utils import gate2tableau
 
-nqubits = 4
+nqubits = 10
 
 # Circuit with only Clifford gates
 stab_circ = Circuit(nqubits)
 [stab_circ.add(gates.H(q)) for q in range(nqubits)]
+stab_circ.add(gates.RY(1, theta=np.pi / 2))
+stab_circ.add(gates.RY(2, theta=3 * np.pi / 2))
+stab_circ.add(gates.RY(2, theta=3 * np.pi / 2))
+[
+    stab_circ.add(gates.GPI2(q, phi=np.random.randint(-2, 2) * np.pi / 2))
+    for q in range(nqubits)
+]
 [stab_circ.add(gates.CNOT(q % nqubits, (q + 1) % nqubits)) for q in range(nqubits)]
+stab_circ.add(gates.RZ(0, theta=np.pi / 2))
+stab_circ.add(gates.RY(3, theta=3 * np.pi / 2))
+stab_circ.add(gates.S(4))
 stab_circ.add(gates.Z(2))
 # [stab_circ.add(gates.H(q)) for q in range(nqubits)]
 
+print(stab_circ.get_parameters())
 
 # Empty circuit
 init_circ = Circuit(nqubits)
@@ -29,8 +42,11 @@ print("\n\n")
 circ.draw()
 
 # Pauli string
-obs_str = "ZZZY"
-obs_form = symbols.Z(0) * symbols.Z(1)  * symbols.Z(2) * symbols.Y(3)
+obs_str = "Y" * nqubits
+obs_form = 1.0
+for i, pauli in enumerate(obs_str):
+    obs_form *= getattr(symbols, pauli)(i)
+print("old obs: ", obs_form)
 ham = hamiltonians.SymbolicHamiltonian(form=obs_form)
 
 p = Pauli(obs_str)
@@ -39,7 +55,6 @@ for gate in stab_circ.invert().queue:
         params = {"angle": gate.parameters[0]}
     else:
         params = {}
-    print(gate.name)
     p.apply(getattr(tableaus, gate2tableau[gate.name])(*gate.qubits, **params))
 
 p = p.__repr__()
@@ -47,17 +62,17 @@ print(p)
 
 if p[0] == "-":
     p = p[1:]
-    sign = -1.
+    sign = -1.0
 else:
-    sign = 1.
+    sign = 1.0
 
 new_obs_form = sign
 for i, pauli in enumerate(p):
     new_obs_form *= getattr(symbols, pauli)(i)
 
-print(new_obs_form)
+print("new_obs_form: ", new_obs_form)
 
 new_ham = hamiltonians.SymbolicHamiltonian(new_obs_form)
 
 print(f"Circuit {ham.expectation(circ().state())}")
-print(f"Empty circ on our string: {new_ham.expectation(empty_circ().state())}")
+print(f"Empty circ on our string: {new_ham.expectation(init_circ().state())}")
