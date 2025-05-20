@@ -1,7 +1,7 @@
 from typing import Optional, List
 from copy import deepcopy
 import random 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass, field
 
 import networkx as nx
