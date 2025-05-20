@@ -173,4 +173,73 @@ class TranspiledAnsatz(Ansatz):
     def circuit(self):
         return self._circuit
     
+@dataclass
+class FloquetAnsatz(Ansatz):
+    """
+    Floquet echo: U = (FL)^t · Rz(theta) on qubit q · (FL^t)†.
+    
+    Args:
+        nlayers (int): number of Floquet layers.
+        b (float): 
+    """
+    nlayers: int = 2        
+    b: float = 0.4 * np.pi            
+    theta: float = 0.5 * np.pi    
+    target_qubit: int = 1   
+    decompose_rzz: bool = True
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # First, we add an Hadamard to the target qubit
+        self.circuit.add(gates.H(self.target_qubit))
+        # Then append nlayers Floquet layers
+        for _ in range(self.nlayers):
+            self.circuit += self._build_floquet_layer()
+        # Add RZ
+        self.circuit.add(gates.RZ(q=self.target_qubit, theta=self.theta))
+        # Add the inverted Floquet layers
+        for _ in range(self.nlayers):
+            self.circuit += self._build_floquet_layer().invert()
+
+    def _build_floquet_layer(self) -> Circuit:
+        """Construct one Floquet layer over all links."""
+        layer = Circuit(self.nqubits, density_matrix=self.density_matrix)
+        layer += self._build_sublayer("even")
+        layer += self._build_sublayer("odd")
+        return layer
+    
+    def _build_sublayer(self, parity:str):
+        """Helper function to build a sub-layer composing a Floquet layer."""
+        layer = Circuit(self.nqubits, density_matrix=self.density_matrix)
+
+        if parity == "even":
+            qubits = range(0, self.nqubits - 1, 2)
+        elif parity == "odd":
+            qubits = range(1, self.nqubits - 1, 2)
+        else:
+            raise ValueError(
+                f"Please set `parity` to be 'odd' or 'even'."
+            )
+
+        for q1 in qubits:
+            q2 = q1 + 1
+            layer.add(gates.RZ(q=q1, theta=0.25 * np.pi))
+            layer.add(gates.RX(q=q1, theta=self.b))
+            layer.add(gates.RZ(q=q2, theta=0.25 * np.pi))
+            layer.add(gates.RX(q=q2, theta=self.b))
+            if not self.decompose_rzz:
+                layer.add(gates.RZZ(q0=q1, q1=q2, theta=0.5 * np.pi))   
+            else:
+                layer += self._decomposed_rzz(q0=q1, q1=q2, theta=0.5 * np.pi)
+        
+        return layer
+    
+    def _decomposed_rzz(self, q0, q1, theta):
+        layer = Circuit(self.nqubits, density_matrix=self.density_matrix)
+        layer.add(gates.CNOT(q0, q1))
+        layer.add(gates.RZ(q=q1, theta=theta))
+        layer.add(gates.CNOT(q0, q1))
+        return layer
+    
     
