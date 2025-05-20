@@ -261,3 +261,45 @@ class GPI2(Tableau):
         XTableau = HalfTableau([target], conjugates=[x_conj])
         ZTableau = HalfTableau([target], conjugates=[z_conj])
         super().__init__(XTableau, ZTableau, name=f'GPI2({target}, φ={angle})')
+
+class RX(Tableau):
+    """
+    Implements the single-qubit RX rotation as a Tableau.
+
+    The angle must be an integer multiple of π/2 for the operation to be Clifford.
+    Acceptable angles include negative multiples.
+
+    The conjugation rules on the target qubit are:
+      - RX(0):         X → X,   Z → Z
+      - RX(π/2):       X → X,   Z → Y
+      - RX(π) or -π:   X → X,   Z → -Z   (equivalent to the Z gate up to phase)
+      - RX(3π/2):      X → X,   Z → -Y
+    """
+    def __init__(self, target: int, angle: float) -> None:
+        tol = 1e-8
+        # Check that the angle is a multiple of π/2
+        factor = angle / (math.pi / 2)
+        if abs(factor - round(factor)) > tol:
+            raise ValueError("Angle must be a multiple of π/2 for a Clifford operation.")
+        # Normalize to k = 0,1,2,3 corresponding to 0, π/2, π, 3π/2
+        k = int(round(factor)) % 4
+
+        # X always maps to X under any RX(k·π/2)
+        x_conj = Pauli('X')
+        # Z maps according to k
+        if k == 0:
+            z_conj = Pauli('Z')
+            name = f"RX({angle}) Identity"
+        elif k == 1:
+            z_conj = Pauli('Y')
+            name = f"RX({angle})"
+        elif k == 2:
+            z_conj = Pauli('-Z')
+            name = f"RX({angle})"
+        else:  # k == 3
+            z_conj = Pauli('-Y')
+            name = f"RX({angle})"
+
+        XTableau = HalfTableau([target], conjugates=[x_conj])
+        ZTableau = HalfTableau([target], conjugates=[z_conj])
+        super().__init__(XTableau, ZTableau, name=name)
