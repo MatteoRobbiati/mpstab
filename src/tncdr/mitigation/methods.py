@@ -67,25 +67,17 @@ def TNCDR(
         # TODO: discuss this
         if np.abs(exact_expval) < expval_threshold:
             continue
-    
-        # import pdb 
-        # pdb.set_trace()
 
+        # TODO: return the mitigated value as well (as it is done in Qibo)
         sampled_circuit = density_matrix_circuit(partitions["full_circuit"])
         density_init_state = density_matrix_circuit(copy.deepcopy(initial_state))
         initialised_sampled_circuit = density_init_state + sampled_circuit
         noisy_init_sampled_circuit = noise_model.apply(initialised_sampled_circuit)
         noisy_expval = ham.expectation(noisy_init_sampled_circuit().state())
 
-
         training_data["exact_expvals"].append(exact_expval)
         training_data["noisy_expvals"].append(noisy_expval)
 
-        print(
-            exact_expval, 
-            ham.expectation((density_init_state + sampled_circuit)().state()), 
-            noisy_expval,
-        )
 
     # Convert lists to numpy arrays for curve_fit
     noisy_array = np.array(training_data["noisy_expvals"])
@@ -98,6 +90,7 @@ def TNCDR(
 
 
 def density_matrix_circuit(circuit):
+    """Helper method to convert a circuit into its correspondent with `density_matrix=True`."""
     circ = Circuit(circuit.nqubits, density_matrix=True)
     for gate in circuit.queue:
         circ.add(gate)
