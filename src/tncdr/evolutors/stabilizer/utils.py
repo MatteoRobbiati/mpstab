@@ -18,6 +18,10 @@ def _single_qubit_pauli_expval(pauli_descriptor, statevector):
 def commute(p1:Pauli, p2:Pauli):
     return (p1@p2).phase == (p2@p1).phase
 
+def _attenuation_factor(pauli:Pauli, noise_table:dict):
+    pauli = pauli.to_string(ignore_phase=True)
+    return np.prod([noise_table[p] if q in noise_table['qs'] else 1 for q,p in enumerate(pauli)])
+
 def _spread_to_sites(pauli:Pauli, sites:list[int], n:int):
 
     p_str = pauli.to_string(ignore_phase=True)

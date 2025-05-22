@@ -2,18 +2,21 @@ from typing import Optional
 
 import numpy as np
 
+from copy import copy
+
 from tncdr.evolutors.tensor_network.operators.utils import basis
 
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
 from tncdr.evolutors.stabilizer.tableaus import Tableau, CNOT, CZ, SWAP, H, S, Sdg, X, Y, Z, RX, RY, RZ, GPI2
-from tncdr.evolutors.stabilizer.utils import commute, _single_qubit_pauli_expval, _spread_to_sites
+from tncdr.evolutors.stabilizer.utils import commute, _single_qubit_pauli_expval, _spread_to_sites, _attenuation_factor
 
 class CircuitPauliBackpropagation():
 
     def __init__(
             self,
             n:int,
-            initial_state:Optional[str | np.ndarray] = None
+            initial_state:Optional[str | np.ndarray] = None,
+            attenuation_threshold:float = 1e-5,
     ):
         # little bit of code duplication here
         if initial_state is None:
@@ -28,6 +31,9 @@ class CircuitPauliBackpropagation():
         self.n = n
         self.initial_state = initial_state
         self.queue = []
+
+        self.attenuation_factor = 1.0
+        self.attenuation_threshold = attenuation_threshold
     
     def cnot(self, control, target):
         """
@@ -121,11 +127,29 @@ class CircuitPauliBackpropagation():
 
 
     def pauli_rot(self, pauli_generator:Pauli, theta:float, qubits:Optional[list[int]] = None):
-
+        """
+        Apply a generic e^(i theta/2 G) gate to the circuit, where G is a Pauli word
+        """
         if type(pauli_generator) is str: pauli_generator = Pauli(pauli_generator)
         if qubits is not None: pauli_generator = _spread_to_sites(pauli_generator, qubits, self.n)
 
         self.apply((-theta/2, pauli_generator))
+
+    def pauli_channel(self, qubit:int, px:float, py:float, pz:float):
+        """
+        Apply a single-qubit noise channel of the form 
+        
+            N(rho) = (1-p_x-p_y-p_z) rho + p_x X rho X + p_y Y rho Y + p_z Z rho Z
+
+        to the circuit.  
+        """
+        self.apply({
+            'qs':[qubit],
+            'I':1,
+            'X':1-2*(py+pz),
+            'Y':1-2*(px+pz),
+            'Z':1-2*(py+px),
+        })
 
     def apply(self, gate):
         self.queue.append(gate)
@@ -133,14 +157,24 @@ class CircuitPauliBackpropagation():
     def _backpropagate_pauli(self, pauli:Pauli, sites:list[int]):
         
         pauli = _spread_to_sites(pauli, sites, self.n)
-        for k, gate in enumerate(reversed(self.queue)):
+        for k, operation in enumerate(reversed(self.queue)):
 
-            if isinstance(gate, Tableau): 
-                pauli.apply(gate)
+            if isinstance(operation, Tableau): 
+                pauli.apply(operation)
+                continue
 
-            if isinstance(gate, tuple):
-                if commute(pauli, gate[1]): continue
-                return pauli, gate, len(self.queue)-k
+            if isinstance(operation, dict):
+                self.attenuation_factor *= _attenuation_factor(pauli, operation)
+                if self.attenuation_factor < self.attenuation_threshold:
+                    raise InterruptedError
+                print(self.attenuation_factor)
+                continue
+
+            if isinstance(operation, tuple):
+                if commute(pauli, operation[1]): continue
+                return pauli, operation, len(self.queue)-k
+        
+            raise ValueError(f'Unrecognized operation {operation}')
         
         return pauli
 
@@ -149,23 +183,25 @@ class CircuitPauliBackpropagation():
         if sites is None: 
             sites=list(range(obs.n))
         
-        result = self._backpropagate_pauli(obs, sites)
+        try: result = self._backpropagate_pauli(obs, sites)
+        except InterruptedError: return 0
 
         if isinstance(result, Pauli):
 
             local_expvals = [_single_qubit_pauli_expval(p, s) for p,s in zip(result.to_string(ignore_phase=True), self.initial_state)]
-            return result.complex_phase()*np.prod(local_expvals)
+            return self.attenuation_factor*result.complex_phase()*np.prod(local_expvals)
 
         obs_at_branching, (theta, pauli_generator), k = result
 
-        shorter_circuit = CircuitPauliBackpropagation(self.n, self.initial_state)
+        shorter_circuit = copy(self)
         shorter_circuit.queue = self.queue[:k-1]
+        
+        id_branch = shorter_circuit.expval(obs_at_branching)
 
-        gen_branch_obs = obs_at_branching@pauli_generator
+        #reset the attenuation factor
+        shorter_circuit.attenuation_factor = self.attenuation_factor
+        gen_branch = shorter_circuit.expval(obs_at_branching@pauli_generator)
         
-        id_branch_coeff = (np.cos(theta)**2 - np.sin(theta)**2)
-        gen_branch_coeff = 2j*np.cos(theta)*np.sin(theta)
-        
-        return id_branch_coeff*shorter_circuit.expval(obs_at_branching)+gen_branch_coeff*shorter_circuit.expval(gen_branch_obs)
+        return (np.cos(theta)**2 - np.sin(theta)**2)*id_branch + 2j*np.cos(theta)*np.sin(theta)*gen_branch
 
         
