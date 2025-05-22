@@ -154,9 +154,8 @@ class CircuitPauliBackpropagation():
     def apply(self, gate):
         self.queue.append(gate)
 
-    def _backpropagate_pauli(self, pauli:Pauli, sites:list[int]):
+    def _backpropagate_pauli(self, pauli:Pauli):
         
-        pauli = _spread_to_sites(pauli, sites, self.n)
         for k, operation in enumerate(reversed(self.queue)):
 
             if isinstance(operation, Tableau): 
@@ -183,7 +182,13 @@ class CircuitPauliBackpropagation():
         if sites is None: 
             sites=list(range(obs.n))
         
-        try: result = self._backpropagate_pauli(obs, sites)
+        self.attenuation_factor = 1
+        obs = _spread_to_sites(obs, sites, self.n)
+        return self._recursive_expval(obs)
+
+    def _recursive_expval(self, obs):
+
+        try: result = self._backpropagate_pauli(obs)
         except InterruptedError: return 0
 
         if isinstance(result, Pauli):
@@ -196,11 +201,12 @@ class CircuitPauliBackpropagation():
         shorter_circuit = copy(self)
         shorter_circuit.queue = self.queue[:k-1]
         
-        id_branch = shorter_circuit.expval(obs_at_branching)
+        #needs to be first, because paulis are passed by reference!
+        gen_branch = shorter_circuit.expval(obs_at_branching@pauli_generator)
 
         #reset the attenuation factor
         shorter_circuit.attenuation_factor = self.attenuation_factor
-        gen_branch = shorter_circuit.expval(obs_at_branching@pauli_generator)
+        id_branch = shorter_circuit.expval(obs_at_branching)
         
         return (np.cos(theta)**2 - np.sin(theta)**2)*id_branch + 2j*np.cos(theta)*np.sin(theta)*gen_branch
 
