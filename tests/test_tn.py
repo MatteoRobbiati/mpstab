@@ -1,6 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 from tncdr.stabilizer_mps.tensor_network import TensorNetwork
 
 basis_to_amplitudes = {

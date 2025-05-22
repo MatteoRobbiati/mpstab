@@ -1,9 +1,8 @@
 from itertools import product
 
 import numpy as np
-
-from qibo.hamiltonians import SymbolicHamiltonian
 from qibo import symbols
+from qibo.hamiltonians import SymbolicHamiltonian
 
 
 def generate_pauli_strings(n):

@@ -1,22 +1,41 @@
+from copy import copy
 from typing import Optional
 
 import numpy as np
 
-from copy import copy
-
+from tncdr.evolutors.stabilizer.pauli_string import Pauli
+from tncdr.evolutors.stabilizer.tableaus import (
+    CNOT,
+    CZ,
+    GPI2,
+    RX,
+    RY,
+    RZ,
+    SWAP,
+    H,
+    S,
+    Sdg,
+    Tableau,
+    X,
+    Y,
+    Z,
+)
+from tncdr.evolutors.stabilizer.utils import (
+    _attenuation_factor,
+    _single_qubit_pauli_expval,
+    _spread_to_sites,
+    commute,
+)
 from tncdr.evolutors.tensor_network.operators.utils import basis
 
-from tncdr.evolutors.stabilizer.pauli_string import Pauli
-from tncdr.evolutors.stabilizer.tableaus import Tableau, CNOT, CZ, SWAP, H, S, Sdg, X, Y, Z, RX, RY, RZ, GPI2
-from tncdr.evolutors.stabilizer.utils import commute, _single_qubit_pauli_expval, _spread_to_sites, _attenuation_factor
 
-class CircuitPauliBackpropagation():
+class CircuitPauliBackpropagation:
 
     def __init__(
-            self,
-            n:int,
-            initial_state:Optional[str | np.ndarray] = None,
-            attenuation_threshold:float = 1e-5,
+        self,
+        n: int,
+        initial_state: Optional[str | np.ndarray] = None,
+        attenuation_threshold: float = 1e-5,
     ):
         # little bit of code duplication here
         if initial_state is None:
@@ -34,7 +53,7 @@ class CircuitPauliBackpropagation():
 
         self.attenuation_factor = 1.0
         self.attenuation_threshold = attenuation_threshold
-    
+
     def cnot(self, control, target):
         """
         Apply a CNOT gate to the circuit
@@ -82,83 +101,88 @@ class CircuitPauliBackpropagation():
         Apply a S gate (sqrt(Z)) to the circuit
         """
         self.apply(Sdg(qubit))
-    
+
     def sdg(self, qubit):
         """
         Apply a S+ gate (Z sqrt(Z)) to the circuit
         """
         self.apply(S(qubit))
-    
+
     def t(self, qubit):
         """
         Apply a T gate to the circuit
         """
-        self.pauli_rot('Z', np.pi/4, qubits=[qubit])
-    
-    def gpi2(self, alpha:float, qubit:int):
+        self.pauli_rot("Z", np.pi / 4, qubits=[qubit])
+
+    def gpi2(self, alpha: float, qubit: int):
         self.apply(GPI2(qubit, -alpha))
 
-    def rz(self, theta:float, qubit:int):
+    def rz(self, theta: float, qubit: int):
         """
         Apply a RZ(theta) gate to the circuit
         """
         try:
             self.apply(RZ(qubit, -theta))
         except ValueError:
-            self.pauli_rot('Z', theta, qubits=[qubit])
+            self.pauli_rot("Z", theta, qubits=[qubit])
 
-    def rx(self, theta:float, qubit:int):
+    def rx(self, theta: float, qubit: int):
         """
         Apply a RX(theta) gate to the circuit
         """
         try:
             self.apply(RX(qubit, -theta))
         except ValueError:
-            self.pauli_rot('X', theta, qubits=[qubit])
+            self.pauli_rot("X", theta, qubits=[qubit])
 
-    def ry(self, theta:float, qubit:int):
+    def ry(self, theta: float, qubit: int):
         """
         Apply a RY(theta) gate to the circuit
         """
         try:
             self.apply(RY(qubit, -theta))
         except ValueError:
-            self.pauli_rot('Y', theta, qubits=[qubit])
+            self.pauli_rot("Y", theta, qubits=[qubit])
 
-
-    def pauli_rot(self, pauli_generator:Pauli, theta:float, qubits:Optional[list[int]] = None):
+    def pauli_rot(
+        self, pauli_generator: Pauli, theta: float, qubits: Optional[list[int]] = None
+    ):
         """
         Apply a generic e^(i theta/2 G) gate to the circuit, where G is a Pauli word
         """
-        if type(pauli_generator) is str: pauli_generator = Pauli(pauli_generator)
-        if qubits is not None: pauli_generator = _spread_to_sites(pauli_generator, qubits, self.n)
+        if type(pauli_generator) is str:
+            pauli_generator = Pauli(pauli_generator)
+        if qubits is not None:
+            pauli_generator = _spread_to_sites(pauli_generator, qubits, self.n)
 
-        self.apply((-theta/2, pauli_generator))
+        self.apply((-theta / 2, pauli_generator))
 
-    def pauli_channel(self, qubit:int, px:float, py:float, pz:float):
+    def pauli_channel(self, qubit: int, px: float, py: float, pz: float):
         """
-        Apply a single-qubit noise channel of the form 
-        
+        Apply a single-qubit noise channel of the form
+
             N(rho) = (1-p_x-p_y-p_z) rho + p_x X rho X + p_y Y rho Y + p_z Z rho Z
 
-        to the circuit.  
+        to the circuit.
         """
-        self.apply({
-            'qs':[qubit],
-            'I':1,
-            'X':1-2*(py+pz),
-            'Y':1-2*(px+pz),
-            'Z':1-2*(py+px),
-        })
+        self.apply(
+            {
+                "qs": [qubit],
+                "I": 1,
+                "X": 1 - 2 * (py + pz),
+                "Y": 1 - 2 * (px + pz),
+                "Z": 1 - 2 * (py + px),
+            }
+        )
 
     def apply(self, gate):
         self.queue.append(gate)
 
-    def _backpropagate_pauli(self, pauli:Pauli):
-        
+    def _backpropagate_pauli(self, pauli: Pauli):
+
         for k, operation in enumerate(reversed(self.queue)):
 
-            if isinstance(operation, Tableau): 
+            if isinstance(operation, Tableau):
                 pauli.apply(operation)
                 continue
 
@@ -170,44 +194,54 @@ class CircuitPauliBackpropagation():
                 continue
 
             if isinstance(operation, tuple):
-                if commute(pauli, operation[1]): continue
-                return pauli, operation, len(self.queue)-k
-        
-            raise ValueError(f'Unrecognized operation {operation}')
-        
+                if commute(pauli, operation[1]):
+                    continue
+                return pauli, operation, len(self.queue) - k
+
+            raise ValueError(f"Unrecognized operation {operation}")
+
         return pauli
 
     def expval(self, obs: Pauli, sites: Optional[list[int]] = None):
 
-        if sites is None: 
-            sites=list(range(obs.n))
-        
+        if sites is None:
+            sites = list(range(obs.n))
+
         self.attenuation_factor = 1
         obs = _spread_to_sites(obs, sites, self.n)
         return self._recursive_expval(obs)
 
     def _recursive_expval(self, obs):
 
-        try: result = self._backpropagate_pauli(obs)
-        except InterruptedError: return 0
+        try:
+            result = self._backpropagate_pauli(obs)
+        except InterruptedError:
+            return 0
 
         if isinstance(result, Pauli):
 
-            local_expvals = [_single_qubit_pauli_expval(p, s) for p,s in zip(result.to_string(ignore_phase=True), self.initial_state)]
-            return self.attenuation_factor*result.complex_phase()*np.prod(local_expvals)
+            local_expvals = [
+                _single_qubit_pauli_expval(p, s)
+                for p, s in zip(result.to_string(ignore_phase=True), self.initial_state)
+            ]
+            return (
+                self.attenuation_factor
+                * result.complex_phase()
+                * np.prod(local_expvals)
+            )
 
         obs_at_branching, (theta, pauli_generator), k = result
 
         shorter_circuit = copy(self)
-        shorter_circuit.queue = self.queue[:k-1]
-        
-        #needs to be first, because paulis are passed by reference!
-        gen_branch = shorter_circuit.expval(obs_at_branching@pauli_generator)
+        shorter_circuit.queue = self.queue[: k - 1]
 
-        #reset the attenuation factor
+        # needs to be first, because paulis are passed by reference!
+        gen_branch = shorter_circuit.expval(obs_at_branching @ pauli_generator)
+
+        # reset the attenuation factor
         shorter_circuit.attenuation_factor = self.attenuation_factor
         id_branch = shorter_circuit.expval(obs_at_branching)
-        
-        return (np.cos(theta)**2 - np.sin(theta)**2)*id_branch + 2j*np.cos(theta)*np.sin(theta)*gen_branch
 
-        
+        return (np.cos(theta) ** 2 - np.sin(theta) ** 2) * id_branch + 2j * np.cos(
+            theta
+        ) * np.sin(theta) * gen_branch

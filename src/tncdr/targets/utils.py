@@ -1,19 +1,16 @@
-from typing import List, Optional
-from copy import deepcopy
 import random
-
-import numpy as np
+from copy import deepcopy
+from typing import List, Optional
 
 import networkx as nx
-
+import numpy as np
 from qibo import Circuit, gates
-
-from qibo.transpiler.pipeline import Passes
-from qibo.transpiler.optimizer import Preprocessing
-from qibo.transpiler.router import ShortestPaths
-from qibo.transpiler.unroller import Unroller, NativeGates
-from qibo.transpiler.placer import Random
 from qibo.noise import NoiseModel, PauliError
+from qibo.transpiler.optimizer import Preprocessing
+from qibo.transpiler.pipeline import Passes
+from qibo.transpiler.placer import Random
+from qibo.transpiler.router import ShortestPaths
+from qibo.transpiler.unroller import NativeGates, Unroller
 
 
 def hardware_compatible_circuit(

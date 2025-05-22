@@ -1,9 +1,8 @@
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
+from qibo import hamiltonians, set_backend
 from qibo.models import error_mitigation
 from qibo.noise import NoiseModel, PauliError
-from qibo import hamiltonians, set_backend
 
 from tncdr.targets.ansatze import HardwareEfficient
 

@@ -1,10 +1,11 @@
-import click
 import json
 import time
 from pathlib import Path
-import numpy as np
 
-from qibo import hamiltonians, set_backend, symbols, Circuit, gates
+import click
+import numpy as np
+from qibo import Circuit, gates, hamiltonians, set_backend, symbols
+
 from tncdr.evolutors.models import HybridSurrogate
 from tncdr.targets.ansatze import HardwareEfficient
 

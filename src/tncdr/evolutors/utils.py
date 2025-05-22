@@ -1,4 +1,5 @@
 import random
+
 from qibo import gates
 
 gate2generator = {

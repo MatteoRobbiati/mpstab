@@ -1,7 +1,5 @@
 import click
-
 import numpy as np
-
 from qibo import set_backend
 
 from tncdr.targets.ansatze import HardwareEfficient

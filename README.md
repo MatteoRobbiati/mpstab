@@ -19,8 +19,8 @@ pip install .
 #### Developers installation
 
 Alternatively, the package can be installed via Poetry. Be sure Poetry is correctly
-installed (you can follow the [official installation instructions](https://python-poetry.org/docs/#installation)) 
-before running what follows. 
+installed (you can follow the [official installation instructions](https://python-poetry.org/docs/#installation))
+before running what follows.
 
 ```sh
 git clone https://github.com/MatteoRobbiati/tncdr.git

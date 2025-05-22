@@ -1,5 +1,5 @@
-from tncdr.evolutors.stabilizer.tableaus import CNOT, H, S
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
+from tncdr.evolutors.stabilizer.tableaus import CNOT, H, S
 
 two_qubit_pauli = [
     "I",

@@ -1,17 +1,13 @@
 """A dummy example of tncdr"""
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
+from qibo import Circuit, gates, hamiltonians, set_backend, symbols
+from qibo.models.error_mitigation import CDR, vnCDR
 from qibo.noise import NoiseModel, PauliError
-from qibo import Circuit, gates, symbols, hamiltonians, set_backend
-from qibo.models.error_mitigation import (
-    CDR,
-    vnCDR,
-)
 
-from tncdr.targets.ansatze import HardwareEfficient
 from tncdr.mitigation.methods import TNCDR, density_matrix_circuit
+from tncdr.targets.ansatze import HardwareEfficient
 
 nqubits = 5
 nlayers = 3

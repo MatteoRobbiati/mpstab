@@ -2,15 +2,7 @@ import random as rnd
 from typing import Generator
 
 from tncdr.evolutors.stabilizer.pauli_string import Pauli
-from tncdr.evolutors.stabilizer.tableaus import (
-    Tableau,
-    CNOT,
-    SWAP,
-    S,
-    H,
-    X,
-    Z,
-)
+from tncdr.evolutors.stabilizer.tableaus import CNOT, SWAP, H, S, Tableau, X, Z
 
 
 def random_pauli(n: int) -> Pauli:

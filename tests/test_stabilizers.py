@@ -1,11 +1,10 @@
 """Simple test to check whether the stabilizer simulator is working."""
 
 import numpy as np
-
 from qibo import Circuit, gates, hamiltonians, symbols
 
-from tncdr.evolutors.stabilizer.pauli_string import Pauli
 from tncdr.evolutors.stabilizer import tableaus
+from tncdr.evolutors.stabilizer.pauli_string import Pauli
 from tncdr.evolutors.utils import gate2tableau
 
 nqubits = 10
