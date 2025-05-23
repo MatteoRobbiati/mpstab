@@ -202,7 +202,11 @@ class FloquetAnsatz(Ansatz):
 
     Args:
         nlayers (int): number of Floquet layers.
-        b (float):
+        b (float): parameter controlling the magic in the circuit;
+        theta (float): controls the signal;
+        target_qubit (int): this is the qubit, in the circuit, on which we perform
+            the final local measurement (and the one on which we apply H and RZ).
+        decompose_rzz (bool): if ``True``, RZZ is decomposed into CNOTs and RZ.
     """
 
     nlayers: int = 2

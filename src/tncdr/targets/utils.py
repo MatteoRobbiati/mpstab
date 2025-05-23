@@ -1,19 +1,16 @@
-from typing import List, Optional
-from copy import deepcopy
 import random
-
-import numpy as np
+from copy import deepcopy
+from typing import List, Optional
 
 import networkx as nx
-
+import numpy as np
 from qibo import Circuit, gates
-
-from qibo.transpiler.pipeline import Passes
+from qibo.noise import NoiseModel, PauliError, ReadoutError
 from qibo.transpiler.optimizer import Preprocessing
-from qibo.transpiler.router import ShortestPaths
-from qibo.transpiler.unroller import Unroller, NativeGates
+from qibo.transpiler.pipeline import Passes
 from qibo.transpiler.placer import Random
-from qibo.noise import NoiseModel, PauliError
+from qibo.transpiler.router import ShortestPaths
+from qibo.transpiler.unroller import NativeGates, Unroller
 
 
 def hardware_compatible_circuit(
@@ -86,7 +83,9 @@ def replace_non_clifford_gate(gate, replacement_method, candidates=None):
 
 
 def build_noise_model(
-    nqubits: int, readout_bit_flip_prob: float, local_pauli_noise_sigma: float
+    nqubits: int,
+    local_pauli_noise_sigma: float,
+    readout_bit_flip_prob: float = None,
 ):
     """Costruct noise model as a local Pauli noise channel + readout noise."""
     noise_model = NoiseModel()
@@ -102,12 +101,13 @@ def build_noise_model(
             qubits=q,
         )
 
-    # single_readout_matrix = np.array(
-    #     [
-    #         [1 - readout_bit_flip_prob, readout_bit_flip_prob],
-    #         [readout_bit_flip_prob, 1 - readout_bit_flip_prob]
-    #     ]
-    # )
-    # readout_noise = ReadoutError(single_readout_matrix)
-    # noise_model.add(readout_noise, gates.M)
+    if readout_bit_flip_prob is not None:
+        single_readout_matrix = np.array(
+            [
+                [1 - readout_bit_flip_prob, readout_bit_flip_prob],
+                [readout_bit_flip_prob, 1 - readout_bit_flip_prob],
+            ]
+        )
+        readout_noise = ReadoutError(single_readout_matrix)
+        noise_model.add(readout_noise, gates.M)
     return noise_model
