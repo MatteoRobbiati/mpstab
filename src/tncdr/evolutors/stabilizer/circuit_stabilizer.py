@@ -190,7 +190,7 @@ class CircuitPauliBackpropagation:
                 self.attenuation_factor *= _attenuation_factor(pauli, operation)
                 if self.attenuation_factor < self.attenuation_threshold:
                     raise InterruptedError
-                print(self.attenuation_factor)
+
                 continue
 
             if isinstance(operation, tuple):
@@ -236,11 +236,13 @@ class CircuitPauliBackpropagation:
         shorter_circuit.queue = self.queue[: k - 1]
 
         # needs to be first, because paulis are passed by reference!
-        gen_branch = shorter_circuit.expval(obs_at_branching @ pauli_generator)
+        gen_branch = shorter_circuit._recursive_expval(
+            obs_at_branching @ pauli_generator
+        )
 
         # reset the attenuation factor
         shorter_circuit.attenuation_factor = self.attenuation_factor
-        id_branch = shorter_circuit.expval(obs_at_branching)
+        id_branch = shorter_circuit._recursive_expval(obs_at_branching)
 
         return (np.cos(theta) ** 2 - np.sin(theta) ** 2) * id_branch + 2j * np.cos(
             theta
