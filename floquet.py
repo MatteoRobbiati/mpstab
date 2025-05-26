@@ -195,6 +195,8 @@ def main(
         exact_expval=exact_expval,
         median_mit_value=np.median(mit_values),
         median_abs_deviation_mit_value=median_abs_deviation(mit_values),
+        median_noisy_value=np.median(noisy_values),
+        median_abs_deviation_noisy_value=median_abs_deviation(noisy_values),
     )
 
     # Save to folder if requested
