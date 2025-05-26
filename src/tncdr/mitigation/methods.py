@@ -3,6 +3,7 @@ import random
 from typing import Optional
 
 import numpy as np
+import tqdm
 from qibo import Circuit, get_backend, hamiltonians, symbols
 from qibo.noise import NoiseModel
 from scipy.optimize import curve_fit
@@ -14,9 +15,9 @@ from tncdr.targets.ansatze import Ansatz
 def TNCDR(
     observable: str,
     ansatz: Ansatz,
-    initial_state: Circuit,
     noise_model: NoiseModel,
     replacement_probability: float,
+    initial_state: Circuit = None,
     replacement_method: str = "closest",
     ncircuits: int = 50,
     nshots: Optional[int] = None,  # TODO: discuss it
@@ -46,7 +47,7 @@ def TNCDR(
         "exact_expvals": [],
     }
 
-    for i in range(ncircuits):
+    for i in tqdm.tqdm(range(ncircuits)):
         # Construct the hybrid surrogate
         evo = HybridSurrogate(
             ansatz=ansatz,
@@ -68,9 +69,14 @@ def TNCDR(
 
         # TODO: return the mitigated value as well (as it is done in Qibo)
         sampled_circuit = density_matrix_circuit(partitions["full_circuit"])
-        density_init_state = density_matrix_circuit(copy.deepcopy(initial_state))
-        initialised_sampled_circuit = density_init_state + sampled_circuit
+        if initial_state is not None:
+            density_init_state = density_matrix_circuit(copy.deepcopy(initial_state))
+            initialised_sampled_circuit = density_init_state + sampled_circuit
+        else:
+            initialised_sampled_circuit = sampled_circuit
+
         noisy_init_sampled_circuit = noise_model.apply(initialised_sampled_circuit)
+
         noisy_expval = ham.expectation(noisy_init_sampled_circuit().state())
 
         training_data["exact_expvals"].append(exact_expval)
