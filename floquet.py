@@ -143,6 +143,15 @@ def main(
         form *= getattr(symbols, pauli)(i)
     ham = hamiltonians.SymbolicHamiltonian(form=form)
 
+    if save_results:
+        folder_name = (
+            f"results/floquet/"
+            f"{nqubits}q_{nlayers}l_rprob{replacement_probability}_"
+            f"nc{ncircuits}_seed{random_seed}_sigma{local_pauli_noise_sigma}_"
+            f"mbd{max_bond_dimension}"
+        )
+        os.makedirs(folder_name, exist_ok=True)
+
     # Initialize and transpile ansatz
     ansatz = FloquetAnsatz(
         nqubits=nqubits,
@@ -162,7 +171,7 @@ def main(
     mit_values, noisy_values, noise_maps = [], [], []
 
     # Repeat the experiment nruns times
-    for _ in range(nruns):
+    for irun in range(nruns):
 
         # Build noise model
         noise_model = build_noise_model(
@@ -179,6 +188,7 @@ def main(
             ncircuits=ncircuits,
             random_seed=np.random.randint(0, 1000000),
             max_bond_dimension=max_bond_dimension,
+            save_path=f"{folder_name}/run{irun}_training_circuits",
         )
 
         # Compute noisy and mitigated expectation values
@@ -201,20 +211,16 @@ def main(
 
     # Save to folder if requested
     if save_results:
-        folder_name = (
-            f"results/floquet/"
-            f"{nqubits}q_{nlayers}l_rprob{replacement_probability}_"
-            f"nc{ncircuits}_seed{random_seed}_sigma{local_pauli_noise_sigma}_"
-            f"mbd{max_bond_dimension}"
-        )
-        os.makedirs(folder_name, exist_ok=True)
-
         # Save noisy and mitigated values
         np.save(file=os.path.join(folder_name, "mit_values"), arr=np.array(mit_values))
         np.save(
             file=os.path.join(folder_name, "noisy_values"), arr=np.array(noisy_values)
         )
         np.save(file=os.path.join(folder_name, "fit_maps"), arr=np.array(noise_maps))
+        np.save(
+            file=os.path.join(folder_name, "original_circuit_params"), 
+            arr=np.array(ansatz.circuit.get_parameters()),
+        )
 
         # Dump JSON
         json_path = os.path.join(folder_name, "results.json")

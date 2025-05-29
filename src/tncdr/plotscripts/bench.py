@@ -52,7 +52,7 @@ def plot_for_qubits_layers(q:int, l:int, ncircs:list):
 
 # run the plot
 plot_for_qubits_layers(
-    q=5, 
+    q=7, 
     l=4, 
     ncircs=[10,30,100]
 )

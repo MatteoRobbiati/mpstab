@@ -1,3 +1,4 @@
+import os
 import copy
 import random
 from typing import Optional
@@ -25,7 +26,13 @@ def TNCDR(
     fit_map=lambda x, a, b: a * x + b,
     expval_threshold: float = 1e-7,
     max_bond_dimension: Optional[int] = None,
+    save_path:str=None,
 ):
+
+    # If we want to save the parameters of the training set of circuits
+    if save_path is not None:
+        if not os.path.exists(f"{save_path}"):
+            os.makedirs(f"{save_path}")
 
     # Fix the RNG seed for reproducibility
     random.seed(random_seed)
@@ -62,6 +69,13 @@ def TNCDR(
             return_partitions=True,
             replacement_method=replacement_method,
         )
+
+        if save_path is not None:
+            these_parameters = partitions["full_circuit"].get_parameters()
+            np.save(
+                arr=np.array(these_parameters),
+                file=f"{save_path}/params_circuit_{i}",
+            )
 
         # TODO: discuss this
         if np.abs(exact_expval) < expval_threshold:
