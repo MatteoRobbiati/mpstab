@@ -162,7 +162,35 @@ def main(
         density_matrix=True,
     )
 
-    ansatz = TranspiledAnsatz(original_circuit=ansatz.circuit)
+    # If we want to save the parameters of the training set of circuits
+    save_path = f"{folder_name}/circuits"
+    if not os.path.exists(f"{save_path}"):
+        os.makedirs(f"{save_path}")
+
+    np.save(
+        file=f"{save_path}/original_circuit_params",
+        arr=np.array(ansatz.circuit.get_parameters()),
+    )
+
+    for i in range(ncircuits):
+        _, full_circuit = ansatz.partitionate_circuit(
+            replacement_method="closest",
+            replacement_probability=0.5,
+        )
+        np.save(
+            file=f"{save_path}/params_circuit{i}",
+            arr=np.array(full_circuit.get_parameters()),
+        )
+
+    # Dump JSON
+    json_path = os.path.join(folder_name, "results.json")
+    with open(json_path, "w") as jf:
+        json.dump(params, jf, indent=4, cls=NumpyEncoder)
+    click.echo(f"Results saved to {json_path}")
+
+    exit()
+
+    # ansatz = TranspiledAnsatz(original_circuit=ansatz.circuit)
 
     # Computing exact expectation value of the original circuit
     exact_expval = ham.expectation(ansatz.circuit().state())
@@ -218,7 +246,7 @@ def main(
         )
         np.save(file=os.path.join(folder_name, "fit_maps"), arr=np.array(noise_maps))
         np.save(
-            file=os.path.join(folder_name, "original_circuit_params"), 
+            file=os.path.join(folder_name, "original_circuit_params"),
             arr=np.array(ansatz.circuit.get_parameters()),
         )
 
