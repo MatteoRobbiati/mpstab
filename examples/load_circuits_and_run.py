@@ -107,11 +107,11 @@ print('TNCDR JOB ID : ',job.job_id())
 result_tncdr = job.result() 
 print('TNCDR time: ', time.time() - it)
 
-expvals = result_tncdr.values   # a NumPy array of length N
+#expvals = result_tncdr.values   # a NumPy array of length N
 
 # You can print them in order:
-for idx, val in enumerate(expvals):
-    print(f"Circuit {idx}  →  ⟨observable⟩ = {val:.6f}")
+#for idx, val in enumerate(expvals):
+   # print(f"Circuit {idx}  →  ⟨observable⟩ = {val:.6f}")
 ## Saving them
 with open("result_tncdr.json", "w") as file:
     json.dump(result_tncdr, file, cls=RuntimeEncoder)
@@ -140,7 +140,6 @@ job_tem = tem.run(
     pubs=[pub], instance=INSTANCE, backend_name=BACKEND, options=tem_options
 )
 print('TEM time: ', time.time() - it)
-print('TEM JOB ID : ',job_tem.job_id())
 
 ## SAVING TEM RESULTS
 result_tem = job_tem.result()
