@@ -1,0 +1,43 @@
+/data/mgrossi/code_collection/tncdr/examples/load_circuits_and_run.py:55: DeprecationWarning: The "ibm_quantum" channel option is deprecated and will be sunset on 1 July. After this date, "ibm_cloud", "ibm_quantum_platform", and "local" will be the only valid channels. For information on migrating to the new IBM Quantum Platform, review the migration guide https://quantum.cloud.ibm.com/docs/migration-guides/classic-iqp-to-cloud-iqp .
+  service = QiskitRuntimeService(instance=INSTANCE, channel="ibm_quantum")
+/data/mgrossi/code_collection/envirompenv/tncdr/lib64/python3.12/site-packages/qiskit_ibm_runtime/qiskit_runtime_service.py:1111: UserWarning: IBM Quantum Platform is moving, and this version will be sunset on July 1. To get started on the new platform, read the migration guide at https://docs.quantum.ibm.com/migration-guides/classic-iqp-to-cloud-iqp
+  warnings.warn(warning_message)
+the selected BACKEND is:  ibm_kingston
+observables:  [SparsePauliOp(['IIIXIII'],
+              coeffs=[1.+0.j]), SparsePauliOp(['IIIXIII'],
+              coeffs=[1.+0.j]), SparsePauliOp(['IIIXIII'],
+              coeffs=[1.+0.j]), SparsePauliOp(['IIIXIII'],
+              coeffs=[1.+0.j]), SparsePauliOp(['IIIXIII'],
+              coeffs=[1.+0.j]), SparsePauliOp(['IIIXIII'],
+              coeffs=[1.+0.j]), SparsePauliOp(['IIIXIII'],
+              coeffs=[1.+0.j]), SparsePauliOp(['IIIXIII'],
+              coeffs=[1.+0.j]), SparsePauliOp(['IIIXIII'],
+              coeffs=[1.+0.j]), SparsePauliOp(['IIIXIII'],
+              coeffs=[1.+0.j])]
+TNCDR JOB ID :  d101pj2v3z5000826r4g
+TNCDR time:  132147.33084774017
+Traceback (most recent call last):
+  File "/data/mgrossi/code_collection/tncdr/examples/load_circuits_and_run.py", line 124, in <module>
+    catalog = QiskitFunctionsCatalog()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/mgrossi/code_collection/envirompenv/tncdr/lib64/python3.12/site-packages/qiskit_ibm_catalog/catalog.py", line 80, in __init__
+    self._client = IBMServerlessClient(
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/data/mgrossi/code_collection/envirompenv/tncdr/lib64/python3.12/site-packages/qiskit_serverless/core/clients/serverless_client.py", line 572, in __init__
+    token = token or QiskitRuntimeService(name=name).active_account().get("token")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/mgrossi/code_collection/envirompenv/tncdr/lib64/python3.12/site-packages/qiskit_ibm_runtime/qiskit_runtime_service.py", line 157, in __init__
+    self._account = self._discover_account(
+                    ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/mgrossi/code_collection/envirompenv/tncdr/lib64/python3.12/site-packages/qiskit_ibm_runtime/qiskit_runtime_service.py", line 345, in _discover_account
+    account = AccountManager.get(filename=filename)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/mgrossi/code_collection/envirompenv/tncdr/lib64/python3.12/site-packages/qiskit_ibm_runtime/accounts/management.py", line 185, in get
+    all_config = read_config(filename=filename)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/mgrossi/code_collection/envirompenv/tncdr/lib64/python3.12/site-packages/qiskit_ibm_runtime/accounts/storage.py", line 66, in read_config
+    _ensure_file_exists(filename)
+  File "/data/mgrossi/code_collection/envirompenv/tncdr/lib64/python3.12/site-packages/qiskit_ibm_runtime/accounts/storage.py", line 105, in _ensure_file_exists
+    with open(filename, mode="w", encoding="utf-8") as json_file:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/afs/cern.ch/user/m/mgrossi/.qiskit/qiskit-ibm.json'
