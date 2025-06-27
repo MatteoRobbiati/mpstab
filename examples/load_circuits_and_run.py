@@ -117,35 +117,35 @@ with open("result_tncdr.json", "w") as file:
     json.dump(result_tncdr, file, cls=RuntimeEncoder)
 
 ## #################    Algorithmiq TEM part - original qiskit circuit
-from qiskit_ibm_catalog import QiskitFunctionsCatalog
+#from qiskit_ibm_catalog import QiskitFunctionsCatalog
 
-tem_function_name = "algorithmiq/tem"
+#tem_function_name = "algorithmiq/tem"
 
-catalog = QiskitFunctionsCatalog()
+#catalog = QiskitFunctionsCatalog()
 
 # Load your function
-tem = catalog.load(tem_function_name)
+#tem = catalog.load(tem_function_name)
 
-tem_options = {
-    "tem_max_bond_dimension": 64,
-    "max_layers_to_learn": 6,
-    "default_precision": 0.01,
-}
+#tem_options = {
+  #  "tem_max_bond_dimension": 64,
+  #  "max_layers_to_learn": 6,
+  #  "default_precision": 0.01,
+#}
 #,"compute_shadows_bias_from_observable": True
 
-pub = (original_qiskit_circuit, [observable])
+#pub = (original_qiskit_circuit, [observable])
 
-it = time.time()
-job_tem = tem.run(
-    pubs=[pub], instance=INSTANCE, backend_name=BACKEND, options=tem_options
-)
-print('TEM time: ', time.time() - it)
+#it = time.time()
+#job_tem = tem.run(
+ #   pubs=[pub], instance=INSTANCE, backend_name=BACKEND, options=tem_options
+#)
+#print('TEM time: ', time.time() - it)
 
 ## SAVING TEM RESULTS
-result_tem = job_tem.result()
-evs_tem = result[0].data.evs
+#result_tem = job_tem.result()
+#evs_tem = result[0].data.evs
 
  
-with open("result_tem.json", "w") as file:
-    json.dump(result_tem, file, cls=RuntimeEncoder)
+#with open("result_tem.json", "w") as file:
+ #   json.dump(result_tem, file, cls=RuntimeEncoder)
 

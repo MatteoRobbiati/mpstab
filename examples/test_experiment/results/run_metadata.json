@@ -1,0 +1,8 @@
+{
+  "backend": "ibm_kingston",
+  "total_circuits": 11,
+  "training_circuits": 10,
+  "tncdr_job_id": "d1f8sfxv3z50008avmx0",
+  "tncdr_elapsed": 1.9291377067565918,
+  "timestamp": "2025-06-27T13:08:11Z"
+}
