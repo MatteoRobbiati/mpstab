@@ -36,7 +36,7 @@ def main():
     results_dir.mkdir(exist_ok=True)
 
     # load config
-    with open(base_path / "results.json") as f:
+    with open(base_path / "config.json") as f:
         config = json.load(f)
 
     # prepare ansatz and original circuit
@@ -67,8 +67,6 @@ def main():
 
     # assemble all circuits: original first
     all_circuits = [original_qiskit_circ] + training_circuits
-
-    print(all_circuits)
 
     # IBM runtime setup
     service = QiskitRuntimeService(
