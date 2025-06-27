@@ -1,0 +1,14 @@
+{
+    "nqubits": 50,
+    "nlayers": 5,
+    "b": 1.2566370614359172,
+    "theta": 1.5707963267948966,
+    "replacement_probability": 0.7,
+    "ncircuits": 500,
+    "random_seed": 42,
+    "local_pauli_noise_sigma": 0.003,
+    "max_bond_dimension": 128,
+    "nruns": 10,
+    "plot": true,
+    "save_results": true
+}
