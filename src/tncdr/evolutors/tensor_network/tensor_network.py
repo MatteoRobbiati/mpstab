@@ -3,6 +3,7 @@ from typing import Optional, Union
 
 import networkx as nx
 import numpy as np
+import scipy
 
 from tncdr.evolutors.tensor_network.utils import (
     _bond_dimension_cut,
@@ -236,7 +237,13 @@ class TensorNetwork:
         tensor = np.reshape(tensor, matrix_shape)
 
         # Perform SVD
-        svd_result = np.linalg.svd(tensor, full_matrices=False)
+        svd_result = scipy.linalg.svd(
+            tensor,
+            full_matrices=False,
+            lapack_driver="gesdd",
+            overwrite_a=True,
+            check_finite=False,
+        )
         left_tensor, middle_tensor, right_tensor = _bond_dimension_cut(
             *svd_result, max_bond_dimension
         )

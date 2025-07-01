@@ -1,21 +1,16 @@
 """Hybrid Stabilizer-MPO evolutor"""
 
 from dataclasses import dataclass
-import numpy as np
 
 import numpy as np
-
 from qibo import Circuit
 
-
+from tncdr.evolutors.stabilizer import tableaus
+from tncdr.evolutors.stabilizer.pauli_string import Pauli
 from tncdr.evolutors.tensor_network.circuit_mps import CircuitMPS
 from tncdr.evolutors.tensor_network.operators.observables import PauliMPO
-from tncdr.evolutors.stabilizer.pauli_string import Pauli
-from tncdr.evolutors.stabilizer import tableaus
-
 from tncdr.evolutors.utils import gate2generator, gate2tableau
 from tncdr.targets.ansatze import Ansatz
-from tncdr.evolutors.tensor_network.circuit_mps import CircuitMPS
 
 
 @dataclass
@@ -97,7 +92,6 @@ class HybridSurrogate:
 
         # check the stab layers, might be wrong
         for k, magic_gate in magic_gates:
-
             generator = self._conjugate_generator(magic_gate, clifford_circuit, k)
             self.mps.pauli_rot(generator, magic_gate.parameters[0])
 
