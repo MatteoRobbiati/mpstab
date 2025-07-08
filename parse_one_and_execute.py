@@ -13,9 +13,17 @@ from tncdr.targets.ansatze import FloquetAnsatz, TranspiledAnsatz
 set_backend("numpy")
 
 
-def compute_and_save(path: str, index: int, max_bond_dim: int):
+def compute_and_save(path: str, index: int, max_bond_dim: int, simulation_method: str):
     # Create results directory with bond dimension in name
-    results_dir = os.path.join(path, f"results/hybrid_{max_bond_dim}MAXBD")
+    if simulation_method == "statevector":
+        results_dir = os.path.join(path, f"results/statevector")
+    elif simulation_method == "hsmpo":
+        results_dir = os.path.join(path, f"results/hybrid_{max_bond_dim}MAXBD")
+    else:
+        raise ValueError(
+            " The selected simulation method is not supported, please select one between 'statevector' or 'hsmpo' "
+        )
+
     os.makedirs(results_dir, exist_ok=True)
 
     # Load experiment configuration
@@ -41,11 +49,20 @@ def compute_and_save(path: str, index: int, max_bond_dim: int):
     q = config["nqubits"] // 2
     obs = "I" * q + "X" + "I" * (config["nqubits"] - q - 1)
 
-    # Compute exact expectation via HybridSurrogate
-    hs = HybridSurrogate(tran_ansatz, max_bond_dimension=max_bond_dim)
-    exact_val, _ = hs.expectation_from_partition(
-        observable=obs, replacement_probability=0.0
-    )
+    # Construct Qibo hamiltonian if needed and execute on statevector mode
+    if simulation_method == "statevector":
+        form = 1
+        for i, pauli in enumerate(obs):
+            form *= getattr(symbols, pauli)(i)
+        ham = hamiltonians.SymbolicHamiltonian(form=form)
+        exact_val = ham.expectation(tran_ansatz.circuit().state())
+
+    elif simulation_method == "hsmpo":
+        # Compute exact expectation via HybridSurrogate
+        hs = HybridSurrogate(tran_ansatz, max_bond_dimension=max_bond_dim)
+        exact_val, _ = hs.expectation_from_partition(
+            observable=obs, replacement_probability=0.0
+        )
 
     # Prepare and save output array: [hardware_value, exact_value]
     output = np.array(exact_val)
@@ -71,6 +88,12 @@ if __name__ == "__main__":
         default=48,
         help="Maximum bond dimension for the HybridSurrogate",
     )
+    parser.add_argument(
+        "--simulation_method",
+        type=str,
+        default="hsmpo",
+        help="Simulation method. Can be 'hsmpo' or 'statevector'",
+    )
     args = parser.parse_args()
 
-    compute_and_save(args.path, args.index, args.max_bond_dim)
+    compute_and_save(args.path, args.index, args.max_bond_dim, args.simulation_method)

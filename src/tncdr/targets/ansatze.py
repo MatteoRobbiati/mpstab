@@ -218,16 +218,19 @@ class FloquetAnsatz(Ansatz):
     def __post_init__(self):
         super().__post_init__()
 
+        # Save attribute for replacements
+        self.half_sandwich = Circuit(self.nqubits)
+        for _ in range(self.layers):
+            self.half_sandwich += self._build_floquet_layer()
+
         # First, we add an Hadamard to the target qubit
         self.circuit.add(gates.H(self.target_qubit))
         # Then append nlayers Floquet layers
-        for _ in range(self.nlayers):
-            self.circuit += self._build_floquet_layer()
+        self.circuit += self.half_sandwich
         # Add RZ
         self.circuit.add(gates.RZ(q=self.target_qubit, theta=self.theta))
         # Add the inverted Floquet layers
-        for _ in range(self.nlayers):
-            self.circuit += self._build_floquet_layer().invert()
+        self.circuit += self.half_sandwich.invert()
 
     def _build_floquet_layer(self) -> Circuit:
         """Construct one Floquet layer over all links."""
@@ -266,3 +269,84 @@ class FloquetAnsatz(Ansatz):
         layer.add(gates.RZ(q=q1, theta=theta))
         layer.add(gates.CNOT(q0, q1))
         return layer
+
+    def partitionate_sub_circuit(
+        self, circuit: Circuit, replacement_probability: float, replacement_method: str
+    ):
+        """
+        Partitionate the circuit replacing non-Clifford (magic) gates with a given probability.
+
+        For each gate in the original circuit:
+        - If the gate is non-Clifford, with probability replacement_probability it is
+            replaced by a Clifford gate via replace_non_clifford_gate.
+        - The processed gate (whether replaced or not) is added to the overall circuit.
+        - Simultaneously, consecutive gates of the same type (Clifford or non-Clifford)
+            are collected into blocks.
+
+        Returns:
+            partitioned_circuit (Circuit): the complete processed circuit.
+            clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive Clifford gates.
+            non_clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive non-Clifford gates.
+        """
+        magic_gates = []
+        clifford_only_circuit = Circuit(
+            nqubits=self.nqubits, density_matrix=self.density_matrix
+        )
+        full_circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
+
+        break_point = 0
+        for gate in circuit.queue:
+
+            if not gate.clifford and not isinstance(gate, gates.M):
+                r = random.random()
+                if r > replacement_probability:
+                    magic_gates.append((break_point, gate))
+                    full_circuit.add(gate)
+                    continue
+
+                gate = replace_non_clifford_gate(
+                    gate, replacement_method=replacement_method
+                )
+
+            break_point += 1
+            clifford_only_circuit.add(gate)
+            full_circuit.add(gate)
+
+        return (magic_gates, clifford_only_circuit), full_circuit
+
+    def partitionate_circuit(
+        self, replacement_probability: float, replacement_method: str
+    ):
+        """
+        Partitionate the circuit replacing non-Clifford (magic) gates with a given probability.
+
+        This method overrides the base class method to handle the specific structure of the Floquet ansatz.
+        """
+        magic_gates = []
+        clifford_only_circuit = Circuit(
+            nqubits=self.nqubits, density_matrix=self.density_matrix
+        )
+        full_circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
+
+        # Add initial Hadamard
+        full_circuit.add(gates.H(self.target_qubit))
+
+        (magic_gates_1, clifford_only_circuit_1), full_circuit_1 = (
+            self.partitionate_sub_circuit(
+                self.half_sandwich, replacement_probability, replacement_method
+            )
+        )
+
+        magic_gates.extend(magic_gates_1)
+        clifford_only_circuit += clifford_only_circuit_1
+        full_circuit += full_circuit_1
+
+        full_circuit.add(gates.RZ(q=self.target_qubit, theta=self.theta))
+
+        for mg in reversed(magic_gates_1):
+            magic_gates.append(mg.dagger())
+
+        clifford_only_circuit += clifford_only_circuit_1.invert()
+        full_circuit += full_circuit_1.invert()
+
+        return (magic_gates, clifford_only_circuit), full_circuit
