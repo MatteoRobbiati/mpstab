@@ -348,7 +348,14 @@ class FloquetAnsatz(Ansatz):
         clifford_only_circuit += clifford_only_circuit_1
         full_circuit += full_circuit_1
 
+        rz_gate = gates.RZ(q=self.target_qubit, theta=self.theta)
         full_circuit.add(gates.RZ(q=self.target_qubit, theta=self.theta))
+
+        if rz_gate.clifford:
+            # If the RZ gate is Clifford, we can add it to the clifford-only circuit
+            clifford_only_circuit.add(deepcopy(rz_gate))
+        else:
+            magic_gates.append((self.rz_index, deepcopy(rz_gate)))
 
         for mg in magic_gates_1[::-1]:
             magic_gates.append((self._mirror_index(mg[0]), mg[1].dagger()))
