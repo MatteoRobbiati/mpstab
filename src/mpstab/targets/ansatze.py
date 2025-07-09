@@ -335,7 +335,9 @@ class FloquetAnsatz(Ansatz):
 
         # Add initial Hadamard
         full_circuit.add(gates.H(self.target_qubit))
+        clifford_only_circuit.add(gates.H(self.target_qubit))
 
+        # Compute magic gates and clifford-only circuit for the first half sandwich
         (magic_gates_1, clifford_only_circuit_1), full_circuit_1 = (
             self.partitionate_sub_circuit(
                 self.half_sandwich, replacement_probability, replacement_method
