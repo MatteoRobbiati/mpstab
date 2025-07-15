@@ -10,7 +10,7 @@ set_backend("numpy")
 nqubits = 5
 
 ans = FloquetAnsatz(
-    nqubits=nqubits, nlayers=2, target_qubit=int(nqubits / 2), b=np.pi / 2
+    nqubits=nqubits, nlayers=3, target_qubit=int(nqubits / 2), b=np.pi / 2
 )
 
 hs = HybridSurrogate(ansatz=ans)
@@ -32,7 +32,7 @@ def generate_obs(nqubits):
 obs, ham = generate_obs(nqubits)
 
 exact_expval, partitions = hs.expectation_from_partition(
-    replacement_probability=0.5,
+    replacement_probability=0.7,
     observable=obs,
     return_partitions=True,
     replacement_method="random",

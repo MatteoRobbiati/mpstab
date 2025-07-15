@@ -307,52 +307,55 @@ class FloquetAnsatz(Ansatz):
 
         return (magic_gates, clifford_only_circuit), full_circuit
 
-    # def partitionate_circuit(
-    #     self, replacement_probability: float, replacement_method: str
-    # ):
-    #     """
-    #     Partitionate the full Floquet circuit U = H · half_sandwich · RZ · (half_sandwich)†,
-    #     but only *sweep* the half_sandwich for magic gates.
-    #     Returns ((magic_gates, clifford_only_circuit), full_circuit).
-    #     """
-    #     magic_gates = []
-    #     clifford_only_circuit = Circuit(self.nqubits, density_matrix=self.density_matrix)
-    #     full_circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
+    def partitionate_circuit(
+        self, replacement_probability: float, replacement_method: str
+    ):
+        """
+        Partitionate the full Floquet circuit U = H · half_sandwich · RZ · (half_sandwich)†,
+        but only *sweep* the half_sandwich for magic gates.
+        Returns ((magic_gates, clifford_only_circuit), full_circuit).
+        """
+        magic_gates = []
+        clifford_only_circuit = Circuit(
+            self.nqubits, density_matrix=self.density_matrix
+        )
+        full_circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
 
-    #     # 1) initial H
-    #     H = gates.H(self.target_qubit)
-    #     full_circuit.add(H)
-    #     clifford_only_circuit.add(H)
+        # 1) initial H
+        H = gates.H(self.target_qubit)
+        full_circuit.add(deepcopy(H))
+        clifford_only_circuit.add(deepcopy(H))
 
-    #     # 2) first half: collect both full_circuit_1 and its magic break-points
-    #     (magic_gates_1, clifford_block_1), full_circuit_1 = \
-    #         self.partitionate_sub_circuit(
-    #             self.half_sandwich, replacement_probability, replacement_method
-    #         )
+        # 2) first half: collect both full_circuit_1 and its magic break-points
+        (magic_gates_1, clifford_block_1), full_circuit_1 = (
+            self.partitionate_sub_circuit(
+                self.half_sandwich, replacement_probability, replacement_method
+            )
+        )
 
-    #     # shift each local_bp by +1 to account for the leading H at index 0
-    #     magic_gates.extend([(bp + 1, gate) for bp, gate in magic_gates_1])
-    #     clifford_only_circuit += clifford_block_1
-    #     full_circuit += full_circuit_1
+        # shift each local_bp by +1 to account for the leading H at index 0
+        magic_gates.extend([(bp + 1, gate) for bp, gate in magic_gates_1])
+        clifford_only_circuit += clifford_block_1
+        full_circuit += full_circuit_1
 
-    #     # 3) the central RZ
-    #     rz = gates.RZ(q=self.target_qubit, theta=self.theta)
-    #     full_circuit.add(rz)
-    #     if rz.clifford:
-    #         clifford_only_circuit.add(deepcopy(rz))
-    #     else:
-    #         # its position is len(half_sandwich) + 1
-    #         magic_gates.append((len(self.half_sandwich.queue) + 1, deepcopy(rz)))
+        # 3) the central RZ
+        rz = gates.RZ(q=self.target_qubit, theta=self.theta)
+        full_circuit.add(rz)
+        if rz.clifford:
+            clifford_only_circuit.add(deepcopy(rz))
+        else:
+            # its position is len(half_sandwich) + 1
+            magic_gates.append((len(self.half_sandwich.queue) + 1, deepcopy(rz)))
 
-    #     # 4) inverted half + mirrored magic gates
-    #     for bp, gate in magic_gates_1[::-1]:
-    #         # mirror the *shifted* index
-    #         magic_gates.append((self._mirror_index(bp), gate.dagger()))
+        # 4) inverted half + mirrored magic gates
+        for bp, gate in magic_gates_1[::-1]:
+            # mirror the *shifted* index
+            magic_gates.append((self._mirror_index(bp), deepcopy(gate).dagger()))
 
-    #     clifford_only_circuit += clifford_block_1.invert()
-    #     full_circuit += full_circuit_1.invert()
+        clifford_only_circuit += clifford_block_1.invert()
+        full_circuit += full_circuit_1.invert()
 
-    #     return (magic_gates, clifford_only_circuit), full_circuit
+        return (magic_gates, clifford_only_circuit), full_circuit
 
     def _mirror_index(self, idx: int) -> int:
         """
@@ -362,4 +365,4 @@ class FloquetAnsatz(Ansatz):
             mirror_idx = 2*R - idx - 1
         """
         R = len(self.half_sandwich.queue) + 2
-        return 2 * R - idx - 1
+        return 2 * R - idx - 2
