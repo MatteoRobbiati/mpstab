@@ -302,8 +302,8 @@ class FloquetAnsatz(Ansatz):
                 )
 
             break_point += 1
-            clifford_only_circuit.add(gate)
-            full_circuit.add(gate)
+            clifford_only_circuit.add(deepcopy(gate))
+            full_circuit.add(deepcopy(gate))
 
         return (magic_gates, clifford_only_circuit), full_circuit
 
@@ -329,7 +329,9 @@ class FloquetAnsatz(Ansatz):
         # 2) first half: collect both full_circuit_1 and its magic break-points
         (magic_gates_1, clifford_block_1), full_circuit_1 = (
             self.partitionate_sub_circuit(
-                self.half_sandwich, replacement_probability, replacement_method
+                deepcopy(self.half_sandwich),
+                replacement_probability,
+                replacement_method,
             )
         )
 
@@ -338,31 +340,28 @@ class FloquetAnsatz(Ansatz):
         clifford_only_circuit += clifford_block_1
         full_circuit += full_circuit_1
 
+        print("theta: ", self.theta)
+
         # 3) the central RZ
         rz = gates.RZ(q=self.target_qubit, theta=self.theta)
-        full_circuit.add(rz)
+        full_circuit.add(deepcopy(rz))
         if rz.clifford:
             clifford_only_circuit.add(deepcopy(rz))
         else:
             # its position is len(half_sandwich) + 1
-            magic_gates.append((len(self.half_sandwich.queue) + 1, deepcopy(rz)))
+            magic_gates.append((len(clifford_block_1.queue), deepcopy(rz)))
 
         # 4) inverted half + mirrored magic gates
         for bp, gate in magic_gates_1[::-1]:
             # mirror the *shifted* index
-            magic_gates.append((self._mirror_index(bp), deepcopy(gate).dagger()))
+            magic_gates.append(
+                (
+                    len(clifford_block_1.queue) - bp + len(clifford_only_circuit.queue),
+                    deepcopy(gate).dagger(),
+                )
+            )
 
         clifford_only_circuit += clifford_block_1.invert()
         full_circuit += full_circuit_1.invert()
 
         return (magic_gates, clifford_only_circuit), full_circuit
-
-    def _mirror_index(self, idx: int) -> int:
-        """
-        Given idx in the forward half (absolute index in full_circuit),
-        return the index of the corresponding gate in the inverted half.
-        If R = len(half_sandwich) + 1 (position of RZ), then
-            mirror_idx = 2*R - idx - 1
-        """
-        R = len(self.half_sandwich.queue) + 2
-        return 2 * R - idx - 2
