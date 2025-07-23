@@ -45,6 +45,7 @@ def main():
         nlayers=config["nlayers"],
         b=config["b"],
         theta=config["theta"],
+        target_qubit=int(config["nqubits"] / 2),
     )
     original_qibo_circ = ansatz.circuit
     original_params = np.load(base_path / "circuits" / "original_circuit_params.npy")
@@ -69,7 +70,7 @@ def main():
     all_circuits = [original_qiskit_circ] + training_circuits
 
     # IBM cloud runtime setup
-    service = QiskitRuntimeService(channel='ibm_cloud', instance='tncdr')
+    service = QiskitRuntimeService(channel="ibm_cloud", instance="tncdr")
     backend = service.least_busy(operational=True)
 
     # observable
