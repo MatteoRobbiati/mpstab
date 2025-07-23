@@ -68,10 +68,8 @@ def main():
     # assemble all circuits: original first
     all_circuits = [original_qiskit_circ] + training_circuits
 
-    # IBM runtime setup
-    service = QiskitRuntimeService(
-        instance="cern/internal/tncdr", channel="ibm_quantum"
-    )
+    # IBM cloud runtime setup
+    service = QiskitRuntimeService(channel='ibm_cloud', instance='tncdr')
     backend = service.least_busy(operational=True)
 
     # observable
