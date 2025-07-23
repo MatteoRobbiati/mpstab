@@ -29,11 +29,20 @@ def main():
         type=str,
         help="Path to a folder containing circuits dataset: results.json, original_circuit_params.npy, params_circuit*.npy",
     )
+    parser.add_argument(
+        "--with_twirling",
+        action="store_true",
+        help="Enable twirling if this flag is present",
+    )
     args = parser.parse_args()
 
     base_path = Path(args.experiment_path)
+
     results_dir = base_path / "results"
     results_dir.mkdir(exist_ok=True)
+
+    transpiled_dir = results_dir / "transpiled_circuits"
+    transpiled_dir.mkdir(exist_ok=True)
 
     # load config
     with open(base_path / "config.json") as f:
@@ -47,6 +56,7 @@ def main():
         theta=config["theta"],
         target_qubit=int(config["nqubits"] / 2),
     )
+
     original_qibo_circ = ansatz.circuit
     original_params = np.load(base_path / "circuits" / "original_circuit_params.npy")
     original_qibo_circ.set_parameters(original_params)
@@ -81,13 +91,26 @@ def main():
     # transpile to ISA and build pubs
     pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
     pubs = []
-    for circ, obs in zip(all_circuits, observables):
+    for i, (circ, obs) in enumerate(zip(all_circuits, observables)):
         isa_circ = pm.run(circ)
         isa_obs = obs.apply_layout(isa_circ.layout)
         pubs.append((isa_circ, isa_obs))
 
-    # run estimator (TNCDR) on batch
+        # salva circuito QASM
+        with open(transpiled_dir / f"circ_{i:03d}.qasm", "w") as f:
+            f.write(isa_circ.qasm())
+
+    # define estimator and activating dynamical decoupling
     estimator = Estimator(backend)
+    estimator.options.dynamical_decoupling.enable = True
+    estimator.options.dynamical_decoupling.sequence_type = "XpXm"
+
+    # In case we want to use twirling
+    if args.with_twirling:
+        estimator.options.twirling.enable_gates = True
+        estimator.options.twirling.num_randomizations = int(config["nshots"] / 100)
+        estimator.options.twirling.shots_per_randomization = 100
+
     t0 = time.time()
     job = estimator.run(pubs)
     tn_job_id = job.job_id()
@@ -97,7 +120,7 @@ def main():
     result_tncdr = job.result()
 
     # save TNCDR results
-    with open(results_dir / "tncdr_results.json", "w") as f:
+    with open(results_dir / f"tncdr_results_twirl{args.with_twirling}.json", "w") as f:
         json.dump(result_tncdr, f, cls=RuntimeEncoder)
 
     # collect metadata
