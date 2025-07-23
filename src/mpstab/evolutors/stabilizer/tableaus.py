@@ -1,7 +1,7 @@
 import math
 from typing import List
 
-from tncdr.evolutors.stabilizer.pauli_string import Pauli
+from mpstab.evolutors.stabilizer.pauli_string import Pauli
 
 # GENERAL STRUCTURE
 
@@ -353,13 +353,13 @@ class RX(Tableau):
             z_conj = Pauli("Z")
             name = f"RX({angle}) Identity"
         elif k == 1:
-            z_conj = Pauli("Y")
+            z_conj = Pauli("-Y")
             name = f"RX({angle})"
         elif k == 2:
             z_conj = Pauli("-Z")
             name = f"RX({angle})"
         else:  # k == 3
-            z_conj = Pauli("-Y")
+            z_conj = Pauli("Y")
             name = f"RX({angle})"
 
         XTableau = HalfTableau([target], conjugates=[x_conj])

@@ -1,5 +1,5 @@
-import os
 import copy
+import os
 import random
 from typing import Optional
 
@@ -9,8 +9,8 @@ from qibo import Circuit, get_backend, hamiltonians, symbols
 from qibo.noise import NoiseModel
 from scipy.optimize import curve_fit
 
-from tncdr.evolutors.models import HybridSurrogate
-from tncdr.targets.ansatze import Ansatz
+from mpstab.evolutors.models import HybridSurrogate
+from mpstab.targets.ansatze import Ansatz
 
 
 def TNCDR(
@@ -26,7 +26,7 @@ def TNCDR(
     fit_map=lambda x, a, b: a * x + b,
     expval_threshold: float = 1e-7,
     max_bond_dimension: Optional[int] = None,
-    save_path:str=None,
+    save_path: str = None,
 ):
 
     # If we want to save the parameters of the training set of circuits

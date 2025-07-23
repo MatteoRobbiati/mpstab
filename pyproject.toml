@@ -3,18 +3,18 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "tncdr"
+name = "mpstab"
 version = "0.0.1"
 description = "Tensor Network enhanced learning-based quantum error mitigation"
 authors = ["Matteo Robbiati", "Giulio Crognaletti", "Michele Grossi"]
 readme = "README.md"
 repository = "https://github.com/MatteoRobbiati/tncdr/"
-packages = [{ include = "tncdr", from = "src" }]
+packages = [{ include = "mpstab", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.13"
+python = ">=3.10,<3.14"
 numpy = "^2.0.0"
-qibo = {git="https://github.com/qiboteam/qibo"}
+qibo = "^0.2.19"
 click = "^8.1.0"
 
 [tool.poetry.group.docs]

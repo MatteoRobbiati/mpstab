@@ -9,7 +9,7 @@ import numpy as np
 from qibo import Circuit, gates
 from qibo.noise import NoiseModel
 
-from tncdr.targets.utils import hardware_compatible_circuit, replace_non_clifford_gate
+from mpstab.targets.utils import hardware_compatible_circuit, replace_non_clifford_gate
 
 
 @dataclass
@@ -87,6 +87,7 @@ class Ansatz(ABC):
             clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive Clifford gates.
             non_clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive non-Clifford gates.
         """
+        print("siamo qua")
         magic_gates = []
         clifford_only_circuit = Circuit(
             nqubits=self.nqubits, density_matrix=self.density_matrix
@@ -218,16 +219,24 @@ class FloquetAnsatz(Ansatz):
     def __post_init__(self):
         super().__post_init__()
 
+        # Save attribute for replacements
+        self.half_sandwich = Circuit(self.nqubits)
+        for _ in range(self.nlayers):
+            self.half_sandwich += self._build_floquet_layer()
+
+        # Len of the first half of the sandwich + 1 Hadamard
+        # # These attributes will be useful later for partitioning
+        self.rz_index = len(self.half_sandwich.queue) + 1
+        self.start_inverted_half = self.rz_index + 1
+
         # First, we add an Hadamard to the target qubit
         self.circuit.add(gates.H(self.target_qubit))
         # Then append nlayers Floquet layers
-        for _ in range(self.nlayers):
-            self.circuit += self._build_floquet_layer()
+        self.circuit += self.half_sandwich
         # Add RZ
         self.circuit.add(gates.RZ(q=self.target_qubit, theta=self.theta))
         # Add the inverted Floquet layers
-        for _ in range(self.nlayers):
-            self.circuit += self._build_floquet_layer().invert()
+        self.circuit += self.half_sandwich.invert()
 
     def _build_floquet_layer(self) -> Circuit:
         """Construct one Floquet layer over all links."""
@@ -266,3 +275,93 @@ class FloquetAnsatz(Ansatz):
         layer.add(gates.RZ(q=q1, theta=theta))
         layer.add(gates.CNOT(q0, q1))
         return layer
+
+    def partitionate_sub_circuit(
+        self, circuit: Circuit, replacement_probability: float, replacement_method: str
+    ):
+        """
+        Partitionate a *sub*-circuit replacing non-Clifford (magic) gates with a given probability.
+        Returns ((magic_gates, clifford_only_circuit), full_circuit) where
+        magic_gates is List of (local_bp, gate) with local_bp starting at 0.
+        """
+        magic_gates = []
+        clifford_only_circuit = Circuit(
+            self.nqubits, density_matrix=self.density_matrix
+        )
+        full_circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
+
+        break_point = 0
+        for gate in circuit.queue:
+            if not gate.clifford and not isinstance(gate, gates.M):
+                if random.random() > replacement_probability:
+                    magic_gates.append((break_point, gate))
+                    full_circuit.add(gate)
+                    continue
+                gate = replace_non_clifford_gate(
+                    gate, replacement_method=replacement_method
+                )
+
+            break_point += 1
+            clifford_only_circuit.add(deepcopy(gate))
+            full_circuit.add(deepcopy(gate))
+
+        return (magic_gates, clifford_only_circuit), full_circuit
+
+    def partitionate_circuit(
+        self, replacement_probability: float, replacement_method: str
+    ):
+        """
+        Partitionate the full Floquet circuit U = H · half_sandwich · RZ · (half_sandwich)†,
+        but only *sweep* the half_sandwich for magic gates.
+        Returns ((magic_gates, clifford_only_circuit), full_circuit).
+        """
+        magic_gates = []
+        clifford_only_circuit = Circuit(
+            self.nqubits, density_matrix=self.density_matrix
+        )
+        full_circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
+
+        # 1) initial H
+        H = gates.H(self.target_qubit)
+        full_circuit.add(deepcopy(H))
+        clifford_only_circuit.add(deepcopy(H))
+
+        # 2) first half: collect both full_circuit_1 and its magic break-points
+        (magic_gates_1, clifford_block_1), full_circuit_1 = (
+            self.partitionate_sub_circuit(
+                deepcopy(self.half_sandwich),
+                replacement_probability,
+                replacement_method,
+            )
+        )
+
+        # shift each local_bp by +1 to account for the leading H at index 0
+        magic_gates.extend([(bp + 1, gate) for bp, gate in magic_gates_1])
+        clifford_only_circuit += clifford_block_1
+        full_circuit += full_circuit_1
+
+        print("theta: ", self.theta)
+
+        # 3) the central RZ
+        rz = gates.RZ(q=self.target_qubit, theta=self.theta)
+        full_circuit.add(deepcopy(rz))
+        if rz.clifford:
+            clifford_only_circuit.add(deepcopy(rz))
+        else:
+            # its position is len(half_sandwich) + 1
+            magic_gates.append((len(clifford_block_1.queue), deepcopy(rz)))
+
+        # 4) inverted half + mirrored magic gates
+        for bp, gate in magic_gates_1[::-1]:
+            # mirror the *shifted* index
+            magic_gates.append(
+                (
+                    len(clifford_block_1.queue) - bp + len(clifford_only_circuit.queue),
+                    deepcopy(gate).dagger(),
+                )
+            )
+
+        clifford_only_circuit += clifford_block_1.invert()
+        full_circuit += full_circuit_1.invert()
+
+        return (magic_gates, clifford_only_circuit), full_circuit

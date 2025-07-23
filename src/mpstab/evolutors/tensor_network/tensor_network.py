@@ -4,7 +4,7 @@ from typing import Optional, Union
 import networkx as nx
 import numpy as np
 
-from tncdr.evolutors.tensor_network.utils import (
+from mpstab.evolutors.tensor_network.utils import (
     _bond_dimension_cut,
     _complex_conjugate,
     draw_tn,

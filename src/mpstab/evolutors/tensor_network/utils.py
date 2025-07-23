@@ -1,12 +1,12 @@
-import re
 import math
-
-import numpy as np
-import networkx as nx
-import matplotlib.pyplot as plt
-from matplotlib.patches import FancyArrowPatch, Patch
+import re
 from collections import defaultdict
+
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+from matplotlib.patches import FancyArrowPatch, Patch
 
 SVD_CUT = 1e-10
 
