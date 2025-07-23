@@ -11,7 +11,7 @@ from qiskit.transpiler import generate_preset_pass_manager
 from qiskit_ibm_runtime import EstimatorV2 as Estimator
 from qiskit_ibm_runtime import QiskitRuntimeService, RuntimeEncoder
 
-from tncdr.targets.ansatze import FloquetAnsatz
+from mpstab.targets.ansatze import FloquetAnsatz
 
 
 def qibo_to_qiskit(qibocirc):

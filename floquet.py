@@ -8,9 +8,9 @@ import numpy as np
 from qibo import get_backend, hamiltonians, set_backend, symbols
 from scipy.stats import median_abs_deviation
 
-from tncdr.mitigation.methods import TNCDR
-from tncdr.targets.ansatze import FloquetAnsatz, TranspiledAnsatz
-from tncdr.targets.utils import build_noise_model
+from mpstab.mitigation.methods import TNCDR
+from mpstab.targets.ansatze import FloquetAnsatz, TranspiledAnsatz
+from mpstab.targets.utils import build_noise_model
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -54,7 +54,7 @@ class NumpyEncoder(json.JSONEncoder):
 @click.option(
     "--replacement-probability",
     type=float,
-    default=0.5,
+    default=0.7,
     show_default=True,
     help="Replacement probability for TNCDR.",
 )
@@ -159,7 +159,6 @@ def main(
         b=b,
         target_qubit=int(nqubits / 2),
         theta=theta,
-        density_matrix=True,
     )
 
     # If we want to save the parameters of the training set of circuits
@@ -173,9 +172,17 @@ def main(
     )
 
     for i in range(ncircuits):
+        # Initialize and transpile ansatz
+        ansatz = FloquetAnsatz(
+            nqubits=nqubits,
+            nlayers=nlayers,
+            b=b,
+            target_qubit=int(nqubits / 2),
+            theta=theta,
+        )
         _, full_circuit = ansatz.partitionate_circuit(
             replacement_method="closest",
-            replacement_probability=0.5,
+            replacement_probability=replacement_probability,
         )
         np.save(
             file=f"{save_path}/params_circuit{i}",
