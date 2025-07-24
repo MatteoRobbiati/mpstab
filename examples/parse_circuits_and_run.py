@@ -45,6 +45,8 @@ def main():
     transpiled_dir = results_dir / "transpiled_circuits"
     transpiled_dir.mkdir(exist_ok=True)
 
+    nshots = 4096
+
     # load config
     with open(base_path / "config.json") as f:
         config = json.load(f)
@@ -109,7 +111,7 @@ def main():
     # In case we want to use twirling
     if args.with_twirling:
         estimator.options.twirling.enable_gates = True
-        estimator.options.twirling.num_randomizations = int(config["nshots"] / 100)
+        estimator.options.twirling.num_randomizations = int(nshots / 100)
         estimator.options.twirling.shots_per_randomization = 100
 
     t0 = time.time()
