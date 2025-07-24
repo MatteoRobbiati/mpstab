@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import qiskit
+from qiskit.qasm2 import dumps
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.transpiler import generate_preset_pass_manager
 from qiskit_ibm_runtime import EstimatorV2 as Estimator
@@ -98,7 +99,7 @@ def main():
 
         # salva circuito QASM
         with open(transpiled_dir / f"circ_{i:03d}.qasm", "w") as f:
-            f.write(isa_circ.qasm())
+            f.write(dumps(isa_circ))
 
     # define estimator and activating dynamical decoupling
     estimator = Estimator(backend)
