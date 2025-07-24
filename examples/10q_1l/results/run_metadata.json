@@ -1,0 +1,8 @@
+{
+  "backend": "ibm_fez",
+  "total_circuits": 21,
+  "training_circuits": 20,
+  "tncdr_job_id": "d20ukkbni11c73fd2pn0",
+  "tncdr_elapsed": 1.3295090198516846,
+  "timestamp": "2025-07-24T08:13:13Z"
+}
