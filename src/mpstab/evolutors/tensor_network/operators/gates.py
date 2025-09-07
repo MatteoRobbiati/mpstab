@@ -2,13 +2,12 @@ from typing import Union
 
 import numpy as np
 
-from tncdr.evolutors.stabilizer.pauli_string import Pauli
-
-from tncdr.evolutors.tensor_network.operators import MPO
-from tncdr.evolutors.tensor_network.operators.utils import (
+from mpstab.evolutors.stabilizer.pauli_string import Pauli
+from mpstab.evolutors.tensor_network.operators import MPO
+from mpstab.evolutors.tensor_network.operators.utils import (
+    X_state,
     _compute_all_s_tensors,
     theta_state,
-    X_state,
 )
 
 s_tensors = _compute_all_s_tensors()

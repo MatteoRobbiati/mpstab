@@ -2,9 +2,9 @@ from typing import Union
 
 import numpy as np
 
-from tncdr.evolutors.stabilizer.pauli_string import Pauli
-from tncdr.evolutors.tensor_network.operators import MPO
-from tncdr.evolutors.tensor_network.utils import paulis
+from mpstab.evolutors.stabilizer.pauli_string import Pauli
+from mpstab.evolutors.tensor_network.operators import MPO
+from mpstab.evolutors.tensor_network.utils import paulis
 
 
 class PauliMPO(MPO):

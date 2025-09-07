@@ -8,8 +8,8 @@ from qibo import Circuit, get_backend, hamiltonians, symbols
 from qibo.noise import NoiseModel
 from scipy.optimize import curve_fit
 
-from tncdr.evolutors.models import HybridSurrogate
-from tncdr.targets.ansatze import Ansatz
+from mpstab.evolutors.models import HybridSurrogate
+from mpstab.targets.ansatze import Ansatz
 
 
 def TNCDR(

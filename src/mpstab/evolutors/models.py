@@ -1,21 +1,16 @@
 """Hybrid Stabilizer-MPO evolutor"""
 
 from dataclasses import dataclass
-import numpy as np
 
 import numpy as np
-
 from qibo import Circuit
 
-
-from tncdr.evolutors.tensor_network.circuit_mps import CircuitMPS
-from tncdr.evolutors.tensor_network.operators.observables import PauliMPO
-from tncdr.evolutors.stabilizer.pauli_string import Pauli
-from tncdr.evolutors.stabilizer import tableaus
-
-from tncdr.evolutors.utils import gate2generator, gate2tableau
-from tncdr.targets.ansatze import Ansatz
-from tncdr.evolutors.tensor_network.circuit_mps import CircuitMPS
+from mpstab.evolutors.stabilizer import tableaus
+from mpstab.evolutors.stabilizer.pauli_string import Pauli
+from mpstab.evolutors.tensor_network.circuit_mps import CircuitMPS
+from mpstab.evolutors.tensor_network.operators.observables import PauliMPO
+from mpstab.evolutors.utils import gate2generator, gate2tableau
+from mpstab.targets.ansatze import Ansatz
 
 
 @dataclass
@@ -24,8 +19,8 @@ class HybridSurrogate:
     Construct an hybrid stabilizer MPO surrogate of a given quantum circuit.
 
     Args:
-        circuit (tncdr.targets.Ansatz): given quantum circuit in the form of a
-            tncdr ansatz class.
+        circuit (mpstab.targets.Ansatz): given quantum circuit in the form of a
+            mpstab ansatz class.
         initial_state (qibo.models.Circuit): quantum circuit preparing the inital
             state. It has to be composed of single-qubit gates only.
     """
@@ -120,7 +115,7 @@ class HybridSurrogate:
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
 
         if gate.name not in ["rx", "ry", "rz"]:
-            raise ValueError("tncdr currently supports only rotational gates.")
+            raise ValueError("mpstab currently supports only rotational gates.")
 
         generator = "".join(
             [

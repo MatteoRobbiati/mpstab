@@ -1,4 +1,5 @@
 import random
+
 from qibo import gates
 
 gate2generator = {
@@ -18,6 +19,7 @@ gate2tableau = {
     "cz": "CZ",
     "rz": "RZ",
     "ry": "RY",
+    "rx": "RX",
     "gpi2": "GPI2",
     "sdg": "Sdg",
 }

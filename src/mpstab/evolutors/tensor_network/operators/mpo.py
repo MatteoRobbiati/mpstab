@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 
-from tncdr.evolutors.tensor_network import TensorNetwork
+from mpstab.evolutors.tensor_network import TensorNetwork
 
 
 class MPO(TensorNetwork):
