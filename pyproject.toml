@@ -16,6 +16,7 @@ python = ">=3.10,<3.14"
 numpy = "^2.0.0"
 qibo = "^0.2.19"
 click = "^8.1.0"
+matplotlib = "^3.10.0"
 
 [tool.poetry.group.docs]
 optional = true
