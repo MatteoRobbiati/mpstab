@@ -63,6 +63,26 @@ class HybridSurrogate:
             max_bond_dimension=max_bond_dimension,
         )
 
+    def expectation(self, observable: str) -> float:
+        """
+        Compute the expectation value of an observable with respect to the
+        full ansatz circuit (no partitioning).
+
+        Args:
+            observable (str): Pauli string observable, e.g. "ZIZX".
+
+        Returns:
+            float: Expectation value ⟨ψ|O|ψ⟩.
+        """
+        # Reset MPS to initial state
+        self._init_tn(self.max_bond_dimension)
+
+        expval = self.expectation_from_partition(
+            observable, replacement_probability=0.0
+        )[0]
+
+        return expval
+
     @property
     def nqubits(self):
         return self.ansatz.circuit.nqubits
