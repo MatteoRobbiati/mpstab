@@ -30,13 +30,17 @@ jobs:
         run: poetry install --with tests
 
       - name: Run tests with coverage
-        run: poetry run pytest --cov --cov-branch --cov-report=xml
+        run: |
+          # Run pytest with both raw data + XML report
+          poetry run pytest --cov --cov-branch --cov-report=xml --cov-report=term
+          # Move the raw .coverage file to a unique name (so artifacts don’t overwrite each other)
+          mv .coverage .coverage-${{ matrix.os }}-${{ matrix.python-version }}
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ matrix.os }}-${{ matrix.python-version }}
-          path: coverage.xml
+          path: .coverage-${{ matrix.os }}-${{ matrix.python-version }}
 
   coverage:
     name: Upload coverage reports to Codecov
@@ -51,11 +55,11 @@ jobs:
         with:
           path: ./coverage-reports
 
-      # Merge reports (optional, if you want a single combined file)
+      # Merge raw coverage data and generate a single XML
       - name: Combine coverage reports
         run: |
           pip install coverage
-          coverage combine coverage-reports/**/coverage.xml
+          coverage combine coverage-reports/**/.coverage-*
           coverage xml -o coverage.xml
 
       - name: Upload to Codecov
