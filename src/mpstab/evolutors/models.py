@@ -131,6 +131,45 @@ class HybridSurrogate:
 
         return self.mps.expval(PauliMPO(new_observable)), partitions
 
+    def samples(self, nshots: int = 1024) -> np.ndarray:
+        """
+        Sample bitstrings from the hybrid stabilizer-MPO state.
+
+        Args:
+            nshots (int): number of samples to draw.
+
+        Returns:
+            np.ndarray: array of shape (nshots, nqubits) with 0/1 measurement outcomes.
+        """
+        # Reset MPS to initial state
+        self._init_tn(self.max_bond_dimension)
+
+        # Apply the ansatz circuit (Clifford + magic gates)
+        (magic_gates, clifford_circuit), _ = self.ansatz.partitionate_circuit(
+            replacement_probability=0.0
+        )
+
+        for k, magic_gate in magic_gates:
+            generator = self._conjugate_generator(magic_gate, clifford_circuit, k)
+            self.mps.pauli_rot(generator, magic_gate.parameters[0])
+
+        # Now we have the final MPS state
+        samples = []
+        for _ in range(nshots):
+            # Copy the MPS so we can collapse it per shot
+            mps_copy = self.mps.copy()
+            shot = []
+            for q in range(self.nqubits):
+                # Compute probability of measuring |0> on qubit q
+                p0 = mps_copy.measure_prob(q, outcome=0)
+                outcome = np.random.choice([0, 1], p=[p0, 1 - p0])
+                shot.append(outcome)
+                # Collapse the MPS to the chosen outcome
+                mps_copy.collapse(q, outcome)
+            samples.append(shot)
+
+        return np.array(samples)
+
     def _conjugate_generator(self, gate, clifford_circuit, k):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
 
