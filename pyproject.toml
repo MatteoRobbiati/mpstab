@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "mpstab"
 version = "0.0.1"
-description = "Tensor Network enhanced learning-based quantum error mitigation"
+description = "Hybrid stabilizers - tensor network simulator for quantum circuits"
 authors = ["Matteo Robbiati", "Giulio Crognaletti", "Michele Grossi"]
 readme = "README.md"
 repository = "https://github.com/MatteoRobbiati/tncdr/"
@@ -16,6 +16,7 @@ python = ">=3.10,<3.14"
 numpy = "^2.0.0"
 qibo = "^0.2.19"
 click = "^8.1.0"
+matplotlib = "^3.10.0"
 
 [tool.poetry.group.docs]
 optional = true

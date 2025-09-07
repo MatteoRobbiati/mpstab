@@ -29,4 +29,4 @@ class PauliMPO(MPO):
         else:
             tensors[0] = np.squeeze(tensors[0])
 
-        return super().__init__(tensors)
+        super().__init__(tensors)
