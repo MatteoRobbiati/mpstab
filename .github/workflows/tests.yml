@@ -14,24 +14,54 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.10", "3.11", "3.12"]
-    uses: qiboteam/workflows/.github/workflows/rules-poetry.yml@v1
-    with:
-      os: ${{ matrix.os }}
-      python-version: ${{ matrix.python-version }}
-      doctests: false
-      poetry-extras: "--with tests"
-    secrets: inherit
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --with tests
+
+      - name: Run tests with coverage
+        run: poetry run pytest --cov --cov-branch --cov-report=xml
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ matrix.os }}-${{ matrix.python-version }}
+          path: coverage.xml
 
   coverage:
     name: Upload coverage reports to Codecov
     runs-on: ubuntu-latest
     needs: build
-    environment: Codecov
     steps:
       - uses: actions/checkout@v4
+
+      # Download all coverage artifacts from matrix builds
+      - name: Download coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          path: ./coverage-reports
+
+      # Merge reports (optional, if you want a single combined file)
+      - name: Combine coverage reports
+        run: |
+          pip install coverage
+          coverage combine coverage-reports/**/coverage.xml
+          coverage xml -o coverage.xml
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: MatteoRobbiati/tncdr
+          files: ./coverage.xml
+          fail_ci_if_error: true
