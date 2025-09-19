@@ -108,6 +108,50 @@ class CircuitMPS(TensorNetwork):
         mps.contract(f"T{self.n_qubits-1}", "F", f"chi{self.n_qubits-2}_r", "F")
         return mps.tensornet.nodes["F"]["tensor"].item()
 
+    def sample(self, n_shots: int = 1, seed: int | None = None) -> list[str]:
+        """
+        Sample bitstrings from the MPS using Born-rule sampling.
+        Uses expval with local projectors (robust but slower).
+        """
+        from mpstab.evolutors.tensor_network.operators import MPO
+        from mpstab.evolutors.tensor_network.operators.utils import basis
+
+        rng = np.random.default_rng(seed)
+        samples = []
+
+        for _ in range(n_shots):
+            mps = deepcopy(self)
+            bitstring = ""
+
+            for q in range(mps.n_qubits):
+                # Costruisci proiettori |0><0| e |1><1|
+                proj0 = np.outer(basis("0"), basis("0").conj())
+                proj1 = np.outer(basis("1"), basis("1").conj())
+
+                mpo0 = MPO([proj0], prefix="P0")
+                mpo1 = MPO([proj1], prefix="P1")
+
+                p0 = mps.expval(mpo0, sites=[q])
+                p1 = mps.expval(mpo1, sites=[q])
+
+                # Normalizza
+                norm = p0 + p1
+                p0, p1 = p0 / norm, p1 / norm
+
+                # Estrai outcome
+                outcome = rng.choice([0, 1], p=[p0, p1])
+                bitstring += str(outcome)
+
+                # Collassa lo stato
+                proj = basis(str(outcome))
+                mps.add_tensor("measurement", tensor=proj)
+                mps._link_to_dummy(f"D{q}", "measurement", 0)
+                mps.contract(f"T{q}", "measurement", "v_link", f"T{q}")
+
+            samples.append(bitstring)
+
+        return samples
+
     def cnot(self, control, target):
         """
         Apply a CNOT gate to the circuit
@@ -168,6 +212,54 @@ class CircuitMPS(TensorNetwork):
         Apply the gate exp(-i `theta`/2 P), where P is a generic pauli string generating the rotation.
         """
         self.apply(PauliExp(pauli_generator, theta), qubits)
+
+    def sample(self, n_shots: int = 1, seed: int | None = None) -> list[str]:
+        """
+        Sample bitstrings from the MPS using Born-rule sampling.
+        Usa expval con proiettori locali (robusto ma più lento).
+        """
+        from mpstab.evolutors.tensor_network.operators import MPO
+        from mpstab.evolutors.tensor_network.operators.utils import basis
+
+        rng = np.random.default_rng(seed)
+        samples = []
+
+        for _ in range(n_shots):
+            mps = deepcopy(self)
+            bitstring = ""
+
+            for q in range(mps.n_qubits):
+                # Costruisci proiettori |0><0| e |1><1|
+                proj0 = np.outer(basis("0"), basis("0").conj())
+                proj1 = np.outer(basis("1"), basis("1").conj())
+
+                mpo0 = MPO([proj0])
+                mpo1 = MPO([proj1])
+
+                p0 = mps.expval(mpo0, sites=[q])
+                p1 = mps.expval(mpo1, sites=[q])
+
+                # Normalizza
+                norm = p0 + p1
+                if norm == 0:
+                    # stato collassato in modo patologico, fallback
+                    p0, p1 = 1.0, 0.0
+                else:
+                    p0, p1 = p0 / norm, p1 / norm
+
+                # Estrai outcome
+                outcome = rng.choice([0, 1], p=[p0, p1])
+                bitstring += str(outcome)
+
+                # Collassa lo stato
+                proj = basis(str(outcome))
+                mps.add_tensor("measurement", tensor=proj)
+                mps._link_to_dummy(f"D{q}", "measurement", 0)
+                mps.contract(f"T{q}", "measurement", "v_link", f"T{q}")
+
+            samples.append(bitstring)
+
+        return samples
 
     def expval(self, obs: MPO, sites: Optional[list[int]] = None):
         """
