@@ -11,6 +11,7 @@ from qibo.transpiler.pipeline import Passes
 from qibo.transpiler.placer import Random
 from qibo.transpiler.router import ShortestPaths
 from qibo.transpiler.unroller import NativeGates, Unroller
+from qibo import hamiltonians, symbols
 
 
 def hardware_compatible_circuit(
@@ -111,3 +112,20 @@ def build_noise_model(
         readout_noise = ReadoutError(single_readout_matrix)
         noise_model.add(readout_noise, gates.M)
     return noise_model
+
+
+def obs_string_to_qibo_hamiltonian(observable: str) -> hamiltonians.SymbolicHamiltonian:
+    """
+    Convert a string representation of a Pauli observable to a Qibo symbolic Hamiltonian.
+
+    Args:
+        observable (str): A string representing the Pauli observable, e.g., "XZIY".
+
+    Returns:
+        hamiltonians.SymbolicHamiltonian: The corresponding Qibo symbolic Hamiltonian.
+    """
+    form = 1
+    for i, pauli in enumerate(observable):
+        form *= getattr(symbols, pauli)(i)
+    ham = hamiltonians.SymbolicHamiltonian(form=form)
+    return ham
