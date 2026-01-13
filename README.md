@@ -1,29 +1,13 @@
-# tncdr
-Tensor Network enhanced Clifford data regression
+## mpstab: a cutting-edge quantum circuit simulator
 
-![tncdr](https://github.com/user-attachments/assets/37a09543-2948-444c-9d07-64ab32bbb490)
+Welcome to the `mpstab` official page! 
+The package combines stabilizers and tensor network formalism to implement an hybrid stabilizers-MPO
+circuit simulation technique. 
 
+#### Installation instructions
 
-### Usage instructions
-
-#### Reccomended installation
-
-The `tncdr` package can be installed by cloning the repository and using pip:
-
-```sh
-git clone https://github.com/MatteoRobbiati/tncdr.git
-cd tncdr
+```bash
+git clone https://github.com/MatteoRobbiati/mpstab.git
+cd mpstab
 pip install .
-```
-
-#### Developers installation
-
-Alternatively, the package can be installed via Poetry. Be sure Poetry is correctly
-installed (you can follow the [official installation instructions](https://python-poetry.org/docs/#installation)) 
-before running what follows. 
-
-```sh
-git clone https://github.com/MatteoRobbiati/tncdr.git
-cd tncdr
-poetry install
 ```
