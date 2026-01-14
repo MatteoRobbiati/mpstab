@@ -7,12 +7,14 @@ from utils import (
     DEFAULT_MAX_BD,
     DEFAULT_REPLACEMENT_PROBABILITY,
     obs_string_to_qibo_hamiltonian,
+    set_rng_seed,
 )
 
 from mpstab.evolutors.models import HybridSurrogate
 from mpstab.models.ansatze import HardwareEfficient, TranspiledAnsatz
 
 set_backend("numpy")
+set_rng_seed()
 
 
 @pytest.mark.parametrize("observable", ["ZIIXI", "XIXXI", "ZYXZI"])
@@ -41,7 +43,7 @@ def test_expectation_from_partition_with_qubit_scaling():
 
     for nqubits in [4, 8, 12]:
         ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
-        hs = HybridSurrogate(ansatz=ans, max_bond_dimension=DEFAULT_MAX_BD)
+        hs = HybridSurrogate(ansatz=ans)
         initial_time = time.time()
         hs.expectation_from_partition(
             observable="Z" * nqubits,
