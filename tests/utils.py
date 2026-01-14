@@ -1,5 +1,8 @@
 from qibo import hamiltonians, symbols
 
+DEFAULT_REPLACEMENT_PROBABILITY = 0.75
+DEFAULT_MAX_BD = 128
+
 
 def obs_string_to_qibo_hamiltonian(observable: str) -> hamiltonians.SymbolicHamiltonian:
     """
