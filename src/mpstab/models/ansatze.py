@@ -87,7 +87,6 @@ class Ansatz(ABC):
             clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive Clifford gates.
             non_clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive non-Clifford gates.
         """
-        print("siamo qua")
         magic_gates = []
         clifford_only_circuit = Circuit(
             nqubits=self.nqubits, density_matrix=self.density_matrix
