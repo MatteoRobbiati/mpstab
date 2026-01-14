@@ -10,7 +10,7 @@ from mpstab.evolutors.stabilizer.pauli_string import Pauli
 from mpstab.evolutors.tensor_network.circuit_mps import CircuitMPS
 from mpstab.evolutors.tensor_network.operators.observables import PauliMPO
 from mpstab.evolutors.utils import gate2generator, gate2tableau
-from mpstab.targets.ansatze import Ansatz
+from mpstab.models.ansatze import Ansatz
 
 
 @dataclass

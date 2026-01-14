@@ -4,7 +4,7 @@ from qibo import hamiltonians, set_backend, symbols
 from tqdm import tqdm
 
 from mpstab.evolutors.models import HybridSurrogate
-from mpstab.targets.ansatze import FloquetAnsatz, HardwareEfficient, TranspiledAnsatz
+from mpstab.models.ansatze import FloquetAnsatz, HardwareEfficient, TranspiledAnsatz
 
 set_backend("numpy")
 

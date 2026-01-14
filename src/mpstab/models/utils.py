@@ -4,14 +4,13 @@ from typing import List, Optional
 
 import networkx as nx
 import numpy as np
-from qibo import Circuit, gates
+from qibo import Circuit, gates, hamiltonians, symbols
 from qibo.noise import NoiseModel, PauliError, ReadoutError
 from qibo.transpiler.optimizer import Preprocessing
 from qibo.transpiler.pipeline import Passes
 from qibo.transpiler.placer import Random
 from qibo.transpiler.router import ShortestPaths
 from qibo.transpiler.unroller import NativeGates, Unroller
-from qibo import hamiltonians, symbols
 
 
 def hardware_compatible_circuit(

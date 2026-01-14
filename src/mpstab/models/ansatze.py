@@ -9,7 +9,7 @@ import numpy as np
 from qibo import Circuit, gates
 from qibo.noise import NoiseModel
 
-from mpstab.targets.utils import hardware_compatible_circuit, replace_non_clifford_gate
+from mpstab.models.utils import hardware_compatible_circuit, replace_non_clifford_gate
 
 
 @dataclass

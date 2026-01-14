@@ -7,10 +7,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from qibo import get_backend, hamiltonians, set_backend, symbols
 from scipy.stats import median_abs_deviation
-
-from tncdr.mitigation.methods import TNCDR
-from tncdr.targets.ansatze import FloquetAnsatz, TranspiledAnsatz
-from tncdr.targets.utils import build_noise_model
+from tncdr.models.ansatze import FloquetAnsatz, TranspiledAnsatz
+from tncdr.models.mitigation_methods import TNCDR
+from tncdr.models.utils import build_noise_model
 
 
 class NumpyEncoder(json.JSONEncoder):
