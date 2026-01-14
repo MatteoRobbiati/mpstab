@@ -12,4 +12,3 @@ python mitigation_run.py \
   --mitigation_method CDR \
   --random_seed 42 \
   --nruns 10
-

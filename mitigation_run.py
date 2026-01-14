@@ -11,10 +11,9 @@ import numpy as np
 from qibo import Circuit, gates, get_backend, hamiltonians, set_backend, symbols
 from qibo.models.error_mitigation import CDR, vnCDR  # vnCDR imported if needed later
 from scipy.stats import median_abs_deviation
-
-from tncdr.mitigation.methods import TNCDR, density_matrix_circuit
-from tncdr.targets.ansatze import HardwareEfficient, TranspiledAnsatz
-from tncdr.targets.utils import build_noise_model
+from tncdr.models.ansatze import HardwareEfficient, TranspiledAnsatz
+from tncdr.models.mitigation_methods import TNCDR, density_matrix_circuit
+from tncdr.models.utils import build_noise_model
 
 
 # Custom JSON encoder for NumPy objects

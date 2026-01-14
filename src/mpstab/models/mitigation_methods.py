@@ -9,7 +9,7 @@ from qibo.noise import NoiseModel
 from scipy.optimize import curve_fit
 
 from mpstab.evolutors.models import HybridSurrogate
-from mpstab.targets.ansatze import Ansatz
+from mpstab.models.ansatze import Ansatz
 
 
 def TNCDR(
