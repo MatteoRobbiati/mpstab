@@ -12,6 +12,6 @@ cd mpstab
 pip install .
 ```
 
-#### Software design
+#### Software design (in my dreams)
 
 <img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/925b99ba-bd72-4eb1-a895-9e3b518e4f6d" />
