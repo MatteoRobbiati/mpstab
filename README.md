@@ -1,5 +1,5 @@
 
-<img width="280" height="110" alt="image" src="https://github.com/user-attachments/assets/059b9588-4ae6-4951-9ab8-3f30c989e592" />
+<img width="350" height="150" alt="image" src="https://github.com/user-attachments/assets/059b9588-4ae6-4951-9ab8-3f30c989e592" />
 
 ## MPSTAB: a cutting-edge quantum circuit simulator
 
