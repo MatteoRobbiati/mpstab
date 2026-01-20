@@ -40,7 +40,7 @@ def generate_partitionated_circuit(
 
 
 # ---------------------------------------------------------------------
-# Backend initialization (NEW STRATEGY)
+# Backend initialization
 # ---------------------------------------------------------------------
 def initialize_backend(
     backend: str,
