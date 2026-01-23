@@ -1,0 +1,42 @@
+{
+  "measured_observable": "ZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZX",
+  "times": [
+    0.24248385429382324,
+    0.24030041694641113,
+    0.38544774055480957,
+    0.2660219669342041,
+    0.24094843864440918,
+    0.3957793712615967,
+    0.25206995010375977,
+    0.23839783668518066,
+    0.428300142288208,
+    0.24672818183898926
+  ],
+  "expvals": [
+    -1.2747338707162935e-14,
+    1.6303771795194827e-14,
+    -1.6935650961019097e-14,
+    6.4109109011216534e-15,
+    5.281410564772532e-16,
+    -1.4958118354567146e-16,
+    4.0013993466319026e-13,
+    9.312650228791786e-16,
+    -3.726047270510234e-12,
+    5.509979390161446e-17
+  ],
+  "magic_gates": [],
+  "median_time": 0.2493990659713745,
+  "mad_time": 0.010049939155578613,
+  "input_arguments": {
+    "backend": "qibotn",
+    "max_bond_dim": 4,
+    "replacement_probability": 0.0,
+    "nqubits": 70,
+    "nlayers": 3,
+    "nruns": 10,
+    "rng_seed": 42,
+    "set_initial_state": true,
+    "platform": "quimb",
+    "dry_run_discarded": true
+  }
+}

@@ -13,6 +13,10 @@ from mpstab.evolutors.models import HybridSurrogate
 from mpstab.models.ansatze import HardwareEfficient
 from mpstab.models.utils import obs_string_to_qibo_hamiltonian
 
+from quimb.tensor import MPO_identity, MPO_product_operator
+from quimb.gates import X, Y, Z, I
+from qibotn.backends.quimb import _qibo_circuit_to_quimb
+
 SUPPORTED_BACKENDS = [
     "mpstab",
     "numpy",
@@ -130,12 +134,28 @@ def execute_benchmark_circuit(
 
     # ---- qibotn tensor‑network backend ----
     if backend == "qibotn":
-        ham = obs_string_to_qibo_hamiltonian(
-            observable,
-            backend=backend_obj,
-        )
 
-        expval = ham.expectation(full_circuit)
+        circuit_tn = backend_obj._qibo_circuit_to_quimb(full_circuit, gate_opts={"max_bond": max_bond_dim}).psi
+        
+        gate_map = {'X': X, 'Y': Y, 'Z': Z, 'I': I}
+        pauli_matrices = [gate_map[s.upper()] for s in observable]
+        pauli_mpo = MPO_product_operator(pauli_matrices)
+        pauli_mpo.add_tag('MPO')
+        
+        circuit_tn_dag = circuit_tn.reindex({f'k{i}': f'b{i}' for i in range(circuit.nqubits)})
+        temp = (circuit_tn_dag.H & pauli_mpo & circuit_tn)
+
+        # JUST IN CASE WE NEED TO MAKE PLOTS
+        # import matplotlib.pyplot as plt
+        # fig = temp.draw(
+        #     return_fig=True, 
+        #     color=["CX", "CZ", "RY", "MPO", "PSI0"], 
+        #     legend=True
+        # )
+        # fig.tight_layout()
+        # fig.savefig("tn_plot.pdf") 
+        
+        expval = temp.contract(all, optimize='auto-hq').real
 
         elapsed_time = time.time() - start_time
         return float(expval), elapsed_time, None
@@ -167,9 +187,6 @@ def run_experiment(
     set_initial_state: bool = True,
     platform: str | None = None,
 ) -> None:
-
-    random.seed(rng_seed)
-    np.random.seed(rng_seed)
 
     # ✅ Backend initialized ONCE
     backend_obj = initialize_backend(
@@ -203,6 +220,11 @@ def run_experiment(
     total_runs = nruns + 1
 
     for run_idx in range(total_runs):
+
+        np.random.seed(rng_seed + run_idx + 1)
+        random.seed(rng_seed + run_idx + 1)
+        # backend_obj.set_seed(rng_seed + run_idx + 1)
+
         if set_initial_state:
             initial_state = Circuit(nqubits)
             for q in range(nqubits):
@@ -215,6 +237,10 @@ def run_experiment(
             nlayers=nlayers,
             magic_fraction=replacement_probability,
         )
+                
+        params = np.random.uniform(-np.pi, np.pi, size=len(circuit.get_parameters()))
+        circuit.set_parameters(params)
+
 
         expval, elapsed_time, n_magic = execute_benchmark_circuit(
             circuit=circuit,

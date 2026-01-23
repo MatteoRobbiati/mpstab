@@ -1,0 +1,54 @@
+{
+  "measured_observable": "ZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZXZ",
+  "times": [
+    21.077999114990234,
+    21.205262184143066,
+    21.20185685157776,
+    21.113959074020386,
+    21.262211799621582,
+    21.15002703666687,
+    21.159661769866943,
+    21.309589385986328,
+    20.989911317825317,
+    21.005802631378174
+  ],
+  "expvals": [
+    -8.281846147474377e-31,
+    3.8490829201090854e-34,
+    5.501808886433764e-33,
+    4.942449405001007e-38,
+    -5.588964227187797e-20,
+    -1.2564081273058226e-21,
+    3.5386355594593665e-25,
+    4.822928404807304e-34,
+    4.35049903908904e-31,
+    -1.5328549152987148e-26
+  ],
+  "magic_gates": [
+    255,
+    255,
+    255,
+    255,
+    255,
+    255,
+    255,
+    255,
+    255,
+    255
+  ],
+  "median_time": 21.154844403266907,
+  "mad_time": 0.06363153457641602,
+  "ave_magic_gates": 255.0,
+  "input_arguments": {
+    "backend": "mpstab",
+    "max_bond_dim": 8,
+    "replacement_probability": 0.0,
+    "nqubits": 85,
+    "nlayers": 3,
+    "nruns": 10,
+    "rng_seed": 42,
+    "set_initial_state": true,
+    "platform": "None",
+    "dry_run_discarded": true
+  }
+}
