@@ -60,7 +60,7 @@ qibojit = "*"
 jax = "*"
 
 [tool.poe.tasks]
-bench = "pytest benchmarks/"
+bench = "pytest benchmarks/ --benchmark-warmup=on --benchmark-warmup-iterations=100000 --benchmark-disable-gc --benchmark-histogram=bench-hists/bench"
 test = "pytest"
 lint = "pylint src/**/*.py -E"
 lint-warnings = "pylint src/**/*.py --exit-zero"
@@ -69,15 +69,11 @@ docs-clean = "make -C doc clean"
 test-docs = "make -C doc doctest"
 
 [tool.pytest.ini_options]
-testpaths = ["tests/", "benchmarks/"]
-python_files = ["test_*.py", "bench_*.py"]
-python_classes = ["Test*", "Benchmark*"]
-python_functions = ["test_*", "bench_*"]
+testpaths = ["tests/"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 addopts = [
-  "--benchmark-warmup=on",
-  "--benchmark-warmup-iterations=100000",
-  "--benchmark-disable-gc",
-  "--benchmark-histogram=bench-hists/bench",
   "--cov=mpstab",
   "--cov-append",
   "--cov-report=xml",
