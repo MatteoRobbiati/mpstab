@@ -13,7 +13,7 @@ from mpstab.evolutors.models import HybridSurrogate
 from mpstab.models.ansatze import HardwareEfficient
 from mpstab.models.utils import obs_string_to_qibo_hamiltonian
 
-from quimb.tensor import MPO_identity, MPO_product_operator
+from quimb.tensor import MPO_product_operator
 from quimb.gates import X, Y, Z, I
 from qibotn.backends.quimb import _qibo_circuit_to_quimb
 
