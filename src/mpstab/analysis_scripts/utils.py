@@ -31,12 +31,12 @@ SUPPORTED_BACKENDS = [
 def generate_partitionated_circuit(
     nqubits: int,
     nlayers: int,
-    magic_fraction: float,
+    replacement_probability: float,
 ) -> Circuit:
     ansatz = HardwareEfficient(nqubits=nqubits, nlayers=nlayers)
 
     _, part_circuit = ansatz.partitionate_circuit(
-        replacement_probability=1.0 - magic_fraction,
+        replacement_probability=replacement_probability,
         replacement_method="closest",
     )
 
