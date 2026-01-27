@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 
 import numpy as np
 import scipy.stats as sp
+import stim
 from qibo import Circuit, gates
 from qibo.backends import get_backend, set_backend
 from quimb.gates import I, X, Y, Z
@@ -20,6 +21,7 @@ SUPPORTED_BACKENDS = [
     "numpy",
     "qibojit",
     "quimb",
+    "stim",
 ]
 
 
@@ -67,6 +69,9 @@ def initialize_backend(
     elif backend == "quimb":
         exec_backend = "qibotn"
         platform = "quimb"
+    elif backend == "stim":
+        # Stim creates its own simulation, use numpy for circuit construction
+        exec_backend = "numpy"
     else:
         exec_backend = backend
 
@@ -127,6 +132,7 @@ def execute_benchmark_circuit(
             observable=observable,
         )
 
+        # Counting Clifford gates as in the original code snippet logic
         n_magic_gates = 0
         for g in circuit.queue:
             if g.clifford:
@@ -140,6 +146,84 @@ def execute_benchmark_circuit(
     if initial_state is not None:
         full_circuit += initial_state
     full_circuit += circuit
+
+    # ---- stim clifford backend ----
+    if backend == "stim":
+        # 1. Verify circuit is all Clifford (count magic gates)
+        n_magic_gates = 0
+        for g in full_circuit.queue:
+            if not g.clifford:
+                n_magic_gates += 1
+        
+        if n_magic_gates > 0:
+            raise RuntimeError(
+                f"Backend 'stim' requires an all-Clifford circuit. "
+                f"Found {n_magic_gates} non-Clifford gates."
+            )
+
+        # 2. Convert to Stim circuit
+        stim_circuit = stim.Circuit()
+        for g in full_circuit.queue:
+            q_indices = g.qubits
+            
+            # Helper to check rotation angles
+            def is_approx(val, target, atol=1e-5):
+                return np.isclose(val % (2 * np.pi), target % (2 * np.pi), atol=atol) or \
+                       np.isclose(val % (2 * np.pi), (target % (2 * np.pi)) + 2*np.pi, atol=atol)
+
+            if g.name == "h":
+                stim_circuit.append("H", q_indices)
+            elif g.name == "x":
+                stim_circuit.append("X", q_indices)
+            elif g.name == "y":
+                stim_circuit.append("Y", q_indices)
+            elif g.name == "z":
+                stim_circuit.append("Z", q_indices)
+            elif g.name == "cx" or g.name == "cnot":
+                stim_circuit.append("CNOT", q_indices)
+            elif g.name == "cz":
+                stim_circuit.append("CZ", q_indices)
+            elif g.name == "swap":
+                stim_circuit.append("SWAP", q_indices)
+            elif g.name == "s":
+                stim_circuit.append("S", q_indices)
+            elif g.name == "sdg":
+                stim_circuit.append("S_DAG", q_indices)
+            elif g.name in ["rx", "ry", "rz"]:
+                # Handle Clifford rotations
+                theta = g.parameters[0]
+                axis = g.name[1].upper() # X, Y, or Z
+                
+                if is_approx(theta, 0):
+                    continue # Identity
+                elif is_approx(theta, np.pi) or is_approx(theta, -np.pi):
+                    stim_circuit.append(axis, q_indices)
+                elif is_approx(theta, np.pi / 2):
+                    stim_circuit.append(f"SQRT_{axis}", q_indices)
+                elif is_approx(theta, -np.pi / 2):
+                    stim_circuit.append(f"SQRT_{axis}_DAG", q_indices)
+                else:
+                    raise ValueError(f"Gate {g} with angle {theta} is not a supported Clifford gate for Stim conversion.")
+            elif g.name == "id":
+                continue
+            else:
+                # Fallback for other gates or raise error
+                raise NotImplementedError(f"Gate {g.name} not implemented in Stim converter.")
+
+        # 3. Simulate
+        sim = stim.TableauSimulator()
+        sim.do(stim_circuit)
+
+        # 4. Compute Expectation
+        # Stim expects Pauli string object. 
+        # observable is like "ZX..." corresponding to qubits 0, 1, ...
+        # If the string length < nqubits, we might need to pad with I or raise error. 
+        # Assuming observable string length matches nqubits as per generation logic.
+        pauli_string = stim.PauliString(observable)
+        expval = sim.peek_observable_expectation(pauli_string)
+
+        elapsed_time = time.time() - start_time
+        return float(expval), elapsed_time, n_magic_gates
 
     # ---- qibotn tensor‑network backend ----
     if backend == "quimb":
@@ -157,16 +241,6 @@ def execute_benchmark_circuit(
             {f"k{i}": f"b{i}" for i in range(circuit.nqubits)}
         )
         temp = circuit_tn_dag.H & pauli_mpo & circuit_tn
-
-        # JUST IN CASE WE NEED TO MAKE PLOTS
-        # import matplotlib.pyplot as plt
-        # fig = temp.draw(
-        #     return_fig=True,
-        #     color=["CX", "CZ", "RY", "MPO", "PSI0"],
-        #     legend=True
-        # )
-        # fig.tight_layout()
-        # fig.savefig("tn_plot.pdf")
 
         expval = temp.contract(all, optimize="auto-hq").real
 
@@ -242,6 +316,9 @@ def run_experiment(
         if set_initial_state:
             initial_state = Circuit(nqubits)
             for q in range(nqubits):
+                # NOTE: For Stim backend, this random initialization will likely cause 
+                # a non-Clifford error unless replacement_probability ensures Clifford gates
+                # or set_initial_state is set to False by the caller.
                 initial_state.add(gates.RY(q, np.random.uniform(-np.pi, np.pi)))
         else:
             initial_state = None
