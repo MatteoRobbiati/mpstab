@@ -123,14 +123,17 @@ def execute_benchmark_circuit(
             initial_state=initial_state,
         )
 
-        expval, partitions = evolutor.expectation_from_partition(
+        expval = evolutor.expectation(
             observable=observable,
-            replacement_probability=replacement_probability,
-            return_partitions=True,
         )
 
+        n_magic_gates = 0
+        for g in circuit.queue:
+            if g.clifford:
+                n_magic_gates += 1
+
         elapsed_time = time.time() - start_time
-        return expval, elapsed_time, len(partitions["magic_gates"])
+        return expval, elapsed_time, n_magic_gates
 
     # ---- Build full circuit ----
     full_circuit = Circuit(circuit.nqubits)
@@ -233,7 +236,8 @@ def run_experiment(
 
         np.random.seed(rng_seed + run_idx + 1)
         random.seed(rng_seed + run_idx + 1)
-        # backend_obj.set_seed(rng_seed + run_idx + 1)
+        #        bkd = get_backend()
+        #        bkd.set_seed(rng_seed + run_idx + 1)
 
         if set_initial_state:
             initial_state = Circuit(nqubits)

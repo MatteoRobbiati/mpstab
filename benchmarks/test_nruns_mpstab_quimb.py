@@ -1,6 +1,5 @@
 import json
 import os
-import shutil
 
 import numpy as np
 
@@ -22,13 +21,12 @@ def test_run_experiment_mpstab_vs_quimb():
     replacement_probability = 0.5
     max_bond_dim = 16
 
-    base_results = "results"
     results = {}
 
     for backend in ["mpstab", "quimb"]:
-        if os.path.exists(base_results):
-            shutil.rmtree(base_results)
-
+        # --------------------------------------------------
+        # Run experiment (results go to backend-specific folder)
+        # --------------------------------------------------
         run_experiment(
             backend=backend,
             max_bond_dim=max_bond_dim,
@@ -46,18 +44,25 @@ def test_run_experiment_mpstab_vs_quimb():
             f"bd_{max_bond_dim}_p_{replacement_probability}"
         )
 
+        # --------------------------------------------------
+        # Load results
+        # --------------------------------------------------
         with open(os.path.join(folder, "results.json")) as f:
             results[backend] = json.load(f)
 
         results[backend]["params"] = load_params(folder, nruns)
 
-    # ------------------ PARAMETER CHECK ------------------
+    # --------------------------------------------------
+    # PARAMETER CHECK
+    # --------------------------------------------------
     for i, (p1, p2) in enumerate(
         zip(results["mpstab"]["params"], results["quimb"]["params"])
     ):
         assert np.array_equal(p1, p2), f"Parameters differ at run {i + 1}"
 
-    # ------------------ EXPVAL CHECK ------------------
+    # --------------------------------------------------
+    # EXPVAL CHECK
+    # --------------------------------------------------
     exp_mpstab = np.array(results["mpstab"]["expvals"])
     exp_quimb = np.array(results["quimb"]["expvals"])
 
