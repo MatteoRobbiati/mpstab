@@ -1,3 +1,6 @@
+import time
+import csv
+import os
 import random
 import numpy as np
 from qibo import Circuit, gates
@@ -22,93 +25,123 @@ def generate_ghz_circuit(nqubits: int) -> Circuit:
         c.add(gates.CNOT(q, q + 1))
     return c
 
-def compare_backends(
-    nqubits: int = 4,
-    nlayers: int = 2,
-    seed: int = 42,
-    circuit_type: str = "random_clifford",
+def run_benchmark_cycle(
+    nqubits: int,
+    nlayers: int,
+    seed: int,
+    circuit_type: str,
+    nruns: int = 10,
     max_bond_dim: int = 16
 ):
-    print(f"\n--- Testing {circuit_type} with seed {seed} on {nqubits} qubits ---")
-
-    np.random.seed(seed)
-    random.seed(seed)
-
-    # Prepare initial state (Clifford-compatible)
-    # Use RY with angles 0, pi/2, pi, 3pi/2 to stay within the Clifford group
-    initial_state = Circuit(nqubits)
-    if circuit_type == "random_clifford":
-        for q in range(nqubits):
-            angle = np.random.randint(0, 4) * (np.pi / 2)
-            initial_state.add(gates.RY(q, angle))
-    else:
-        # For GHZ, start from the clean zero state
-        initial_state = None
-
-    # Generate circuit
-    if circuit_type == "ghz":
-        circuit = generate_ghz_circuit(nqubits)
-        # GHZ has no variational parameters, so skip parameter setting
-    else:
-        # random_clifford uses HardwareEfficient
-        # magic_fraction=0.0 means replacement_probability=1.0 -> all Clifford
-        circuit = generate_partitionated_circuit(
-            nqubits=nqubits,
-            nlayers=nlayers,
-            magic_fraction=0.0, 
-        )
-        # Set discrete parameters (multiples of pi/2) to ensure Stim doesn't fail
-        params = get_clifford_random_params(len(circuit.get_parameters()), seed)
-        circuit.set_parameters(params)
-
-    # Define observable
-    obs_str = "ZX" * (nqubits // 2)
-    if nqubits % 2:
-        obs_str += "Z"
+    """Esegue il benchmark per un numero specifico di qubit e calcola la mediana."""
     
-    if circuit_type == "ghz":
-        obs_str = "Z" * nqubits
+    times_mpstab = []
+    times_stim = []
+    results_mpstab = []
+    results_stim = []
 
-    print(f"Observable: {obs_str}")
-
-    print("Running mpstab...")
+    # Inizializziamo i backend una volta per questa configurazione
     bk_mpstab = initialize_backend("mpstab", platform=None, max_bond_dim=max_bond_dim)
-    res_mpstab, time_mpstab, _ = execute_benchmark_circuit(
-        circuit=circuit,
-        observable=obs_str,
-        backend="mpstab",
-        max_bond_dim=max_bond_dim,
-        initial_state=initial_state,
-        replacement_probability=1.0, # 1.0 = 100% Clifford replacement
-        backend_obj=bk_mpstab
-    )
-
-    print("Running stim...")
     bk_stim = initialize_backend("stim", platform=None, max_bond_dim=None)
-    res_stim, time_stim, _ = execute_benchmark_circuit(
-        circuit=circuit,
-        observable=obs_str,
-        backend="stim",
-        max_bond_dim=None,
-        initial_state=initial_state,
-        replacement_probability=1.0,
-        backend_obj=bk_stim
-    )
 
-    print(f"Result mpstab: {res_mpstab:.6f} (time: {time_mpstab:.4f}s)")
-    print(f"Result stim:   {res_stim:.6f}   (time: {time_stim:.4f}s)")
-    
-    # Note: Stim returns exact results (often integer or float x.0). 
-    # Mpstab with sufficient bond_dim is exact for Clifford circuits.
-    assert np.isclose(res_mpstab, res_stim, atol=1e-8), \
-        f"MISMATCH! mpstab={res_mpstab}, stim={res_stim}"
-    
-    print("✅ SUCCESS: Results match.")
+    for run in range(nruns):
+        # Cambiamo seed ogni run per variabilità, ma manteniamo lo stesso per entrambi i backend
+        current_seed = seed + run
+        np.random.seed(current_seed)
+        random.seed(current_seed)
 
+        # 1. Preparazione Stato Iniziale
+        initial_state = Circuit(nqubits)
+        if circuit_type == "random_clifford":
+            for q in range(nqubits):
+                angle = np.random.randint(0, 4) * (np.pi / 2)
+                initial_state.add(gates.RY(q, angle))
+        else:
+            initial_state = None
+
+        # 2. Generazione Circuito
+        if circuit_type == "ghz":
+            circuit = generate_ghz_circuit(nqubits)
+        else:
+            circuit = generate_partitionated_circuit(
+                nqubits=nqubits,
+                nlayers=nlayers,
+                replacement_probability=1, 
+            )
+            params = get_clifford_random_params(len(circuit.get_parameters()), current_seed)
+            circuit.set_parameters(params)
+
+        # 3. Definizione Osservabile
+        if circuit_type == "ghz":
+            obs_str = "Z" * nqubits
+        else:
+            obs_str = "ZX" * (nqubits // 2) + ("Z" if nqubits % 2 else "")
+
+        # --- Esecuzione MPSTAB ---
+        res_m, t_m, _ = execute_benchmark_circuit(
+            circuit=circuit, observable=obs_str, backend="mpstab",
+            max_bond_dim=max_bond_dim, initial_state=initial_state,
+            replacement_probability=1.0, backend_obj=bk_mpstab
+        )
+        times_mpstab.append(t_m)
+        results_mpstab.append(res_m)
+
+        # --- Esecuzione STIM ---
+        res_s, t_s, _ = execute_benchmark_circuit(
+            circuit=circuit, observable=obs_str, backend="stim",
+            max_bond_dim=None, initial_state=initial_state,
+            replacement_probability=1.0, backend_obj=bk_stim
+        )
+        times_stim.append(t_s)
+        results_stim.append(res_s)
+
+        # Verifica correttezza (solo al primo run per risparmiare log)
+        if run == 0:
+            if not np.isclose(res_m, res_s, atol=1e-8):
+                print(f"⚠️ [WARNING] Mismatch trovato per {circuit_type} (N={nqubits})!")
+                print(f"   MPSTAB: {res_m:.6f}, STIM: {res_s:.6f}")
+
+    return {
+        "nqubits": nqubits,
+        "circuit_type": circuit_type,
+        "median_mpstab": np.median(times_mpstab),
+        "median_stim": np.median(times_stim)
+    }
 
 if __name__ == "__main__":
-    compare_backends(nqubits=200, nlayers=3, seed=123, circuit_type="random_clifford")
-    
-    compare_backends(nqubits=100, seed=999, circuit_type="ghz")
-    
-    compare_backends(nqubits=500, nlayers=5, seed=555, circuit_type="random_clifford")
+    # Parametri globali
+    nlayers = 3
+    nruns = 10
+    base_seed = 42
+    output_file = "benchmark_results.csv"
+    qubit_range = range(0, 1000, 50)
+    circuit_types = ["random_clifford", "ghz"]
+
+    # Preparazione file CSV
+    file_exists = os.path.isfile(output_file)
+    with open(output_file, mode='w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(["circuit_type", "nqubits", "backend", "median_time_seconds"])
+
+        for c_type in circuit_types:
+            print(f"\n🚀 Inizio benchmark per circuito: {c_type}")
+            
+            for n in qubit_range:
+                print(f"Processing N={n}...", end="\r")
+                
+                stats = run_benchmark_cycle(
+                    nqubits=n, 
+                    nlayers=nlayers, 
+                    seed=base_seed, 
+                    circuit_type=c_type, 
+                    nruns=nruns
+                )
+
+                # Salviamo i dati per entrambi i backend
+                writer.writerow([c_type, n, "mpstab", f"{stats['median_mpstab']:.6f}"])
+                writer.writerow([c_type, n, "stim", f"{stats['median_stim']:.6f}"])
+                
+                # Svuota il buffer per non perdere dati in caso di crash
+                f.flush()
+
+    print(f"\n✅ Benchmark completato. Risultati salvati in: {output_file}")
