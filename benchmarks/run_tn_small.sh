@@ -13,7 +13,7 @@ SCRIPT=run_configuration.py
 NLAYERS=5
 NRUNS=10
 P=0
-BACKENDS=("qibotn" "mpstab")
+BACKENDS=("quimb" "mpstab")
 NQUBITS_LIST=(5 10)
 
 # --- Task Mapping Logic ---
@@ -36,7 +36,7 @@ BD=$(echo $CURRENT_TASK | cut -d: -f2)
 BACKEND=$(echo $CURRENT_TASK | cut -d: -f3)
 
 PLATFORM="None"
-[ "$BACKEND" == "qibotn" ] && PLATFORM="quimb"
+[ "$BACKEND" == "quimb" ] && PLATFORM="None"
 
 # --- Execution ---
 ${PYTHON} ${SCRIPT} \
