@@ -8,6 +8,8 @@ import numpy as np
 import scipy.stats as sp
 from qibo import Circuit, gates
 from qibo.backends import get_backend, set_backend
+from quimb.gates import I, X, Y, Z
+from quimb.tensor import MPO_product_operator
 
 from mpstab.evolutors.models import HybridSurrogate
 from mpstab.models.ansatze import HardwareEfficient
@@ -17,7 +19,7 @@ SUPPORTED_BACKENDS = [
     "mpstab",
     "numpy",
     "qibojit",
-    "qibotn",
+    "quimb",
 ]
 
 
@@ -59,8 +61,14 @@ def initialize_backend(
             f"Backend {backend} not supported. " f"Choose among {SUPPORTED_BACKENDS}."
         )
 
-    # mpstab still needs a concrete execution backend
-    exec_backend = "numpy" if backend == "mpstab" else backend
+    # custom rules
+    if backend == "mpstab":
+        exec_backend = "numpy"
+    elif backend == "quimb":
+        exec_backend = "qibotn"
+        platform = "quimb"
+    else:
+        exec_backend = backend
 
     # 1. Set backend globally
     set_backend(
@@ -72,7 +80,9 @@ def initialize_backend(
     backend_obj = get_backend()
 
     # 3. Configure tensor‑network backend
-    if backend == "qibotn":
+    # We will use it to do some translations, even if the actual simulation
+    # will be run using Quimb
+    if backend == "quimb":
         backend_obj.setup_backend_specifics(
             quimb_backend="jax",
             contractions_optimizer="auto-hq",
@@ -113,14 +123,17 @@ def execute_benchmark_circuit(
             initial_state=initial_state,
         )
 
-        expval, partitions = evolutor.expectation_from_partition(
+        expval = evolutor.expectation(
             observable=observable,
-            replacement_probability=replacement_probability,
-            return_partitions=True,
         )
 
+        n_magic_gates = 0
+        for g in circuit.queue:
+            if g.clifford:
+                n_magic_gates += 1
+
         elapsed_time = time.time() - start_time
-        return expval, elapsed_time, len(partitions["magic_gates"])
+        return expval, elapsed_time, n_magic_gates
 
     # ---- Build full circuit ----
     full_circuit = Circuit(circuit.nqubits)
@@ -129,13 +142,33 @@ def execute_benchmark_circuit(
     full_circuit += circuit
 
     # ---- qibotn tensor‑network backend ----
-    if backend == "qibotn":
-        ham = obs_string_to_qibo_hamiltonian(
-            observable,
-            backend=backend_obj,
-        )
+    if backend == "quimb":
 
-        expval = ham.expectation(full_circuit)
+        circuit_tn = backend_obj._qibo_circuit_to_quimb(
+            full_circuit, gate_opts={"max_bond": max_bond_dim}
+        ).psi
+
+        gate_map = {"X": X, "Y": Y, "Z": Z, "I": I}
+        pauli_matrices = [gate_map[s.upper()] for s in observable]
+        pauli_mpo = MPO_product_operator(pauli_matrices)
+        pauli_mpo.add_tag("MPO")
+
+        circuit_tn_dag = circuit_tn.reindex(
+            {f"k{i}": f"b{i}" for i in range(circuit.nqubits)}
+        )
+        temp = circuit_tn_dag.H & pauli_mpo & circuit_tn
+
+        # JUST IN CASE WE NEED TO MAKE PLOTS
+        # import matplotlib.pyplot as plt
+        # fig = temp.draw(
+        #     return_fig=True,
+        #     color=["CX", "CZ", "RY", "MPO", "PSI0"],
+        #     legend=True
+        # )
+        # fig.tight_layout()
+        # fig.savefig("tn_plot.pdf")
+
+        expval = temp.contract(all, optimize="auto-hq").real
 
         elapsed_time = time.time() - start_time
         return float(expval), elapsed_time, None
@@ -167,9 +200,6 @@ def run_experiment(
     set_initial_state: bool = True,
     platform: str | None = None,
 ) -> None:
-
-    random.seed(rng_seed)
-    np.random.seed(rng_seed)
 
     # ✅ Backend initialized ONCE
     backend_obj = initialize_backend(
@@ -203,6 +233,12 @@ def run_experiment(
     total_runs = nruns + 1
 
     for run_idx in range(total_runs):
+
+        np.random.seed(rng_seed + run_idx + 1)
+        random.seed(rng_seed + run_idx + 1)
+        #        bkd = get_backend()
+        #        bkd.set_seed(rng_seed + run_idx + 1)
+
         if set_initial_state:
             initial_state = Circuit(nqubits)
             for q in range(nqubits):
@@ -215,6 +251,9 @@ def run_experiment(
             nlayers=nlayers,
             magic_fraction=replacement_probability,
         )
+
+        params = np.random.uniform(-np.pi, np.pi, size=len(circuit.get_parameters()))
+        circuit.set_parameters(params)
 
         expval, elapsed_time, n_magic = execute_benchmark_circuit(
             circuit=circuit,
@@ -229,6 +268,12 @@ def run_experiment(
         # Skip first run (dry run)
         if run_idx == 0:
             continue
+
+        # Save parameters for this run
+        np.save(
+            os.path.join(base_folder, f"params_run_{run_idx}.npy"),
+            params,
+        )
 
         results["times"].append(elapsed_time)
         results["expvals"].append(expval)
