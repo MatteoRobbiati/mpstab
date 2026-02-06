@@ -9,8 +9,7 @@ import scipy.stats as sp
 import stim
 from qibo import Circuit, gates
 from qibo.backends import get_backend, set_backend
-from quimb.gates import I, X, Y, Z
-from quimb.tensor import MPO_product_operator
+from quimb import pauli
 
 from mpstab.evolutors.models import HybridSurrogate
 from mpstab.models.ansatze import HardwareEfficient
@@ -234,24 +233,22 @@ def execute_benchmark_circuit(
     # ---- qibotn tensor‑network backend ----
     if backend == "quimb":
 
-        circuit_tn = backend_obj._qibo_circuit_to_quimb(
+        psi_ket = backend_obj._qibo_circuit_to_quimb(
             full_circuit, gate_opts={"max_bond": max_bond_dim}
         ).psi
 
-        gate_map = {"X": X, "Y": Y, "Z": Z, "I": I}
-        pauli_matrices = [gate_map[s.upper()] for s in observable]
-        pauli_mpo = MPO_product_operator(pauli_matrices)
-        pauli_mpo.add_tag("MPO")
-
-        circuit_tn_dag = circuit_tn.reindex(
-            {f"k{i}": f"b{i}" for i in range(circuit.nqubits)}
-        )
-        temp = circuit_tn_dag.H & pauli_mpo & circuit_tn
-
-        expval = temp.contract(all, optimize="auto-hq").real
-
+        non_i_ops = {i: op.upper() for i, op in enumerate(observable) 
+                     if op.upper() != 'I'}
+    
+        psi_op = psi_ket.copy()
+        
+        for site, label in non_i_ops.items():
+            psi_op.gate_(pauli(label), site)
+            
+        expectation = (psi_ket.H & psi_op).contract(all, optimize='auto-hq').real
+        
         elapsed_time = time.time() - start_time
-        return float(expval), elapsed_time, None
+        return float(expectation), elapsed_time, None
 
     # ---- Standard Qibo backends ----
     result = full_circuit()
