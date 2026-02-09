@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import numpy as np
 from qibo import Circuit
 
+from mpstab.backends.stabilizers.abstract import StabilizersEngine
+from mpstab.backends.stabilizers.stim import StimEngine
 from mpstab.evolutors.stabilizer import tableaus
 from mpstab.evolutors.stabilizer.pauli_string import Pauli
 from mpstab.evolutors.tensor_network.circuit_mps import CircuitMPS
@@ -36,6 +38,10 @@ class HybridSurrogate:
 
         # Add the initial state, which is |0> by default
         self._init_tn(self.max_bond_dimension)
+
+        # Initialize engines
+        # Default stabilizers engine is Stim
+        self.set_backend()
 
     def _init_tn(self, max_bond_dimension: int | None = None):
         """
@@ -117,7 +123,9 @@ class HybridSurrogate:
             self.mps.pauli_rot(generator, magic_gate.parameters[0])
 
         # Compute the conjugate of the observable
-        new_observable = self.backpropagate_pauli(observable, clifford_circuit)
+        new_observable = self.stab_engine.backpropagate(
+            observable=observable, clifford_circuit=clifford_circuit
+        )
 
         # Collect partitions into a dictionary in case we want to return it
         if return_partitions:
@@ -145,35 +153,19 @@ class HybridSurrogate:
         )
         return self.backpropagate_pauli(generator, clifford_circuit, k)
 
-    def backpropagate_pauli(
-        self, observable: str, stabilizer_circuit: Circuit, k: int = None
-    ):
+    def set_backend(self, stab_engine: StabilizersEngine = None):
         """
-        Process a given Pauli string applying a `stabilizer_circuit` in Heisenberg picture.
+        Set stabilizers evolution engine.
+
+        args:
+            stab_engine (StabilizerEngine): it can be StimEngine or NativeStabilizerEngine.
+                Each engine is an object in mpstab and we expect here `stab_engine` to be
+                initialized.
         """
-        # Construct the propagator and apply the inverse of the circuit gate by gate
-        propagator = Pauli(observable)
+        if stab_engine is None:
+            stab_engine = StimEngine()
 
-        # Cut the circuit queue to include only the appropriate clifford gates
-        cut_queue = (
-            stabilizer_circuit.queue[:k] if k is not None else stabilizer_circuit.queue
-        )
+        if not isinstance(stab_engine, StabilizersEngine):
+            raise ValueError(f"Provided engine {stab_engine} is not supported.")
 
-        for gate in reversed(cut_queue):
-
-            # Invert the circuit
-            gate = gate.dagger()
-            if len(gate.parameters) != 0:
-                # This is working for one-parameters gates right now
-                angle = gate.parameters[0]
-                propagator.apply(
-                    getattr(tableaus, gate2tableau[gate.name])(
-                        *gate.qubits, angle=angle
-                    )
-                )
-            else:
-                propagator.apply(
-                    getattr(tableaus, gate2tableau[gate.name])(*gate.qubits)
-                )
-
-        return propagator
+        self.stab_engine = stab_engine
