@@ -8,12 +8,7 @@ class TensorNetworkBackend(ABC):
     """
     Abstract interface that a tensor-network backend must implement for mpstab.
 
-    The HybridSurrogate (and in generale il resto del codice) si aspetta che:
-    - create_mps(n, initial_state, max_bond_dimension) ritorni un oggetto che espone
-      i metodi usati oggi: pauli_rot(generator, angle) e expval(mpo).
-      Nel backend "native" questo oggetto è semplicemente CircuitMPS.
-    - pauli_mpo(pauli_string) ritorni un oggetto MPO rappresentante la stringa di Pauli.
-    """
+        """
 
     @abstractmethod
     def create_mps(self, n: int, initial_state_amplitudes: Any, initial_state_circuit: Any, max_bond_dimension: int | None = None):
