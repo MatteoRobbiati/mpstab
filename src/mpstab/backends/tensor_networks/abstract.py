@@ -1,26 +1,43 @@
+"""Abstract API for tensor-network backends."""
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from typing import Any
 
 
-@dataclass
-class TensorNetworkEngine(ABC):
-    """Interface for Tensor Network simulation (MPS/MPO)."""
+class TensorNetworkBackend(ABC):
+    """
+    Abstract interface that a tensor-network backend must implement for mpstab.
 
-    @abstractmethod
-    def create_state(
-        self, nqubits: int, max_bond_dimension: int, initial_state: Any = None
-    ):
-        """Initialize the MPS/TN state."""
-        pass
-
-    @abstractmethod
-    def apply_rotation(
-        self, state: Any, generator: str, angle: float, qubits: List[int]
-    ):
-        """Apply exp(-i * angle/2 * generator) to the TN state."""
-        pass
+    The HybridSurrogate (and in generale il resto del codice) si aspetta che:
+    - create_mps(n, initial_state, max_bond_dimension) ritorni un oggetto che espone
+      i metodi usati oggi: pauli_rot(generator, angle) e expval(mpo).
+      Nel backend "native" questo oggetto è semplicemente CircuitMPS.
+    - pauli_mpo(pauli_string) ritorni un oggetto MPO rappresentante la stringa di Pauli.
+    """
 
     @abstractmethod
-    def expectation(self, state: Any, observable: str) -> float:
-        """Compute expectation value <psi|O|psi>."""
-        pass
+    def create_mps(self, n: int, initial_state_amplitudes: Any, initial_state_circuit: Any, max_bond_dimension: int | None = None):
+        """
+        Create and return an MPS-like object initialised to `initial_state`.
+        - n: number of qubits
+        - initial_state_amplitudes: array-like of single-site amplitudes
+        - initial_state_circuit: qibo circuit to be converted to quimb in backend
+        - max_bond_dimension: optional truncation parameter
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def pauli_mpo(self, pauli_string: str | Any):
+        """
+        Return an MPO object representing the supplied Pauli string (or equivalent).
+        """
+        raise NotImplementedError
+    
+    @abstractmethod
+    def expval(state: Any, operator: Any):
+        """
+        Compute the expectation value of `operator` on `state`.
+        The types of `state` and `operator` depend on the backend's internal representations.
+        """
+        raise NotImplementedError
+
