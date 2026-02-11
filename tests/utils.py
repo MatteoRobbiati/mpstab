@@ -1,12 +1,13 @@
 import random
 
 import numpy as np
-from qibo import hamiltonians, symbols
+from qibo import Circuit, gates, hamiltonians, symbols
 from qibo.backends import get_backend
 
 DEFAULT_REPLACEMENT_PROBABILITY = 0.75
 DEFAULT_MAX_BD = 128
 DEFAULT_RNG_SEED = 42
+DEFAULT_ATOL = 1e-6
 
 
 def obs_string_to_qibo_hamiltonian(observable: str) -> hamiltonians.SymbolicHamiltonian:
@@ -27,7 +28,33 @@ def obs_string_to_qibo_hamiltonian(observable: str) -> hamiltonians.SymbolicHami
 
 
 def set_rng_seed(seed: int = DEFAULT_RNG_SEED):
+    """Set all the RNG seeds."""
     backend = get_backend()
     backend.set_seed(seed)
     random.seed(seed)
     np.random.seed(seed)
+
+
+def ghz_circuit(nqubits):
+    """Prepare the GHZ circuit."""
+    circ = Circuit(nqubits)
+    circ.add(gates.H(0))
+    for q in range(nqubits - 1):
+        circ.add(gates.CNOT(q, q + 1))
+    return circ
+
+
+def expectation_with_qibo(mpstab_ansatz, observable_str):
+    """
+    Take an mpstab ansatz and an observable string and compute the
+    corresponding expectation value using qibo facilities.
+    """
+    if len(observable_str) >= 20:
+        raise ValueError(
+            f"Please consider lighten the test, this function is using statevector simulation, which can be really slow for the provided {len(observable_str)} problem"
+        )
+
+    qibo_ham = obs_string_to_qibo_hamiltonian(observable_str)
+    expval = qibo_ham.expectation_from_state(mpstab_ansatz.circuit().state())
+
+    return expval
