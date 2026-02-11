@@ -10,6 +10,8 @@ from utils import (
     set_rng_seed,
 )
 
+from mpstab.backends.stabilizers.native import NativeStabilizersEngine
+from mpstab.backends.stabilizers.stim import StimEngine
 from mpstab.evolutors.models import HybridSurrogate
 from mpstab.models.ansatze import HardwareEfficient, TranspiledAnsatz
 
@@ -28,6 +30,7 @@ def test_expectation_matches_qibo(observable):
     ansatz = TranspiledAnsatz(original_circuit=circ)
 
     hs = HybridSurrogate(ansatz)
+    hs.set_backend(stab_engine=StimEngine())
     exp_hybrid = hs.expectation(observable)
 
     # Exact expval from qibo

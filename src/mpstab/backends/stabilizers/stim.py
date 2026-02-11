@@ -59,7 +59,7 @@ class StimEngine(StabilizersEngine):
 
         # If the string has a sign, mpstab.Pauli's __init__ will parse it correctly
         # only if we don't break string_to_xz inside it.
-        # mpstab.Pauli handles signs by checking description[0] in phase_to_xz.keys()c
+        # mpstab.Pauli handles signs by checking description[0] in phase_to_xz.keys()
         return res_str[1:]
 
     def _qibo_to_stim(self, circuit: Circuit) -> stim.Circuit:

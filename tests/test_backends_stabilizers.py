@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from qibo import Circuit, gates, set_backend
+from utils import obs_string_to_qibo_hamiltonian
 
 from mpstab.backends.stabilizers.native import NativeStabilizersEngine
 from mpstab.backends.stabilizers.stim import StimEngine
@@ -61,7 +62,11 @@ def test_ghz_stabilizers(nqubits):
     hs.set_backend(stab_engine=StimEngine())
     exp_stim = hs.expectation(obs)
 
+    qibo_obs = obs_string_to_qibo_hamiltonian(obs)
+    qibo_exp = qibo_obs.expectation_from_state(circ().state())
+
     # For a pure GHZ state, these stabilizers should return 1.0
     assert np.allclose(exp_stim, 1.0, atol=1e-6)
     assert np.allclose(exp_native, 1.0, atol=1e-6)
     assert np.allclose(exp_stim, exp_native, atol=1e-6)
+    assert np.allclose(exp_native, qibo_exp, atol=1e-6)
