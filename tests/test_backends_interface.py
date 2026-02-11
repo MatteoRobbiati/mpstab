@@ -27,7 +27,7 @@ def test_stab_interfaces_vs_qibo(stab_engine):
     elif stab_engine == "stim":
         stab_engine = StimEngine()
 
-    hs.set_backend(stab_engine=stab_engine)
+    hs.set_engines(stab_engine=stab_engine)
     exp_mpstab = hs.expectation(obs)
     exp_qibo = qibo_obs.expectation_from_state(ans.circuit().state())
 

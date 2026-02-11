@@ -39,7 +39,7 @@ class HSMPO:
 
         # Initialize engines
         # Default stabilizers engine is Stim
-        self.set_backend()
+        self.set_engines()
 
     def _init_tn(self, max_bond_dimension: int | None = None):
         """
@@ -151,7 +151,7 @@ class HSMPO:
         )
         return self.stab_engine.backpropagate(generator, clifford_circuit)
 
-    def set_backend(self, stab_engine: StabilizersEngine = None):
+    def set_engines(self, stab_engine: StabilizersEngine = None):
         """
         Set stabilizers evolution engine.
 

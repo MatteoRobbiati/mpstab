@@ -24,7 +24,7 @@ def test_ghz(stab_engine, nqubits):
     hs = HSMPO(ansatz=ans)
 
     exp = hs.expectation(observable=obs_str)
-    hs.set_backend(stab_engine=stab_engine())
+    hs.set_engines(stab_engine=stab_engine())
     qibo_expval = expectation_with_qibo(
         mpstab_ansatz=ans,
         observable_str=obs_str,
@@ -44,7 +44,7 @@ def test_backends_expectation_matches(stab_engine, observable):
     ansatz = CircuitAnsatz(qibo_circuit=circ)
     hs = HSMPO(ansatz)
 
-    hs.set_backend(stab_engine=stab_engine())
+    hs.set_engines(stab_engine=stab_engine())
     exp_mpstab = hs.expectation(observable)
 
     exp_qibo = expectation_with_qibo(

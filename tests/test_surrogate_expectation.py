@@ -29,7 +29,7 @@ def test_expectation_matches_qibo(observable):
     ansatz = TranspiledAnsatz(original_circuit=circ)
 
     hs = HSMPO(ansatz)
-    hs.set_backend(stab_engine=StimEngine())
+    hs.set_engines(stab_engine=StimEngine())
     exp_hybrid = hs.expectation(observable)
 
     # Exact expval from qibo
