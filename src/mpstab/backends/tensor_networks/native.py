@@ -1,1 +1,0 @@
-"""Home-made stabilizers engine."""
