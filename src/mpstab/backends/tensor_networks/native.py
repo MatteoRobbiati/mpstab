@@ -24,11 +24,11 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
         """Return the existing PauliMPO for the given pauli_string."""
         return PauliMPO(pauli_string)
     
-    def expval(self, state: CircuitMPS, operator: PauliMPO):
+    def expval(self, state_circuit: CircuitMPS, operator: PauliMPO):
         """Compute the expectation value of `operator` on `state`."""
-        return state.expval(operator)
+        return state_circuit.expval(operator)
     
-    def pauli_rot(self, state: CircuitMPS, generator: str, angle: float):
+    def pauli_rot(self, state_circuit: CircuitMPS, generator: str, angle: float):
         """Apply a Pauli rotation specified by `generator` and `angle` to the MPS."""
-        state.pauli_rot(generator, angle)
+        return state_circuit.pauli_rot(generator, angle)
         

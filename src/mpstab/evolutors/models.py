@@ -110,7 +110,7 @@ class HybridSurrogate:
         for k, magic_gate in magic_gates:
 
             generator = self._conjugate_generator(magic_gate, clifford_circuit, k)
-            self.tn_engine.pauli_rot(state=self.mps, generator=generator, angle=magic_gate.parameters[0])
+            self.mps = self.tn_engine.pauli_rot(state_circuit=self.mps, generator=generator, angle=magic_gate.parameters[0])
 
         # Compute the conjugate of the observable via the stabilizer engine
         new_observable = self.stab_engine.backpropagate(
@@ -129,7 +129,7 @@ class HybridSurrogate:
 
         # mpo is created through the TN engine, and expectation value is computed via the TN engine as well.
         mpo = self.tn_engine.pauli_mpo(new_observable)
-        return self.tn_engine.expval(state = self.mps, operator = mpo), partitions
+        return self.tn_engine.expval(state_circuit = self.mps, operator = mpo), partitions
 
     def _conjugate_generator(self, gate, clifford_circuit, k):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""

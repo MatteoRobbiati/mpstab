@@ -29,15 +29,15 @@ class TensorNetworkEngine(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def expval(self,state: Any, operator: Any):
+    def expval(self,state_circuit: Any, operator: Any):
         """
-        Compute the expectation value of `operator` on `state`.
-        The types of `state` and `operator` depend on the engine's internal representations.
+        Compute the expectation value of `operator` on `state_circuit`.
+        The types of `state_circuit` and `operator` depend on the engine's internal representations.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def pauli_rot(self, state: Any, generator: str, angle: float):
+    def pauli_rot(self, state_circuit: Any, generator: str, angle: float):
         """
         Apply a Pauli rotation specified by `generator` and `angle` to the MPS.
         """
