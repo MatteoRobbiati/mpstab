@@ -5,7 +5,7 @@ from utils import obs_string_to_qibo_hamiltonian
 
 from mpstab.backends.stabilizers.native import NativeStabilizersEngine
 from mpstab.backends.stabilizers.stim import StimEngine
-from mpstab.evolutors.models import HybridSurrogate
+from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
 
 set_backend("numpy")
@@ -16,7 +16,7 @@ def test_stab_interfaces_vs_qibo(stab_engine):
     nqubits = 5
 
     ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
-    hs = HybridSurrogate(ansatz=ans)
+    hs = HSMPO(ansatz=ans)
     # Set the native stabilizers engine
 
     obs = "Z" * nqubits

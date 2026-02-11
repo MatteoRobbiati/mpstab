@@ -7,16 +7,14 @@ from qibo import Circuit
 
 from mpstab.backends.stabilizers.abstract import StabilizersEngine
 from mpstab.backends.stabilizers.stim import StimEngine
-from mpstab.evolutors.stabilizer import tableaus
-from mpstab.evolutors.stabilizer.pauli_string import Pauli
 from mpstab.evolutors.tensor_network.circuit_mps import CircuitMPS
 from mpstab.evolutors.tensor_network.operators.observables import PauliMPO
-from mpstab.evolutors.utils import gate2generator, gate2tableau
+from mpstab.evolutors.utils import gate2generator
 from mpstab.models.ansatze import Ansatz
 
 
 @dataclass
-class HybridSurrogate:
+class HSMPO:
     """
     Construct an hybrid stabilizer MPO surrogate of a given quantum circuit.
 

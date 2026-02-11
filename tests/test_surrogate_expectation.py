@@ -10,9 +10,8 @@ from utils import (
     set_rng_seed,
 )
 
-from mpstab.backends.stabilizers.native import NativeStabilizersEngine
 from mpstab.backends.stabilizers.stim import StimEngine
-from mpstab.evolutors.models import HybridSurrogate
+from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient, TranspiledAnsatz
 
 set_backend("numpy")
@@ -29,7 +28,7 @@ def test_expectation_matches_qibo(observable):
 
     ansatz = TranspiledAnsatz(original_circuit=circ)
 
-    hs = HybridSurrogate(ansatz)
+    hs = HSMPO(ansatz)
     hs.set_backend(stab_engine=StimEngine())
     exp_hybrid = hs.expectation(observable)
 
@@ -46,7 +45,7 @@ def test_expectation_from_partition_with_qubit_scaling():
 
     for nqubits in [4, 8, 12]:
         ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
-        hs = HybridSurrogate(ansatz=ans)
+        hs = HSMPO(ansatz=ans)
         initial_time = time.time()
         hs.expectation_from_partition(
             observable="Z" * nqubits,
@@ -65,7 +64,7 @@ def test_replacement_methods(method):
     obs = "Z" * nqubits
 
     ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
-    hs = HybridSurrogate(ansatz=ans, max_bond_dimension=DEFAULT_MAX_BD)
+    hs = HSMPO(ansatz=ans, max_bond_dimension=DEFAULT_MAX_BD)
     no_repl_expval = hs.expectation(observable=obs)
     repl_expval = hs.expectation_from_partition(
         observable=obs,

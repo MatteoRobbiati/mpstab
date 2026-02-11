@@ -366,7 +366,7 @@ class FloquetAnsatz(Ansatz):
         return (magic_gates, clifford_only_circuit), full_circuit
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CircuitAnsatz(Ansatz):
     """
     A simple wrapper that converts a Qibo Circuit into an Ansatz object.
@@ -375,20 +375,14 @@ class CircuitAnsatz(Ansatz):
         input_circuit (Circuit): The Qibo circuit to wrap.
     """
 
-    circuit: Circuit
+    qibo_circuit: Circuit
     # We set nqubits as init=False because we derive it from input_circuit
     nqubits: int = field(init=False)
 
     def __post_init__(self):
-        # 1. Derive nqubits from the provided circuit
-        self.nqubits = self.circuit.nqubits
-
-        # 2. Initialize the parent Ansatz (sets up noise attributes, etc.)
+        self.nqubits = self.qibo_circuit.nqubits
         super().__post_init__()
-
-        # 3. Assign the input circuit to the internal _circuit attribute
-        # We use deepcopy to avoid side effects on the original circuit object
-        self._circuit = deepcopy(self.circuit)
+        self._circuit = deepcopy(self.qibo_circuit)
 
     @property
     def circuit(self):
