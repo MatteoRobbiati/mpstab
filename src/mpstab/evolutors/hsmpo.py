@@ -5,16 +5,16 @@ from dataclasses import dataclass
 import numpy as np
 from qibo import Circuit
 
-from mpstab.evolutors.stabilizer import tableaus
-from mpstab.evolutors.stabilizer.pauli_string import Pauli
+from mpstab.backends.stabilizers.abstract import StabilizersEngine
+from mpstab.backends.stabilizers.stim import StimEngine
 from mpstab.evolutors.tensor_network.circuit_mps import CircuitMPS
 from mpstab.evolutors.tensor_network.operators.observables import PauliMPO
-from mpstab.evolutors.utils import gate2generator, gate2tableau
+from mpstab.evolutors.utils import gate2generator
 from mpstab.models.ansatze import Ansatz
 
 
 @dataclass
-class HybridSurrogate:
+class HSMPO:
     """
     Construct an hybrid stabilizer MPO surrogate of a given quantum circuit.
 
@@ -36,6 +36,10 @@ class HybridSurrogate:
 
         # Add the initial state, which is |0> by default
         self._init_tn(self.max_bond_dimension)
+
+        # Initialize engines
+        # Default stabilizers engine is Stim
+        self.set_engines()
 
     def _init_tn(self, max_bond_dimension: int | None = None):
         """
@@ -112,12 +116,14 @@ class HybridSurrogate:
 
         # check the stab layers, might be wrong
         for k, magic_gate in magic_gates:
-
-            generator = self._conjugate_generator(magic_gate, clifford_circuit, k)
+            clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
+            generator = self._conjugate_generator(magic_gate, clifford_subcircuit)
             self.mps.pauli_rot(generator, magic_gate.parameters[0])
 
         # Compute the conjugate of the observable
-        new_observable = self.backpropagate_pauli(observable, clifford_circuit)
+        new_observable = self.stab_engine.backpropagate(
+            observable=observable, clifford_circuit=clifford_circuit
+        )
 
         # Collect partitions into a dictionary in case we want to return it
         if return_partitions:
@@ -131,7 +137,7 @@ class HybridSurrogate:
 
         return self.mps.expval(PauliMPO(new_observable)), partitions
 
-    def _conjugate_generator(self, gate, clifford_circuit, k):
+    def _conjugate_generator(self, gate, clifford_circuit):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
 
         if gate.name not in ["rx", "ry", "rz"]:
@@ -143,37 +149,33 @@ class HybridSurrogate:
                 for q in range(self.nqubits)
             ]
         )
-        return self.backpropagate_pauli(generator, clifford_circuit, k)
+        return self.stab_engine.backpropagate(generator, clifford_circuit)
 
-    def backpropagate_pauli(
-        self, observable: str, stabilizer_circuit: Circuit, k: int = None
-    ):
+    def set_engines(self, stab_engine: StabilizersEngine = None):
         """
-        Process a given Pauli string applying a `stabilizer_circuit` in Heisenberg picture.
-        """
-        # Construct the propagator and apply the inverse of the circuit gate by gate
-        propagator = Pauli(observable)
+        Set stabilizers evolution engine.
 
-        # Cut the circuit queue to include only the appropriate clifford gates
+        args:
+            stab_engine (StabilizerEngine): it can be StimEngine or NativeStabilizerEngine.
+                Each engine is an object in mpstab and we expect here `stab_engine` to be
+                initialized.
+        """
+        if stab_engine is None:
+            stab_engine = StimEngine()
+
+        if not isinstance(stab_engine, StabilizersEngine):
+            raise ValueError(f"Provided engine {stab_engine} is not supported.")
+
+        self.stab_engine = stab_engine
+
+    def _clifford_subcircuit(self, clifford_circuit: Circuit, k: int = 0) -> Circuit:
+        """Return a sub-circuit of a given Clifford circuit, cut at index `k`."""
         cut_queue = (
-            stabilizer_circuit.queue[:k] if k is not None else stabilizer_circuit.queue
+            clifford_circuit.queue[:k] if k is not None else clifford_circuit.queue
         )
 
-        for gate in reversed(cut_queue):
+        clifford_subcircuit = Circuit(clifford_circuit.nqubits)
+        for gate in cut_queue:
+            clifford_subcircuit.add(gate)
 
-            # Invert the circuit
-            gate = gate.dagger()
-            if len(gate.parameters) != 0:
-                # This is working for one-parameters gates right now
-                angle = gate.parameters[0]
-                propagator.apply(
-                    getattr(tableaus, gate2tableau[gate.name])(
-                        *gate.qubits, angle=angle
-                    )
-                )
-            else:
-                propagator.apply(
-                    getattr(tableaus, gate2tableau[gate.name])(*gate.qubits)
-                )
-
-        return propagator
+        return clifford_subcircuit

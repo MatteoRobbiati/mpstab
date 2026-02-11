@@ -19,7 +19,7 @@ def main() -> None:
     parser.add_argument(
         "--backend",
         type=str,
-        choices=["mpstab", "numpy", "qibojit", "qibotn"],
+        choices=["mpstab", "numpy", "qibojit", "quimb", "stim"],
         required=True,
         help="Execution backend",
     )

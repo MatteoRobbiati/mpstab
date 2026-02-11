@@ -38,7 +38,7 @@ def run_once(
     circuit = generate_partitionated_circuit(
         nqubits=nqubits,
         nlayers=nlayers,
-        magic_fraction=replacement_probability,
+        replacement_probability=replacement_probability,
     )
 
     # Deterministic parameters
@@ -56,7 +56,6 @@ def run_once(
         backend=backend,
         max_bond_dim=max_bond_dim,
         initial_state=initial_state,
-        replacement_probability=replacement_probability,
         backend_obj=backend_obj,
     )
 

@@ -6,12 +6,13 @@ from qibo import Circuit, gates, set_backend
 from utils import (
     DEFAULT_MAX_BD,
     DEFAULT_REPLACEMENT_PROBABILITY,
-    obs_string_to_qibo_hamiltonian,
+    expectation_with_qibo,
     set_rng_seed,
 )
 
-from mpstab.evolutors.models import HybridSurrogate
-from mpstab.models.ansatze import HardwareEfficient, TranspiledAnsatz
+from mpstab.backends.stabilizers.stim import StimEngine
+from mpstab.evolutors.hsmpo import HSMPO
+from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
 set_backend("numpy")
 set_rng_seed()
@@ -25,15 +26,16 @@ def test_expectation_matches_qibo(observable):
     circ.add(gates.RX(2, theta=0.3))
     circ.add(gates.RY(1, theta=0.5))
 
-    ansatz = TranspiledAnsatz(original_circuit=circ)
+    ansatz = CircuitAnsatz(qibo_circuit=circ)
 
-    hs = HybridSurrogate(ansatz)
+    hs = HSMPO(ansatz)
+    hs.set_engines(stab_engine=StimEngine())
     exp_hybrid = hs.expectation(observable)
 
-    # Exact expval from qibo
-    state = circ().state()
-    ham = obs_string_to_qibo_hamiltonian(observable)
-    exp_qibo = ham.expectation(state)
+    exp_qibo = expectation_with_qibo(
+        mpstab_ansatz=ansatz,
+        observable_str=observable,
+    )
 
     assert np.allclose(exp_hybrid, exp_qibo, atol=1e-6)
 
@@ -43,7 +45,7 @@ def test_expectation_from_partition_with_qubit_scaling():
 
     for nqubits in [4, 8, 12]:
         ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
-        hs = HybridSurrogate(ansatz=ans)
+        hs = HSMPO(ansatz=ans)
         initial_time = time.time()
         hs.expectation_from_partition(
             observable="Z" * nqubits,
@@ -62,7 +64,7 @@ def test_replacement_methods(method):
     obs = "Z" * nqubits
 
     ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
-    hs = HybridSurrogate(ansatz=ans, max_bond_dimension=DEFAULT_MAX_BD)
+    hs = HSMPO(ansatz=ans, max_bond_dimension=DEFAULT_MAX_BD)
     no_repl_expval = hs.expectation(observable=obs)
     repl_expval = hs.expectation_from_partition(
         observable=obs,

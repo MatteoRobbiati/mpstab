@@ -8,7 +8,7 @@ from qibo import Circuit, get_backend, hamiltonians, symbols
 from qibo.noise import NoiseModel
 from scipy.optimize import curve_fit
 
-from mpstab.evolutors.models import HybridSurrogate
+from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import Ansatz
 
 
@@ -49,7 +49,7 @@ def TNCDR(
 
     for i in tqdm.tqdm(range(ncircuits)):
         # Construct the hybrid surrogate
-        evo = HybridSurrogate(
+        evo = HSMPO(
             ansatz=ansatz,
             initial_state=initial_state,
             max_bond_dimension=max_bond_dimension,

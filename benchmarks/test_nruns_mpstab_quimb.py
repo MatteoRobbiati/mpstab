@@ -16,7 +16,7 @@ def load_params(folder: str, nruns: int):
 def test_run_experiment_mpstab_vs_quimb():
     seed = 123
     nqubits = 4
-    nlayers = 2
+    nlayers = 6
     nruns = 3
     replacement_probability = 0.5
     max_bond_dim = 16
