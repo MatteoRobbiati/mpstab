@@ -11,7 +11,7 @@ from qibo import Circuit, gates
 from qibo.backends import get_backend, set_backend
 from quimb import pauli
 
-from mpstab.evolutors.models import HybridSurrogate
+from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
 from mpstab.models.utils import obs_string_to_qibo_hamiltonian
 
@@ -120,7 +120,7 @@ def execute_benchmark_circuit(
         )
         ansatz.circuit = circuit
 
-        evolutor = HybridSurrogate(
+        evolutor = HSMPO(
             ansatz=ansatz,
             max_bond_dimension=max_bond_dim,
             initial_state=initial_state,
@@ -237,16 +237,17 @@ def execute_benchmark_circuit(
             full_circuit, gate_opts={"max_bond": max_bond_dim}
         ).psi
 
-        non_i_ops = {i: op.upper() for i, op in enumerate(observable) 
-                     if op.upper() != 'I'}
-    
+        non_i_ops = {
+            i: op.upper() for i, op in enumerate(observable) if op.upper() != "I"
+        }
+
         psi_op = psi_ket.copy()
-        
+
         for site, label in non_i_ops.items():
             psi_op.gate_(pauli(label), site)
-            
-        expectation = (psi_ket.H & psi_op).contract(all, optimize='auto-hq').real
-        
+
+        expectation = (psi_ket.H & psi_op).contract(all, optimize="auto-hq").real
+
         elapsed_time = time.time() - start_time
         return float(expectation), elapsed_time, None
 
