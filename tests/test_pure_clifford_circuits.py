@@ -3,7 +3,7 @@ import pytest
 from utils import DEFAULT_ATOL, expectation_with_qibo, ghz_circuit
 
 from mpstab.evolutors.models import HybridSurrogate
-from mpstab.models.ansatze import TranspiledAnsatz
+from mpstab.models.ansatze import CircuitAnsatz, TranspiledAnsatz
 
 
 @pytest.mark.parametrize("nqubits", [5, 8, 11])
@@ -12,7 +12,7 @@ def test_ghz(nqubits):
     obs_str = "Z" * nqubits
 
     ghz_circ = ghz_circuit(nqubits)
-    ans = TranspiledAnsatz(original_circuit=ghz_circ)
+    ans = CircuitAnsatz(circuit=ghz_circ)
     hs = HybridSurrogate(ansatz=ans)
 
     exp = hs.expectation(observable=obs_str)
