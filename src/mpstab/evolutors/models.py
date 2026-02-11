@@ -6,8 +6,9 @@ from qibo import Circuit
 
 from mpstab.backends.stabilizers.abstract import StabilizersEngine
 from mpstab.backends.stabilizers.stim import StimEngine
-from mpstab.backends.tensor_networks.abstract import TensorNetworkBackend
-from mpstab.backends.tensor_networks.native import NativeTensorNetworkBackend
+from mpstab.backends.tensor_networks.abstract import TensorNetworkEngine
+from mpstab.backends.tensor_networks.native import NativeTensorNetworkEngine
+from mpstab.backends.tensor_networks.quimb import QuimbEngine
 from mpstab.evolutors.stabilizer import tableaus
 from mpstab.evolutors.stabilizer.pauli_string import Pauli
 from mpstab.evolutors.utils import gate2generator, gate2tableau
@@ -19,7 +20,7 @@ class HybridSurrogate:
     """
     Construct an hybrid stabilizer MPO surrogate of a given quantum circuit.
 
-    The tensor-network part is now backend-pluggable via the TensorNetworkBackend API.
+    The tensor-network part is now engine-pluggable via the TensorNetworkEngine API.
     """
 
     ansatz: Ansatz
@@ -31,9 +32,9 @@ class HybridSurrogate:
         if self.initial_state is None:
             self.initial_state = Circuit(self.ansatz.nqubits)
 
-        # Default backends will be set here (stabilizers + tensor-network)
+        # Default engines will be set here (stabilizers + tensor-network)
         # and TN will be initialised by _init_tn.
-        self.set_backend()
+        self.set_engine()
 
         # Add the initial state, which is |0> by default
         self._init_tn(self.max_bond_dimension)
@@ -44,7 +45,7 @@ class HybridSurrogate:
         by the initial_state circuit.
 
         The code still builds the per-qubit amplitudes from the qibo Circuit as
-        before, but the actual MPS object is created through the TN backend.
+        before, but the actual MPS object is created through the TN engine.
 
         Passing both amplitudes for native engine and and full initial circuit for quimb.
         """
@@ -64,7 +65,7 @@ class HybridSurrogate:
             # Add the initial state tensor (single-qubit amplitude vector)
             amplitudes.append(light_circ().state())
 
-        self.mps = self.tn_backend.create_mps(
+        self.mps = self.tn_engine.build_circuit_mps(
             n=self.nqubits, 
             initial_state_amplitudes=np.array(amplitudes),
             initial_state_circuit=self.initial_state, 
@@ -109,7 +110,7 @@ class HybridSurrogate:
         for k, magic_gate in magic_gates:
 
             generator = self._conjugate_generator(magic_gate, clifford_circuit, k)
-            self.mps.pauli_rot(generator, magic_gate.parameters[0])
+            self.tn_engine.pauli_rot(state=self.mps, generator=generator, angle=magic_gate.parameters[0])
 
         # Compute the conjugate of the observable via the stabilizer engine
         new_observable = self.stab_engine.backpropagate(
@@ -126,9 +127,9 @@ class HybridSurrogate:
         else:
             partitions = None
 
-        # mpo is created through the TN backend, and expectation value is computed via the TN backend as well.
-        mpo = self.tn_backend.pauli_mpo(new_observable)
-        return self.tn_backend.expval(state = self.mps, operator = mpo), partitions
+        # mpo is created through the TN engine, and expectation value is computed via the TN engine as well.
+        mpo = self.tn_engine.pauli_mpo(new_observable)
+        return self.tn_engine.expval(state = self.mps, operator = mpo), partitions
 
     def _conjugate_generator(self, gate, clifford_circuit, k):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
@@ -144,16 +145,16 @@ class HybridSurrogate:
         )
         return self.backpropagate_pauli(generator, clifford_circuit, k)
 
-    def set_backend(
+    def set_engine(
         self,
         stab_engine: StabilizersEngine | None = None,
-        tn_backend: TensorNetworkBackend | None = None,
+        tn_engine: TensorNetworkEngine | None = None,
     ):
         """
-        Set both stabilizers and tensor-network backends.
+        Set both stabilizers and tensor-network engines.
 
         - stab_engine: instance of StabilizersEngine (if None, StimEngine is used)
-        - tn_backend: instance of TensorNetworkBackend (if None, NativeTensorNetworkBackend is used)
+        - tn_engine: instance of TensorNetworkEngine (if None, NativeTensorNetworkEngine is used)
         """
 
         # ---- stabilizers engine (existing behaviour) ----
@@ -165,11 +166,11 @@ class HybridSurrogate:
 
         self.stab_engine = stab_engine
 
-        # ---- tensor-network backend (new) ----
-        if tn_backend is None:
-            tn_backend = NativeTensorNetworkBackend()
+        # ---- tensor-network engine (new) ----
+        if tn_engine is None:
+            tn_engine = QuimbEngine()
 
-        if not isinstance(tn_backend, TensorNetworkBackend):
-            raise ValueError(f"Provided tensor-network backend {tn_backend} is not supported.")
+        if not isinstance(tn_engine, TensorNetworkEngine):
+            raise ValueError(f"Provided tensor-network engine {tn_engine} is not supported.")
 
-        self.tn_backend = tn_backend
+        self.tn_engine = tn_engine

@@ -1,18 +1,18 @@
 from __future__ import annotations
 from typing import Any
 
-from mpstab.backends.tensor_networks.abstract import TensorNetworkBackend
+from mpstab.backends.tensor_networks.abstract import TensorNetworkEngine
 from mpstab.evolutors.tensor_network.circuit_mps import CircuitMPS
 from mpstab.evolutors.tensor_network.operators.observables import PauliMPO
 
 
-class NativeTensorNetworkBackend(TensorNetworkBackend):
+class NativeTensorNetworkEngine(TensorNetworkEngine):
     """
     Thin adapter that exposes the minimal API required by HybridSurrogate
     while reusing the existing evolutors.tensor_network implementation.
     """
 
-    def create_mps(self, n: int, initial_state_amplitudes: Any, initial_state_circuit: Any, max_bond_dimension: int | None = None):
+    def build_circuit_mps(self, n: int, initial_state_amplitudes: Any, initial_state_circuit: Any, max_bond_dimension: int | None = None):
         """
         Create a CircuitMPS initialised with `initial_state`.
         `initial_state` is passed as-is to CircuitMPS (the caller creates the
@@ -27,3 +27,8 @@ class NativeTensorNetworkBackend(TensorNetworkBackend):
     def expval(self, state: CircuitMPS, operator: PauliMPO):
         """Compute the expectation value of `operator` on `state`."""
         return state.expval(operator)
+    
+    def pauli_rot(self, state: CircuitMPS, generator: str, angle: float):
+        """Apply a Pauli rotation specified by `generator` and `angle` to the MPS."""
+        state.pauli_rot(generator, angle)
+        

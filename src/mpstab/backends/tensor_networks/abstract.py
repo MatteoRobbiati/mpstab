@@ -1,22 +1,22 @@
-"""Abstract API for tensor-network backends."""
+"""Abstract API for tensor-network engines."""
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
 
-class TensorNetworkBackend(ABC):
+class TensorNetworkEngine(ABC):
     """
-    Abstract interface that a tensor-network backend must implement for mpstab.
+    Abstract interface that a tensor-network engine must implement for mpstab.
 
         """
 
     @abstractmethod
-    def create_mps(self, n: int, initial_state_amplitudes: Any, initial_state_circuit: Any, max_bond_dimension: int | None = None):
+    def build_circuit_mps(self, n: int, initial_state_amplitudes: Any, initial_state_circuit: Any, max_bond_dimension: int | None = None):
         """
         Create and return an MPS-like object initialised to `initial_state`.
         - n: number of qubits
         - initial_state_amplitudes: array-like of single-site amplitudes
-        - initial_state_circuit: qibo circuit to be converted to quimb in backend
+        - initial_state_circuit: qibo circuit to be converted to quimb in engine
         - max_bond_dimension: optional truncation parameter
         """
         raise NotImplementedError
@@ -29,10 +29,16 @@ class TensorNetworkBackend(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def expval(state: Any, operator: Any):
+    def expval(self,state: Any, operator: Any):
         """
         Compute the expectation value of `operator` on `state`.
-        The types of `state` and `operator` depend on the backend's internal representations.
+        The types of `state` and `operator` depend on the engine's internal representations.
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def pauli_rot(self, state: Any, generator: str, angle: float):
+        """
+        Apply a Pauli rotation specified by `generator` and `angle` to the MPS.
+        """
+        raise NotImplementedError
