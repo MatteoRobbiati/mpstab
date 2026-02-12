@@ -31,7 +31,7 @@ class HSMPO:
 
         # Default engines will be set here (stabilizers + tensor-network)
         # and TN will be initialised by _init_tn.
-        self.set_engine()
+        self.set_engines()
 
         # Add the initial state, which is |0> by default
         self._init_tn(self.max_bond_dimension)
@@ -143,7 +143,7 @@ class HSMPO:
         )
         return self.stab_engine.backpropagate(generator, clifford_circuit)
 
-    def set_engine(
+    def set_engines(
         self,
         stab_engine: StabilizersEngine | None = None,
         tn_engine: TensorNetworkEngine | None = None,

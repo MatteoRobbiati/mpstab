@@ -142,7 +142,7 @@ class QuimbEngine(TensorNetworkEngine):
         """
 
         state = state_circuit.psi
-        circuit_tn_dag = state.reindex({f'k{i}': f'b{i}' for i in range(state_circuit.nqubits)})
+        circuit_tn_dag = state.reindex({f'k{i}': f'b{i}' for i in range(state_circuit.N)})
         
         return (circuit_tn_dag.H & operator & state).contract(optimize='auto-hq').real
     
@@ -158,7 +158,7 @@ class QuimbEngine(TensorNetworkEngine):
         state_circuit.psi.gate_with_mpo_(
             rotation_mpo, 
             inplace=True, 
-            **state_circuit.gate_opts
+            max_bond=state_circuit.gate_opts['max_bond'],
         )
         
         return state_circuit
