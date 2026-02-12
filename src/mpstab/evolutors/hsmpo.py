@@ -1,4 +1,3 @@
-
 from dataclasses import dataclass
 
 import numpy as np
@@ -7,6 +6,7 @@ from qibo import Circuit
 from mpstab.backends.stabilizers.abstract import StabilizersEngine
 from mpstab.backends.stabilizers.stim import StimEngine
 from mpstab.backends.tensor_networks.abstract import TensorNetworkEngine
+from mpstab.backends.tensor_networks.native import NativeTensorNetworkEngine
 from mpstab.backends.tensor_networks.quimb import QuimbEngine
 from mpstab.evolutors.utils import gate2generator
 from mpstab.models.ansatze import Ansatz
@@ -63,10 +63,10 @@ class HSMPO:
             amplitudes.append(light_circ().state())
 
         self.mps = self.tn_engine.build_circuit_mps(
-            n=self.nqubits, 
+            n=self.nqubits,
             initial_state_amplitudes=np.array(amplitudes),
-            initial_state_circuit=self.initial_state, 
-            max_bond_dimension=max_bond_dimension
+            initial_state_circuit=self.initial_state,
+            max_bond_dimension=max_bond_dimension,
         )
 
     def expectation(self, observable: str) -> float:
@@ -76,7 +76,9 @@ class HSMPO:
         # Reset MPS to initial state
         self._init_tn(self.max_bond_dimension)
 
-        expval = self.expectation_from_partition(observable, replacement_probability=0.0)[0]
+        expval = self.expectation_from_partition(
+            observable, replacement_probability=0.0
+        )[0]
 
         return expval
 
@@ -108,7 +110,11 @@ class HSMPO:
 
             clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
             generator = self._conjugate_generator(magic_gate, clifford_subcircuit)
-            self.mps = self.tn_engine.pauli_rot(state_circuit=self.mps, generator=generator, angle=magic_gate.parameters[0])
+            self.mps = self.tn_engine.pauli_rot(
+                state_circuit=self.mps,
+                generator=generator,
+                angle=magic_gate.parameters[0],
+            )
 
         # Compute the conjugate of the observable via the stabilizer engine
         new_observable = self.stab_engine.backpropagate(
@@ -127,7 +133,7 @@ class HSMPO:
 
         # mpo is created through the TN engine, and expectation value is computed via the TN engine as well.
         mpo = self.tn_engine.pauli_mpo(new_observable)
-        return self.tn_engine.expval(state_circuit = self.mps, operator = mpo), partitions
+        return self.tn_engine.expval(state_circuit=self.mps, operator=mpo), partitions
 
     def _conjugate_generator(self, gate, clifford_circuit):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
@@ -160,16 +166,20 @@ class HSMPO:
             stab_engine = StimEngine()
 
         if not isinstance(stab_engine, StabilizersEngine):
-            raise ValueError(f"Provided stabilizers engine {stab_engine} is not supported.")
+            raise ValueError(
+                f"Provided stabilizers engine {stab_engine} is not supported."
+            )
 
         self.stab_engine = stab_engine
 
-                # ---- tensor-network engine (new) ----
+        # ---- tensor-network engine (new) ----
         if tn_engine is None:
-            tn_engine = QuimbEngine()
+            tn_engine = NativeTensorNetworkEngine()
 
         if not isinstance(tn_engine, TensorNetworkEngine):
-            raise ValueError(f"Provided tensor-network engine {tn_engine} is not supported.")
+            raise ValueError(
+                f"Provided tensor-network engine {tn_engine} is not supported."
+            )
 
         self.tn_engine = tn_engine
 
