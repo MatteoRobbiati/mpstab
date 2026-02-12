@@ -72,8 +72,6 @@ class HSMPO:
         """
         Compute the expectation value of an observable with respect to the full ansatz circuit (no partitioning).
         """
-        # Reset MPS to initial state
-        self._init_tn(self.max_bond_dimension)
 
         expval = self.expectation_from_partition(
             observable, replacement_probability=0.0
@@ -96,6 +94,9 @@ class HSMPO:
         Sample a lower-magic circuit from the ansatz, and compute its expectation value w.r.t. the observable.
         """
 
+        # Reset MPS to initial state
+        self._init_tn(self.max_bond_dimension)
+
         # Partitionate circuit
         (magic_gates, clifford_circuit), full_circuit = (
             self.ansatz.partitionate_circuit(
@@ -109,7 +110,8 @@ class HSMPO:
 
             clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
             generator = self._conjugate_generator(magic_gate, clifford_subcircuit)
-            self.mps = self.tn_engine.pauli_rot(
+
+            self.tn_engine.pauli_rot(
                 state_circuit=self.mps,
                 generator=generator,
                 angle=magic_gate.parameters[0],
@@ -181,6 +183,7 @@ class HSMPO:
             )
 
         self.tn_engine = tn_engine
+        self._init_tn(max_bond_dimension=self.max_bond_dimension)
 
     def _clifford_subcircuit(self, clifford_circuit: Circuit, k: int = 0) -> Circuit:
         """Return a sub-circuit of a given Clifford circuit, cut at index `k`."""

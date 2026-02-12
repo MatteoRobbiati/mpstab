@@ -28,6 +28,7 @@ def test_stab_interfaces_vs_qibo(stab_engine, tn_engine):
         stab_engine=stab_engine(),
         tn_engine=tn_engine(),
     )
+
     exp_mpstab = hs.expectation(obs)
 
     exp_qibo = expectation_with_qibo(

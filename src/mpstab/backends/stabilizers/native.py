@@ -43,4 +43,11 @@ class NativeStabilizersEngine(StabilizersEngine):
                 # This follows your logic: propagator.apply(tableau_instance)
                 propagator.apply(tab_obj)
 
+        # TODO: cosa sta succedendo?????????? !!!!!! GIULIO AIUTACI
+        # TODO: il segno crediamo sia importante :') (By Teo and Tia)\
+        # TODO: eppure tutto funziona LOL
+        # TODO: cosa succede se facciamo somme di osservabili?
+        if propagator.to_string()[0] not in ["I", "X", "Y", "Z"]:
+            return propagator.to_string()[1:]
+
         return propagator.to_string()

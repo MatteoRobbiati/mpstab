@@ -70,6 +70,6 @@ def test_replacement_methods(method):
         observable=obs,
         replacement_probability=DEFAULT_REPLACEMENT_PROBABILITY,
         replacement_method=method,
-    )
+    )[0]
 
     assert no_repl_expval != repl_expval
