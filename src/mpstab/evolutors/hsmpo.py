@@ -6,7 +6,6 @@ from qibo import Circuit
 from mpstab.backends.stabilizers.abstract import StabilizersEngine
 from mpstab.backends.stabilizers.stim import StimEngine
 from mpstab.backends.tensor_networks.abstract import TensorNetworkEngine
-from mpstab.backends.tensor_networks.native import NativeTensorNetworkEngine
 from mpstab.backends.tensor_networks.quimb import QuimbEngine
 from mpstab.evolutors.utils import gate2generator
 from mpstab.models.ansatze import Ansatz
@@ -174,7 +173,7 @@ class HSMPO:
 
         # ---- tensor-network engine (new) ----
         if tn_engine is None:
-            tn_engine = NativeTensorNetworkEngine()
+            tn_engine = QuimbEngine()
 
         if not isinstance(tn_engine, TensorNetworkEngine):
             raise ValueError(
