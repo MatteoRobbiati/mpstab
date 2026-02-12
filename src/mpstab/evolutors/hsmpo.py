@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Union
 
 import numpy as np
 from qibo import Circuit
@@ -8,7 +9,7 @@ from mpstab.backends.stabilizers.stim import StimEngine
 from mpstab.backends.tensor_networks.abstract import TensorNetworkEngine
 from mpstab.backends.tensor_networks.quimb import QuimbEngine
 from mpstab.evolutors.utils import gate2generator
-from mpstab.models.ansatze import Ansatz
+from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 
 
 @dataclass
@@ -19,11 +20,16 @@ class HSMPO:
     The tensor-network part is now engine-pluggable via the TensorNetworkEngine API.
     """
 
-    ansatz: Ansatz
+    ansatz: Union[Ansatz, Circuit]
     max_bond_dimension: int = None
     initial_state: Circuit = None
 
     def __post_init__(self):
+        # Wrap the qibo circuit with our ansatz in case a pure qibo
+        # circuit is provided
+        if isinstance(self.ansatz, Circuit):
+            self.ansatz = CircuitAnsatz(qibo_circuit=self.ansatz)
+
         # Initial state is zero by default
         if self.initial_state is None:
             self.initial_state = Circuit(self.ansatz.nqubits)
