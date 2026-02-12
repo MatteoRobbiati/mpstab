@@ -9,14 +9,12 @@ from mpstab.backends.stabilizers.stim import StimEngine
 from mpstab.backends.tensor_networks.abstract import TensorNetworkEngine
 from mpstab.backends.tensor_networks.native import NativeTensorNetworkEngine
 from mpstab.backends.tensor_networks.quimb import QuimbEngine
-from mpstab.evolutors.stabilizer import tableaus
-from mpstab.evolutors.stabilizer.pauli_string import Pauli
 from mpstab.evolutors.utils import gate2generator, gate2tableau
 from mpstab.models.ansatze import Ansatz
 
 
 @dataclass
-class HybridSurrogate:
+class HSMPO:
     """
     Construct an hybrid stabilizer MPO surrogate of a given quantum circuit.
 
@@ -109,7 +107,8 @@ class HybridSurrogate:
         # Apply pauli rotations (generated from dropped magic gates) on the MPS
         for k, magic_gate in magic_gates:
 
-            generator = self._conjugate_generator(magic_gate, clifford_circuit, k)
+            clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
+            generator = self._conjugate_generator(magic_gate, clifford_subcircuit)
             self.mps = self.tn_engine.pauli_rot(state_circuit=self.mps, generator=generator, angle=magic_gate.parameters[0])
 
         # Compute the conjugate of the observable via the stabilizer engine
@@ -131,7 +130,7 @@ class HybridSurrogate:
         mpo = self.tn_engine.pauli_mpo(new_observable)
         return self.tn_engine.expval(state_circuit = self.mps, operator = mpo), partitions
 
-    def _conjugate_generator(self, gate, clifford_circuit, k):
+    def _conjugate_generator(self, gate, clifford_circuit):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
 
         if gate.name not in ["rx", "ry", "rz"]:
@@ -143,7 +142,7 @@ class HybridSurrogate:
                 for q in range(self.nqubits)
             ]
         )
-        return self.backpropagate_pauli(generator, clifford_circuit, k)
+        return self.stab_engine.backpropagate(generator, clifford_circuit)
 
     def set_engine(
         self,
@@ -166,7 +165,7 @@ class HybridSurrogate:
 
         self.stab_engine = stab_engine
 
-        # ---- tensor-network engine (new) ----
+                # ---- tensor-network engine (new) ----
         if tn_engine is None:
             tn_engine = QuimbEngine()
 
@@ -174,3 +173,15 @@ class HybridSurrogate:
             raise ValueError(f"Provided tensor-network engine {tn_engine} is not supported.")
 
         self.tn_engine = tn_engine
+
+    def _clifford_subcircuit(self, clifford_circuit: Circuit, k: int = 0) -> Circuit:
+        """Return a sub-circuit of a given Clifford circuit, cut at index `k`."""
+        cut_queue = (
+            clifford_circuit.queue[:k] if k is not None else clifford_circuit.queue
+        )
+
+        clifford_subcircuit = Circuit(clifford_circuit.nqubits)
+        for gate in cut_queue:
+            clifford_subcircuit.add(gate)
+
+        return clifford_subcircuit

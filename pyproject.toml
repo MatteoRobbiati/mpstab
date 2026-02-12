@@ -6,17 +6,19 @@ build-backend = "poetry.core.masonry.api"
 name = "mpstab"
 version = "0.0.1"
 description = "Hybrid stabilizers - tensor network simulator for quantum circuits"
-authors = ["Matteo Robbiati", "Giulio Crognaletti", "Michele Grossi"]
+authors = ["Matteo Robbiati", "Giulio Crognaletti", "Mattia Robbiano", "Michele Grossi"]
 readme = "README.md"
-repository = "https://github.com/MatteoRobbiati/tncdr/"
+repository = "https://github.com/MatteoRobbiati/mpstab/"
 packages = [{ include = "mpstab", from = "src" }]
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.14"
+python = ">=3.11,<3.14"
 numpy = "^2.0.0"
 qibo = "^0.2.19"
 click = "^8.1.0"
 matplotlib = "^3.10.0"
+stim = "^1.15.0"
+quimb = "^1.12.1"
 
 [tool.poetry.group.docs]
 optional = true
@@ -34,6 +36,7 @@ optional = true
 [tool.poetry.group.dev.dependencies]
 ipython = "^7.34"
 pdbpp = "^0.10.3"
+poethepoet = "^0.24.0"
 
 [tool.poetry.group.tests]
 optional = true
@@ -43,12 +46,17 @@ pytest = "^7.2.1"
 pylint = "3.1.0"
 pytest-cov = "4.0.0"
 
+[tool.poetry.group.benchmark]
+optional = true
+
 [tool.poetry.group.benchmark.dependencies]
 pytest-benchmark = { version = "^4.0.0", extras = ["histogram"] }
 
 [tool.poe.tasks]
-bench = "pytest benchmarks/"
+# General test task - only hits the tests/ folder
 test = "pytest"
+# Specific benchmark task - explicitly points to benchmarks/
+bench = "pytest benchmarks/ --benchmark-warmup=on --benchmark-warmup-iterations=100000 --benchmark-disable-gc --benchmark-histogram=bench-hists/bench"
 lint = "pylint src/**/*.py -E"
 lint-warnings = "pylint src/**/*.py --exit-zero"
 docs = "make -C doc html"
@@ -56,18 +64,16 @@ docs-clean = "make -C doc clean"
 test-docs = "make -C doc doctest"
 
 [tool.pytest.ini_options]
-testpaths = ['tests/', 'benchmarks/']
-python_files = ['test_*.py', 'bench_*.py']
-python_classes = ['Test*', 'Benchmark*']
-python_functions = ['test_*', 'bench_*']
+# Only look inside the tests/ directory
+testpaths = ["tests"]
+# Only treat files starting with test_ as test files
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 addopts = [
-  "--benchmark-warmup=on",
-  "--benchmark-warmup-iterations=100000",
-  "--benchmark-disable-gc",
-  "--benchmark-histogram=bench-hists/bench",
-  '--cov=mpstab',
-  '--cov-append',
-  '--cov-report=xml',
-  '--cov-report=html',
-  '--durations=60',
+  "--cov=mpstab",
+  "--cov-append",
+  "--cov-report=xml",
+  "--cov-report=html",
+  "--durations=60",
 ]
