@@ -121,6 +121,7 @@ class HSMPO:
                 state_circuit=self.mps,
                 generator=generator,
                 angle=magic_gate.parameters[0],
+                max_bond_dimension = self.max_bond_dimension
             )
 
         # Compute the conjugate of the observable via the stabilizer engine
