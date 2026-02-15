@@ -5,7 +5,7 @@ from typing import Any
 from numpy import cos, sin
 from qibo.gates.abstract import ParametrizedGate
 from quimb.gates import I, X, Y, Z
-from quimb.tensor import CircuitMPS, MPO_identity, MPO_product_operator
+from quimb.tensor import CircuitMPS, MatrixProductState, MatrixProductOperator, MPO_identity, MPO_product_operator
 
 from mpstab.backends.tensor_networks.abstract import TensorNetworkEngine
 
@@ -91,8 +91,8 @@ def _qibo_circuit_to_quimb(nqubits, qibo_circ, **circuit_kwargs):
 
 def PauliExp(pauli_string, theta):
     """
-    Returns the MPO for exp(i * theta * P) where P is a Pauli string. The euler formula is used:
-    exp(i * theta * P) = cos(theta) * I + i * sin(theta) * P.
+    Returns the MPO for exp(-i * theta/2 * P) where P is a Pauli string. The euler formula is used:
+    exp(-i * theta/2 * P) = cos(theta/2) * I + i * sin(theta/2) * P.
     """
     L = len(pauli_string)
 
@@ -100,7 +100,7 @@ def PauliExp(pauli_string, theta):
 
     id_mpo = MPO_identity(L, phys_dim=2, dtype="complex128")
     pauli_mpo = MPO_product_operator(pauli_matrices)
-    rotation_mpo = (cos(theta) * id_mpo).add_MPO(1j * sin(theta) * pauli_mpo)
+    rotation_mpo = (cos(theta/2) * id_mpo).add_MPO(-1j * sin(theta/2) * pauli_mpo)
 
     return rotation_mpo
 
@@ -125,7 +125,7 @@ class QuimbEngine(TensorNetworkEngine):
         if initial_state_circuit is not None:
             return _qibo_circuit_to_quimb(
                 nqubits=n, qibo_circ=initial_state_circuit, max_bond=max_bond_dimension
-            )
+            ).psi
         else:
             raise NotImplementedError(
                 "Building a CircuitMPS from state amplitudes is not implemented in the QuimbEngine."
@@ -142,32 +142,28 @@ class QuimbEngine(TensorNetworkEngine):
 
         return pauli_mpo
 
-    def expval(self, state_circuit: CircuitMPS, operator: any):
+    def expval(self, state_circuit: MatrixProductState, operator: MatrixProductOperator):
         """
         Compute the expectation value of `operator` on `state_circuit`.
-        - state_circuit: CircuitMPS representing the state of the system
+        - state_circuit: MatrixProductState representing the state of the system
         - operator: MatrixProductOperator representing the observable whose expectation value we want to compute
         """
-
-        state = state_circuit.psi
-        circuit_tn_dag = state.reindex(
-            {f"k{i}": f"b{i}" for i in range(state_circuit.N)}
+        circuit_tn_dag = state_circuit.reindex(
+            {f"k{i}": f"b{i}" for i in range(state_circuit.L)}
         )
 
-        return (circuit_tn_dag.H & operator & state).contract(optimize="auto-hq").real
+        return (circuit_tn_dag.H & operator & state_circuit).contract(optimize="auto-hq")
 
-    def pauli_rot(
-        self, state_circuit: CircuitMPS, generator: str, angle: float
-    ) -> CircuitMPS:
+    def pauli_rot(self, state_circuit: MatrixProductState, generator: str, angle: float, max_bond_dimension: int):
         """
         Apply a Pauli string rotation MPO to a CircuitMPS and return the updated object.
         """
         rotation_mpo = PauliExp(generator, angle)
 
-        # Apply the MPO directly to the underlying MPS state.
-        # We use the circuit's default gate_opts (max_bond, cutoff, etc.)
-        state_circuit.psi.gate_with_mpo_(
+        state_circuit.gate_with_mpo(
             rotation_mpo,
             inplace=True,
-            max_bond=state_circuit.gate_opts["max_bond"],
+            max_bond = max_bond_dimension
         )
+
+
