@@ -37,7 +37,7 @@ class TensorNetworkEngine(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def pauli_rot(self, state_circuit: Any, generator: str, angle: float):
+    def pauli_rot(self, state_circuit: Any, generator: str, angle: float, max_bond_dimension: int):
         """
         Apply a Pauli rotation specified by `generator` and `angle` to the MPS.
         """

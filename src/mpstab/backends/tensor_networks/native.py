@@ -28,7 +28,7 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
         """Compute the expectation value of `operator` on `state`."""
         return state_circuit.expval(operator)
     
-    def pauli_rot(self, state_circuit: CircuitMPS, generator: str, angle: float):
+    def pauli_rot(self, state_circuit: CircuitMPS, generator: str, angle: float, max_bond_dimension: int):
         """Apply a Pauli rotation specified by `generator` and `angle` to the MPS."""
         return state_circuit.pauli_rot(generator, angle)
         
