@@ -1,3 +1,5 @@
+#TODO bisogna mettere i check a quimb e qibo
+
 import json
 import os
 import random
@@ -6,27 +8,74 @@ from typing import Any, Dict, List
 
 import numpy as np
 import scipy.stats as sp
-import stim
+
 from qibo import Circuit, gates
 from qibo.backends import get_backend, set_backend
+
 from quimb import pauli
+from qibo.gates.abstract import ParametrizedGate
+from quimb.tensor import CircuitMPS
+
 
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
 from mpstab.models.utils import obs_string_to_qibo_hamiltonian
+from mpstab.backends.tensor_networks.native import NativeTensorNetworkEngine
+from mpstab.backends.tensor_networks.quimb import QuimbEngine
+from mpstab.backends.stabilizers.native import NativeStabilizersEngine
+from mpstab.backends.stabilizers.stim import StimEngine
 
-SUPPORTED_BACKENDS = [
+
+SUPPORTED_BACKENDS  = [
     "mpstab",
-    "numpy",
-    "qibojit",
-    "quimb",
-    "stim",
+    "qibo",
+    "quimb"
 ]
 
+MPSTAB_PLATFORMS    = [
+    "quimb",
+    "stim",
+    "native_tn",
+    "native_stab"
+]
+QIBO_PLATFORMS  =   [
+"jax",
+"numpy",
+"qibojit",
+]
+QUIMB_PLATFORMS =   [
+"jax",
+"numpy",
+]
 
-# ---------------------------------------------------------------------
-# Circuit generation
-# ---------------------------------------------------------------------
+GATE_MAP = {
+    "h": "H",
+    "x": "X",
+    "y": "Y",
+    "z": "Z",
+    "s": "S",
+    "t": "T",
+    "rx": "RX",
+    "ry": "RY",
+    "rz": "RZ",
+    "u3": "U3",
+    "cx": "CX",
+    "cnot": "CNOT",
+    "cy": "CY",
+    "cz": "CZ",
+    "iswap": "ISWAP",
+    "swap": "SWAP",
+    "ccx": "CCX",
+    "ccy": "CCY",
+    "ccz": "CCZ",
+    "toffoli": "TOFFOLI",
+    "cswap": "CSWAP",
+    "fredkin": "FREDKIN",
+    "fsim": "fsim",
+    "measure": "measure",
+}
+
+
 def generate_partitionated_circuit(
     nqubits: int,
     nlayers: int,
@@ -42,89 +91,82 @@ def generate_partitionated_circuit(
     return part_circuit
 
 
-# ---------------------------------------------------------------------
-# Backend initialization
-# ---------------------------------------------------------------------
-def initialize_backend(
-    backend: str,
-    platform: str | None,
-    max_bond_dim: int | None,
-):
+def qibo_circuit_to_quimb(nqubits, qibo_circ, **circuit_kwargs):
     """
-    Strategy:
-    1. set_backend
-    2. get_backend
-    3. configure if qibotn
+    Convert a Qibo Circuit to a Quimb Circuit. Measurement gates are ignored. If are given gates not supported by Quimb, an error is raised.
+
+    Parameters
+    ----------
+    qibo_circ : qibo.models.circuit.Circuit
+        The circuit to convert.
+    quimb_circuit_type : type
+        The Quimb circuit class to use (Circuit, CircuitMPS, etc).
+    circuit_kwargs : dict
+        Extra arguments to pass to the Quimb circuit constructor.
+
+    Returns
+    -------
+    circ : quimb.tensor.circuit.Circuit
+        The converted circuit.
     """
 
-    if backend not in SUPPORTED_BACKENDS:
-        raise ValueError(
-            f"Backend {backend} not supported. " f"Choose among {SUPPORTED_BACKENDS}."
+    circ = CircuitMPS(nqubits, **circuit_kwargs)
+
+    for gate in qibo_circ.queue:
+        gate_name = getattr(gate, "name", None)
+        quimb_gate_name = GATE_MAP.get(gate_name, None)
+        if quimb_gate_name == "measure":
+            continue
+        if quimb_gate_name is None:
+            raise ValueError(f"Gate {gate_name} not supported in Quimb backend.")
+
+        params = getattr(gate, "parameters", ())
+        qubits = getattr(gate, "qubits", ())
+
+        is_parametrized = isinstance(gate, ParametrizedGate) and getattr(
+            gate, "trainable", True
         )
+        if is_parametrized:
+            circ.apply_gate(
+                quimb_gate_name, *params, *qubits, parametrized=is_parametrized
+            )
+        else:
+            circ.apply_gate(
+                quimb_gate_name,
+                *params,
+                *qubits,
+            )
 
-    # custom rules
-    if backend == "mpstab":
-        exec_backend = "numpy"
-    elif backend == "quimb":
-        exec_backend = "qibotn"
-        platform = "quimb"
-    elif backend == "stim":
-        # Stim creates its own simulation, use numpy for circuit construction
-        exec_backend = "numpy"
-    else:
-        exec_backend = backend
-
-    # 1. Set backend globally
-    set_backend(
-        backend=exec_backend,
-        platform=platform,
-    )
-
-    # 2. Retrieve backend object
-    backend_obj = get_backend()
-
-    # 3. Configure tensor‑network backend
-    # We will use it to do some translations, even if the actual simulation
-    # will be run using Quimb
-    if backend == "quimb":
-        backend_obj.setup_backend_specifics(
-            quimb_backend="jax",
-            contractions_optimizer="auto-hq",
-        )
-
-        if max_bond_dim is not None:
-            backend_obj.configure_tn_simulation(max_bond_dimension=max_bond_dim)
-
-    return backend_obj
+    return circ
 
 
-# ---------------------------------------------------------------------
-# Circuit execution
-# ---------------------------------------------------------------------
 def execute_benchmark_circuit(
     circuit: Circuit,
     observable: str,
     backend: str,
+    platform: str,
     max_bond_dim: int | None,
     initial_state: Circuit | None,
-    backend_obj,
 ) -> tuple[float, float, int | None]:
 
     start_time = time.time()
 
-    # ---- mpstab surrogate backend ----
     if backend == "mpstab":
-        ansatz = HardwareEfficient(
-            nqubits=circuit.nqubits,
-            nlayers=0,
-        )
-        ansatz.circuit = circuit
+
+        if platform[0] == "quimb" : tn_engine=QuimbEngine()
+        elif platform[0] == "native_tn" : tn_engine=NativeTensorNetworkEngine()
+        else: raise ValueError(f"Unknown TN engine: {platform[0]}")
+        if platform[1] == "stim" : stab_engine=StimEngine()
+        elif platform[1] == "native_stab" : stab_engine=NativeStabilizersEngine()
+        else: raise ValueError(f"Unknown stabilizer engine: {platform[1]}")
 
         evolutor = HSMPO(
-            ansatz=ansatz,
+            ansatz=circuit,
             max_bond_dimension=max_bond_dim,
             initial_state=initial_state,
         )
+
+        evolutor.set_engines(tn_engine=tn_engine, stab_engine=stab_engine)
 
         expval = evolutor.expectation(
             observable=observable,
@@ -139,134 +181,50 @@ def execute_benchmark_circuit(
         elapsed_time = time.time() - start_time
         return expval, elapsed_time, n_magic_gates
 
-    # ---- Build full circuit ----
+    # For both Quimb and Qibo we build full circuit manually
     full_circuit = Circuit(circuit.nqubits)
     if initial_state is not None:
         full_circuit += initial_state
     full_circuit += circuit
 
-    # ---- stim clifford backend ----
-    if backend == "stim":
-        # 1. Verify circuit is all Clifford (count magic gates)
-        n_magic_gates = 0
-        for g in full_circuit.queue:
-            if not g.clifford:
-                n_magic_gates += 1
-
-        if n_magic_gates > 0:
-            raise RuntimeError(
-                f"Backend 'stim' requires an all-Clifford circuit. "
-                f"Found {n_magic_gates} non-Clifford gates."
-            )
-
-        # 2. Convert to Stim circuit
-        stim_circuit = stim.Circuit()
-        for g in full_circuit.queue:
-            q_indices = g.qubits
-
-            # Helper to check rotation angles
-            def is_approx(val, target, atol=1e-5):
-                return np.isclose(
-                    val % (2 * np.pi), target % (2 * np.pi), atol=atol
-                ) or np.isclose(
-                    val % (2 * np.pi), (target % (2 * np.pi)) + 2 * np.pi, atol=atol
-                )
-
-            if g.name == "h":
-                stim_circuit.append("H", q_indices)
-            elif g.name == "x":
-                stim_circuit.append("X", q_indices)
-            elif g.name == "y":
-                stim_circuit.append("Y", q_indices)
-            elif g.name == "z":
-                stim_circuit.append("Z", q_indices)
-            elif g.name == "cx" or g.name == "cnot":
-                stim_circuit.append("CNOT", q_indices)
-            elif g.name == "cz":
-                stim_circuit.append("CZ", q_indices)
-            elif g.name == "swap":
-                stim_circuit.append("SWAP", q_indices)
-            elif g.name == "s":
-                stim_circuit.append("S", q_indices)
-            elif g.name == "sdg":
-                stim_circuit.append("S_DAG", q_indices)
-            elif g.name in ["rx", "ry", "rz"]:
-                # Handle Clifford rotations
-                theta = g.parameters[0]
-                axis = g.name[1].upper()  # X, Y, or Z
-
-                if is_approx(theta, 0):
-                    continue  # Identity
-                elif is_approx(theta, np.pi) or is_approx(theta, -np.pi):
-                    stim_circuit.append(axis, q_indices)
-                elif is_approx(theta, np.pi / 2):
-                    stim_circuit.append(f"SQRT_{axis}", q_indices)
-                elif is_approx(theta, -np.pi / 2):
-                    stim_circuit.append(f"SQRT_{axis}_DAG", q_indices)
-                else:
-                    raise ValueError(
-                        f"Gate {g} with angle {theta} is not a supported Clifford gate for Stim conversion."
-                    )
-            elif g.name == "id":
-                continue
-            else:
-                # Fallback for other gates or raise error
-                raise NotImplementedError(
-                    f"Gate {g.name} not implemented in Stim converter."
-                )
-
-        # 3. Simulate
-        sim = stim.TableauSimulator()
-        sim.do(stim_circuit)
-
-        # 4. Compute Expectation
-        # Stim expects Pauli string object.
-        # observable is like "ZX..." corresponding to qubits 0, 1, ...
-        # If the string length < nqubits, we might need to pad with I or raise error.
-        # Assuming observable string length matches nqubits as per generation logic.
-        pauli_string = stim.PauliString(observable)
-        expval = sim.peek_observable_expectation(pauli_string)
-
-        elapsed_time = time.time() - start_time
-        return float(expval), elapsed_time, n_magic_gates
-
-    # ---- qibotn tensor‑network backend ----
     if backend == "quimb":
 
-        psi_ket = backend_obj._qibo_circuit_to_quimb(
-            full_circuit, gate_opts={"max_bond": max_bond_dim}
+        psi_ket = qibo_circuit_to_quimb(
+            nqubits=full_circuit.nqubits,
+            qibo_circ=full_circuit, 
+            gate_opts={"max_bond": max_bond_dim}
         ).psi
 
-        non_i_ops = {
-            i: op.upper() for i, op in enumerate(observable) if op.upper() != "I"
-        }
-
+        non_i_ops = { i: op.upper() for i, op in enumerate(observable) if op.upper() != "I" }
+        
         psi_op = psi_ket.copy()
 
         for site, label in non_i_ops.items():
             psi_op.gate_(pauli(label), site)
 
-        expectation = (psi_ket.H & psi_op).contract(all, optimize="auto-hq").real
+        expectation = (psi_ket.H & psi_op).contract(optimize="auto-hq").real
 
         elapsed_time = time.time() - start_time
         return float(expectation), elapsed_time, None
 
-    # ---- Standard Qibo backends ----
-    result = full_circuit()
-    ham = obs_string_to_qibo_hamiltonian(
-        observable,
-        backend=backend_obj,
-    )
+        
+    if backend == "qibo":
 
-    expval = ham.expectation(result.state())
+        set_backend(backend=platform)
+        backend_obj = get_backend()
+        result = full_circuit()
 
-    elapsed_time = time.time() - start_time
-    return float(expval), elapsed_time, None
+        ham = obs_string_to_qibo_hamiltonian(
+            observable,
+            backend=backend_obj,
+        )
+
+        expval = ham.expectation(result.state())
+
+        elapsed_time = time.time() - start_time
+        return float(expval), elapsed_time, None
 
 
-# ---------------------------------------------------------------------
-# Experiment runner
-# ---------------------------------------------------------------------
 def run_experiment(
     backend: str,
     max_bond_dim: int | None,
@@ -276,28 +234,23 @@ def run_experiment(
     nruns: int = 10,
     rng_seed: int = 42,
     set_initial_state: bool = True,
-    platform: str | None = None,
+    platform: str | tuple | None = None,
 ) -> None:
 
-    # ✅ Backend initialized ONCE
-    backend_obj = initialize_backend(
-        backend=backend,
-        platform=platform,
-        max_bond_dim=max_bond_dim,
-    )
 
-    # 1. --- Defining the observable
+    # Defining the observable
     obs_str = "ZX" * (nqubits // 2)
-    if nqubits % 2:
-        obs_str += "Z"
+    if nqubits % 2: obs_str += "Z"
 
-    # 2. --- Constructing the output folder
+
+    # Constructing the output folder
     base_folder = (
         f"results/hdw_efficient_ansatz/"
         f"{nqubits}qubits_{nlayers}layers/"
         f"backend_{backend}_platform_{platform}/"
         f"bd_{max_bond_dim}_p_{replacement_probability}"
     )
+
     os.makedirs(base_folder, exist_ok=True)
 
     results: Dict[str, List[Any]] = {
@@ -307,15 +260,13 @@ def run_experiment(
         "magic_gates": [],
     }
 
-    # --- DRY RUN: first iteration is discarded
-    total_runs = nruns + 1
 
+    # Running simulations
+    total_runs = nruns + 1
     for run_idx in range(total_runs):
 
         np.random.seed(rng_seed + run_idx + 1)
         random.seed(rng_seed + run_idx + 1)
-        #        bkd = get_backend()
-        #        bkd.set_seed(rng_seed + run_idx + 1)
 
         if set_initial_state:
             initial_state = Circuit(nqubits)
@@ -327,14 +278,16 @@ def run_experiment(
         else:
             initial_state = None
 
-        # --- Generate a circuit where we replace magic gates with probablity `replacement_probability`
+
+        # Generate a circuit where we replace magic gates with probablity `replacement_probability`
         circuit = generate_partitionated_circuit(
             nqubits=nqubits,
             nlayers=nlayers,
             replacement_probability=replacement_probability,
         )
 
-        # --- Hydrate the rotations with new angles
+
+        # Hydrate the rotations with new angles
         magic_gates_info = []
         for i, gate in enumerate(circuit.queue):
             if not gate.clifford:
@@ -342,16 +295,18 @@ def run_experiment(
                 gate.parameters = (new_angle,)
                 magic_gates_info.append([new_angle, i])
 
+        # Execute benchmark from constructed circuit and parameters
         expval, elapsed_time, n_magic = execute_benchmark_circuit(
             circuit=circuit,
             observable=obs_str,
             backend=backend,
+            platform = platform,
             max_bond_dim=max_bond_dim,
-            initial_state=initial_state,
-            backend_obj=backend_obj,
-        )
+            initial_state=initial_state
+            )
 
-        # Skip first run (dry run)
+
+        # Skip first run
         if run_idx == 0:
             continue
 
@@ -366,6 +321,8 @@ def run_experiment(
         if n_magic is not None:
             results["magic_gates"].append(n_magic)
 
+
+    # Computing and saving statistics
     results["median_time"] = float(np.median(results["times"]))
     results["mad_time"] = float(sp.median_abs_deviation(results["times"]))
 
