@@ -152,7 +152,7 @@ class QuimbEngine(TensorNetworkEngine):
             {f"k{i}": f"b{i}" for i in range(state_circuit.L)}
         )
 
-        return (circuit_tn_dag.H & operator & state_circuit).contract(optimize="auto-hq")
+        return (circuit_tn_dag.H & operator & state_circuit).contract(optimize="auto-hq").real
 
     def pauli_rot(self, state_circuit: MatrixProductState, generator: str, angle: float, max_bond_dimension: int):
         """
