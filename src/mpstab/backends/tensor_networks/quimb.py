@@ -163,7 +163,8 @@ class QuimbEngine(TensorNetworkEngine):
         state_circuit.gate_with_mpo(
             rotation_mpo,
             inplace=True,
-            max_bond = max_bond_dimension
+            max_bond = max_bond_dimension,
+            optimize="auto-hq"
         )
 
 
