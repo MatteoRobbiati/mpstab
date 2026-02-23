@@ -2,6 +2,10 @@ import argparse
 
 from mpstab.analysis_scripts.utils import run_experiment
 
+def parse_platform(value):
+    if ',' in value:
+        return tuple(v.strip() for v in value.split(',') if v.strip())
+    return value.strip()
 
 def str2bool(v: str) -> bool:
     if isinstance(v, bool):
@@ -24,11 +28,12 @@ def main() -> None:
         help="Execution backend",
     )
 
+    
     parser.add_argument(
         "--platform",
-        type=str,
+        type=parse_platform, # Usa la funzione custom
         default=None,
-        help="Optional backend platform (e.g. cuda)",
+        help="Single string or comma-separated tuple (e.g. 'cuda' or 'cuda,cpu')",
     )
 
     parser.add_argument(
