@@ -3,7 +3,7 @@ import numpy as np
 from qibo import hamiltonians, set_backend, symbols
 from tqdm import tqdm
 
-from mpstab.evolutors.models import HybridSurrogate
+from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import FloquetAnsatz, HardwareEfficient, TranspiledAnsatz
 
 set_backend("numpy")
@@ -20,7 +20,7 @@ ans = FloquetAnsatz(
     theta=0.25 * np.pi,
 )
 
-hs = HybridSurrogate(ansatz=ans)
+hs = HSMPO(ansatz=ans)
 
 # ------------- construct hamiltonian -------------
 
@@ -40,7 +40,7 @@ obs, ham = generate_obs(nqubits)
 
 values = []
 for _ in tqdm(range(samples)):
-    # hs = HybridSurrogate(ansatz=ans)
+    # hs = HSMPO(ansatz=ans)
     exact_expval, partitions = hs.expectation_from_partition(
         replacement_probability=0.75,
         observable=obs,

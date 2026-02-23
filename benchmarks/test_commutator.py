@@ -2,7 +2,7 @@ import numpy as np
 import tqdm
 from qibo import Circuit, gates, set_backend
 
-from mpstab.evolutors.models import HybridSurrogate
+from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient, TranspiledAnsatz
 from mpstab.models.utils import obs_string_to_qibo_hamiltonian
 
@@ -16,8 +16,8 @@ nruns = 10
 def compute_commutator(c1: Circuit, c2: Circuit) -> float:
     """Compute difference of AB aqnd BA expvals."""
 
-    evo_12 = HybridSurrogate(ansatz=TranspiledAnsatz(original_circuit=c1 + c2))
-    evo_21 = HybridSurrogate(ansatz=TranspiledAnsatz(original_circuit=c2 + c1))
+    evo_12 = HSMPO(ansatz=TranspiledAnsatz(original_circuit=c1 + c2))
+    evo_21 = HSMPO(ansatz=TranspiledAnsatz(original_circuit=c2 + c1))
 
     expv_12 = evo_12.expectation(observable=obs_str)
     expv_21 = evo_21.expectation(observable=obs_str)
