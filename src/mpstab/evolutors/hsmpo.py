@@ -4,10 +4,12 @@ from typing import Union
 import numpy as np
 from qibo import Circuit
 
-from mpstab.backends.stabilizers.abstract import StabilizersEngine
-from mpstab.backends.stabilizers.stim import StimEngine
-from mpstab.backends.tensor_networks.abstract import TensorNetworkEngine
-from mpstab.backends.tensor_networks.quimb import QuimbEngine
+from mpstab.engines import (
+    QuimbEngine,
+    StabilizersEngine,
+    StimEngine,
+    TensorNetworkEngine,
+)
 from mpstab.evolutors.utils import gate2generator
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 
@@ -121,7 +123,7 @@ class HSMPO:
                 state_circuit=self.mps,
                 generator=generator,
                 angle=magic_gate.parameters[0],
-                max_bond_dimension = self.max_bond_dimension
+                max_bond_dimension=self.max_bond_dimension,
             )
 
         # Compute the conjugate of the observable via the stabilizer engine

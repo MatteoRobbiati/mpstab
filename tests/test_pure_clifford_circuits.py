@@ -8,8 +8,8 @@ from utils import (
     ghz_circuit,
 )
 
-from mpstab.backends.stabilizers.native import NativeStabilizersEngine
-from mpstab.backends.stabilizers.stim import StimEngine
+from mpstab.engines.stabilizers.native import NativeStabilizersEngine
+from mpstab.engines.stabilizers.stim import StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz
 
