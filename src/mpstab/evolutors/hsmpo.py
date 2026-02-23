@@ -3,6 +3,7 @@ from typing import Union
 
 import numpy as np
 from qibo import Circuit
+from qibo.hamiltonians import SymbolicHamiltonian
 
 from mpstab.engines import (
     QuimbEngine,
@@ -76,16 +77,26 @@ class HSMPO:
             max_bond_dimension=max_bond_dimension,
         )
 
-    def expectation(self, observable: str) -> float:
+    def expectation(self, observable: Union[str, SymbolicHamiltonian]) -> float:
         """
-        Compute the expectation value of an observable with respect to the full ansatz circuit (no partitioning).
+        Compute the expectation value of an observable with respect
+        to the full ansatz circuit (no partitioning).
         """
 
-        expval = self.expectation_from_partition(
-            observable, replacement_probability=0.0
-        )[0]
+        if isinstance(observable, SymbolicHamiltonian):
+            return self._expectation_from_symbolic_hamiltonian(
+                hamiltonian=observable,
+            )
 
-        return expval
+        elif isinstance(observable, str):
+            return self.expectation_from_partition(
+                observable, replacement_probability=0.0
+            )[0]
+
+        else:
+            raise ValueError(
+                f"Given observable of type {type(observable)}, but only list or Qibo's SymbolicHamiltonian are supported"
+            )
 
     @property
     def nqubits(self):
@@ -93,7 +104,7 @@ class HSMPO:
 
     def expectation_from_partition(
         self,
-        observable: str,
+        observable: Union[str, SymbolicHamiltonian],
         replacement_probability: float,
         replacement_method: str = "closest",
         return_partitions: bool = False,
@@ -205,3 +216,44 @@ class HSMPO:
             clifford_subcircuit.add(gate)
 
         return clifford_subcircuit
+
+    def _expectation_from_symbolic_hamiltonian(
+        self, hamiltonian: SymbolicHamiltonian
+    ) -> float:
+        """
+        Compute the expectation value of a Qibo SymbolicHamiltonian.
+
+        Args:
+            hamiltonian (SymbolicHamiltonian): a Qibo Hamiltonian object.
+
+        Returns:
+            float: The total expectation value, computed as sum of single contributions.
+        """
+
+        # Leveraging Qibo's features
+        coeffs, pauli_names, target_qubits = hamiltonian.simple_terms
+        constant = hamiltonian.constant.real
+
+        total_expval = constant
+
+        # Computing the contributions
+        for coeff, p_name, targets in zip(coeffs, pauli_names, target_qubits):
+
+            # For now mpstab requires padding with identities
+            full_pauli_list = ["I"] * hamiltonian.nqubits
+
+            # Fill in the specific Pauli operators at the correct positions
+            for i, qubit_idx in enumerate(targets):
+                full_pauli_list[qubit_idx] = p_name[i]
+
+            full_pauli_string = "".join(full_pauli_list)
+
+            # Contraction for the Hamiltonian term
+            # Each expectation is re-initialising the network to avoid errors
+            # TODO: check the performance
+            term_expval = self.expectation(full_pauli_string)
+
+            # Accumulate (handle complex coefficients if necessary, though usually real for H)
+            total_expval += coeff.real * term_expval
+
+        return total_expval
