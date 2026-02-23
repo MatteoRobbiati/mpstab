@@ -311,10 +311,16 @@ def run_experiment(
             continue
 
         # Save magic parameters for this run
-        np.save(
-            os.path.join(base_folder, f"magic_params_run_{run_idx}.npy"),
-            np.asarray(magic_gates_info).T[0],
-        )
+        if magic_gates_info == []:
+            np.save(
+                os.path.join(base_folder, f"magic_params_run_{run_idx}.npy"),
+                np.asarray(0),
+            )
+        else:
+            np.save(
+                os.path.join(base_folder, f"magic_params_run_{run_idx}.npy"),
+                np.asarray(magic_gates_info).T[0],
+            )
 
         results["times"].append(elapsed_time)
         results["expvals"].append(expval)
