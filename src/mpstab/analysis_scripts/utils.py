@@ -1,4 +1,4 @@
-#TODO bisogna mettere i check a quimb e qibo
+# TODO bisogna mettere i check a quimb e qibo
 
 import json
 import os
@@ -8,44 +8,31 @@ from typing import Any, Dict, List
 
 import numpy as np
 import scipy.stats as sp
-
 from qibo import Circuit, gates
 from qibo.backends import get_backend, set_backend
-
-from quimb import pauli
 from qibo.gates.abstract import ParametrizedGate
+from quimb import pauli
 from quimb.tensor import CircuitMPS
 
-
+from mpstab.engines.stabilizers.native import NativeStabilizersEngine
+from mpstab.engines.stabilizers.stim import StimEngine
+from mpstab.engines.tensor_networks.native import NativeTensorNetworkEngine
+from mpstab.engines.tensor_networks.quimb import QuimbEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
 from mpstab.models.utils import obs_string_to_qibo_hamiltonian
-from mpstab.backends.tensor_networks.native import NativeTensorNetworkEngine
-from mpstab.backends.tensor_networks.quimb import QuimbEngine
-from mpstab.backends.stabilizers.native import NativeStabilizersEngine
-from mpstab.backends.stabilizers.stim import StimEngine
 
+SUPPORTED_BACKENDS = ["mpstab", "qibo", "quimb"]
 
-SUPPORTED_BACKENDS  = [
-    "mpstab",
-    "qibo",
-    "quimb"
+MPSTAB_PLATFORMS = ["quimb", "stim", "native_tn", "native_stab"]
+QIBO_PLATFORMS = [
+    "jax",
+    "numpy",
+    "qibojit",
 ]
-
-MPSTAB_PLATFORMS    = [
-    "quimb",
-    "stim",
-    "native_tn",
-    "native_stab"
-]
-QIBO_PLATFORMS  =   [
-"jax",
-"numpy",
-"qibojit",
-]
-QUIMB_PLATFORMS =   [
-"jax",
-"numpy",
+QUIMB_PLATFORMS = [
+    "jax",
+    "numpy",
 ]
 
 GATE_MAP = {
@@ -153,12 +140,18 @@ def execute_benchmark_circuit(
 
     if backend == "mpstab":
 
-        if platform[0] == "quimb" : tn_engine=QuimbEngine()
-        elif platform[0] == "native_tn" : tn_engine=NativeTensorNetworkEngine()
-        else: raise ValueError(f"Unknown TN engine: {platform[0]}")
-        if platform[1] == "stim" : stab_engine=StimEngine()
-        elif platform[1] == "native_stab" : stab_engine=NativeStabilizersEngine()
-        else: raise ValueError(f"Unknown stabilizer engine: {platform[1]}")
+        if platform[0] == "quimb":
+            tn_engine = QuimbEngine()
+        elif platform[0] == "native_tn":
+            tn_engine = NativeTensorNetworkEngine()
+        else:
+            raise ValueError(f"Unknown TN engine: {platform[0]}")
+        if platform[1] == "stim":
+            stab_engine = StimEngine()
+        elif platform[1] == "native_stab":
+            stab_engine = NativeStabilizersEngine()
+        else:
+            raise ValueError(f"Unknown stabilizer engine: {platform[1]}")
 
         evolutor = HSMPO(
             ansatz=circuit,
@@ -191,12 +184,14 @@ def execute_benchmark_circuit(
 
         psi_ket = qibo_circuit_to_quimb(
             nqubits=full_circuit.nqubits,
-            qibo_circ=full_circuit, 
-            gate_opts={"max_bond": max_bond_dim}
+            qibo_circ=full_circuit,
+            gate_opts={"max_bond": max_bond_dim},
         ).psi
 
-        non_i_ops = { i: op.upper() for i, op in enumerate(observable) if op.upper() != "I" }
-        
+        non_i_ops = {
+            i: op.upper() for i, op in enumerate(observable) if op.upper() != "I"
+        }
+
         psi_op = psi_ket.copy()
 
         for site, label in non_i_ops.items():
@@ -207,7 +202,6 @@ def execute_benchmark_circuit(
         elapsed_time = time.time() - start_time
         return float(expectation), elapsed_time, None
 
-        
     if backend == "qibo":
 
         set_backend(backend=platform)
@@ -237,11 +231,10 @@ def run_experiment(
     platform: str | tuple | None = None,
 ) -> None:
 
-
     # Defining the observable
     obs_str = "ZX" * (nqubits // 2)
-    if nqubits % 2: obs_str += "Z"
-
+    if nqubits % 2:
+        obs_str += "Z"
 
     # Constructing the output folder
     base_folder = (
@@ -260,7 +253,6 @@ def run_experiment(
         "magic_gates": [],
     }
 
-
     # Running simulations
     total_runs = nruns + 1
     for run_idx in range(total_runs):
@@ -278,14 +270,12 @@ def run_experiment(
         else:
             initial_state = None
 
-
         # Generate a circuit where we replace magic gates with probablity `replacement_probability`
         circuit = generate_partitionated_circuit(
             nqubits=nqubits,
             nlayers=nlayers,
             replacement_probability=replacement_probability,
         )
-
 
         # Hydrate the rotations with new angles
         magic_gates_info = []
@@ -300,11 +290,10 @@ def run_experiment(
             circuit=circuit,
             observable=obs_str,
             backend=backend,
-            platform = platform,
+            platform=platform,
             max_bond_dim=max_bond_dim,
-            initial_state=initial_state
-            )
-
+            initial_state=initial_state,
+        )
 
         # Skip first run
         if run_idx == 0:
@@ -326,7 +315,6 @@ def run_experiment(
         results["expvals"].append(expval)
         if n_magic is not None:
             results["magic_gates"].append(n_magic)
-
 
     # Computing and saving statistics
     results["median_time"] = float(np.median(results["times"]))
