@@ -84,8 +84,11 @@ class HSMPO:
         """
 
         if isinstance(observable, SymbolicHamiltonian):
+            coeffs, pauli_terms, sites = observable.simple_terms
             return self._expectation_from_symbolic_hamiltonian(
-                hamiltonian=observable,
+                coefficients_list=coeffs,
+                operators_list=pauli_terms,
+                sites_list=sites,
             )
 
         elif isinstance(observable, str):
@@ -218,7 +221,11 @@ class HSMPO:
         return clifford_subcircuit
 
     def _expectation_from_symbolic_hamiltonian(
-        self, hamiltonian: SymbolicHamiltonian
+        self,
+        coefficients_list,
+        operators_list,
+        sites_list,
+        nqubits: int = None,
     ) -> float:
         """
         Compute the expectation value of a Qibo SymbolicHamiltonian.
@@ -230,17 +237,18 @@ class HSMPO:
             float: The total expectation value, computed as sum of single contributions.
         """
 
-        # Leveraging Qibo's features
-        coeffs, pauli_names, target_qubits = hamiltonian.simple_terms
-        constant = hamiltonian.constant.real
+        if nqubits is None:
+            nqubits = self.nqubits
 
-        total_expval = constant
+        total_expval = 0.0
 
         # Computing the contributions
-        for coeff, p_name, targets in zip(coeffs, pauli_names, target_qubits):
+        for coeff, p_name, targets in zip(
+            coefficients_list, operators_list, sites_list
+        ):
 
             # For now mpstab requires padding with identities
-            full_pauli_list = ["I"] * hamiltonian.nqubits
+            full_pauli_list = ["I"] * self.ansatz.circuit.nqubits
 
             # Fill in the specific Pauli operators at the correct positions
             for i, qubit_idx in enumerate(targets):
