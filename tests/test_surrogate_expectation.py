@@ -3,14 +3,17 @@ import time
 import numpy as np
 import pytest
 from qibo import Circuit, gates, set_backend
+from qibo.hamiltonians import SymbolicHamiltonian
+from qibo.symbols import I, X, Y, Z
 from utils import (
     DEFAULT_MAX_BD,
     DEFAULT_REPLACEMENT_PROBABILITY,
+    DEFAULT_RNG_SEED,
     expectation_with_qibo,
     set_rng_seed,
 )
 
-from mpstab.backends.stabilizers.stim import StimEngine
+from mpstab.engines import StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
@@ -73,3 +76,41 @@ def test_replacement_methods(method):
     )[0]
 
     assert no_repl_expval != repl_expval
+
+
+@pytest.mark.parametrize("nqubits", [5, 6, 7, 8])
+def test_symbolic_hamiltonian_expectation(nqubits):
+
+    set_rng_seed(DEFAULT_RNG_SEED)
+
+    # Initialising a general ansatz
+    ansatz = HardwareEfficient(nqubits=nqubits, nlayers=2)
+
+    symbols = [X, Y, Z, I]
+    ham_form = 0
+    n_terms = 5
+
+    for _ in range(n_terms):
+        coeff = np.random.uniform(0.5, 2.0)
+        # Pick 1 or 2 random qubits for this term
+        target_qubits = np.random.choice(range(nqubits), size=2, replace=False)
+        paulis = np.random.choice(symbols, size=2)
+
+        # Construct term: e.g. 1.2 * X(0) * Z(3)
+        term = (
+            coeff * paulis[0](int(target_qubits[0])) * paulis[1](int(target_qubits[1]))
+        )
+        ham_form += term
+
+    # Add a constant shift to test completeness
+    constant_shift = 0.5
+    ham_form += constant_shift
+
+    h = SymbolicHamiltonian(ham_form)
+
+    hs = HSMPO(ansatz=ansatz)
+    exp_mpstab = hs.expectation(h)
+
+    exp_qibo = h.expectation_from_state(ansatz.circuit().state())
+
+    assert np.allclose(exp_mpstab, exp_qibo, atol=1e-6)

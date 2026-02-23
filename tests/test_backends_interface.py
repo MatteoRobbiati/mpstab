@@ -3,10 +3,10 @@ import pytest
 from qibo import set_backend
 from utils import expectation_with_qibo
 
-from mpstab.backends.stabilizers.native import NativeStabilizersEngine
-from mpstab.backends.stabilizers.stim import StimEngine
-from mpstab.backends.tensor_networks.native import NativeTensorNetworkEngine
-from mpstab.backends.tensor_networks.quimb import QuimbEngine
+from mpstab.engines.stabilizers.native import NativeStabilizersEngine
+from mpstab.engines.stabilizers.stim import StimEngine
+from mpstab.engines.tensor_networks.native import NativeTensorNetworkEngine
+from mpstab.engines.tensor_networks.quimb import QuimbEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
 
