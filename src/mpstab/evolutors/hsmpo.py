@@ -89,6 +89,7 @@ class HSMPO:
                 coefficients_list=coeffs,
                 operators_list=pauli_terms,
                 sites_list=sites,
+                constant=observable.constant.real,
             )
 
         elif isinstance(observable, str):
@@ -222,9 +223,10 @@ class HSMPO:
 
     def _expectation_from_symbolic_hamiltonian(
         self,
-        coefficients_list,
-        operators_list,
-        sites_list,
+        coefficients_list: list,
+        operators_list: list,
+        sites_list: list,
+        constant: float = None,
         nqubits: int = None,
     ) -> float:
         """
@@ -240,7 +242,7 @@ class HSMPO:
         if nqubits is None:
             nqubits = self.nqubits
 
-        total_expval = 0.0
+        total_expval = constant if constant is not None else 0
 
         # Computing the contributions
         for coeff, p_name, targets in zip(

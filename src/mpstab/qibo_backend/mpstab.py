@@ -28,49 +28,6 @@ class MPStabBackend(NumpyBackend):
         self.tn_engine = tn_engine
         self.max_bond_dimension = None
 
-    def execute_circuit(
-        self,
-        circuit: Circuit,
-        initial_state=None,
-        nshots=None,
-        return_array=False,
-    ):
-        """
-        Execute a quantum circuit using the specified tensor network ansatz and initial state.
-
-        Args:
-            circuit : QuantumCircuit
-                The quantum circuit to be executed.
-            initial_state : array-like, optional
-                The initial state of the quantum system. Only supported for Matrix Product States (MPS) ansatz.
-            nshots : int, optional
-                The number of shots for sampling the circuit. If None, no sampling is performed, and the full statevector is used.
-            return_array : bool, optional
-                If True, returns the statevector as a dense array. Default is False.
-
-        Returns:
-            TensorNetworkResult
-                An object containing the results of the circuit execution, including:
-                - nqubits: Number of qubits in the circuit.
-                - backend: The backend used for execution.
-                - measures: The measurement frequencies if nshots is specified, otherwise None.
-                - measured_probabilities: A dictionary of computational basis states and their probabilities.
-                - prob_type: The type of probability computation used (currently "default").
-                - statevector: The final statevector as a dense array if return_array is True, otherwise None.
-
-        Raises:
-            ValueError
-                If an initial state is provided but the ansatz is not "MPS".
-
-        Notes:
-            - The ansatz determines the tensor network structure used for simulation. Currently, only "MPS" is supported.
-            - If `initial_state` is provided, it must be compatible with the MPS ansatz.
-            - The `nshots` parameter enables sampling from the circuit's output distribution. If not specified, the full statevector is computed.
-        """
-        # TODO: implement samples and probabilities
-        # TODO: at least for quimb
-        pass
-
     def exp_value_observable_symbolic(
         self, circuit, operators_list, sites_list, coeffs_list, nqubits
     ):
