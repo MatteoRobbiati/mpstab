@@ -1,17 +1,34 @@
-from qibo import construct_backend, set_backend
-from qibo.hamiltonians import XXZ
-from utils import DEFAULT_RNG_SEED, construct_test_circuit
+import numpy as np
+import pytest
+from qibo import construct_backend
+from utils import (
+    DEFAULT_ATOL,
+    DEFAULT_RNG_SEED,
+    construct_symbolic_hamiltonian,
+    construct_test_circuit,
+)
 
 
-def test_providing_backend_to_qibo():
-    set_backend("mpstab")
-    circ = construct_test_circuit(nqubits=8, rng_seed=DEFAULT_RNG_SEED)
+@pytest.mark.parametrize("nqubits", [5, 8, 11])
+def test_providing_backend_to_qibo(nqubits):
 
-    mpstab_ham = XXZ(nqubits=8, delta=0.5, dense=False)
+    mpstab_backend = construct_backend("mpstab")
+    np_backend = construct_backend("numpy")
+
+    circ = construct_test_circuit(nqubits=nqubits, rng_seed=DEFAULT_RNG_SEED + nqubits)
+
+    # Expectation value with mpstab
+    mpstab_ham = construct_symbolic_hamiltonian(
+        nqubits=nqubits,
+        qibo_backend=mpstab_backend,
+        rng_seed=DEFAULT_RNG_SEED + nqubits,
+    )
     mpstab_exp = mpstab_ham.expectation(circ)
 
-    np_backend = construct_backend(backend="numpy")
-    np_ham = XXZ(nqubits=8, delta=0.5, backend=np_backend)
+    # Expectation value with numpy
+    np_ham = construct_symbolic_hamiltonian(
+        nqubits=nqubits, qibo_backend=np_backend, rng_seed=DEFAULT_RNG_SEED + nqubits
+    )
     np_exp = np_ham.expectation(circ)
 
-    assert np_exp == mpstab_exp
+    assert np.allclose(np_exp, mpstab_exp, atol=DEFAULT_ATOL)
