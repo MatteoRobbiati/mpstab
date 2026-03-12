@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import pytest
 from qibo import Circuit, gates, set_backend
@@ -20,74 +22,66 @@ set_backend("numpy")
 set_rng_seed()
 
 
-# @pytest.mark.parametrize("observable", ["ZIIXI", "XIXXI", "ZYXZI"])
-# def test_expectation_matches_qibo(observable):
-#     circ = Circuit(5)
-#     [circ.add(gates.H(q)) for q in range(5)]
-#     circ.add(gates.CNOT(0, 1))
-#     circ.add(gates.RX(2, theta=0.3))
-#     circ.add(gates.RY(1, theta=0.5))
+@pytest.mark.parametrize("observable", ["ZIIXI", "XIXXI", "ZYXZI"])
+def test_expectation_matches_qibo(observable):
+    circ = Circuit(5)
+    [circ.add(gates.H(q)) for q in range(5)]
+    circ.add(gates.CNOT(0, 1))
+    circ.add(gates.RX(2, theta=0.3))
+    circ.add(gates.RY(1, theta=0.5))
 
-#     ansatz = CircuitAnsatz(qibo_circuit=circ)
+    ansatz = CircuitAnsatz(qibo_circuit=circ)
 
-#     hs = HSMPO(ansatz)
-#     hs.set_engines(stab_engine=StimEngine())
-#     exp_hybrid = hs.expectation(observable)
+    hs = HSMPO(ansatz)
+    hs.set_engines(stab_engine=StimEngine())
+    exp_hybrid = hs.expectation(observable)
 
-#     exp_qibo = expectation_with_qibo(
-#         mpstab_ansatz=ansatz,
-#         observable_str=observable,
-#     )
+    exp_qibo = expectation_with_qibo(
+        mpstab_ansatz=ansatz,
+        observable_str=observable,
+    )
 
-#     assert np.allclose(exp_hybrid, exp_qibo, atol=1e-6)
-
-
-# def test_expectation_from_partition_with_qubit_scaling():
-#     times = []
-
-#     for nqubits in [4, 8, 12]:
-#         ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
-#         hs = HSMPO(ansatz=ans)
-#         initial_time = time.time()
-#         hs.expectation_from_partition(
-#             observable="Z" * nqubits,
-#             replacement_probability=DEFAULT_REPLACEMENT_PROBABILITY,
-#         )
-#         times.append(time.time() - initial_time)
-
-#     assert times[0] < times[1]
-#     assert times[1] < times[2]
+    assert np.allclose(exp_hybrid, exp_qibo, atol=1e-6)
 
 
-# @pytest.mark.parametrize("method", ["closest", "random"])
-# def test_replacement_methods(method):
+def test_expectation_from_partition_with_qubit_scaling():
+    times = []
 
-#     nqubits = 6
-#     obs = "Z" * nqubits
+    for nqubits in [4, 12, 24]:
+        ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
+        hs = HSMPO(ansatz=ans)
+        initial_time = time.time()
+        hs.expectation_from_partition(
+            observable="Z" * nqubits,
+            replacement_probability=DEFAULT_REPLACEMENT_PROBABILITY,
+        )
+        times.append(time.time() - initial_time)
 
-#     ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
-#     hs = HSMPO(ansatz=ans, max_bond_dimension=DEFAULT_MAX_BD)
-#     no_repl_expval = hs.expectation(observable=obs)
-#     repl_expval = hs.expectation_from_partition(
-#         observable=obs,
-#         replacement_probability=DEFAULT_REPLACEMENT_PROBABILITY,
-#         replacement_method=method,
-#     )[0]
-
-#     assert no_repl_expval != repl_expval
+    assert times[0] < times[1]
+    assert times[1] < times[2]
 
 
-@pytest.mark.parametrize("rng_seed", range(100))
-@pytest.mark.parametrize("nqubits", [8])
+@pytest.mark.parametrize("method", ["closest", "random"])
+def test_replacement_methods(method):
+
+    nqubits = 6
+    obs = "Z" * nqubits
+
+    ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
+    hs = HSMPO(ansatz=ans, max_bond_dimension=DEFAULT_MAX_BD)
+    no_repl_expval = hs.expectation(observable=obs)
+    repl_expval = hs.expectation_from_partition(
+        observable=obs,
+        replacement_probability=DEFAULT_REPLACEMENT_PROBABILITY,
+        replacement_method=method,
+    )[0]
+
+    assert no_repl_expval != repl_expval
+
+
+@pytest.mark.parametrize("rng_seed", range(30))
+@pytest.mark.parametrize("nqubits", [7, 8, 9])
 def test_symbolic_hamiltonian_expectation(rng_seed, nqubits):
-
-    # This creates 'example.txt' or overwrites it if it already exists
-    if rng_seed == 27:
-        with open("debug.txt", "w") as file:
-            file.write(f"Analysing case for random seed: {rng_seed}.\n")
-    else:
-        with open("debug.txt", "a") as file:
-            file.write(f"Analysing case for random seed: {rng_seed}.\n")
 
     set_rng_seed(rng_seed)
 
@@ -95,15 +89,9 @@ def test_symbolic_hamiltonian_expectation(rng_seed, nqubits):
     circuit = construct_test_circuit(nqubits=nqubits, rng_seed=rng_seed)
     h = construct_symbolic_hamiltonian(nqubits=nqubits, rng_seed=rng_seed)
 
-    with open("debug.txt", "a") as file:
-        file.write(f"Hamiltonian form: {str(h)}\n")
-
     hs = HSMPO(ansatz=circuit)
     exp_mpstab = hs.expectation(h)
 
     exp_qibo = h.expectation_from_state(circuit().state())
-
-    with open("debug.txt", "a") as file:
-        file.write(f"Qibo expval {exp_qibo}, Mpstab expval {exp_mpstab} \n")
 
     assert np.allclose(exp_mpstab, exp_qibo, atol=1e-6)

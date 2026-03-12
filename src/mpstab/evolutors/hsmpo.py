@@ -256,11 +256,6 @@ class HSMPO:
             # TODO: check the performance
             term_expval = self.expectation(full_pauli_string)
 
-            with open("debug.txt", "a") as file:
-                file.write(
-                    f"expectation for term ({coeff, p_name, targets}): {term_expval * coeff.real}\n"
-                )
-
             total_expval += coeff.real * term_expval
 
         return total_expval
