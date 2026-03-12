@@ -46,7 +46,7 @@ class NativeStabilizersEngine(StabilizersEngine):
         # TODO: cosa sta succedendo?????????? !!!!!! GIULIO AIUTACI
         # TODO: il segno crediamo sia importante :') (By Teo and Tia)\
         # TODO: eppure tutto funziona LOL
-        # TODO: cosa succede se facciamo somme di osservabili?
+        # TODO: cosa succede se facciamo somme di osservabili? (testato)
         if propagator.to_string()[0] not in ["I", "X", "Y", "Z"]:
             return propagator.to_string()[1:]
 

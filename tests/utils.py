@@ -111,4 +111,6 @@ def construct_symbolic_hamiltonian(
     constant_shift = 0.5
     ham_form += constant_shift
 
-    return hamiltonians.SymbolicHamiltonian(ham_form, backend=qibo_backend)
+    return hamiltonians.SymbolicHamiltonian(
+        nqubits=nqubits, form=ham_form, backend=qibo_backend
+    )

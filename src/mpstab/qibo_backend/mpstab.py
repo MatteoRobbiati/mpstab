@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 
 from qibo.backends import NumpyBackend
-from qibo.config import raise_error
-from qibo.models import Circuit
 
 from mpstab import HSMPO
 from mpstab.engines import (

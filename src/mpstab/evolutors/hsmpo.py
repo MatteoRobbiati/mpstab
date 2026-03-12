@@ -261,6 +261,8 @@ class HSMPO:
             # Contraction for the Hamiltonian term
             # Each expectation is re-initialising the network to avoid errors
             # TODO: check the performance
+            # TODO: execute the TN part only once to boost the performance
+            # TODO: or introduce caching of the TN contractions
             term_expval = self.expectation(full_pauli_string)
 
             # Accumulate (handle complex coefficients if necessary, though usually real for H)
