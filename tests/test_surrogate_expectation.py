@@ -77,9 +77,17 @@ set_rng_seed()
 #     assert no_repl_expval != repl_expval
 
 
-@pytest.mark.parametrize("rng_seed", [27, 28, 29])
+@pytest.mark.parametrize("rng_seed", range(100))
 @pytest.mark.parametrize("nqubits", [8])
 def test_symbolic_hamiltonian_expectation(rng_seed, nqubits):
+
+    # This creates 'example.txt' or overwrites it if it already exists
+    if rng_seed == 27:
+        with open("debug.txt", "w") as file:
+            file.write(f"Analysing case for random seed: {rng_seed}.\n")
+    else:
+        with open("debug.txt", "a") as file:
+            file.write(f"Analysing case for random seed: {rng_seed}.\n")
 
     set_rng_seed(rng_seed)
 
@@ -87,9 +95,15 @@ def test_symbolic_hamiltonian_expectation(rng_seed, nqubits):
     circuit = construct_test_circuit(nqubits=nqubits, rng_seed=rng_seed)
     h = construct_symbolic_hamiltonian(nqubits=nqubits, rng_seed=rng_seed)
 
+    with open("debug.txt", "a") as file:
+        file.write(f"Hamiltonian form: {str(h)}\n")
+
     hs = HSMPO(ansatz=circuit)
     exp_mpstab = hs.expectation(h)
 
     exp_qibo = h.expectation_from_state(circuit().state())
+
+    with open("debug.txt", "a") as file:
+        file.write(f"Qibo expval {exp_qibo}, Mpstab expval {exp_mpstab} \n")
 
     assert np.allclose(exp_mpstab, exp_qibo, atol=1e-6)
