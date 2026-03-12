@@ -239,6 +239,26 @@ class HSMPO:
 
         total_expval = constant
 
+        # Optimization: Pre-evolve the MPS state once for the entire Hamiltonian.
+        # This prevents re-initializing the TN and re-applying magic gates for every term.
+        # We assume expectation() logic uses replacement_probability=0.0.
+        (magic_gates, clifford_circuit), _ = self.ansatz.partitionate_circuit(
+            replacement_probability=0.0,
+            replacement_method="closest",
+        )
+
+        # Reset MPS and apply magic rotations
+        self._init_tn(self.max_bond_dimension)
+        for k, magic_gate in magic_gates:
+            clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
+            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
+            self.tn_engine.pauli_rot(
+                state_circuit=self.mps,
+                generator=generator,
+                angle=magic_gate.parameters[0] * sign,
+                max_bond_dimension=self.max_bond_dimension,
+            )
+
         # Computing the contributions
         for coeff, p_name, targets in zip(coeffs, pauli_names, target_qubits):
 
@@ -251,11 +271,15 @@ class HSMPO:
 
             full_pauli_string = "".join(full_pauli_list)
 
-            # Contraction for the Hamiltonian term
-            # Each expectation is re-initialising the network to avoid errors
-            # TODO: check the performance
-            term_expval = self.expectation(full_pauli_string)
+            # Backpropagate the specific term through the persistent Clifford circuit
+            new_observable, sign = self.stab_engine.backpropagate(
+                observable=full_pauli_string, clifford_circuit=clifford_circuit
+            )
 
-            total_expval += coeff.real * term_expval
+            # Contraction for the Hamiltonian term using the ALREADY evolved self.mps
+            mpo = self.tn_engine.pauli_mpo(new_observable)
+            term_expval = self.tn_engine.expval(state_circuit=self.mps, operator=mpo)
+
+            total_expval += coeff.real * term_expval * sign
 
         return total_expval
