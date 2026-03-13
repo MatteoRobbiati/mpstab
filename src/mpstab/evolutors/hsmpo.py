@@ -128,17 +128,17 @@ class HSMPO:
         for k, magic_gate in magic_gates:
 
             clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
-            generator = self._conjugate_generator(magic_gate, clifford_subcircuit)
+            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
 
             self.tn_engine.pauli_rot(
                 state_circuit=self.mps,
                 generator=generator,
-                angle=magic_gate.parameters[0],
+                angle=magic_gate.parameters[0] * sign,
                 max_bond_dimension=self.max_bond_dimension,
             )
 
         # Compute the conjugate of the observable via the stabilizer engine
-        new_observable = self.stab_engine.backpropagate(
+        new_observable, sign = self.stab_engine.backpropagate(
             observable=observable, clifford_circuit=clifford_circuit
         )
 
@@ -154,7 +154,10 @@ class HSMPO:
 
         # mpo is created through the TN engine, and expectation value is computed via the TN engine as well.
         mpo = self.tn_engine.pauli_mpo(new_observable)
-        return self.tn_engine.expval(state_circuit=self.mps, operator=mpo), partitions
+        return (
+            self.tn_engine.expval(state_circuit=self.mps, operator=mpo) * sign,
+            partitions,
+        )
 
     def _conjugate_generator(self, gate, clifford_circuit):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
@@ -253,7 +256,6 @@ class HSMPO:
             # TODO: check the performance
             term_expval = self.expectation(full_pauli_string)
 
-            # Accumulate (handle complex coefficients if necessary, though usually real for H)
             total_expval += coeff.real * term_expval
 
         return total_expval
