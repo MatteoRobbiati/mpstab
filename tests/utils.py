@@ -82,7 +82,9 @@ def expectation_with_qibo(mpstab_ansatz, observable_str):
     return expval
 
 
-def construct_symbolic_hamiltonian(nqubits: int, rng_seed: int = DEFAULT_RNG_SEED):
+def construct_symbolic_hamiltonian(
+    nqubits: int, rng_seed: int = DEFAULT_RNG_SEED, n_terms: int = 5
+):
     """Construct a random symbolic hamiltonian."""
 
     set_rng_seed(rng_seed)
@@ -91,7 +93,6 @@ def construct_symbolic_hamiltonian(nqubits: int, rng_seed: int = DEFAULT_RNG_SEE
 
     symbols = [X, Y, Z]
     ham_form = 0
-    n_terms = 5
 
     for _ in range(n_terms):
         coeff = np.random.uniform(0.5, 2.0)
