@@ -136,7 +136,7 @@ class HSMPO:
                 max_bond_dimension=self.max_bond_dimension,
             )        
 
-        return self.mps.norm(squared=False)
+        return self.mps.norm(squared=True)
 
     def expectation_from_partition(
         self,

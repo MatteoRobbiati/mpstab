@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from numpy import cos, sin, sqrt
+from numpy import cos, sin
 from qibo.gates.abstract import ParametrizedGate
 from quimb.gates import I, X, Y, Z
 from quimb.tensor import (
@@ -158,14 +158,13 @@ class QuimbEngine(TensorNetworkEngine):
         - operator: MatrixProductOperator representing the observable whose expectation value we want to compute
         Due to truncation we loose unitary norm, so normalizing is needed when computing expectation.
         """
-        norm_sq = state_circuit.norm(squared=True)
-        self.norm = sqrt(norm_sq)
+        self.norm = state_circuit.norm(squared=True)
         circuit_tn_dag = state_circuit.reindex(
             {f"k{i}": f"b{i}" for i in range(state_circuit.L)}
         )
 
         return (
-            (circuit_tn_dag.H & operator & state_circuit).contract(optimize="auto-hq").real / norm_sq
+            (circuit_tn_dag.H & operator & state_circuit).contract(optimize="auto-hq").real / self.norm
         )
 
     def pauli_rot(
