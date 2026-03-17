@@ -20,16 +20,6 @@ matplotlib = "^3.10.0"
 stim = "^1.15.0"
 quimb = "^1.12.1"
 
-[tool.poetry.group.docs]
-optional = true
-
-[tool.poetry.group.docs.dependencies]
-Sphinx = "^5.3.0"
-furo = "^2023.3.27"
-sphinxcontrib-bibtex = "^2.5.0"
-sphinx-copybutton = "^0.5.2"
-sphinxcontrib-katex = "^0.9.9"
-
 [tool.poetry.group.dev]
 optional = true
 
@@ -51,6 +41,19 @@ optional = true
 
 [tool.poetry.group.benchmark.dependencies]
 pytest-benchmark = { version = "^4.0.0", extras = ["histogram"] }
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+Sphinx = "^7.0.0"
+furo = "^2024.1.5"
+nbsphinx = "^0.9.3"
+ipykernel = "^6.29.0"
+sphinxcontrib-bibtex = "^2.5.0"
+sphinx-copybutton = "^0.5.2"
+sphinxcontrib-katex = "^0.9.9"
+pandoc = "^2.4"
 
 [tool.poe.tasks]
 # General test task - only hits the tests/ folder
