@@ -13,7 +13,7 @@ from mpstab.engines import (
 )
 from mpstab.evolutors.utils import gate2generator
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
-
+from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
 
 @dataclass
 class HSMPO:
@@ -77,22 +77,23 @@ class HSMPO:
             max_bond_dimension=max_bond_dimension,
         )
 
-    def expectation(self, observable: Union[str, SymbolicHamiltonian]) -> float:
+    def expectation(self, observable: Union[str, SymbolicHamiltonian], return_fidelity : bool = False):
         """
         Compute the expectation value of an observable with respect
         to the full ansatz circuit (no partitioning).
         """
 
         if isinstance(observable, SymbolicHamiltonian):
-            return self._expectation_from_symbolic_hamiltonian(
-                hamiltonian=observable,
-            )
+            if return_fidelity:
+                return self._expectation_from_symbolic_hamiltonian(hamiltonian=observable), self.tn_engine.norm
+            else: 
+                return self._expectation_from_symbolic_hamiltonian(hamiltonian=observable)
 
         elif isinstance(observable, str):
-            return self.expectation_from_partition(
-                observable, replacement_probability=0.0
-            )[0]
-
+            if return_fidelity:
+                return self.expectation_from_partition(observable, replacement_probability=0.0)[0], self.tn_engine.norm
+            else:
+                return self.expectation_from_partition(observable, replacement_probability=0.0)[0]
         else:
             raise ValueError(
                 f"Given observable of type {type(observable)}, but only list or Qibo's SymbolicHamiltonian are supported"
@@ -101,6 +102,41 @@ class HSMPO:
     @property
     def nqubits(self):
         return self.ansatz.circuit.nqubits
+    
+    @property
+    def truncation_fidelity_pure_tn(self) -> float:
+        return _qibo_circuit_to_quimb(nqubits=self.nqubits, qibo_circ=self.initial_state + self.ansatz.circuit, max_bond=self.max_bond_dimension).fidelity_estimate()
+
+    def truncation_fidelity(self, replacement_probability: float = 0.0, replacement_method: str = "closest",) -> float:
+        """
+        Truncation fidelity between truncated and original state |<Ψ_t|Ψ_t>|^2/|<Ψ|Ψ>|^2 = |<Ψ_t|Ψ_t>|^2, being Ψ normalized.
+        """
+
+        # Reset MPS to initial state
+        self._init_tn(self.max_bond_dimension)
+
+        # Partitionate circuit
+        (magic_gates, clifford_circuit), _ = (
+            self.ansatz.partitionate_circuit(
+                replacement_probability=replacement_probability,
+                replacement_method=replacement_method,
+            )
+        )
+
+        # Apply pauli rotations (generated from dropped magic gates) on the MPS
+        for k, magic_gate in magic_gates:
+
+            clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
+            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
+
+            self.tn_engine.pauli_rot(
+                state_circuit=self.mps,
+                generator=generator,
+                angle=magic_gate.parameters[0] * sign,
+                max_bond_dimension=self.max_bond_dimension,
+            )        
+
+        return self.mps.norm(squared=False)
 
     def expectation_from_partition(
         self,

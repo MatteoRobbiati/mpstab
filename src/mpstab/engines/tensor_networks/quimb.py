@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from numpy import cos, sin
+from numpy import cos, sin, sqrt
 from qibo.gates.abstract import ParametrizedGate
 from quimb.gates import I, X, Y, Z
 from quimb.tensor import (
@@ -125,7 +125,8 @@ class QuimbEngine(TensorNetworkEngine):
         max_bond_dimension: int | None = None,
     ):
         """
-        Builds a Circuit MPS object in Quimb. The underlying tensor network is a Matrix Product State.
+        Builds a Circuit MPS object in Quimb. The underlying tensor network is a Matrix Product State. truncation_fidelity is
+        initialized.
         """
 
         if initial_state_circuit is not None:
@@ -155,15 +156,16 @@ class QuimbEngine(TensorNetworkEngine):
         Compute the expectation value of `operator` on `state_circuit`.
         - state_circuit: MatrixProductState representing the state of the system
         - operator: MatrixProductOperator representing the observable whose expectation value we want to compute
+        Due to truncation we loose unitary norm, so normalizing is needed when computing expectation.
         """
+        norm_sq = state_circuit.norm(squared=True)
+        self.norm = sqrt(norm_sq)
         circuit_tn_dag = state_circuit.reindex(
             {f"k{i}": f"b{i}" for i in range(state_circuit.L)}
         )
 
         return (
-            (circuit_tn_dag.H & operator & state_circuit)
-            .contract(optimize="auto-hq")
-            .real
+            (circuit_tn_dag.H & operator & state_circuit).contract(optimize="auto-hq").real / norm_sq
         )
 
     def pauli_rot(
@@ -174,7 +176,8 @@ class QuimbEngine(TensorNetworkEngine):
         max_bond_dimension: int,
     ):
         """
-        Apply a Pauli string rotation MPO to a CircuitMPS and return the updated object.
+        Apply a Pauli string rotation MPO to an MPS and return the updated object. SVD is performed with compression
+        given by specified bond dimension.
         """
         rotation_mpo = PauliExp(generator, angle)
 
