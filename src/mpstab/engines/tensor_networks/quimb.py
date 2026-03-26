@@ -12,6 +12,7 @@ from quimb.tensor import (
     MPO_identity,
     MPO_product_operator,
 )
+import cotengra as ctg
 
 from mpstab.engines.tensor_networks.abstract import TensorNetworkEngine
 
@@ -113,9 +114,28 @@ def PauliExp(pauli_string, theta):
 
 class QuimbEngine(TensorNetworkEngine):
     """
-    Thin adapter that exposes the minimal API required by HybridSurrogate
-    while reusing the existing evolutors.tensor_network implementation.
+    Tensor network engine using Quimb for tensor network manipulations and contractions. 
+    The engine supports caching of contraction paths using cotengra's ReusableOptimizer. 
     """
+    def __init__(self, cache = False, cache_directory: str | None = "contractions_cache"):
+        """
+        Initialize the engine with a persistent contraction optimizer.
+        
+        Parameters
+        ----------
+        cache_directory : str, optional
+            The directory where contraction paths will be saved. 
+            If it doesn't exist, cotengra will create it.
+        """
+        # ReusableHyperOptimizer handles the persistent storage on disk
+        if cache == True:
+            self.optimizer = ctg.ReusableHyperOptimizer(
+                        directory=cache_directory, 
+                        minimize='flops',          
+                        max_repeats=128,           
+                        progbar=False
+                    )        
+        else : self.optimizer = "auto-hq"
 
     def build_circuit_mps(
         self,
@@ -164,7 +184,7 @@ class QuimbEngine(TensorNetworkEngine):
         )
 
         return (
-            (circuit_tn_dag.H & operator & state_circuit).contract(optimize="auto-hq").real / self.norm
+            (circuit_tn_dag.H & operator & state_circuit).contract(optimize=self.optimizer).real / self.norm
         )
 
     def pauli_rot(
