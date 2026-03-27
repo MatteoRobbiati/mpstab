@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-import torch
 
-from numpy import cos, sin
 from qibo.gates.abstract import ParametrizedGate
 from quimb.gates import I, X, Y, Z
 from quimb.tensor import (
@@ -97,22 +95,6 @@ def _qibo_circuit_to_quimb(nqubits, qibo_circ, **circuit_kwargs):
     return circ
 
 
-def PauliExp(pauli_string, theta):
-    """
-    Returns the MPO for exp(-i * theta/2 * P) where P is a Pauli string. The euler formula is used:
-    exp(-i * theta/2 * P) = cos(theta/2) * I + i * sin(theta/2) * P.
-    """
-    L = len(pauli_string)
-
-    pauli_matrices = [pauli_map[s.upper()] for s in pauli_string]
-
-    id_mpo = MPO_identity(L, phys_dim=2)
-    pauli_mpo = MPO_product_operator(pauli_matrices)
-    rotation_mpo = (cos(theta / 2) * id_mpo).add_MPO(-1j * sin(theta / 2) * pauli_mpo)
-
-    return rotation_mpo
-
-
 class QuimbEngine(TensorNetworkEngine):
     """
     Tensor network engine using Quimb for tensor network manipulations and contractions. 
@@ -134,17 +116,16 @@ class QuimbEngine(TensorNetworkEngine):
         """
         if backend == "jax":
             import jax.numpy as jnp
-            self.cast = jnp.asarray
+            self.np = jnp
         
         elif backend == "numpy":
             import numpy as np
-
-            self.cast = np.asarray
+            self.np = np
         
         elif backend == "torch":
             import torch
-            self.cast = torch.asarray
-        
+            self.np = torch
+
         else: raise ValueError(f"Unsupported quimb backend: {backend}")
 
         self.backend = backend
@@ -158,6 +139,26 @@ class QuimbEngine(TensorNetworkEngine):
                     )        
         else : self.optimizer = "auto-hq"
 
+    def PauliExp(self, pauli_string, theta):
+        """
+        Returns the MPO for exp(-i * theta/2 * P) where P is a Pauli string. The euler formula is used:
+        exp(-i * theta/2 * P) = cos(theta/2) * I + i * sin(theta/2) * P.
+        """
+        L = len(pauli_string)
+
+        pauli_matrices = [pauli_map[s.upper()] for s in pauli_string]
+
+        id_mpo = MPO_identity(L, phys_dim=2)
+        pauli_mpo = MPO_product_operator(pauli_matrices)
+
+        if self.backend == "torch":
+            pauli_mpo.apply_to_arrays(lambda x: self.np.as_tensor(x))
+            id_mpo.apply_to_arrays(lambda x: self.np.as_tensor(x))
+            theta = self.np.as_tensor(theta)
+
+        rotation_mpo = (self.np.cos(theta / 2) * id_mpo).add_MPO(-1j * self.np.sin(theta / 2) * pauli_mpo)
+
+        return rotation_mpo
 
     def build_circuit_mps(
         self,
@@ -177,7 +178,7 @@ class QuimbEngine(TensorNetworkEngine):
                 nqubits=n, 
                 qibo_circ=initial_state_circuit, 
                 max_bond=max_bond_dimension,
-                to_backend=self.cast
+                to_backend=self.np.asarray
             ).psi
         
         else: raise NotImplementedError("Building a CircuitMPS from state amplitudes is not implemented in the QuimbEngine.")
@@ -192,7 +193,7 @@ class QuimbEngine(TensorNetworkEngine):
         pauli_mpo = MPO_product_operator(pauli_matrices)
         pauli_mpo.add_tag("MPO")
         if self.backend == "torch":
-            pauli_mpo.apply_to_arrays(lambda x: torch.as_tensor(x))            
+            pauli_mpo.apply_to_arrays(lambda x: self.np.as_tensor(x))            
 
         return pauli_mpo
 
@@ -206,13 +207,13 @@ class QuimbEngine(TensorNetworkEngine):
         - operator: MatrixProductOperator representing the observable whose expectation value we want to compute
         Due to truncation we loose unitary norm, so normalizing is needed when computing expectation.
         """
-        self.norm = state_circuit.norm(squared=True)
+        self.norm = state_circuit.norm(squared=True).real
         circuit_tn_dag = state_circuit.reindex(
             {f"k{i}": f"b{i}" for i in range(state_circuit.L)}
         )
         return (circuit_tn_dag.H & operator & state_circuit).contract(
                 backend=self.backend, 
-                optimize=self.optimizer ).real / self.norm
+                optimize=self.optimizer ).real #/ self.norm
         
 
     def pauli_rot(
@@ -226,10 +227,10 @@ class QuimbEngine(TensorNetworkEngine):
         Apply a Pauli string rotation MPO to an MPS and return the updated object. SVD is performed with compression
         given by specified bond dimension.
         """
-        rotation_mpo = PauliExp(generator, angle)
+        rotation_mpo = self.PauliExp(generator, angle)
 
         if self.backend == "torch":
-            rotation_mpo.apply_to_arrays(lambda x: torch.as_tensor(x))            
+            rotation_mpo.apply_to_arrays(lambda x: self.np.as_tensor(x))            
 
         state_circuit.gate_with_mpo(
             rotation_mpo, 
