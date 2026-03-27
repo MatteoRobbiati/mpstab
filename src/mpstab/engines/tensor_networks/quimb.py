@@ -213,7 +213,7 @@ class QuimbEngine(TensorNetworkEngine):
         )
         return (circuit_tn_dag.H & operator & state_circuit).contract(
                 backend=self.backend, 
-                optimize=self.optimizer ).real #/ self.norm
+                optimize=self.optimizer ).real / self.norm
         
 
     def pauli_rot(
