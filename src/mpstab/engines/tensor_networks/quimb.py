@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+import torch
 
 from numpy import cos, sin
 from qibo.gates.abstract import ParametrizedGate
@@ -105,7 +106,7 @@ def PauliExp(pauli_string, theta):
 
     pauli_matrices = [pauli_map[s.upper()] for s in pauli_string]
 
-    id_mpo = MPO_identity(L, phys_dim=2, dtype="complex128")
+    id_mpo = MPO_identity(L, phys_dim=2)
     pauli_mpo = MPO_product_operator(pauli_matrices)
     rotation_mpo = (cos(theta / 2) * id_mpo).add_MPO(-1j * sin(theta / 2) * pauli_mpo)
 
@@ -117,17 +118,37 @@ class QuimbEngine(TensorNetworkEngine):
     Tensor network engine using Quimb for tensor network manipulations and contractions. 
     The engine supports caching of contraction paths using cotengra's ReusableOptimizer. 
     """
-    def __init__(self, cache = False, cache_directory: str | None = "contractions_cache"):
+    def __init__(self, backend: str = "numpy", cache: bool = False, cache_directory: str | None = "contractions_cache"):
         """
-        Initialize the engine with a persistent contraction optimizer.
+        Initialize the engine with backend and persistent contraction optimizer.
         
         Parameters
         ----------
+        backend : str, optional
+            Quimb backend: Numpy (default), Jax, Torch
+        cache : bool, optional
+            If true, the optimizer caches contraction paths
         cache_directory : str, optional
             The directory where contraction paths will be saved. 
             If it doesn't exist, cotengra will create it.
         """
-        # ReusableHyperOptimizer handles the persistent storage on disk
+        if backend == "jax":
+            import jax.numpy as jnp
+            self.cast = jnp.asarray
+        
+        elif backend == "numpy":
+            import numpy as np
+
+            self.cast = np.asarray
+        
+        elif backend == "torch":
+            import torch
+            self.cast = torch.asarray
+        
+        else: raise ValueError(f"Unsupported quimb backend: {backend}")
+
+        self.backend = backend
+
         if cache == True:
             self.optimizer = ctg.ReusableHyperOptimizer(
                         directory=cache_directory, 
@@ -136,6 +157,7 @@ class QuimbEngine(TensorNetworkEngine):
                         progbar=False
                     )        
         else : self.optimizer = "auto-hq"
+
 
     def build_circuit_mps(
         self,
@@ -150,13 +172,16 @@ class QuimbEngine(TensorNetworkEngine):
         """
 
         if initial_state_circuit is not None:
+            
             return _qibo_circuit_to_quimb(
-                nqubits=n, qibo_circ=initial_state_circuit, max_bond=max_bond_dimension
+                nqubits=n, 
+                qibo_circ=initial_state_circuit, 
+                max_bond=max_bond_dimension,
+                to_backend=self.cast
             ).psi
-        else:
-            raise NotImplementedError(
-                "Building a CircuitMPS from state amplitudes is not implemented in the QuimbEngine."
-            )
+        
+        else: raise NotImplementedError("Building a CircuitMPS from state amplitudes is not implemented in the QuimbEngine.")
+
 
     def pauli_mpo(self, pauli_string: str | object):
         """
@@ -166,8 +191,11 @@ class QuimbEngine(TensorNetworkEngine):
         pauli_matrices = [pauli_map[s.upper()] for s in pauli_string]
         pauli_mpo = MPO_product_operator(pauli_matrices)
         pauli_mpo.add_tag("MPO")
+        if self.backend == "torch":
+            pauli_mpo.apply_to_arrays(lambda x: torch.as_tensor(x))            
 
         return pauli_mpo
+
 
     def expval(
         self, state_circuit: MatrixProductState, operator: MatrixProductOperator
@@ -182,10 +210,10 @@ class QuimbEngine(TensorNetworkEngine):
         circuit_tn_dag = state_circuit.reindex(
             {f"k{i}": f"b{i}" for i in range(state_circuit.L)}
         )
-
-        return (
-            (circuit_tn_dag.H & operator & state_circuit).contract(optimize=self.optimizer).real / self.norm
-        )
+        return (circuit_tn_dag.H & operator & state_circuit).contract(
+                backend=self.backend, 
+                optimize=self.optimizer ).real / self.norm
+        
 
     def pauli_rot(
         self,
@@ -200,6 +228,11 @@ class QuimbEngine(TensorNetworkEngine):
         """
         rotation_mpo = PauliExp(generator, angle)
 
+        if self.backend == "torch":
+            rotation_mpo.apply_to_arrays(lambda x: torch.as_tensor(x))            
+
         state_circuit.gate_with_mpo(
-            rotation_mpo, inplace=True, max_bond=max_bond_dimension
+            rotation_mpo, 
+            inplace=True, 
+            max_bond=max_bond_dimension
         )
