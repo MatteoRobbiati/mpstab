@@ -11,9 +11,10 @@ from mpstab.engines import (
     StimEngine,
     TensorNetworkEngine,
 )
+from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
 from mpstab.evolutors.utils import gate2generator
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
-from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
+
 
 @dataclass
 class HSMPO:
@@ -77,7 +78,9 @@ class HSMPO:
             max_bond_dimension=max_bond_dimension,
         )
 
-    def expectation(self, observable: Union[str, SymbolicHamiltonian], return_fidelity : bool = False):
+    def expectation(
+        self, observable: Union[str, SymbolicHamiltonian], return_fidelity: bool = False
+    ):
         """
         Compute the expectation value of an observable with respect
         to the full ansatz circuit (no partitioning).
@@ -85,15 +88,27 @@ class HSMPO:
 
         if isinstance(observable, SymbolicHamiltonian):
             if return_fidelity:
-                return self._expectation_from_symbolic_hamiltonian(hamiltonian=observable), self.tn_engine.norm
-            else: 
-                return self._expectation_from_symbolic_hamiltonian(hamiltonian=observable)
+                return (
+                    self._expectation_from_symbolic_hamiltonian(hamiltonian=observable),
+                    self.tn_engine.norm,
+                )
+            else:
+                return self._expectation_from_symbolic_hamiltonian(
+                    hamiltonian=observable
+                )
 
         elif isinstance(observable, str):
             if return_fidelity:
-                return self.expectation_from_partition(observable, replacement_probability=0.0)[0], self.tn_engine.norm
+                return (
+                    self.expectation_from_partition(
+                        observable, replacement_probability=0.0
+                    )[0],
+                    self.tn_engine.norm,
+                )
             else:
-                return self.expectation_from_partition(observable, replacement_probability=0.0)[0]
+                return self.expectation_from_partition(
+                    observable, replacement_probability=0.0
+                )[0]
         else:
             raise ValueError(
                 f"Given observable of type {type(observable)}, but only list or Qibo's SymbolicHamiltonian are supported"
@@ -102,12 +117,20 @@ class HSMPO:
     @property
     def nqubits(self):
         return self.ansatz.circuit.nqubits
-    
+
     @property
     def truncation_fidelity_pure_tn(self) -> float:
-        return _qibo_circuit_to_quimb(nqubits=self.nqubits, qibo_circ=self.initial_state + self.ansatz.circuit, max_bond=self.max_bond_dimension).fidelity_estimate()
+        return _qibo_circuit_to_quimb(
+            nqubits=self.nqubits,
+            qibo_circ=self.initial_state + self.ansatz.circuit,
+            max_bond=self.max_bond_dimension,
+        ).fidelity_estimate()
 
-    def truncation_fidelity(self, replacement_probability: float = 0.0, replacement_method: str = "closest",) -> float:
+    def truncation_fidelity(
+        self,
+        replacement_probability: float = 0.0,
+        replacement_method: str = "closest",
+    ) -> float:
         """
         Truncation fidelity between truncated and original state |<Ψ_t|Ψ_t>|^2/|<Ψ|Ψ>|^2 = |<Ψ_t|Ψ_t>|^2, being Ψ normalized.
         """
@@ -116,11 +139,9 @@ class HSMPO:
         self._init_tn(self.max_bond_dimension)
 
         # Partitionate circuit
-        (magic_gates, clifford_circuit), _ = (
-            self.ansatz.partitionate_circuit(
-                replacement_probability=replacement_probability,
-                replacement_method=replacement_method,
-            )
+        (magic_gates, clifford_circuit), _ = self.ansatz.partitionate_circuit(
+            replacement_probability=replacement_probability,
+            replacement_method=replacement_method,
         )
 
         # Apply pauli rotations (generated from dropped magic gates) on the MPS
@@ -134,7 +155,7 @@ class HSMPO:
                 generator=generator,
                 angle=magic_gate.parameters[0] * sign,
                 max_bond_dimension=self.max_bond_dimension,
-            )        
+            )
 
         return self.mps.norm(squared=True)
 
