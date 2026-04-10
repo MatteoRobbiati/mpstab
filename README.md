@@ -80,15 +80,15 @@ from mpstab.models.ansatze import HardwareEfficient
 ansatz = HardwareEfficient(nqubits=5, nlayers=3)
 
 # Initialize the hybrid stabilizer MPO simulator
-simulator = HSMPO(ansatz=ansatz, max_bond_dimension=64)
+surrogate = HSMPO(ansatz=ansatz, max_bond_dimension=64)
 
 # Compute expectation value of a Pauli observable
 observable = "ZIZ"
-expectation_value = simulator.expectation(observable)
+expectation_value = surrogate.expectation(observable)
 print(f"<{observable}> = {expectation_value}")
 
 # Access fidelity lower bound (indicates truncation error)
-fidelity = simulator.fidelity_lower_bound
+fidelity = surrogate.fidelity_lower_bound
 print(f"Fidelity Lower Bound: {fidelity}")
 ```
 
