@@ -36,8 +36,8 @@ jobs:
           key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
       - name: Install dependencies
-        # crucial: install the benchmark group so pytest recognizes the flags
-        run: poetry install --with tests --no-interaction
+        # crucial: install the test group so pytest recognizes the flags
+        run: poetry install --with test --no-interaction
 
       - name: Run Pytest
         # We use poetry run to ensure we are in the correct environment
