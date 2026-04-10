@@ -11,21 +11,23 @@
 
 **MPSTAB** is a cutting-edge quantum circuit simulator implementing a hybrid **stabilizers-MPO** (Matrix Product Operator) formalism in pure Python. This package provides an efficient framework for simulating quantum circuits by leveraging the power of both stabilizer states and tensor network methods, enabling accurate simulation of larger quantum systems with reduced computational overhead.
 
-The simulator offers in-house stabilizers and tensor network engines, alongside with state-of-art Python packages such as Stim and Quimb.
-The quantum circuits and observables interface is inherited form the open-source Python project Qibo.
+The simulator offers in-house stabilizers and tensor network engines, alongside with state-of-art Python packages such as [Stim](https://github.com/quantumlib/Stim) and [Quimb](https://quimb.readthedocs.io/).
+The quantum circuits and observables interface is inherited from the open-source Python project [Qibo](https://qibo.science/).
 
 
 ## Key Features
 
 - 🎯 **Hybrid Formalism**: Combines stabilizer states with tensor networks for efficient simulation
-- 🚀 **Flexible engines**: Flexible backend support: from in-house Clifford simulator and Tensor Network engines to Stim and Quimb.
-- **Qibo backend provider**: `mpstab` can be used as a backend provides for Qibo, a state-of-art full-stack quantum computing framework.
+- 🚀 **Flexible engines**: Flexible backend support: from in-house Clifford simulator and Tensor Network engines to [Stim](https://github.com/quantumlib/Stim) and [Quimb](https://quimb.readthedocs.io/).
+- ⚙️ **[Qibo](https://qibo.science/) backend provider**: `mpstab` can be used as a backend provider for Qibo, a state-of-art full-stack quantum computing framework.
 - 📊 **Fidelity Tracking**: Built-in fidelity lower bounds and truncation monitoring
 - 🔧 **Pre-computed quantum circuit Ansätze**: Pre-built quantum circuits for variational algorithms
 - 🧮 **Arbitrary Observables**: Support for Pauli string expectation values
 - ⚡ **Differentiability**: Integrated with Quimb, `mpstab` inherits differentiability over the circuit executions
 
 ## Installation
+
+### Using pip
 
 Clone the repository and install using pip:
 
@@ -41,16 +43,30 @@ Or install with optional dependencies for development and documentation:
 pip install -e ".[dev,tests,docs,benchmark]"
 ```
 
-### Requirements
+### Using Poetry (Recommended)
 
-- Python ≥ 3.11 and < 3.14
-- NumPy ≥ 2.0.0
-- PyTorch (any version)
-- JAX (any version)
-- Qibo ≥ 0.2.19
-- Stim ≥ 1.15.0
-- Quimb ≥ 1.12.1
-- Cotengra (tensor contraction optimization)
+We recommend using [Poetry](https://python-poetry.org/) for dependency management and development:
+
+```bash
+# Clone the repository
+git clone https://github.com/MatteoRobbiati/mpstab.git
+cd mpstab
+
+# Install Poetry (if not already installed)
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install dependencies
+poetry install
+
+# Install with optional dependencies for development
+poetry install --with dev --with tests --with docs --with benchmark
+
+# Activate the virtual environment
+poetry shell
+```
+
+Poetry automatically handles virtual environment management and locks all dependencies for reproducibility.
+
 
 ## Quick Start
 
@@ -76,53 +92,10 @@ fidelity = simulator.fidelity_lower_bound
 print(f"Fidelity Lower Bound: {fidelity}")
 ```
 
-### Scaling Analysis
-
-```python
-# Benchmark fidelity decay with system size
-from mpstab.models.ansatze import HardwareEfficient
-
-max_bond_dim = 8
-for n_qubits in range(5, 21):
-    ansatz = HardwareEfficient(nqubits=n_qubits, nlayers=5)
-    hs = HSMPO(ansatz=ansatz, max_bond_dimension=max_bond_dim)
-
-    # Trigger contraction and extract fidelity
-    _ = hs.expectation("Z" * n_qubits)
-    print(f"Qubits: {n_qubits}, Fidelity: {hs.fidelity_lower_bound:.6f}")
-```
-
-## Project Structure
-
-```
-mpstab/
-├── src/mpstab/
-│   ├── __init__.py
-│   ├── utils.py
-│   ├── engines/               # Computation backends
-│   │   ├── stabilizers/       # Stabilizer-based simulators
-│   │   └── tensor_networks/   # Tensor network engines
-│   ├── evolutors/             # Time evolution and circuits
-│   │   └── hsmpo.py           # Hybrid Stabilizer MPO main class
-│   ├── models/                # Quantum circuit models
-│   │   └── ansatze/           # Pre-built circuit patterns
-│   └── qibo_backend/          # Qibo integration
-├── tests/                     # Comprehensive test suite
-│   ├── test_compute_fidelity.py
-│   ├── test_hsmpo_properties.py
-│   ├── test_backends_interface.py
-│   ├── test_backends_support.py
-│   ├── test_surrogate_expectation.py
-│   ├── test_pure_clifford_circuits.py
-│   └── test_caching.py
-├── docs/                      # Sphinx documentation
-├── examples/                  # Example notebooks and scripts
-└── pyproject.toml             # Poetry project configuration
-```
 
 ## Testing
 
-Run the complete test suite:
+Run the complete test suite using [pytest](https://docs.pytest.org/):
 
 ```bash
 pytest
@@ -134,24 +107,18 @@ Run with coverage report:
 pytest --cov=mpstab --cov-report=html
 ```
 
-Specific test categories:
+Or using Poetry's task runner:
 
 ```bash
-# Test backend interfaces
-pytest tests/test_backends_interface.py
-
-# Test fidelity computation
-pytest tests/test_compute_fidelity.py
-
-# Test hardware-efficient circuits
-pytest tests/test_hsmpo_properties.py
+poetry run pytest
 ```
+
 
 ## Development Workflow
 
 ### Code Quality
 
-Code formatting and linting are managed through `pre-commit`. To set up:
+Code formatting and linting are managed through [pre-commit](https://pre-commit.com/). To set up:
 
 ```bash
 pip install pre-commit
@@ -169,19 +136,25 @@ poe lint
 poe lint-warnings
 ```
 
+If using Poetry, you can run linting within the Poetry environment:
+
+```bash
+poetry run pylint src/**/*.py -E
+```
+
 ### Running Tasks
 
-Use Poetry's task runner:
+Use [Poetry](https://python-poetry.org/)'s task runner with [Poethepoet](https://poethepoet.nauce.org/):
 
 ```bash
 # Run tests
-poe test
+poetry run poe test
 
 # Run benchmarks
-poe bench
+poetry run poe bench
 
 # Build documentation
-poe docs
+poetry run poe docs
 ```
 
 ## Contribution Guidelines
@@ -207,31 +180,7 @@ Contributions are welcome! Please follow these guidelines:
    - Open a pull request with a descriptive title
    - Wait for review from a core team member
 
-## Citation
 
-If you use **MPSTAB** in your research, please cite:
-
-```bibtex
-@software{mpstab2024,
-  author = {Robbiati, Matteo and Crognaletti, Giulio and Robbiano, Mattia and Grossi, Michele},
-  title = {MPSTAB: Hybrid Stabilizers-MPO Quantum Circuit Simulator},
-  url = {https://github.com/MatteoRobbiati/mpstab},
-  year = {2024}
-}
-```
-
-## Architecture Overview
-
-<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/925b99ba-bd72-4eb1-a895-9e3b518e4f6d" />
-
-## Roadmap
-
-- [ ] Performance comparison vs. quimb for pure tensor networks
-- [ ] Scaling hybrid benchmarks to larger qubit counts
-- [ ] Support for sum of Pauli observables
-- [ ] Additional quantum gate sets
-- [ ] GPU acceleration improvements
-- [ ] Interactive visualization tools
 
 ## License
 
