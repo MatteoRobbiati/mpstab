@@ -31,10 +31,10 @@ ipython = "^7.34"
 pdbpp = "^0.10.3"
 poethepoet = "^0.24.0"
 
-[tool.poetry.group.tests]
+[tool.poetry.group.test]
 optional = true
 
-[tool.poetry.group.tests.dependencies]
+[tool.poetry.group.test.dependencies]
 pytest = "^7.2.1"
 pylint = "3.1.0"
 pytest-cov = "4.0.0"

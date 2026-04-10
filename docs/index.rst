@@ -1,29 +1,36 @@
-mpstab: Hybrid Quantum Circuit Simulator
-========================================
+mpstab: a cutting-edge quantum circuit simulator
+================================================
 
-**mpstab** is an open-source Python library designed for high-performance simulation of quantum circuits using a **hybrid Stabilizer-Matrix Product Operator (MPO)** formalism.
+**mpstab** is an open-source Python library designed for high-performance simulation of quantum circuits using a **hybrid Stabilizer-Matrix Product Operator (HSMPO)** formalism.
 
-By combining the efficiency of Clifford stabilizers with the expressiveness of Tensor Networks, ``mpstab`` allows researchers to simulate circuits that are "mostly Clifford" but contain non-trivial non-stabilizer resources.
+By combining the efficiency of Clifford stabilizers with the expressiveness of Tensor Networks, ``mpstab`` allows researchers to simulate circuits that are "mostly Clifford" but contain non-trivial non-stabilizer resources. The hybrid stabilizer-MPO representation was introduced in `this work from Mello, Santini and Collura  <https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604>`_.
 
 Core Features
 -------------
-* **Hybrid Evolution**: Seamlessly switch between stabilizer and tensor network engines during a single simulation.
-* **Qibo Integration**: Native custom backend support, allowing you to run Qibo circuits using ``mpstab`` algorithms.
-* **Advanced Metrics**: Built-in tools for computing entanglement entropies, magic measures, and circuit fidelities.
-* **Error Mitigation**: Specialized modules for quantum error mitigation within the hybrid formalism.
+
+The HSMPO formalism is implemented here exploiting, as operative engines, the state-of-art stabilizers and tensor network simulators.
+Among our core features:
+
+* **Hybrid Evolution**: Seamlessly combine stabilizer and tensor network engines for efficient simulation.
+* **Qibo Integration**: Native custom backend support, allowing you to run Qibo circuits using ``mpstab`` algorithms. Quantum circuit and observables definitions from Qibo are supported as well.
+* **Scalable Clifford Simulation**: Simulate pure Clifford circuits with hundreds of qubits.
+* **Advanced Metrics**: Built-in tools for computing entanglement entropies, fidelity bounds, and circuit analysis.
 
 .. toctree::
    :maxdepth: 2
    :caption: Getting Started
 
    installation
-   examples/introduction
+   guides/quickstart
 
 .. toctree::
    :maxdepth: 2
-   :caption: Tutorials
+   :caption: Tutorials & Examples
 
    examples/introduction
+   guides/working_with_engines
+   guides/using_ansatze
+   guides/fidelity_and_approximation
 
 .. toctree::
    :maxdepth: 2

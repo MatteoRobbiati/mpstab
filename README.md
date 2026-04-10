@@ -40,7 +40,7 @@ pip install .
 Or install with optional dependencies for development and documentation:
 
 ```bash
-pip install -e ".[dev,tests,docs,benchmark]"
+pip install -e ".[dev,test,docs,benchmark]"
 ```
 
 ### Using Poetry (Recommended)
@@ -59,7 +59,7 @@ curl -sSL https://install.python-poetry.org | python3 -
 poetry install
 
 # Install with optional dependencies for development
-poetry install --with dev --with tests --with docs --with benchmark
+poetry install --with dev --with test --with docs --with benchmark
 
 # Activate the virtual environment
 poetry shell

@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, os.path.abspath("../src"))
 
 project = "mpstab"
-copyright = "2026, Matteo Robbiati, Giulio Crognaletti, Mattia Robbiano"
+copyright = "2026, Matteo Robbiati, Giulio Crognaletti, Mattia Robbiano, Michele Grossi"
 author = "Matteo Robbiati, Giulio Crognaletti, Mattia Robbiano"
 release = "0.0.1"
 
