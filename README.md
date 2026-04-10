@@ -240,9 +240,8 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ## Authors
 
 - **Matteo Robbiati** - Core development
-- **Giulio Crognaletti** - Contributions
-- **Mattia Robbiano** - Contributions
-- **Michele Grossi** - Contributions
+- **Giulio Crognaletti** - Core development
+- **Mattia Robbiano** - Core development
 
 ## Support & Feedback
 
