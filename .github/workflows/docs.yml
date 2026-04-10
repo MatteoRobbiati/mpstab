@@ -50,10 +50,7 @@ jobs:
         run: poetry install --with docs
 
       - name: Build docs
-        run: |
-          cd docs
-          make clean
-          make html
+        run: poetry run sphinx-build -b html docs docs/_build/html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
