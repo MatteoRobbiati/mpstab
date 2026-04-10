@@ -55,25 +55,16 @@ jobs:
       - name: Build docs
         run: poetry run sphinx-build -b html docs docs/_build/html
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      - name: Copy docs to /docs/html for GitHub Pages
+        run: |
+          rm -rf docs/html
+          cp -r docs/_build/html docs/html
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'docs/_build/html'
-
-  deploy:
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+      - name: Commit and push docs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/html
+          git commit -m "build: update documentation" || true
+          git push
