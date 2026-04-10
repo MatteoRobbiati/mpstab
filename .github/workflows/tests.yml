@@ -37,7 +37,7 @@ jobs:
 
       - name: Install dependencies
         # crucial: install the benchmark group so pytest recognizes the flags
-        run: poetry install --with tests,benchmark --no-interaction
+        run: poetry install --with tests --no-interaction
 
       - name: Run Pytest
         # We use poetry run to ensure we are in the correct environment
