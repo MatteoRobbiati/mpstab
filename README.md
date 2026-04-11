@@ -1,5 +1,5 @@
 
-<img width="350" height="150" alt="image" src="https://github.com/user-attachments/assets/059b9588-4ae6-4951-9ab8-3f30c989e592" />
+<img width="350" height="150" alt="image" src="./docs/mpstab_logo.png" />
 
 # MPSTAB: Hybrid Stabilizers-MPO Quantum Circuit Simulator
 
