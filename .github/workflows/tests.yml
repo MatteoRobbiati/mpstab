@@ -37,18 +37,13 @@ jobs:
 
       - name: Install dependencies
         # crucial: install the test group so pytest recognizes the flags
-        run: poetry install --with test --no-interaction
+        run: poetry install --with test
 
       - name: Run Pytest
         # We use poetry run to ensure we are in the correct environment
         # Tests include: unit tests and documentation code block validation
         run: |
-          poetry run pytest --cov-report=xml -v
-
-      - name: Validate Documentation Code Examples
-        # Extract and validate all code blocks from RST documentation
-        run: |
-          poetry run pytest tests/test_rst_code_blocks.py -v --tb=short
+          poetry run pytest --cov-report=xml -v --tb=short
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
