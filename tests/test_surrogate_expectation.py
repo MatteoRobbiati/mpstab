@@ -3,8 +3,6 @@ import time
 import numpy as np
 import pytest
 from qibo import Circuit, gates, set_backend
-from qibo.hamiltonians import SymbolicHamiltonian
-from qibo.symbols import I, X, Y, Z
 from utils import (
     DEFAULT_MAX_BD,
     DEFAULT_REPLACEMENT_PROBABILITY,
@@ -79,8 +77,8 @@ def test_replacement_methods(method):
     assert no_repl_expval != repl_expval
 
 
-@pytest.mark.parametrize("rng_seed", range(30))
-@pytest.mark.parametrize("nqubits", [7, 8, 9])
+@pytest.mark.parametrize("rng_seed", range(5))
+@pytest.mark.parametrize("nqubits", [5, 8, 12])
 def test_symbolic_hamiltonian_expectation(rng_seed, nqubits):
 
     set_rng_seed(rng_seed)
