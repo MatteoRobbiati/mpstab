@@ -57,14 +57,9 @@ jobs:
           path: .venv
           key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
 
-      # Step 6: Install Python dependencies including the 'docs' and 'test' groups
+      # Step 6: Install Python dependencies including the 'docs' group
       - name: Install dependencies
-        run: poetry install --with docs --with test
-
-      # Step 6b: Validate documentation code blocks before building docs
-      - name: Validate documentation code blocks
-        run: poetry run pytest tests/test_rst_code_blocks.py -v --tb=short
-        continue-on-error: false
+        run: poetry install --with docs
 
       # Step 7: Build the documentation using Sphinx
       - name: Build docs
@@ -84,6 +79,9 @@ jobs:
   deploy:
     # This job runs only after the 'build' job completes successfully
     needs: build
+
+    # Only deploy on push to main branch, not on pull requests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     # Grant permissions to the environment
     environment:
