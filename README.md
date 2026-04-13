@@ -8,7 +8,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg)](tests/)
 [![Code Coverage](https://img.shields.io/badge/Coverage-See%20htmlcov-blue.svg)](htmlcov/index.html)
-[![Docs](https://img.shields.io/badge/Docs-Available-blue.svg)](_build/html/index.html)
+[![Docs](https://img.shields.io/badge/Docs-Available-blue.svg)](https://matteorobbiati.github.io/mpstab/index.html)
 
 ## Overview
 
