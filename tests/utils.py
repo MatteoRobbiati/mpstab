@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 from qibo import Circuit, gates, hamiltonians, symbols
-from qibo.backends import get_backend
+from qibo.backends import Backend, construct_backend, get_backend
 
 DEFAULT_REPLACEMENT_PROBABILITY = 0.75
 DEFAULT_MAX_BD = 128
@@ -83,13 +83,19 @@ def expectation_with_qibo(mpstab_ansatz, observable_str):
 
 
 def construct_symbolic_hamiltonian(
-    nqubits: int, rng_seed: int = DEFAULT_RNG_SEED, n_terms: int = 5
+    nqubits: int,
+    rng_seed: int = DEFAULT_RNG_SEED,
+    n_terms: int = 5,
+    qibo_backend: Backend = None,
 ):
     """Construct a random symbolic hamiltonian."""
 
     set_rng_seed(rng_seed)
 
     from qibo.symbols import X, Y, Z
+
+    if qibo_backend is None:
+        qibo_backend = construct_backend("numpy")
 
     symbols = [X, Y, Z]
     ham_form = 0
@@ -110,4 +116,6 @@ def construct_symbolic_hamiltonian(
     constant_shift = 0.5
     ham_form += constant_shift
 
-    return hamiltonians.SymbolicHamiltonian(nqubits=nqubits, form=ham_form)
+    return hamiltonians.SymbolicHamiltonian(
+        nqubits=nqubits, form=ham_form, backend=qibo_backend
+    )

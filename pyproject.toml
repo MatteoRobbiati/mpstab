@@ -70,12 +70,13 @@ docs-clean = "make -C doc clean"
 test-docs = "make -C doc doctest"
 
 [tool.pytest.ini_options]
-# Only look inside the tests/ directory
+# Look inside the tests/ directory for test files
 testpaths = ["tests"]
 # Only treat files starting with test_ as test files
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+# Code coverage options
 addopts = [
   "--cov=mpstab",
   "--cov-append",

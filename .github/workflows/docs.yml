@@ -80,6 +80,9 @@ jobs:
     # This job runs only after the 'build' job completes successfully
     needs: build
 
+    # Only deploy on push to main branch, not on pull requests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     # Grant permissions to the environment
     environment:
       name: github-pages

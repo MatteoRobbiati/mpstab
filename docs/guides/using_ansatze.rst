@@ -20,6 +20,7 @@ CircuitAnsatz
 
 Wrap any existing Qibo circuit as an ansatz::
 
+    from mpstab import HSMPO
     from qibo import Circuit, gates
     from mpstab.models.ansatze import CircuitAnsatz
 
@@ -40,6 +41,7 @@ Building Custom Ansätze
 
 Extend the ``Ansatz`` class for custom patterns::
 
+    from mpstab import HSMPO
     from mpstab.models.ansatze import Ansatz
     from qibo import Circuit, gates
     import numpy as np

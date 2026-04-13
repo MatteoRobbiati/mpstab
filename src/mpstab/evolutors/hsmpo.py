@@ -12,7 +12,7 @@ from mpstab.engines import (
     TensorNetworkEngine,
 )
 from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
-from mpstab.evolutors.utils import gate2generator
+from mpstab.evolutors.utils import gate2generator, validate_pauli_observable
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 
 
@@ -98,6 +98,9 @@ class HSMPO:
                 )
 
         elif isinstance(observable, str):
+            # Validate observable string format and length
+            validate_pauli_observable(observable, self.nqubits)
+
             if return_fidelity:
                 return (
                     self.expectation_from_partition(

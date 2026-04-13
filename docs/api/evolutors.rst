@@ -18,8 +18,8 @@ The main HSMPO class combines stabilizer states with tensor network representati
 **Key Methods**:
 
 - ``__init__(ansatz, max_bond_dimension, initial_state)``: Initialize the simulator
-- ``expectation(observable)``: Compute expectation value of a Pauli observable
-- ``fidelity_lower_bound``: Access the current fidelity bound
+- ``expectation(observable, return_fidelity=False)``: Compute expectation value of a Pauli observable
+- ``truncation_fidelity()``: Compute truncation fidelity of current state
 - ``set_engines()``: Configure stabilizer and tensor network engines
 
 **Usage Example**::
@@ -34,9 +34,9 @@ The main HSMPO class combines stabilizer states with tensor network representati
 
     # Simulate with HSMPO
     simulator = HSMPO(ansatz=circuit, max_bond_dimension=32)
-    result = simulator.expectation("ZZZZZZ")
+    result, fidelity = simulator.expectation("Z" * 5, return_fidelity=True)
     print(f"Expectation value: {result}")
-    print(f"Fidelity: {simulator.fidelity_lower_bound}")
+    print(f"Fidelity: {fidelity}")
 
 Utilities
 ---------

@@ -175,6 +175,7 @@ Contributions are welcome! Please follow these guidelines:
    - Document all public functions and classes
    - Update documentation when changing APIs
    - Add docstrings following NumPy style
+   - **All code examples in documentation must be executable** — see [TESTING_DOCUMENTATION.md](TESTING_DOCUMENTATION.md) for guidelines
 
 4. **Pull Request Process**:
    - Fork the repository

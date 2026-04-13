@@ -84,10 +84,24 @@ Selecting Engines
 
 Engines are automatically selected based on your circuit type and parameters::
 
+    from qibo import Circuit, gates
     from mpstab import HSMPO
+    from mpstab.models.ansatze import HardwareEfficient
+
+    clifford_circuit = Circuit(nqubits=10)
+    # Add only Clifford gates
+    for q in range(10):
+         clifford_circuit.add(gates.H(q))
+         clifford_circuit.add(gates.CNOT(q0=q%10, q1=(q+1)%10))
 
     # Clifford circuit - uses stabilizer engine only
     simulator = HSMPO(ansatz=clifford_circuit)
+
+    # Constructing a circuit with also magic gates
+    mixed_circuit = HardwareEfficient(
+         nqubits=10,
+         nlayers=3,
+    )
 
     # Mixed circuit with bond limit - uses both engines
     simulator = HSMPO(

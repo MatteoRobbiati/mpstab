@@ -5,6 +5,13 @@ MPSTAB supports multiple computational backends (engines) for different simulati
 
 Once an HSMPO is defined, the engines can be customized using the ``hsmpo.set_engines`` method. By default we set Stim and Quimb respectively for stabilizers and tensor network simulations::
 
+    from mpstab import HSMPO
+    from qibo import Circuit, gates
+
+    circuit = Circuit(3)
+    circuit.add(gates.H(0))
+    circuit.add(gates.CNOT(0, 1))
+
     simulator = HSMPO(ansatz=circuit)
     # Here we can pass the desired engines
     simulator.set_engines()
@@ -25,6 +32,13 @@ Engines that handle the Clifford (stabilizer) part of the circuit:
 
 ::
 
+    from mpstab import HSMPO
+    from qibo import Circuit, gates
+
+    circuit = Circuit(5)
+    circuit.add(gates.H(0))
+    circuit.add(gates.CNOT(0, 1))
+
     simulator = HSMPO(ansatz=circuit)
     # By default we use Stim
 
@@ -37,8 +51,14 @@ Engines that handle the Clifford (stabilizer) part of the circuit:
 ::
 
     from mpstab import HSMPO
+    from mpstab.engines import NativeStabilizersEngine
+    from qibo import Circuit, gates
+
+    circuit = Circuit(5)
+    circuit.add(gates.H(0))
+
     simulator = HSMPO(ansatz=circuit)
-    simulator.set_engines(stab_engine=NativeStabilizerEngine)
+    simulator.set_engines(stab_engine=NativeStabilizersEngine())
 
 Tensor Network Engines
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -53,6 +73,13 @@ Engines that handle the non-Clifford effects via MPO:
   - External library: `Quimb <https://quimb.readthedocs.io/>`_
 
 ::
+
+    from mpstab import HSMPO
+    from qibo import Circuit, gates
+
+    circuit = Circuit(5)
+    circuit.add(gates.H(0))
+    circuit.add(gates.RY(0, theta=0.5))
 
     simulator = HSMPO(ansatz=circuit, max_bond_dimension=32)
     # Uses Quimb tensor network engine by default
@@ -82,7 +109,7 @@ Engine Configuration
 
     # Access engine information
     simulator.set_engines()  # Configure engines
-    print(f"Stabilizer engine: {simulator.st_engine}")
+    print(f"Stabilizer engine: {simulator.stab_engine}")
     print(f"TN engine: {simulator.tn_engine}")
 
 Tips for Efficient Simulation
@@ -99,6 +126,7 @@ Example: Adaptive Bond Dimension
 
     from mpstab import HSMPO
     from mpstab.models.ansatze import HardwareEfficient
+    from qibo import gates
 
     # Define an ansatz or a Qibo circuit
     ansatz = HardwareEfficient(nqubits=10, nlayers=3)
@@ -106,8 +134,7 @@ Example: Adaptive Bond Dimension
     # Start with low bond dimension
     for max_bd in [2, 4, 8, 16, 32]:
         simulator = HSMPO(ansatz=ansatz, max_bond_dimension=max_bd)
-        result = simulator.expectation("Z" * 10)
-        fidelity = simulator.fidelity_lower_bound
+        result, fidelity = simulator.expectation("Z" * 10, return_fidelity=True)
 
         print(f"χ_max={max_bd}: result={result:.4f}, fidelity={fidelity:.4f}")
 

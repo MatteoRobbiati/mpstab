@@ -47,10 +47,9 @@ Basic Usage
 
     # With truncation
     simulator = HSMPO(ansatz=circuit, max_bond_dimension=8)
-    result = simulator.expectation("ZZZZZ")
+    result, fidelity = simulator.expectation("ZZZZZ", return_fidelity=True)
 
-    # Check fidelity lower bound
-    fidelity = simulator.fidelity_lower_bound
+    # Check fidelity
     print(f"Fidelity: {fidelity:.6f}")
     print(f"Information loss: {(1 - fidelity)*100:.2f}%")
 
@@ -60,13 +59,19 @@ Fidelity vs Bond Dimension
 ::
 
     from mpstab import HSMPO
+    from qibo import Circuit, gates
+
+    # Create a test circuit
+    circuit = Circuit(5)
+    for q in range(5):
+        circuit.add(gates.H(q))
+        circuit.add(gates.RY(q, theta=0.3))
 
     # Study approximation quality
     results = []
     for max_bd in [2, 4, 8, 16, 32, 64, None]:
         simulator = HSMPO(ansatz=circuit, max_bond_dimension=max_bd)
-        expval = simulator.expectation("ZZZZZ")
-        fidelity = simulator.fidelity_lower_bound
+        expval, fidelity = simulator.expectation("ZZZZZ", return_fidelity=True)
 
         bd_str = f"χ={max_bd}" if max_bd else "Exact"
         print(f"{bd_str:<10} | Expval: {expval:8.4f} | Fidelity: {fidelity:.6f}")
@@ -108,7 +113,7 @@ Example usage::
     from mpstab.models.ansatze import HardwareEfficient
 
     ansatz = HardwareEfficient(nqubits=16, nlayers=8)
-    simulator = HSMPO(ansatz=circuit, max_bond_dimension=8)
+    simulator = HSMPO(ansatz=ansatz, max_bond_dimension=8)
 
     # Get pure tensor network fidelity (baseline)
     pure_tn_fidelity = simulator.truncation_fidelity_pure_tn
@@ -132,27 +137,38 @@ For Accurate Simulations
 
 ::
 
+    from mpstab import HSMPO
+    from qibo import Circuit, gates
+
+    # Create a test circuit
+    circuit = Circuit(5)
+    circuit.add(gates.H(0))
+    circuit.add(gates.RY(0, theta=0.5))
+
     # Aim for fidelity > 0.99
     simulator = HSMPO(ansatz=circuit, max_bond_dimension=32)
-    if simulator.fidelity_lower_bound > 0.99:
-        result = simulator.expectation("ZZZZZ")
+    result, fidelity = simulator.expectation("ZZZZZ", return_fidelity=True)
+    if fidelity > 0.99:
         print("Result is reliable")
     else:
         # Increase bond dimension
         simulator = HSMPO(ansatz=circuit, max_bond_dimension=64)
+        result, fidelity = simulator.expectation("ZZZZZ", return_fidelity=True)
 
 Adaptive Bond Dimension
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Automatically find the minimum bond dimension needed::
 
+    from mpstab import HSMPO
+    from qibo import Circuit, gates
+
     def find_min_bond_dimension(circuit, observable, min_fidelity=0.99):
         """Find minimum bond dimension for desired fidelity."""
 
         for max_bd in [2, 4, 8, 16, 32, 64, 128, 256]:
             simulator = HSMPO(ansatz=circuit, max_bond_dimension=max_bd)
-            result = simulator.expectation(observable)
-            fidelity = simulator.fidelity_lower_bound
+            result, fidelity = simulator.expectation(observable, return_fidelity=True)
 
             print(f"χ={max_bd}: fidelity={fidelity:.4f}")
 
@@ -161,6 +177,13 @@ Automatically find the minimum bond dimension needed::
 
         # If we get here, even χ=256 isn't enough
         return None, None, None
+
+    # Example usage:
+    circuit = Circuit(5)
+    circuit.add(gates.H(0))
+    circuit.add(gates.RY(0, theta=0.5))
+
+    min_bd, result, fidelity = find_min_bond_dimension(circuit, "ZZZZZ")
 
 Sources of Fidelity Loss
 ------------------------

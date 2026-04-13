@@ -61,31 +61,10 @@ Tools for analyzing entanglement and state properties.
    :undoc-members:
    :show-inheritance:
 
-**Available Metrics**:
+**Available Functions**:
 
-- ``EntanglementEntropy``: Von Neumann entanglement entropy
-- ``MagicMeasure``: Non-stabilizer resource (magic) measure
-- ``EntanglementSpectrum``: Singular values from Schmidt decomposition
+- ``stabilizer_renyi_entropy(state, alpha)``: Stabilizer Renyi entropy for a given state and order
 
-**Key Methods**:
-
-- ``compute(state)``: Compute metric for a state
-- ``across_cut(subsystem_a, subsystem_b)``: Entropy across a partition
-
-**Example Usage**::
-
-    from mpstab.models.entropies import EntanglementEntropy
-    from mpstab import HSMPO
-
-    simulator = HSMPO(ansatz=my_circuit)
-
-    # Compute entanglement entropy across qubits 0-2 vs 3-4
-    ee = EntanglementEntropy.across_cut(
-        mps=simulator.mps,
-        subsystem_a=[0, 1, 2],
-        subsystem_b=[3, 4]
-    )
-    print(f"Entanglement entropy: {ee:.4f} bits")
 
 Additional Utilities
 --------------------
@@ -98,15 +77,13 @@ Additional Utilities
 Quick Reference
 ---------------
 
-====================  ===============================================
+====================  ==================================================
 Class/Function        Purpose
-====================  ===============================================
+====================  ==================================================
 HardwareEfficient     Standard VQA circuit pattern
 CircuitAnsatz         Wrap Qibo circuits as ansätze
-ErrorMitigation       Apply various mitigation techniques
-EntanglementEntropy   Measure entanglement
-MagicMeasure          Quantify non-stabilizer resources
-====================  ===============================================
+stabilizer_renyi_entropy    Calculate Renyi entropy for stabilizer states
+====================  ==================================================
 
 Related Documentation
 -----------------------
