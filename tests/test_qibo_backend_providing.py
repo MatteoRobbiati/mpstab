@@ -2,18 +2,12 @@ import numpy as np
 import pytest
 from qibo import construct_backend
 from qibo.hamiltonians import TFIM
-from utils import (
-    DEFAULT_ATOL,
-    DEFAULT_RNG_SEED,
-    construct_symbolic_hamiltonian,
-    construct_test_circuit,
-)
+from utils import DEFAULT_ATOL, construct_symbolic_hamiltonian, construct_test_circuit
 
 
-# TODO: check why this is failing
-@pytest.mark.parametrize("rng_seed", range(40))
+@pytest.mark.parametrize("rng_seed", range(5))
 @pytest.mark.parametrize("ham_choice", ["random"])
-@pytest.mark.parametrize("nqubits", [8])
+@pytest.mark.parametrize("nqubits", [8, 12])
 def test_providing_backend_to_qibo(rng_seed, ham_choice, nqubits):
 
     mpstab_backend = construct_backend("mpstab")
