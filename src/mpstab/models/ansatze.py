@@ -76,11 +76,12 @@ class Ansatz(ABC):
         Partitionate the circuit replacing non-Clifford (magic) gates with a given probability.
 
         For each gate in the original circuit:
+
         - If the gate is non-Clifford, with probability replacement_probability it is
-            replaced by a Clifford gate via replace_non_clifford_gate.
+          replaced by a Clifford gate via replace_non_clifford_gate.
         - The processed gate (whether replaced or not) is added to the overall circuit.
         - Simultaneously, consecutive gates of the same type (Clifford or non-Clifford)
-            are collected into blocks.
+          are collected into blocks.
 
         Returns:
             partitioned_circuit (Circuit): the complete processed circuit.

@@ -51,7 +51,6 @@ If you don't have Poetry installed::
 
     # Activate the virtual environment
     poetry shell
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Alternatively, you can use pip for an editable install with optional dependencies::
 

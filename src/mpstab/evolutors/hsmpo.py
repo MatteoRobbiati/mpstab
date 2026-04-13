@@ -132,7 +132,7 @@ class HSMPO:
         replacement_method: str = "closest",
     ) -> float:
         """
-        Truncation fidelity between truncated and original state |<Ψ_t|Ψ_t>|^2/|<Ψ|Ψ>|^2 = |<Ψ_t|Ψ_t>|^2, being Ψ normalized.
+        Truncation fidelity between truncated and original state :math:`|\\langle\\Psi_t|\\Psi_t\rangle|^2/|\\langle\\Psi|\\Psi\rangle|^2 = |\\langle\\Psi_t|\\Psi_t\rangle|^2`, being Ψ normalized.
         """
 
         # Reset MPS to initial state

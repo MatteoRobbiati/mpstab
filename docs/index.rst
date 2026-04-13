@@ -21,6 +21,7 @@ Among our core features:
    :caption: Getting Started
 
    installation
+   guides/theory_background
    guides/quickstart
 
 .. toctree::
