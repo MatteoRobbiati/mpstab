@@ -30,17 +30,28 @@ Simulate with Bond Dimension Limit
 
 Limit MPO bond dimension for faster computation::
 
-    simulator = HSMPO(ansatz=circuit, max_bond_dimension=16)
-    result = simulator.expectation("ZIIIZ")
+    from mpstab import HSMPO
+    from qibo import Circuit, gates
 
-    # Check fidelity lower bound
-    print(f"Fidelity: {simulator.fidelity_lower_bound}")
+    # Create a simple quantum circuit
+    circuit = Circuit(5)
+    for q in range(5):
+        circuit.add(gates.H(q))
+        circuit.add(gates.RY(q, theta=0.5))
+    circuit.add(gates.CNOT(0, 1))
+
+    simulator = HSMPO(ansatz=circuit, max_bond_dimension=4)
+    result, fidelity = simulator.expectation("ZIIIZ", return_fidelity=True)
+
+    # Check fidelity
+    print(f"Fidelity: {fidelity}")
 
 Use an Ansatz
 ~~~~~~~~~~~~~~
 
 Pre-built quantum circuit patterns::
 
+    from mpstab import HSMPO
     from mpstab.models.ansatze import HardwareEfficient
 
     # Use a pre-built quantum circuit pattern
@@ -53,8 +64,16 @@ Measure Complex Observables
 
 Beyond simple Pauli strings, you can measure complex observables using Qibo's symbolic Hamiltonians::
 
-    from qibo import hamiltonians
+    from mpstab import HSMPO
+    from qibo import Circuit, gates, hamiltonians
     from qibo.symbols import X, Y, Z
+
+    # Create a simple quantum circuit
+    circuit = Circuit(5)
+    for q in range(5):
+        circuit.add(gates.H(q))
+        circuit.add(gates.RY(q, theta=0.5))
+    circuit.add(gates.CNOT(0, 1))
 
     # Define a multi-term observable
     # Example: 0.5 * X(0)*Z(1) + 0.3 * Y(1)*Y(2)
@@ -65,13 +84,10 @@ Beyond simple Pauli strings, you can measure complex observables using Qibo's sy
 
     # Use HSMPO to compute the expectation value
     simulator = HSMPO(ansatz=circuit)
-    result = simulator.expectation(ham)
+    result = simulator.expectation(observable=ham)
     print(f"<H> = {result}")
 
-Build observables from individual Pauli operators::
-
-    from qibo.symbols import X, Y, Z, I
-
+    # Alternative: build observables from individual Pauli operators
     # Construct from qubit-by-qubit: X ⊗ Y ⊗ Z on qubits 0, 1, 2
     pauli_string = X(0) * Y(1) * Z(2)
     ham = hamiltonians.SymbolicHamiltonian(form=pauli_string)
@@ -82,8 +98,7 @@ Build observables from individual Pauli operators::
 
     exp_val = simulator.expectation(ham)
 
-Simple Pauli strings still work::
-
+    # Simple Pauli strings still work
     # Quick measurement of a single Pauli string
     result = simulator.expectation("XYZIX")
 

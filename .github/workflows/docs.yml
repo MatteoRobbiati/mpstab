@@ -59,7 +59,11 @@ jobs:
 
       # Step 6: Install Python dependencies including the 'docs' group
       - name: Install dependencies
-        run: poetry install --with docs
+        run: poetry install --with docs --with test
+
+      # Step 6b: Validate documentation code blocks before building docs
+      - name: Validate documentation code blocks
+        run: poetry run pytest tests/test_rst_code_blocks.py -v --tb=short
 
       # Step 7: Build the documentation using Sphinx
       - name: Build docs
