@@ -8,7 +8,8 @@ from qibo.symbols import I, X, Y, Z
 from utils import (
     DEFAULT_MAX_BD,
     DEFAULT_REPLACEMENT_PROBABILITY,
-    DEFAULT_RNG_SEED,
+    construct_symbolic_hamiltonian,
+    construct_test_circuit,
     expectation_with_qibo,
     set_rng_seed,
 )
@@ -46,7 +47,7 @@ def test_expectation_matches_qibo(observable):
 def test_expectation_from_partition_with_qubit_scaling():
     times = []
 
-    for nqubits in [4, 8, 12]:
+    for nqubits in [4, 12, 24]:
         ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
         hs = HSMPO(ansatz=ans)
         initial_time = time.time()
@@ -78,39 +79,19 @@ def test_replacement_methods(method):
     assert no_repl_expval != repl_expval
 
 
-@pytest.mark.parametrize("nqubits", [5, 6, 7, 8])
-def test_symbolic_hamiltonian_expectation(nqubits):
+@pytest.mark.parametrize("rng_seed", range(30))
+@pytest.mark.parametrize("nqubits", [7, 8, 9])
+def test_symbolic_hamiltonian_expectation(rng_seed, nqubits):
 
-    set_rng_seed(DEFAULT_RNG_SEED)
+    set_rng_seed(rng_seed)
 
     # Initialising a general ansatz
-    ansatz = HardwareEfficient(nqubits=nqubits, nlayers=2)
+    circuit = construct_test_circuit(nqubits=nqubits, rng_seed=rng_seed)
+    h = construct_symbolic_hamiltonian(nqubits=nqubits, rng_seed=rng_seed)
 
-    symbols = [X, Y, Z, I]
-    ham_form = 0
-    n_terms = 5
-
-    for _ in range(n_terms):
-        coeff = np.random.uniform(0.5, 2.0)
-        # Pick 1 or 2 random qubits for this term
-        target_qubits = np.random.choice(range(nqubits), size=2, replace=False)
-        paulis = np.random.choice(symbols, size=2)
-
-        # Construct term: e.g. 1.2 * X(0) * Z(3)
-        term = (
-            coeff * paulis[0](int(target_qubits[0])) * paulis[1](int(target_qubits[1]))
-        )
-        ham_form += term
-
-    # Add a constant shift to test completeness
-    constant_shift = 0.5
-    ham_form += constant_shift
-
-    h = SymbolicHamiltonian(ham_form)
-
-    hs = HSMPO(ansatz=ansatz)
+    hs = HSMPO(ansatz=circuit)
     exp_mpstab = hs.expectation(h)
 
-    exp_qibo = h.expectation_from_state(ansatz.circuit().state())
+    exp_qibo = h.expectation_from_state(circuit().state())
 
     assert np.allclose(exp_mpstab, exp_qibo, atol=1e-6)

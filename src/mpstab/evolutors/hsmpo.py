@@ -11,6 +11,7 @@ from mpstab.engines import (
     StimEngine,
     TensorNetworkEngine,
 )
+from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
 from mpstab.evolutors.utils import gate2generator
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 
@@ -77,26 +78,37 @@ class HSMPO:
             max_bond_dimension=max_bond_dimension,
         )
 
-    def expectation(self, observable: Union[str, SymbolicHamiltonian]) -> float:
+    def expectation(
+        self, observable: Union[str, SymbolicHamiltonian], return_fidelity: bool = False
+    ):
         """
         Compute the expectation value of an observable with respect
         to the full ansatz circuit (no partitioning).
         """
 
         if isinstance(observable, SymbolicHamiltonian):
-            coeffs, pauli_terms, sites = observable.simple_terms
-            return self._expectation_from_symbolic_hamiltonian(
-                coefficients_list=coeffs,
-                operators_list=pauli_terms,
-                sites_list=sites,
-                constant=observable.constant.real,
-            )
+            if return_fidelity:
+                return (
+                    self._expectation_from_symbolic_hamiltonian(hamiltonian=observable),
+                    self.tn_engine.norm,
+                )
+            else:
+                return self._expectation_from_symbolic_hamiltonian(
+                    hamiltonian=observable
+                )
 
         elif isinstance(observable, str):
-            return self.expectation_from_partition(
-                observable, replacement_probability=0.0
-            )[0]
-
+            if return_fidelity:
+                return (
+                    self.expectation_from_partition(
+                        observable, replacement_probability=0.0
+                    )[0],
+                    self.tn_engine.norm,
+                )
+            else:
+                return self.expectation_from_partition(
+                    observable, replacement_probability=0.0
+                )[0]
         else:
             raise ValueError(
                 f"Given observable of type {type(observable)}, but only list or Qibo's SymbolicHamiltonian are supported"
@@ -105,6 +117,47 @@ class HSMPO:
     @property
     def nqubits(self):
         return self.ansatz.circuit.nqubits
+
+    @property
+    def truncation_fidelity_pure_tn(self) -> float:
+        return _qibo_circuit_to_quimb(
+            nqubits=self.nqubits,
+            qibo_circ=self.initial_state + self.ansatz.circuit,
+            max_bond=self.max_bond_dimension,
+        ).fidelity_estimate()
+
+    def truncation_fidelity(
+        self,
+        replacement_probability: float = 0.0,
+        replacement_method: str = "closest",
+    ) -> float:
+        """
+        Truncation fidelity between truncated and original state :math:`|\\langle\\Psi_t|\\Psi_t\rangle|^2/|\\langle\\Psi|\\Psi\rangle|^2 = |\\langle\\Psi_t|\\Psi_t\rangle|^2`, being Ψ normalized.
+        """
+
+        # Reset MPS to initial state
+        self._init_tn(self.max_bond_dimension)
+
+        # Partitionate circuit
+        (magic_gates, clifford_circuit), _ = self.ansatz.partitionate_circuit(
+            replacement_probability=replacement_probability,
+            replacement_method=replacement_method,
+        )
+
+        # Apply pauli rotations (generated from dropped magic gates) on the MPS
+        for k, magic_gate in magic_gates:
+
+            clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
+            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
+
+            self.tn_engine.pauli_rot(
+                state_circuit=self.mps,
+                generator=generator,
+                angle=magic_gate.parameters[0] * sign,
+                max_bond_dimension=self.max_bond_dimension,
+            )
+
+        return self.mps.norm(squared=True)
 
     def expectation_from_partition(
         self,
@@ -132,17 +185,17 @@ class HSMPO:
         for k, magic_gate in magic_gates:
 
             clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
-            generator = self._conjugate_generator(magic_gate, clifford_subcircuit)
+            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
 
             self.tn_engine.pauli_rot(
                 state_circuit=self.mps,
                 generator=generator,
-                angle=magic_gate.parameters[0],
+                angle=magic_gate.parameters[0] * sign,
                 max_bond_dimension=self.max_bond_dimension,
             )
 
         # Compute the conjugate of the observable via the stabilizer engine
-        new_observable = self.stab_engine.backpropagate(
+        new_observable, sign = self.stab_engine.backpropagate(
             observable=observable, clifford_circuit=clifford_circuit
         )
 
@@ -158,7 +211,10 @@ class HSMPO:
 
         # mpo is created through the TN engine, and expectation value is computed via the TN engine as well.
         mpo = self.tn_engine.pauli_mpo(new_observable)
-        return self.tn_engine.expval(state_circuit=self.mps, operator=mpo), partitions
+        return (
+            self.tn_engine.expval(state_circuit=self.mps, operator=mpo) * sign,
+            partitions,
+        )
 
     def _conjugate_generator(self, gate, clifford_circuit):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
@@ -244,6 +300,26 @@ class HSMPO:
 
         total_expval = constant if constant is not None else 0
 
+        # Optimization: Pre-evolve the MPS state once for the entire Hamiltonian.
+        # This prevents re-initializing the TN and re-applying magic gates for every term.
+        # We assume expectation() logic uses replacement_probability=0.0.
+        (magic_gates, clifford_circuit), _ = self.ansatz.partitionate_circuit(
+            replacement_probability=0.0,
+            replacement_method="closest",
+        )
+
+        # Reset MPS and apply magic rotations
+        self._init_tn(self.max_bond_dimension)
+        for k, magic_gate in magic_gates:
+            clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
+            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
+            self.tn_engine.pauli_rot(
+                state_circuit=self.mps,
+                generator=generator,
+                angle=magic_gate.parameters[0] * sign,
+                max_bond_dimension=self.max_bond_dimension,
+            )
+
         # Computing the contributions
         for coeff, p_name, targets in zip(
             coefficients_list, operators_list, sites_list
@@ -258,14 +334,15 @@ class HSMPO:
 
             full_pauli_string = "".join(full_pauli_list)
 
-            # Contraction for the Hamiltonian term
-            # Each expectation is re-initialising the network to avoid errors
-            # TODO: check the performance
-            # TODO: execute the TN part only once to boost the performance
-            # TODO: or introduce caching of the TN contractions
-            term_expval = self.expectation(full_pauli_string)
+            # Backpropagate the specific term through the persistent Clifford circuit
+            new_observable, sign = self.stab_engine.backpropagate(
+                observable=full_pauli_string, clifford_circuit=clifford_circuit
+            )
 
-            # Accumulate (handle complex coefficients if necessary, though usually real for H)
-            total_expval += coeff.real * term_expval
+            # Contraction for the Hamiltonian term using the ALREADY evolved self.mps
+            mpo = self.tn_engine.pauli_mpo(new_observable)
+            term_expval = self.tn_engine.expval(state_circuit=self.mps, operator=mpo)
+
+            total_expval += coeff.real * term_expval * sign
 
         return total_expval

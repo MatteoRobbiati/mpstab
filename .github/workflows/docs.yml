@@ -1,0 +1,93 @@
+name: Build and Deploy Docs
+
+on:
+  push:
+    branches: [ main ]
+    # The workflow runs only if files in these paths are modified
+    paths:
+      - 'docs/**'
+      - 'src/**'
+      - 'README.md'
+      - 'pyproject.toml'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [ main ]
+
+# Permissions needed for GitHub Pages deployment
+permissions:
+  contents: read   # To checkout the code
+  pages: write      # To deploy to Pages
+  id-token: write   # To verify the deployment source
+
+# Ensure only one deployment runs at a time to avoid conflicts
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - uses: actions/checkout@v4
+
+      # Step 2: Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Step 3: Install Poetry for dependency management
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      # Step 4: Install system dependencies (Pandoc is required for nbsphinx)
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      # Step 5: Cache virtualenv to speed up subsequent runs
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      # Step 6: Install Python dependencies including the 'docs' group
+      - name: Install dependencies
+        run: poetry install --with docs
+
+      # Step 7: Build the documentation using Sphinx
+      - name: Build docs
+        run: poetry run sphinx-build -b html docs docs/_build/html
+
+      # Step 8: Setup GitHub Pages environment
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      # Step 9: Upload the built HTML files as an artifact
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # This must match the output directory of sphinx-build
+          path: 'docs/_build/html'
+
+  deploy:
+    # This job runs only after the 'build' job completes successfully
+    needs: build
+
+    # Grant permissions to the environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      # Step 10: Deploy the uploaded artifact to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

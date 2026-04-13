@@ -83,17 +83,16 @@ def expectation_with_qibo(mpstab_ansatz, observable_str):
 
 
 def construct_symbolic_hamiltonian(
-    nqubits: int, qibo_backend: Backend = None, rng_seed: int = DEFAULT_RNG_SEED
+    nqubits: int, rng_seed: int = DEFAULT_RNG_SEED, n_terms: int = 5
 ):
     """Construct a random symbolic hamiltonian."""
 
     set_rng_seed(rng_seed)
 
-    from qibo.symbols import I, X, Y, Z
+    from qibo.symbols import X, Y, Z
 
-    symbols = [X, Y, Z, I]
+    symbols = [X, Y, Z]
     ham_form = 0
-    n_terms = 5
 
     for _ in range(n_terms):
         coeff = np.random.uniform(0.5, 2.0)
@@ -111,6 +110,4 @@ def construct_symbolic_hamiltonian(
     constant_shift = 0.5
     ham_form += constant_shift
 
-    return hamiltonians.SymbolicHamiltonian(
-        nqubits=nqubits, form=ham_form, backend=qibo_backend
-    )
+    return hamiltonians.SymbolicHamiltonian(nqubits=nqubits, form=ham_form)
