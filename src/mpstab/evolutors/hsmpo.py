@@ -12,7 +12,7 @@ from mpstab.engines import (
     TensorNetworkEngine,
 )
 from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
-from mpstab.evolutors.utils import gate2generator
+from mpstab.evolutors.utils import gate2generator, validate_pauli_observable
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 
 
@@ -98,6 +98,9 @@ class HSMPO:
                 )
 
         elif isinstance(observable, str):
+            # Validate observable string format and length
+            validate_pauli_observable(observable, self.nqubits)
+
             if return_fidelity:
                 return (
                     self.expectation_from_partition(
@@ -278,12 +281,7 @@ class HSMPO:
         return clifford_subcircuit
 
     def _expectation_from_symbolic_hamiltonian(
-        self,
-        coefficients_list: list,
-        operators_list: list,
-        sites_list: list,
-        constant: float = None,
-        nqubits: int = None,
+        self, hamiltonian: SymbolicHamiltonian
     ) -> float:
         """
         Compute the expectation value of a Qibo SymbolicHamiltonian.
@@ -295,10 +293,11 @@ class HSMPO:
             float: The total expectation value, computed as sum of single contributions.
         """
 
-        if nqubits is None:
-            nqubits = self.nqubits
+        # Leveraging Qibo's features
+        coeffs, pauli_names, target_qubits = hamiltonian.simple_terms
+        constant = hamiltonian.constant.real
 
-        total_expval = constant if constant is not None else 0
+        total_expval = constant
 
         # Optimization: Pre-evolve the MPS state once for the entire Hamiltonian.
         # This prevents re-initializing the TN and re-applying magic gates for every term.
@@ -321,12 +320,10 @@ class HSMPO:
             )
 
         # Computing the contributions
-        for coeff, p_name, targets in zip(
-            coefficients_list, operators_list, sites_list
-        ):
+        for coeff, p_name, targets in zip(coeffs, pauli_names, target_qubits):
 
             # For now mpstab requires padding with identities
-            full_pauli_list = ["I"] * self.ansatz.circuit.nqubits
+            full_pauli_list = ["I"] * hamiltonian.nqubits
 
             # Fill in the specific Pauli operators at the correct positions
             for i, qubit_idx in enumerate(targets):
