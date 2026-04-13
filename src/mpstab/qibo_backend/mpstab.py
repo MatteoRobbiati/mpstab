@@ -13,12 +13,14 @@ from mpstab.engines import (
 
 @dataclass
 class MPStabBackend(NumpyBackend):
+    """Qibo backend for hybrid stabilizer-MPO surrogate simulation."""
 
     def __init__(
         self,
         stab_engine: StabilizersEngine = StimEngine(),
         tn_engine: TensorNetworkEngine = QuimbEngine(),
     ):
+        """Initialize backend with Stabilizer and Tensor-Network engines."""
         super(self.__class__, self).__init__()
 
         self.name = "mpstab"
@@ -29,30 +31,29 @@ class MPStabBackend(NumpyBackend):
     def exp_value_observable_symbolic(
         self, circuit, operators_list, sites_list, coeffs_list, nqubits
     ):
-        """
-        Compute the expectation value of a symbolic Hamiltonian on a quantum circuit using tensor network contraction.
-        This method takes a Qibo circuit, converts it to a Quimb tensor network circuit, and evaluates the expectation value
-        of a Hamiltonian specified by three lists of strings: operators, sites, and coefficients.
-        The expectation value is computed by summing the contributions from each term in the Hamiltonian, where each term's
-        expectation is calculated using Quimb's `local_expectation` function.
-        Each operator string must act on all different qubits, i.e., for each term, the corresponding sites tuple must contain unique qubit indices.
-        Example: operators_list = ['xyz', 'xyz'], sites_list = [(1,2,3), (1,2,3)], coeffs_list = [1, 2]
+        r"""
+        Compute expectation value of a symbolic Hamiltonian using HSMPO surrogate.
 
+        Evaluate the expectation value of a symbolic Hamiltonian on a quantum
+        circuit using the hybrid stabilizer-MPO (HSMPO) surrogate representation.
+        This provides an efficient approximation by combining stabilizer
+        simulation with matrix product state tensor networks.
 
-        Parameters
-        ----------
-        circuit : qibo.models.Circuit
-            The quantum circuit to evaluate, provided as a Qibo circuit object.
-        operators_list : list of str
-            List of operator strings representing the symbolic Hamiltonian terms.
-        sites_list : list of tuple of int
-            Tuples each specifying the qubits (sites) the corresponding operator acts on.
-        coeffs_list : list of real/complex
-            The coefficients for each Hamiltonian term.
-        Returns
-        -------
-        float
-            The real part of the expectation value of the Hamiltonian on the given circuit state.
+        Args:
+            circuit: Quantum circuit to evaluate (qibo.models.Circuit)
+            operators_list: List of Pauli operator strings (e.g., ['xyz', 'xyz'])
+            sites_list: Tuples of qubits each operator acts on
+                (e.g., [(1,2,3), (1,2,3)])
+            coeffs_list: Coefficients for each Hamiltonian term
+            nqubits: Number of qubits in the circuit
+
+        Returns:
+            float: Real part of the expectation value of the Hamiltonian
+
+        Note:
+            Each operator string must act on distinct qubits within the same term.
+            The HSMPO representation uses the configured stabilizer and
+            tensor-network engines to efficiently compute the expectation value.
         """
 
         # Defining Hybrid Stabilizer MPO with proper engines

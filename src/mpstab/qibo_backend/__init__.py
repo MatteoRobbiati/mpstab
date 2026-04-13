@@ -5,19 +5,31 @@ from mpstab.engines import QuimbEngine, StimEngine
 
 class MetaBackend:
     """
-    Simplified Meta-backend loader for mpstab.
-    Focuses on initializing the hybrid engines directly.
+    Backend loader for the MPSTAB hybrid stabilizer-MPO simulator.
+
+    Provides simple initialization of the hybrid stabilizer-MPO representation
+    as a Qibo backend. Configure with stabilizer and tensor-network engines
+    to customize the simulation strategy.
     """
 
     @staticmethod
     def load(backend_name: str = "mpstab", **kwargs):
         """
-        Loads the mpstab backend.
+        Load and initialize the MPSTAB backend.
+
+        Create an MPSTAB backend instance configured with specified engines
+        for stabilizer simulation and tensor-network contraction.
 
         Args:
-            backend_name (str): Must be "mpstab".
-            tn_engine (TensorNetworkEngine, optional): Engine for TN operations.
-            stab_engine (StabilizersEngine, optional): Engine for Stabilizer operations.
+            backend_name: Must be "mpstab" to load the MPSTAB backend
+            stab_engine: Stabilizer engine (default: StimEngine)
+            tn_engine: Tensor-network engine (default: QuimbEngine)
+
+        Returns:
+            MPStabBackend: Configured backend instance
+
+        Raises:
+            ValueError: If backend_name is not "mpstab"
         """
         if backend_name != "mpstab":
             raise_error(
