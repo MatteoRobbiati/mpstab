@@ -78,7 +78,7 @@ def test_replacement_methods(method):
 
 
 @pytest.mark.parametrize("rng_seed", range(5))
-@pytest.mark.parametrize("nqubits", [5, 8, 12])
+@pytest.mark.parametrize("nqubits", [4, 7, 9])
 def test_symbolic_hamiltonian_expectation(rng_seed, nqubits):
 
     set_rng_seed(rng_seed)
