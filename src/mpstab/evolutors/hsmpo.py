@@ -6,6 +6,7 @@ from qibo import Circuit
 from qibo.hamiltonians import SymbolicHamiltonian
 
 from mpstab.engines import (
+    NativeTensorNetworkEngine,
     QuimbEngine,
     StabilizersEngine,
     StimEngine,
@@ -52,6 +53,9 @@ class HSMPO:
         # This is cached for reuse without reconstruction
         # Also caches magic_gates and clifford_circuit during the precomputation
         self.original_circuit_mps = self._precompute_original_mps()
+
+        # Store the engine class that created the precomputed MPS for validation later
+        self._mps_engine_type = type(self.tn_engine)
 
     def _precompute_original_mps(self):
         """
@@ -154,10 +158,13 @@ class HSMPO:
             )
 
             mpo = self.tn_engine.pauli_mpo(backprop_observable)
+
+            # Delegate to engine - handles all engine-specific details internally
             expval = self.tn_engine.expval(
                 state_circuit=self.original_circuit_mps, operator=mpo
             )
-            expval = float(expval) * sign
+
+            expval = float(np.real(expval)) * sign
 
             if return_fidelity:
                 return (
@@ -300,7 +307,10 @@ class HSMPO:
         Set both stabilizers and tensor-network engines.
 
         - stab_engine: instance of StabilizersEngine (if None, StimEngine is used)
-        - tn_engine: instance of TensorNetworkEngine (if None, NativeTensorNetworkEngine is used)
+        - tn_engine: instance of TensorNetworkEngine (if None, QuimbEngine is used)
+
+        Note: NativeTensorNetworkEngine is supported for expectation() calculations,
+        but minimize_expectation() requires QuimbEngine.
         """
 
         # ---- stabilizers engine (existing behaviour) ----
@@ -323,8 +333,15 @@ class HSMPO:
                 f"Provided tensor-network engine {tn_engine} is not supported."
             )
 
+        # Allow NativeTensorNetworkEngine for expectation() only.
+        # minimize_expectation() will validate engine compatibility when called.
         self.tn_engine = tn_engine
         self._init_tn(max_bond_dimension=self.max_bond_dimension)
+
+        # Recompute the cached MPS with the new engine
+        # (in case we're switching engines after initialization)
+        self.original_circuit_mps = self._precompute_original_mps()
+        self._mps_engine_type = type(self.tn_engine)
 
     def _clifford_subcircuit(self, clifford_circuit: Circuit, k: int = 0) -> Circuit:
         """Return a sub-circuit of a given Clifford circuit, cut at index `k`."""
@@ -433,7 +450,21 @@ class HSMPO:
 
         Returns:
             dict with 'ground_state', 'energy', 'converged', etc.
+
+        Raises:
+            NotImplementedError: If using NativeTensorNetworkEngine
+                (DMRG requires QuimbEngine)
         """
+        # Validate engine compatibility for DMRG
+        if isinstance(self.tn_engine, NativeTensorNetworkEngine):
+            raise NotImplementedError(
+                "DMRG optimization requires QuimbEngine. "
+                "NativeTensorNetworkEngine is not supported for minimize_expectation(). "
+                "Please use QuimbEngine or call set_engines(tn_engine=QuimbEngine()) "
+                "to enable DMRG optimization. "
+                "Note: expectation() still works with NativeTensorNetworkEngine."
+            )
+
         if method.lower() == "dmrg":
             return _minimize_expectation_dmrg(
                 self,

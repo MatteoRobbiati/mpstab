@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 
 from qibo.backends import NumpyBackend
+from qibo.hamiltonians import SymbolicHamiltonian
+from qibo.symbols import X, Y, Z
 
 from mpstab import HSMPO
 from mpstab.engines import (
@@ -56,16 +58,26 @@ class MPStabBackend(NumpyBackend):
             tensor-network engines to efficiently compute the expectation value.
         """
 
+        # Build symbolic Hamiltonian from component lists
+        hamiltonian = 0
+        pauli_map = {"X": X, "Y": Y, "Z": Z}
+
+        for coeff, operators, sites in zip(coeffs_list, operators_list, sites_list):
+            # Build the term for this Hamiltonian component
+            term = 1
+            for op, qubit in zip(operators, sites):
+                term = term * pauli_map[op](qubit)
+            hamiltonian = hamiltonian + coeff * term
+
+        # Create SymbolicHamiltonian object
+        symbolic_h = SymbolicHamiltonian(nqubits=nqubits, form=hamiltonian)
+
         # Defining Hybrid Stabilizer MPO with proper engines
         hybrid_surrogate = HSMPO(ansatz=circuit)
         hybrid_surrogate.set_engines(
             stab_engine=self.stab_engine,
             tn_engine=self.tn_engine,
         )
+
         # Computing expectation value from symbolic Hamiltonian
-        return hybrid_surrogate._expectation_from_symbolic_hamiltonian(
-            coefficients_list=coeffs_list,
-            operators_list=operators_list,
-            sites_list=sites_list,
-            nqubits=nqubits,
-        )
+        return hybrid_surrogate.expectation(symbolic_h)
