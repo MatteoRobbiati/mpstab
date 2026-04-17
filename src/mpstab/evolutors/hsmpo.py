@@ -164,7 +164,7 @@ class HSMPO:
                 state_circuit=self.original_circuit_mps, operator=mpo
             )
 
-            expval = float(np.real(expval)) * sign
+            expval = np.real(expval) * sign
 
             if return_fidelity:
                 return (

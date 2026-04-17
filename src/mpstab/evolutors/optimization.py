@@ -181,8 +181,23 @@ def minimize_expectation_dmrg(
     elif isinstance(bond_dims, int):
         bond_dims = [bond_dims]
 
-    # Build MPO from observables (Hamiltonian)
-    H_mpo = build_pauli_mpo(hsmpo, obs_dict)
+    # BACKPROPAGATE each Hamiltonian term through clifford_circuit
+    # This simplifies the MPO by removing gates absorbed into the stabilizer simplification
+    # This is the key advantage of HSMPO over pure Quimb DMRG
+    obs_dict_backprop = {}
+    for pauli_string, coeff in obs_dict.items():
+        # Skip identity terms (handled separately as constant offset)
+        if pauli_string == "I" * len(pauli_string) or pauli_string.upper() == "I":
+            obs_dict_backprop[pauli_string] = coeff
+        else:
+            # Backpropagate through clifford circuit to simplify observable
+            backprop_obs, sign = hsmpo.stab_engine.backpropagate(
+                observable=pauli_string, clifford_circuit=hsmpo.clifford_circuit
+            )
+            obs_dict_backprop[backprop_obs] = coeff * sign
+
+    # Build MPO from simplified observables
+    H_mpo = build_pauli_mpo(hsmpo, obs_dict_backprop)
 
     # Use precomputed MPS as initial guess
     import copy
@@ -208,8 +223,13 @@ def minimize_expectation_dmrg(
     optimized_mps = dmrg.state
     min_energy = dmrg.energy
 
-    # Update the original_circuit_mps with the optimized state
-    hsmpo.original_circuit_mps = optimized_mps
+    # Extract REAL energy history from DMRG
+    energy_history = []
+    if hasattr(dmrg, "energies") and dmrg.energies is not None:
+        energy_history = [float(np.real(e)) for e in dmrg.energies]
+
+    # DO NOT modify hsmpo.original_circuit_mps: keep the initial state intact
+    # for consistent comparisons and multiple optimizations from the same starting point
 
     return {
         "ground_state": optimized_mps,
@@ -217,5 +237,6 @@ def minimize_expectation_dmrg(
             np.real(min_energy)
         ),  # Extract real part (complex may have tiny imag)
         "converged": converged,
-        "num_sweeps": len(dmrg.energies) if hasattr(dmrg, "energies") else max_sweeps,
+        "num_sweeps": len(energy_history) if energy_history else max_sweeps,
+        "energy_history": energy_history,  # ADD REAL ENERGY HISTORY
     }
