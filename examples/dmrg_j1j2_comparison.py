@@ -12,11 +12,13 @@ from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
 # Setup
-n_qubits = 16  # Larger system for more long-range correlations
-n_layers = 4
+n_qubits = 10  # Larger system for more long-range correlations
+n_layers = 12
 J1 = 1.0
 J2 = 0.2
-max_bond_dim_initial = 6  # Bond dimension for INITIAL state - moderate compression
+max_bond_dim_initial = 4  # Bond dimension for INITIAL state - moderate compression
+
+np.random.seed(48)  # For reproducibility
 
 # Create ansatz with LOTS of long-range CZ gates
 hea_model = HardwareEfficient(nqubits=n_qubits, nlayers=n_layers)
@@ -42,6 +44,11 @@ for layer_idx in range(4):  # Add 4 layers of long-range entanglement
 
 # Create extended ansatz
 hea_model = CircuitAnsatz(qibo_circuit=extended_circuit)
+extended_circ = hea_model.partitionate_circuit(
+    replacement_probability=0.85,
+    replacement_method="closest",
+)
+he_ansatz = CircuitAnsatz(qibo_circuit=extended_circuit)
 
 # Define J1J2 Hamiltonian using Qibo (solo per HSMPO, non crea dense internamente)
 ham_form = 0
@@ -105,7 +112,9 @@ init_energy_quimb = float(np.real(qtn.expec_TN_1D(mps_initial.H, H_mpo, mps_init
 ent_quimb = mps_initial.entropy(1)  # Entanglement at bond between site 0 and 1
 
 # Run Quimb DMRG (pass a copy so mps_initial stays untouched)
-dmrg_quimb = qtn.DMRG2(H_mpo, p0=mps_initial.copy(), bond_dims=[3, 6], cutoffs=1e-10)
+dmrg_quimb = qtn.DMRG2(
+    H_mpo, p0=mps_initial.copy(), bond_dims=[2, 4, 8, 16], cutoffs=1e-10
+)
 dmrg_quimb.solve(verbosity=0, tol=1e-8)  # Tighter tolerance
 energy_quimb = float(np.real(dmrg_quimb.energy))
 sweeps_quimb = len(dmrg_quimb.energies) if hasattr(dmrg_quimb, "energies") else 0
@@ -132,7 +141,7 @@ ent_hsmpo = hsmpo.original_circuit_mps.entropy(
 # This is expected behavior!
 
 result_hsmpo = hsmpo.minimize_expectation(
-    H_symbolic, method="dmrg", bond_dims=[6, 12], verbosity=0, tol=1e-8
+    H_symbolic, method="dmrg", bond_dims=[2, 4, 8, 16], verbosity=0, tol=1e-8
 )
 energy_hsmpo = result_hsmpo["energy"]
 sweeps_hsmpo = result_hsmpo.get("num_sweeps", 0)

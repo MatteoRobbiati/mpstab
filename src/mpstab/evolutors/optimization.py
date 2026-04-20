@@ -228,8 +228,9 @@ def minimize_expectation_dmrg(
     if hasattr(dmrg, "energies") and dmrg.energies is not None:
         energy_history = [float(np.real(e)) for e in dmrg.energies]
 
-    # DO NOT modify hsmpo.original_circuit_mps: keep the initial state intact
-    # for consistent comparisons and multiple optimizations from the same starting point
+    # Update hsmpo's MPS to the optimized state
+    # This ensures subsequent expectation() calls use the optimized state
+    hsmpo.original_circuit_mps = optimized_mps
 
     return {
         "ground_state": optimized_mps,
