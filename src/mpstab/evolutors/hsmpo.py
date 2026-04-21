@@ -6,12 +6,16 @@ from qibo import Circuit
 from qibo.hamiltonians import SymbolicHamiltonian
 
 from mpstab.engines import (
+    NativeTensorNetworkEngine,
     QuimbEngine,
     StabilizersEngine,
     StimEngine,
     TensorNetworkEngine,
 )
 from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
+from mpstab.evolutors.optimization import (
+    minimize_expectation_dmrg as _minimize_expectation_dmrg,
+)
 from mpstab.evolutors.utils import gate2generator, validate_pauli_observable
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 
@@ -44,6 +48,52 @@ class HSMPO:
 
         # Add the initial state, which is |0> by default
         self._init_tn(self.max_bond_dimension)
+
+        # Precompute MPS evolved once with replacement_probability=0
+        # This is cached for reuse without reconstruction
+        # Also caches magic_gates and clifford_circuit during the precomputation
+        self.original_circuit_mps = self._precompute_original_mps()
+
+        # Store the engine class that created the precomputed MPS for validation later
+        self._mps_engine_type = type(self.tn_engine)
+
+    def _precompute_original_mps(self):
+        """
+        Precompute the MPS evolved once using the magic/clifford decomposition
+        with replacement_probability=0.
+
+        Also caches magic_gates and clifford_circuit for later use in expectation
+        evaluations, avoiding redundant circuit partitioning.
+
+        Returns the evolved MPS for caching.
+        """
+        import copy
+
+        # Start from a clean copy of the initial MPS
+        self._init_tn(self.max_bond_dimension)
+        evolved_mps = copy.deepcopy(self.mps)
+
+        # Get magic gates and clifford structure with no replacements
+        # (cache these for later use)
+        (self.magic_gates, self.clifford_circuit), _ = self.ansatz.partitionate_circuit(
+            replacement_probability=0.0,
+            replacement_method="closest",
+        )
+
+        # Apply each magic gate evolution
+        for k, magic_gate in self.magic_gates:
+            clifford_subcircuit = self._clifford_subcircuit(self.clifford_circuit, k)
+            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
+
+            # Apply pauli rotation to the evolved MPS
+            self.tn_engine.pauli_rot(
+                state_circuit=evolved_mps,
+                generator=generator,
+                angle=magic_gate.parameters[0] * sign,
+                max_bond_dimension=self.max_bond_dimension,
+            )
+
+        return evolved_mps
 
     def _init_tn(self, max_bond_dimension: int | None = None):
         """
@@ -101,17 +151,28 @@ class HSMPO:
             # Validate observable string format and length
             validate_pauli_observable(observable, self.nqubits)
 
+            # Use cached clifford circuit for observable backpropagation
+            # (computed once during MPS initialization)
+            backprop_observable, sign = self.stab_engine.backpropagate(
+                observable=observable, clifford_circuit=self.clifford_circuit
+            )
+
+            mpo = self.tn_engine.pauli_mpo(backprop_observable)
+
+            # Delegate to engine - handles all engine-specific details internally
+            expval = self.tn_engine.expval(
+                state_circuit=self.original_circuit_mps, operator=mpo
+            )
+
+            expval = np.real(expval) * sign
+
             if return_fidelity:
                 return (
-                    self.expectation_from_partition(
-                        observable, replacement_probability=0.0
-                    )[0],
-                    self.tn_engine.norm,
+                    expval,
+                    self.original_circuit_mps.norm(squared=True),
                 )
             else:
-                return self.expectation_from_partition(
-                    observable, replacement_probability=0.0
-                )[0]
+                return expval
         else:
             raise ValueError(
                 f"Given observable of type {type(observable)}, but only list or Qibo's SymbolicHamiltonian are supported"
@@ -120,6 +181,10 @@ class HSMPO:
     @property
     def nqubits(self):
         return self.ansatz.circuit.nqubits
+
+    @property
+    def nparams(self):
+        return self.ansatz.nparams
 
     @property
     def truncation_fidelity_pure_tn(self) -> float:
@@ -242,7 +307,10 @@ class HSMPO:
         Set both stabilizers and tensor-network engines.
 
         - stab_engine: instance of StabilizersEngine (if None, StimEngine is used)
-        - tn_engine: instance of TensorNetworkEngine (if None, NativeTensorNetworkEngine is used)
+        - tn_engine: instance of TensorNetworkEngine (if None, QuimbEngine is used)
+
+        Note: NativeTensorNetworkEngine is supported for expectation() calculations,
+        but minimize_expectation() requires QuimbEngine.
         """
 
         # ---- stabilizers engine (existing behaviour) ----
@@ -265,8 +333,15 @@ class HSMPO:
                 f"Provided tensor-network engine {tn_engine} is not supported."
             )
 
+        # Allow NativeTensorNetworkEngine for expectation() only.
+        # minimize_expectation() will validate engine compatibility when called.
         self.tn_engine = tn_engine
         self._init_tn(max_bond_dimension=self.max_bond_dimension)
+
+        # Recompute the cached MPS with the new engine
+        # (in case we're switching engines after initialization)
+        self.original_circuit_mps = self._precompute_original_mps()
+        self._mps_engine_type = type(self.tn_engine)
 
     def _clifford_subcircuit(self, clifford_circuit: Circuit, k: int = 0) -> Circuit:
         """Return a sub-circuit of a given Clifford circuit, cut at index `k`."""
@@ -299,27 +374,8 @@ class HSMPO:
 
         total_expval = constant
 
-        # Optimization: Pre-evolve the MPS state once for the entire Hamiltonian.
-        # This prevents re-initializing the TN and re-applying magic gates for every term.
-        # We assume expectation() logic uses replacement_probability=0.0.
-        (magic_gates, clifford_circuit), _ = self.ansatz.partitionate_circuit(
-            replacement_probability=0.0,
-            replacement_method="closest",
-        )
-
-        # Reset MPS and apply magic rotations
-        self._init_tn(self.max_bond_dimension)
-        for k, magic_gate in magic_gates:
-            clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
-            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
-            self.tn_engine.pauli_rot(
-                state_circuit=self.mps,
-                generator=generator,
-                angle=magic_gate.parameters[0] * sign,
-                max_bond_dimension=self.max_bond_dimension,
-            )
-
-        # Computing the contributions
+        # Computing the contributions using the precomputed evolved MPS
+        # and cached clifford circuit
         for coeff, p_name, targets in zip(coeffs, pauli_names, target_qubits):
 
             # For now mpstab requires padding with identities
@@ -331,15 +387,97 @@ class HSMPO:
 
             full_pauli_string = "".join(full_pauli_list)
 
-            # Backpropagate the specific term through the persistent Clifford circuit
+            # Backpropagate the specific term through the cached clifford circuit
             new_observable, sign = self.stab_engine.backpropagate(
-                observable=full_pauli_string, clifford_circuit=clifford_circuit
+                observable=full_pauli_string, clifford_circuit=self.clifford_circuit
             )
 
-            # Contraction for the Hamiltonian term using the ALREADY evolved self.mps
+            # Contraction for the Hamiltonian term using the precomputed evolved MPS
             mpo = self.tn_engine.pauli_mpo(new_observable)
-            term_expval = self.tn_engine.expval(state_circuit=self.mps, operator=mpo)
+            term_expval = self.tn_engine.expval(
+                state_circuit=self.original_circuit_mps, operator=mpo
+            )
 
             total_expval += coeff.real * term_expval * sign
 
         return total_expval
+
+    def set_parameters(self, parameters: np.ndarray):
+        """
+        Set circuit parameters and automatically re-precompute the MPS cache.
+
+        This ensures the MPS state always matches the current circuit parameters.
+
+        Args:
+            parameters: Array of circuit parameter values.
+        """
+        self.ansatz.circuit.set_parameters(parameters)
+        # Re-precompute MPS with updated parameters
+        self.original_circuit_mps = self._precompute_original_mps()
+
+    def get_parameters(self) -> np.ndarray:
+        """Get current circuit parameters."""
+        return self.ansatz.circuit.get_parameters()
+
+    def minimize_expectation(
+        self,
+        observables: Union[str, list, dict, SymbolicHamiltonian],
+        method: str = "dmrg",
+        bond_dims: Union[int, list] = None,
+        cutoff: float = 1e-9,
+        tol: float = 1e-6,
+        max_sweeps: int = 10,
+        verbosity: int = 1,
+    ):
+        """
+        Minimize expectation value(s) using the specified method.
+
+        This delegates to the optimization module (defaults to DMRG, much more
+        efficient than circuit-based VQE).
+
+        Args:
+            observables: Hamiltonian to minimize. Can be:
+                - str: Single observable (e.g., "ZZZZ")
+                - list of str: Multiple observables (e.g., ["ZZZZ", "XXXX"])
+                - dict: Observable -> coefficient (e.g., {"ZZZZ": 1.0, "XXXX": 0.5})
+                - SymbolicHamiltonian: Qibo Hamiltonian object
+            method: 'dmrg' (default, recommended), or 'circuit' for gradient-free VQE
+            bond_dims: Max bond dimensions (DMRG only)
+            cutoff: SVD truncation (DMRG only)
+            tol: Energy convergence tolerance (DMRG only)
+            max_sweeps: Maximum sweeps (DMRG only)
+            verbosity: Verbosity level
+
+        Returns:
+            dict with 'ground_state', 'energy', 'converged', etc.
+
+        Raises:
+            NotImplementedError: If using NativeTensorNetworkEngine
+                (DMRG requires QuimbEngine)
+        """
+        # Validate engine compatibility for DMRG
+        if isinstance(self.tn_engine, NativeTensorNetworkEngine):
+            raise NotImplementedError(
+                "DMRG optimization requires QuimbEngine. "
+                "NativeTensorNetworkEngine is not supported for minimize_expectation(). "
+                "Please use QuimbEngine or call set_engines(tn_engine=QuimbEngine()) "
+                "to enable DMRG optimization. "
+                "Note: expectation() still works with NativeTensorNetworkEngine."
+            )
+
+        if method.lower() == "dmrg":
+            return _minimize_expectation_dmrg(
+                self,
+                observables=observables,
+                bond_dims=bond_dims,
+                cutoff=cutoff,
+                tol=tol,
+                max_sweeps=max_sweeps,
+                verbosity=verbosity,
+            )
+        elif method.lower() == "circuit":
+            raise NotImplementedError(
+                "Circuit-based VQE removed. Use DMRG instead via method='dmrg'"
+            )
+        else:
+            raise ValueError(f"Unknown method: {method}. Use 'dmrg' or 'circuit'")
