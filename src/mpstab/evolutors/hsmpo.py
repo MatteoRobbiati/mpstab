@@ -18,6 +18,7 @@ from mpstab.evolutors.optimization import (
 )
 from mpstab.evolutors.utils import gate2generator, validate_pauli_observable
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
+from mpstab.models.entropies import stabilizer_renyi_entropy_mps
 
 
 @dataclass
@@ -226,6 +227,26 @@ class HSMPO:
             )
 
         return self.mps.norm(squared=True)
+
+    def stabilizer_renyi_entropy(
+        self, alpha: int = 2, n_samples: int = 1000, seed=None
+    ):
+        """
+        Estimate the Stabilizer Rényi Entropy of order alpha using the MPS representation.
+        This is a stochastic estimator based on uniform Pauli sampling, following Lami & Collura (PRL 2023).
+
+        Args:
+            alpha: Rényi order (integer ≥ 2)
+            n_samples: Number of random Pauli strings to sample for the estimation
+            seed: Random seed for reproducibility
+
+        Returns:
+            Estimated Stabilizer Rényi Entropy S_α.
+        """
+
+        return stabilizer_renyi_entropy_mps(
+            self, alpha=alpha, n_samples=n_samples, seed=seed
+        )
 
     def expectation_from_partition(
         self,
