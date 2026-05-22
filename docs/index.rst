@@ -29,6 +29,7 @@ Among our core features:
    :caption: Tutorials & Examples
 
    examples/introduction
+   guides/dmrg_optimization
    guides/qibo_backend_provider
    guides/working_with_engines
    guides/using_ansatze
