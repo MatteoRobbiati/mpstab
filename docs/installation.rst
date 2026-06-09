@@ -5,7 +5,7 @@ Prerequisites
 -------------
 
 - **Python**: 3.11, 3.12, or 3.13
-- **pip** or **Poetry** (recommended for development)
+- **uv** (recommended) or **pip**
 
 Quick Install
 -------------
@@ -13,18 +13,17 @@ Quick Install
 Using pip
 ~~~~~~~~~
 
-The easiest way to get started is to install directly from GitHub::
+Install directly from GitHub::
 
     pip install git+https://github.com/MatteoRobbiati/mpstab.git
 
 Development Installation
 -------------------------
 
-Using Poetry (Recommended)
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using uv (Recommended)
+~~~~~~~~~~~~~~~~~~~~~~~
 
-For development, testing, and documentation building, we recommend `Poetry <https://python-poetry.org/>`_.
-It a good practice to install the package whitin a fresh, new Python environment.
+We recommend `uv <https://docs.astral.sh/uv/>`_ for fast, reproducible environment management.
 
 **1. Clone the repository**
 
@@ -33,47 +32,92 @@ It a good practice to install the package whitin a fresh, new Python environment
     git clone https://github.com/MatteoRobbiati/mpstab.git
     cd mpstab
 
-**2. Install Poetry**
+**2. Install uv**
 
-If you don't have Poetry installed::
+If you don't have uv installed::
 
-    curl -sSL https://install.python-poetry.org | python3 -
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-**3. Install dependencies**
+**3. Create the environment and install base dependencies**
 
 ::
 
-    # Install base dependencies
-    poetry install
+    uv sync
 
-    # Install with all optional dependencies
-    poetry install --with dev,test,docs
+**4. Activate the virtual environment**
 
-    # Activate the virtual environment
-    poetry shell
+::
 
-Alternatively, you can use pip for an editable install with optional dependencies::
+    source .venv/bin/activate      # macOS / Linux
+    .venv\Scripts\activate         # Windows
 
-    git clone https://github.com/MatteoRobbiati/mpstab.git
-    cd mpstab
-    pip install -e ".[dev,test,docs]"
+Optional Backends
+-----------------
+
+PyTorch and JAX are **not installed by default**. Install them on demand:
+
+::
+
+    # PyTorch backend
+    uv sync --extra pytorch
+
+    # JAX backend
+    uv sync --extra jax
+
+    # Both backends
+    uv sync --extra pytorch --extra jax
 
 Dependency Groups
 -----------------
 
-When using Poetry, you can selectively install optional dependency groups:
+Optional development groups are installed with ``--group``:
 
-- **`dev`**: Development tools (IPython, debuggers, task runner)
-- **`test`**: Testing framework and code quality tools (pytest, coverage, pylint)
-- **`docs`**: Documentation generation tools (Sphinx, theme, plugins)
+::
+
+    # Testing tools
+    uv sync --group test
+
+    # Documentation tools
+    uv sync --group docs
+
+    # Development utilities
+    uv sync --group dev
+
+    # Benchmarking tools
+    uv sync --group benchmark
+
+    # Install everything (all extras and all groups)
+    uv sync --all-extras --all-groups
+
+Available groups:
+
+- **``dev``**: Development tools (IPython, debugger, task runner)
+- **``test``**: Testing framework (pytest, coverage, pylint)
+- **``docs``**: Documentation generation (Sphinx, theme, plugins)
+- **``benchmark``**: Performance benchmarking utilities
+
+Using pip (editable install)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    git clone https://github.com/MatteoRobbiati/mpstab.git
+    cd mpstab
+
+    # Base install
+    pip install -e .
+
+    # With optional backends
+    pip install -e ".[pytorch]"
+    pip install -e ".[jax]"
+    pip install -e ".[pytorch,jax]"
 
 Verification
 ------------
 
 To verify your installation works correctly::
 
-    # Run a simple test
     python -c "from mpstab import HSMPO; print('MPSTAB installed successfully!')"
 
-    # Run the test suite (requires test dependency group)
-    poetry run pytest
+    # Run the test suite (requires the test group)
+    uv run pytest

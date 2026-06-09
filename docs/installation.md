@@ -2,13 +2,13 @@
 
 ## Prerequisites
 - **Python**: 3.11, 3.12, or 3.13
-- **pip** or **Poetry** (recommended for development)
+- **uv** (recommended) or **pip**
 
 ## Quick Install
 
 ### Using pip
 
-The easiest way to get started is to install directly from GitHub:
+Install directly from GitHub:
 
 ```bash
 pip install git+https://github.com/MatteoRobbiati/mpstab.git
@@ -16,9 +16,9 @@ pip install git+https://github.com/MatteoRobbiati/mpstab.git
 
 ## Development Installation
 
-### Using Poetry (Recommended)
+### Using uv (Recommended)
 
-For development, testing, and documentation building, we recommend [Poetry](https://python-poetry.org/):
+We recommend [uv](https://docs.astral.sh/uv/) for fast, reproducible environment management.
 
 #### 1. Clone the repository
 
@@ -27,56 +27,92 @@ git clone https://github.com/MatteoRobbiati/mpstab.git
 cd mpstab
 ```
 
-#### 2. Install Poetry
+#### 2. Install uv
 
-If you don't have Poetry installed:
+If you don't have uv installed:
 
 ```bash
-curl -sSL https://install.python-poetry.org | python3 -
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-#### 3. Install dependencies
+#### 3. Create the environment and install base dependencies
 
 ```bash
-# Install base dependencies
-poetry install
-
-# Install with all optional dependencies
-poetry install --with dev --with test --with docs --with benchmark
-
-# Activate the virtual environment
-poetry shell
+uv sync
 ```
 
-### Using pip (editable install)
-
-Alternatively, you can use pip for an editable install with optional dependencies:
+#### 4. Activate the virtual environment
 
 ```bash
-git clone https://github.com/MatteoRobbiati/mpstab.git
-cd mpstab
-pip install -e ".[dev,test,docs,benchmark]"
+source .venv/bin/activate      # macOS / Linux
+.venv\Scripts\activate         # Windows
+```
+
+## Optional Backends
+
+PyTorch and JAX are **not installed by default**. Install them on demand:
+
+```bash
+# PyTorch backend
+uv sync --extra pytorch
+
+# JAX backend
+uv sync --extra jax
+
+# Both backends
+uv sync --extra pytorch --extra jax
 ```
 
 ## Dependency Groups
 
-When using Poetry, you can selectively install optional dependency groups:
+Optional development groups are installed with `--group`:
 
-- **`dev`**: Development tools (IPython, debuggers, task runner)
-- **`test`**: Testing framework and code quality tools (pytest, coverage, pylint)
-- **`docs`**: Documentation generation tools (Sphinx, theme, plugins)
-- **`benchmark`**: Performance benchmarking utilities
+```bash
+# Testing tools
+uv sync --group test
+
+# Documentation tools
+uv sync --group docs
+
+# Development utilities
+uv sync --group dev
+
+# Benchmarking tools
+uv sync --group benchmark
+
+# Install everything (all extras and all groups)
+uv sync --all-extras --all-groups
+```
+
+| Group | Contents |
+|-------|----------|
+| `dev` | IPython, debugger, task runner (poethepoet) |
+| `test` | pytest, pytest-cov, pylint |
+| `docs` | Sphinx, furo theme, nbsphinx, katex |
+| `benchmark` | pytest-benchmark |
+
+### Using pip (editable install)
+
+```bash
+git clone https://github.com/MatteoRobbiati/mpstab.git
+cd mpstab
+
+# Base install
+pip install -e .
+
+# With optional backends
+pip install -e ".[pytorch]"
+pip install -e ".[jax]"
+pip install -e ".[pytorch,jax]"
+```
 
 ## Verification
 
-To verify your installation works correctly:
-
 ```bash
-# Run a simple test
 python -c "from mpstab import HSMPO; print('MPSTAB installed successfully!')"
 
-# Run the test suite (requires test dependency group)
-poetry run pytest
+# Run the test suite (requires the test group)
+uv run pytest
 ```
 
 ## What's Installed
@@ -87,7 +123,7 @@ The base installation includes:
 - Qibo (quantum circuit framework)
 - Stim (stabilizer simulator)
 - Quimb (tensor network library)
-- PyTorch (computation backend)
-- JAX (automatic differentiation)
 - Cotengra (tensor contraction optimization)
 - Matplotlib (visualization)
+
+PyTorch and JAX are available as optional extras (`pytorch`, `jax`) and must be installed explicitly.
