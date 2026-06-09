@@ -1,0 +1,26 @@
+{
+  "model": {
+    "circuit": "cme",
+    "kwargs": {
+        "K": 5,
+        "M": 0.0
+    }
+  },
+
+  "execution": {
+    "engines": ["quimb", "mpstab"],
+    "n_runs": 10
+},
+
+"sweep": {
+    "n_qubits": [20,35,50,65,80],
+    "depth":    [1,2,3,4,5],
+    "max_bond_dimension": [2,4,8,16,32]
+  },
+
+  "output": {
+    "filename": "results/result.jsonl",
+    "format":   "jsonl",
+    "verbose": false
+  }
+}
