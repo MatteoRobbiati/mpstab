@@ -1,5 +1,5 @@
 # Variables
-SPHINXBUILD   = poetry run sphinx-build
+SPHINXBUILD   = uv run sphinx-build
 SOURCEDIR     = docs
 BUILDDIR      = docs/_build
 
@@ -20,7 +20,7 @@ html:
 
 # Live preview (requires sphinx-autobuild)
 live:
-	poetry run sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)/html"
+	uv run sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)/html"
 
 # Phony targets (prevents conflict with files named 'clean' or 'html')
 .PHONY: help clean html live

@@ -163,5 +163,5 @@ cython_debug/
 benchmarks/results/
 
 # OS
-.DS_Store
+*DS_Store*
 Thumbs.db

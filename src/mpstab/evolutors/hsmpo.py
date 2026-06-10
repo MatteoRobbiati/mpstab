@@ -90,7 +90,7 @@ class HSMPO:
             self.tn_engine.pauli_rot(
                 state_circuit=evolved_mps,
                 generator=generator,
-                angle=magic_gate.parameters[0] * sign,
+                angle=self._gate_angle(magic_gate) * sign,
                 max_bond_dimension=self.max_bond_dimension,
             )
 
@@ -222,7 +222,7 @@ class HSMPO:
             self.tn_engine.pauli_rot(
                 state_circuit=self.mps,
                 generator=generator,
-                angle=magic_gate.parameters[0] * sign,
+                angle=self._gate_angle(magic_gate) * sign,
                 max_bond_dimension=self.max_bond_dimension,
             )
 
@@ -279,7 +279,7 @@ class HSMPO:
             self.tn_engine.pauli_rot(
                 state_circuit=self.mps,
                 generator=generator,
-                angle=magic_gate.parameters[0] * sign,
+                angle=self._gate_angle(magic_gate) * sign,
                 max_bond_dimension=self.max_bond_dimension,
             )
 
@@ -305,10 +305,19 @@ class HSMPO:
             partitions,
         )
 
+    @staticmethod
+    def _gate_angle(gate):
+        """Return the rotation angle for a gate, including fixed-angle gates like T."""
+        # T = Rz(π/4); parametric gates (rx, ry, rz) carry their angle in parameters
+        _fixed_angles = {"t": np.pi / 4}
+        if gate.name in _fixed_angles:
+            return _fixed_angles[gate.name]
+        return gate.parameters[0]
+
     def _conjugate_generator(self, gate, clifford_circuit):
         """Conjugate a given gate generator by a sequence of Clifford circuits."""
 
-        if gate.name not in ["rx", "ry", "rz"]:
+        if gate.name not in ["rx", "ry", "rz", "t"]:
             raise ValueError("mpstab currently supports only rotational gates.")
 
         generator = "".join(

@@ -30,45 +30,71 @@ The quantum circuits and observables interface is inherited from the open-source
 
 ## Installation
 
-### Using pip
+### Using uv (Recommended)
 
-Clone the repository and install using pip:
-
-```bash
-git clone https://github.com/MatteoRobbiati/mpstab.git
-cd mpstab
-pip install .
-```
-
-Or install with optional dependencies for development and documentation:
-
-```bash
-pip install -e ".[dev,test,docs,benchmark]"
-```
-
-### Using Poetry (Recommended)
-
-We recommend using [Poetry](https://python-poetry.org/) for dependency management and development:
+We recommend [uv](https://docs.astral.sh/uv/) for fast, reproducible environment management.
 
 ```bash
 # Clone the repository
 git clone https://github.com/MatteoRobbiati/mpstab.git
 cd mpstab
 
-# Install Poetry (if not already installed)
-curl -sSL https://install.python-poetry.org | python3 -
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install dependencies
-poetry install
-
-# Install with optional dependencies for development
-poetry install --with dev --with test --with docs --with benchmark
+# Create the virtual environment and install base dependencies
+uv sync
 
 # Activate the virtual environment
-poetry shell
+source .venv/bin/activate      # macOS / Linux
+.venv\Scripts\activate         # Windows
 ```
 
-Poetry automatically handles virtual environment management and locks all dependencies for reproducibility.
+#### Optional backends
+
+PyTorch and JAX are not installed by default. Add them with `--extra`:
+
+```bash
+# PyTorch backend
+uv sync --extra pytorch
+
+# JAX backend
+uv sync --extra jax
+
+# Both backends
+uv sync --extra pytorch --extra jax
+```
+
+#### Development dependencies
+
+Optional dependency groups (`dev`, `test`, `docs`, `benchmark`) are installed with `--group`:
+
+```bash
+# Testing
+uv sync --group test
+
+# Documentation
+uv sync --group docs
+
+# Development tools
+uv sync --group dev
+
+# Everything at once
+uv sync --all-extras --all-groups
+```
+
+### Using pip
+
+```bash
+git clone https://github.com/MatteoRobbiati/mpstab.git
+cd mpstab
+pip install .
+
+# With optional backends
+pip install ".[pytorch]"
+pip install ".[jax]"
+pip install ".[pytorch,jax]"
+```
 
 
 ## Quick Start
@@ -98,22 +124,28 @@ print(f"Fidelity Lower Bound: {fidelity}")
 
 ## Testing
 
-Run the complete test suite using [pytest](https://docs.pytest.org/):
+Run the complete test suite:
 
 ```bash
 pytest
 ```
 
+Or via uv:
+
+```bash
+uv run pytest
+```
+
 Run with coverage report:
 
 ```bash
-pytest --cov=mpstab --cov-report=html
+uv run pytest --cov=mpstab --cov-report=html
 ```
 
-Or using Poetry's task runner:
+Using the task runner ([Poethepoet](https://poethepoet.nauce.org/)):
 
 ```bash
-poetry run pytest
+uv run poe test
 ```
 
 
@@ -133,31 +165,25 @@ From now on, `pre-commit` automatically checks and standardizes code on every co
 
 ```bash
 # Lint with pylint
-poe lint
+uv run poe lint
 
 # Check for warnings
-poe lint-warnings
-```
-
-If using Poetry, you can run linting within the Poetry environment:
-
-```bash
-poetry run pylint src/**/*.py -E
+uv run poe lint-warnings
 ```
 
 ### Running Tasks
 
-Use [Poetry](https://python-poetry.org/)'s task runner with [Poethepoet](https://poethepoet.nauce.org/):
+Use [Poethepoet](https://poethepoet.nauce.org/) via uv:
 
 ```bash
 # Run tests
-poetry run poe test
+uv run poe test
 
 # Run benchmarks
-poetry run poe bench
+uv run poe bench
 
 # Build documentation
-poetry run poe docs
+uv run poe docs
 ```
 
 ## Contribution Guidelines
