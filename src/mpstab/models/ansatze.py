@@ -155,6 +155,123 @@ class HardwareEfficient(Ansatz):
         return ent_circuit
 
 
+@dataclass
+class HardwareEfficientBrickwork(Ansatz):
+    """
+    Hardware Efficient ansatz with a full brickwork entanglement pattern.
+
+    Each layer applies two sublayers of single-qubit RY+RZ rotations interleaved
+    with CZ entanglement:
+
+        sublayer 1: RY+RZ on all qubits → CZ on even bonds (0-1, 2-3, …)
+        sublayer 2: RY+RZ on all qubits → CZ on odd bonds (1-2, 3-4, …) + CZ(0, n-1)
+
+    A final layer of RY rotations closes the circuit.  The ring-closing CZ(0, n-1)
+    in the odd sublayer creates long-range entanglement.
+
+    Args:
+        nqubits: Number of qubits.
+        nlayers: Number of full brickwork layers.
+    """
+
+    nlayers: int = 1
+
+    def __post_init__(self):
+        super().__post_init__()
+        for _ in range(self.nlayers):
+            for q in range(self.nqubits):
+                self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
+            for q in range(self.nqubits):
+                self.circuit.add(gates.RZ(q=q, theta=np.random.uniform(-np.pi, np.pi)))
+            for q in range(0, self.nqubits - 1, 2):
+                self.circuit.add(gates.CZ(q0=q, q1=q + 1))
+            for q in range(self.nqubits):
+                self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
+            for q in range(self.nqubits):
+                self.circuit.add(gates.RZ(q=q, theta=np.random.uniform(-np.pi, np.pi)))
+            for q in range(1, self.nqubits - 2, 2):
+                self.circuit.add(gates.CZ(q0=q, q1=q + 1))
+            self.circuit.add(gates.CZ(q0=0, q1=self.nqubits - 1))
+        for q in range(self.nqubits):
+            self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
+
+
+@dataclass
+class HammingWeightPreserving(Ansatz):
+    """
+    Hamming-weight-preserving ansatz built from decomposed RBS gates.
+
+    Each RBS gate rotates within the {|01⟩, |10⟩} subspace of a qubit pair,
+    leaving |00⟩ and |11⟩ unchanged:
+
+        RBS(θ)|01⟩ =  cos(θ)|01⟩ + sin(θ)|10⟩
+        RBS(θ)|10⟩ = -sin(θ)|01⟩ + cos(θ)|10⟩
+
+    RBS is decomposed into gates mpstab supports natively:
+
+        CNOT(ctrl=q1, tgt=q0)
+        RY(q1,  θ)              ← magic gate
+        CNOT(ctrl=q0, tgt=q1)
+        RY(q1, -θ)              ← magic gate
+        CNOT(ctrl=q0, tgt=q1)
+        CNOT(ctrl=q1, tgt=q0)
+
+    The circuit always starts with n//2 X gates to prepare the half-filling
+    state |1…10…0⟩, giving a fixed Hamming weight of n//2.
+
+    Within each layer the connectivity pattern mirrors `hw_preserving` from
+    Qibo examples: four `connect_qubits` passes with jump sizes 1 and 2 and
+    different starting offsets to explore both nearest- and next-nearest-
+    neighbour correlations with circular boundary conditions.
+
+    Args:
+        nqubits: Number of qubits (must be even).
+        nlayers: Number of RBS layers.
+    """
+
+    nlayers: int = 1
+
+    def __post_init__(self):
+        if self.nqubits % 2 != 0:
+            raise ValueError(
+                "HammingWeightPreserving requires an even number of qubits."
+            )
+        super().__post_init__()
+        for q in range(self.nqubits // 2):
+            self.circuit.add(gates.X(q=q))
+        for _ in range(self.nlayers):
+            self._connect_qubits(jumpsize=1, start_from=0)
+            self._connect_qubits(jumpsize=1, start_from=1)
+            self._connect_qubits(jumpsize=2, start_from=0)
+            self._connect_qubits(jumpsize=2, start_from=1)
+            self._connect_qubits(jumpsize=2, start_from=3)
+
+    def _connect_qubits(self, jumpsize: int, start_from: int) -> None:
+        """Add RBS gates between qubit pairs (q, (q+jumpsize) % nqubits)."""
+        for q in range(start_from, self.nqubits, jumpsize + 1):
+            q0 = q
+            q1 = (q + jumpsize) % self.nqubits
+            theta = np.random.uniform(-np.pi, np.pi)
+            self.circuit += self._rbs_decomposition(q0, q1, theta)
+
+    def _rbs_decomposition(self, q0: int, q1: int, theta: float) -> Circuit:
+        """
+        Decompose RBS(theta) on qubits (q0, q1) into CNOT and RY gates.
+
+        Equal to CNOT(q1→q0) · CRY(ctrl=q0, tgt=q1, 2θ) · CNOT(q1→q0),
+        with CRY expanded as RY(θ)·CNOT·RY(-θ)·CNOT.  Verified analytically
+        on all four computational basis states.
+        """
+        circ = Circuit(self.nqubits, density_matrix=self.density_matrix)
+        circ.add(gates.CNOT(q1, q0))
+        circ.add(gates.RY(q=q1, theta=theta))
+        circ.add(gates.CNOT(q0, q1))
+        circ.add(gates.RY(q=q1, theta=-theta))
+        circ.add(gates.CNOT(q0, q1))
+        circ.add(gates.CNOT(q1, q0))
+        return circ
+
+
 @dataclass(kw_only=True)
 class TranspiledAnsatz(Ansatz):
     """
