@@ -52,3 +52,13 @@ class TensorNetworkEngine(ABC):
         Apply a Pauli rotation specified by `generator` and `angle` to the MPS.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def conjugate_operator(
+        self, operator: Any, generator: str, angle: float, max_bond_dimension: int
+    ):
+        """
+        Heisenberg-conjugate `operator` by the Pauli rotation
+        R = exp(-i * angle/2 * generator), returning R^dag . operator . R.
+        """
+        raise NotImplementedError

@@ -48,3 +48,17 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
     ):
         """Apply a Pauli rotation specified by `generator` and `angle` to the MPS."""
         return state_circuit.pauli_rot(generator, angle)
+
+    def conjugate_operator(
+        self,
+        operator: PauliMPO,
+        generator: str,
+        angle: float,
+        max_bond_dimension: int,
+    ):
+        """Not supported: operator-side conjugation requires QuimbEngine."""
+        raise NotImplementedError(
+            "conjugate_operator is only implemented for QuimbEngine. "
+            "The NativeTensorNetworkEngine does not support the transpiled-head "
+            "/ MPO-tail split used by HSynthSMPO."
+        )

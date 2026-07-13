@@ -248,3 +248,34 @@ class QuimbEngine(TensorNetworkEngine):
         state_circuit.gate_with_mpo(
             rotation_mpo, inplace=True, max_bond=max_bond_dimension
         )
+
+    def conjugate_operator(
+        self,
+        operator: MatrixProductOperator,
+        generator: str,
+        angle: float,
+        max_bond_dimension: int,
+    ):
+        """
+        Heisenberg-conjugate an MPO `operator` by the Pauli rotation
+        R = exp(-i * angle/2 * generator), returning R^dag . operator . R.
+
+        Since the rotation generators are (real) Pauli strings, R(angle)^dag is
+        simply R(-angle). The two MPO-MPO products are compressed to the given
+        bond dimension.
+        """
+        rotation_mpo = self.PauliExp(generator, angle)
+        rotation_mpo_dag = self.PauliExp(generator, -angle)
+
+        if self.backend == "torch":
+            rotation_mpo.apply_to_arrays(lambda x: self.np.as_tensor(x))
+            rotation_mpo_dag.apply_to_arrays(lambda x: self.np.as_tensor(x))
+
+        # R^dag . operator . R
+        operator = rotation_mpo_dag.apply(
+            operator, compress=True, max_bond=max_bond_dimension
+        )
+        operator = operator.apply(
+            rotation_mpo, compress=True, max_bond=max_bond_dimension
+        )
+        return operator
