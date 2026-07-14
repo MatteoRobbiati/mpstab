@@ -102,6 +102,61 @@ def test_mpo_tail_approximation_reports_error_when_truncated():
     assert np.allclose(info["expval_reference"], exact, atol=1e-6)
 
 
+def _apply_pauli_rotation(psi, pauli, angle, n):
+    """Apply exp(-i*angle/2*P) to a dense statevector (row-major, qubit0 first)."""
+    I2 = np.eye(2)
+    P = {"I": I2, "X": np.array([[0, 1], [1, 0]]),
+         "Y": np.array([[0, -1j], [1j, 0]]), "Z": np.array([[1, 0], [0, -1]])}
+    mat = P[pauli[0]]
+    for c in pauli[1:]:
+        mat = np.kron(mat, P[c])
+    rot = np.cos(angle / 2) * np.eye(2 ** n) - 1j * np.sin(angle / 2) * mat
+    return rot @ psi
+
+
+def test_synthesized_head_circuit_formats():
+    from qibo import Circuit as QiboCircuit
+    from qiskit import QuantumCircuit
+
+    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    hs = HSynthSMPO(ansatz)
+    n_dressed = len(hs.magic_gates)
+
+    assert isinstance(
+        hs.synthesized_head_circuit(n_dressed, output_format="qibo"), QiboCircuit
+    )
+    assert isinstance(
+        hs.synthesized_head_circuit(n_dressed, output_format="qiskit"), QuantumCircuit
+    )
+
+    qasm = hs.synthesized_head_circuit(n_dressed, output_format="qasm")
+    assert isinstance(qasm, str) and "OPENQASM" in qasm
+
+    with pytest.raises(ValueError):
+        hs.synthesized_head_circuit(n_dressed, output_format="bogus")
+
+
+def test_synthesized_head_circuit_is_faithful():
+    # The resynthesized head, run on |0...0>, must reproduce (up to global phase)
+    # the state obtained by applying the exact dressed head rotations.
+    n = 4
+    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(n))
+    hs = HSynthSMPO(ansatz)
+    cut = len(hs.magic_gates)
+
+    # exact reference state from the dressed rotations
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[0] = 1.0
+    for pauli, angle in hs._dressed_rotations()[:cut]:
+        psi = _apply_pauli_rotation(psi, pauli, angle, n)
+
+    head_circuit = hs.synthesized_head_circuit(cut, output_format="qibo")
+    psi_synth = head_circuit().state()
+
+    overlap = np.abs(np.vdot(psi, psi_synth))
+    assert np.isclose(overlap, 1.0, atol=1e-6)
+
+
 def test_count_two_qubit_gates_full_cut():
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)

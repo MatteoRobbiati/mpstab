@@ -23,18 +23,24 @@ class HSynthSMPO(HSMPO):
     two at ``cut_index``:
 
     - the *head* rotations ``[0:cut_index)`` (closer to the initial state) are
-      resynthesized into a native-gate circuit via Qiskit's Rustiq high-level
-      synthesis and applied exactly to build the state MPS;
+      applied directly to the state MPS, exactly as the base :class:`HSMPO` does
+      (via :meth:`TensorNetworkEngine.pauli_rot`);
     - the *tail* rotations ``[cut_index:]`` (closer to the observable) are folded
       into the observable as an MPO by conjugating it through each rotation
       (Heisenberg picture), instead of touching the state.
 
     This trades two-qubit gate applications on the (truncation-sensitive) state
-    MPS for MPO-MPO compression on the observable side. It also exposes a
-    :meth:`count_two_qubit_gates` utility to compare the resynthesized head with
-    the original circuit.
+    MPS for MPO-MPO compression on the observable side.
 
-    Only :class:`~mpstab.engines.QuimbEngine` is supported.
+    Separately -- and only for running on real hardware -- the head rotations can
+    be *resynthesized* into an efficient native-gate circuit via Qiskit's Rustiq
+    high-level synthesis. That circuit is never used for the classical
+    expectation (which applies the exact rotations to the MPS); it is exposed via
+    :meth:`synthesized_head_circuit` (qibo / qiskit / OpenQASM 2.0) and measured
+    by :meth:`count_two_qubit_gates`. The resynthesis path is the only one that
+    needs the optional ``qiskit`` dependency.
+
+    Only :class:`~mpstab.engines.QuimbEngine` is supported for the MPO tail.
     """
 
     def _dressed_rotations(self) -> List[Tuple[str, float]]:
@@ -51,42 +57,29 @@ class HSynthSMPO(HSMPO):
             rotations.append((generator, self._gate_angle(magic_gate) * sign))
         return rotations
 
-    def _synthesize_head(
-        self,
-        cut_index: int,
-        upto_clifford: bool = False,
-        preserve_order: bool = True,
-    ):
-        """Resynthesize the head rotations ``[0:cut_index)`` into a Qiskit circuit."""
-        head = self._dressed_rotations()[:cut_index]
-        return synthesize_pauli_rotations(
-            head,
-            nqubits=self.nqubits,
-            preserve_order=preserve_order,
-            upto_clifford=upto_clifford,
-        )
+    def _build_state_mps(self, head: List[Tuple[str, float]]):
+        """
+        Build the state MPS by applying the head dressed rotations directly.
 
-    def _build_state_mps(
-        self,
-        head: List[Tuple[str, float]],
-        upto_clifford: bool = False,
-        preserve_order: bool = True,
-    ):
-        """Resynthesize the head rotations and build the corresponding state MPS."""
-        qiskit_head = synthesize_pauli_rotations(
-            head,
-            nqubits=self.nqubits,
-            preserve_order=preserve_order,
-            upto_clifford=upto_clifford,
-        )
-        head_circuit = qiskit_circuit_to_qibo(qiskit_head, self.nqubits)
-
-        return self.tn_engine.build_circuit_mps(
+        Starts from the initial state and applies each ``(generator, angle)`` via
+        :meth:`TensorNetworkEngine.pauli_rot`, exactly as
+        :meth:`HSMPO._precompute_original_mps` does for the full circuit. No
+        resynthesis is involved, so this needs no ``qiskit``.
+        """
+        state_mps = self.tn_engine.build_circuit_mps(
             n=self.nqubits,
             initial_state_amplitudes=None,
-            initial_state_circuit=self.initial_state + head_circuit,
+            initial_state_circuit=self.initial_state,
             max_bond_dimension=self.max_bond_dimension,
         )
+        for generator, angle in head:
+            self.tn_engine.pauli_rot(
+                state_circuit=state_mps,
+                generator=generator,
+                angle=angle,
+                max_bond_dimension=self.max_bond_dimension,
+            )
+        return state_mps
 
     def _build_tail_operator(
         self,
@@ -118,24 +111,20 @@ class HSynthSMPO(HSMPO):
         self,
         observable: str,
         cut_index: int,
-        upto_clifford: bool = False,
-        preserve_order: bool = True,
         return_fidelity: bool = False,
     ):
         """
         Compute the expectation value by splitting the dressed rotations at
-        ``cut_index``: the head is resynthesized and applied to the state, the
-        tail is folded into the observable as an MPO.
+        ``cut_index``: the head rotations are applied (exactly) to the state MPS,
+        the tail rotations are folded into the observable as an MPO.
 
         Args:
             observable: Pauli string observable (qubit-0-leftmost).
-            cut_index: Number of leading dressed rotations to resynthesize into
-                the state circuit. The remaining rotations are folded into the
-                observable. ``0`` folds everything into the observable;
-                ``len(magic_gates)`` resynthesizes everything into the state.
-            upto_clifford: Passed to the Rustiq synthesis; must stay ``False`` for
-                exact expectation values.
-            preserve_order: Passed to the Rustiq synthesis.
+            cut_index: Number of leading dressed rotations to apply to the state
+                MPS. The remaining rotations are folded into the observable.
+                ``0`` folds everything into the observable;
+                ``len(magic_gates)`` applies everything to the state (equivalent
+                to :meth:`HSMPO.expectation`).
             return_fidelity: If ``True``, also return the (squared) norm of the
                 state MPS, as in :meth:`HSMPO.expectation`.
 
@@ -154,9 +143,7 @@ class HSynthSMPO(HSMPO):
         dressed = self._dressed_rotations()
         head, tail = dressed[:cut_index], dressed[cut_index:]
 
-        state_mps = self._build_state_mps(
-            head, upto_clifford=upto_clifford, preserve_order=preserve_order
-        )
+        state_mps = self._build_state_mps(head)
         operator, sign = self._build_tail_operator(
             observable, tail, self.max_bond_dimension
         )
@@ -175,8 +162,6 @@ class HSynthSMPO(HSMPO):
         observable: str,
         cut_index: int,
         reference_max_bond: int | None = None,
-        upto_clifford: bool = False,
-        preserve_order: bool = True,
     ) -> dict:
         """
         Quantify how much the bond-dimension truncation approximates the MPO tail.
@@ -185,7 +170,8 @@ class HSynthSMPO(HSMPO):
         once with the working truncation (``self.max_bond_dimension``) and once
         with a reference cap (``reference_max_bond``, ``None`` = untruncated /
         exact). Both an operator-level and an expectation-level error are
-        reported.
+        reported. The (shared) state MPS is built exactly from the head rotations,
+        so the reported errors isolate the *MPO-tail* truncation only.
 
         Args:
             observable: Pauli string observable (qubit-0-leftmost).
@@ -193,8 +179,6 @@ class HSynthSMPO(HSMPO):
             reference_max_bond: Bond dimension for the reference operator. ``None``
                 (default) builds the exact, untruncated tail MPO. Note the exact
                 MPO bond dimension can grow quickly with the tail length.
-            upto_clifford: Passed to the Rustiq synthesis of the head.
-            preserve_order: Passed to the Rustiq synthesis of the head.
 
         Returns:
             dict with:
@@ -203,7 +187,7 @@ class HSynthSMPO(HSMPO):
                 operator (0 means the truncation was lossless).
               - ``absolute_frobenius_error``: ``||O_approx - O_exact||_F``.
               - ``expval_approx`` / ``expval_reference``: expectation values on
-                the (same) resynthesized-head state, using each operator.
+                the (same) state MPS, using each operator.
               - ``expval_abs_error``: ``|expval_approx - expval_reference|``.
               - ``approx_max_bond`` / ``reference_max_bond``: reached MPO bond
                 dimensions.
@@ -220,9 +204,7 @@ class HSynthSMPO(HSMPO):
         dressed = self._dressed_rotations()
         head, tail = dressed[:cut_index], dressed[cut_index:]
 
-        state_mps = self._build_state_mps(
-            head, upto_clifford=upto_clifford, preserve_order=preserve_order
-        )
+        state_mps = self._build_state_mps(head)
 
         operator_approx, sign = self._build_tail_operator(
             observable, tail, self.max_bond_dimension
@@ -260,6 +242,56 @@ class HSynthSMPO(HSMPO):
             "max_bond_dimension": self.max_bond_dimension,
         }
 
+    def synthesized_head_circuit(
+        self,
+        cut_index: int,
+        output_format: str = "qibo",
+        upto_clifford: bool = False,
+        preserve_order: bool = True,
+    ):
+        """
+        Resynthesize the head rotations ``[0:cut_index)`` into a hardware circuit.
+
+        This is the circuit you would run on a real quantum computer: the head
+        Pauli rotations synthesized into native gates by Qiskit's Rustiq backend.
+        It is *not* used by :meth:`expectation_from_split`, which applies the exact
+        rotations to the MPS instead.
+
+        Args:
+            cut_index: Number of leading dressed rotations to synthesize.
+            output_format: Output format, one of ``"qibo"`` (a :class:`qibo.Circuit`),
+                ``"qiskit"`` (the raw Rustiq :class:`~qiskit.QuantumCircuit`), or
+                ``"qasm"`` (an OpenQASM 2.0 string).
+            upto_clifford: If ``True``, Rustiq may synthesize up to a trailing
+                Clifford (fewer gates; the trailing Clifford can be absorbed into
+                the measurement/post-processing). ``False`` (default) reproduces
+                the exact head unitary.
+            preserve_order: Whether Rustiq must preserve the rotation order.
+
+        Returns:
+            The head circuit in the requested format.
+        """
+        head = self._dressed_rotations()[:cut_index]
+        qiskit_circuit = synthesize_pauli_rotations(
+            head,
+            nqubits=self.nqubits,
+            preserve_order=preserve_order,
+            upto_clifford=upto_clifford,
+        )
+
+        if output_format == "qiskit":
+            return qiskit_circuit
+
+        qibo_circuit = qiskit_circuit_to_qibo(qiskit_circuit, self.nqubits)
+        if output_format == "qibo":
+            return qibo_circuit
+        if output_format == "qasm":
+            return qibo_circuit.to_qasm()
+
+        raise ValueError(
+            f"Unknown format '{output_format}'. Use one of 'qibo', 'qiskit', 'qasm'."
+        )
+
     def count_two_qubit_gates(
         self,
         cut_index: int,
@@ -276,8 +308,11 @@ class HSynthSMPO(HSMPO):
         original); for partial cuts it is provided as context.
         """
         dressed = self._dressed_rotations()
-        qiskit_head = self._synthesize_head(
-            cut_index, upto_clifford=upto_clifford, preserve_order=preserve_order
+        qiskit_head = self.synthesized_head_circuit(
+            cut_index,
+            output_format="qiskit",
+            upto_clifford=upto_clifford,
+            preserve_order=preserve_order,
         )
 
         return {

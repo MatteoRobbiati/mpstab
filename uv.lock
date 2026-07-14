@@ -1369,6 +1369,9 @@ jax = [
 pytorch = [
     { name = "torch" },
 ]
+transpilation = [
+    { name = "qiskit" },
+]
 
 [package.dev-dependencies]
 benchmark = [
@@ -1404,11 +1407,12 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "qibo", specifier = ">=0.2.19" },
+    { name = "qiskit", marker = "extra == 'transpilation'", specifier = ">=1.3" },
     { name = "quimb", specifier = ">=1.12.1" },
     { name = "stim", specifier = ">=1.15.0" },
     { name = "torch", marker = "extra == 'pytorch'" },
 ]
-provides-extras = ["pytorch", "jax"]
+provides-extras = ["pytorch", "jax", "transpilation"]
 
 [package.metadata.requires-dev]
 benchmark = [{ name = "pytest-benchmark", extras = ["histogram"], specifier = ">=4.0.0" }]
@@ -2322,6 +2326,29 @@ wheels = [
 ]
 
 [[package]]
+name = "qiskit"
+version = "2.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dill" },
+    { name = "numpy" },
+    { name = "rustworkx" },
+    { name = "scipy" },
+    { name = "stevedore" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c3/88/0faeb20fa5644b179a8a06781790e086a5000274e25ac73da03666293b89/qiskit-2.5.0.tar.gz", hash = "sha256:c65c46ee30b15e38b1359ef8a1d0bf98383416d59780572e46e8fddf8a4b3efe", size = 4251511, upload-time = "2026-07-02T20:05:43.743Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9c/3d/f482566927b66e2aaf9c1dcd5fb88487e3332a1f946e5eb152349c6e744e/qiskit-2.5.0-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:c2ef7b07fab103eefa00505a55b32d60c3fb6627b541e6dfb59d6d8e0a8c7a8b", size = 9429562, upload-time = "2026-07-02T23:30:59.791Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/b8/d13df60c5264f74529ecbfd4c9b827c34b89fb1f0e2a02bf2990d6010a94/qiskit-2.5.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:896d24f564d5192ccdad26d9628251942155cc637059e2dbb24df891a56567de", size = 8793084, upload-time = "2026-07-02T20:05:33.94Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/06/4674b0a5fea57e04f75020d4c76fd7cb0f2102159d0986215ba2a4c2f438/qiskit-2.5.0-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:cd493cb9c57eefd9f73510d526410b02bdf935cbdc0673ba98a932103bdb9663", size = 9079173, upload-time = "2026-07-02T20:05:36.376Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/72/9fe7ca2be1c806aa7d051a017bedc3c47e2af74735ce7093f2f47090cfe3/qiskit-2.5.0-cp310-abi3-manylinux_2_28_ppc64le.whl", hash = "sha256:309c139953ecd6a00a2384f15a65e0bcb4db44efa3f7e06f4dca6c01087439a0", size = 9997476, upload-time = "2026-07-02T23:31:02.075Z" },
+    { url = "https://files.pythonhosted.org/packages/75/b9/4dfdfafe83762144a1cf1456eafb3e17052c1b7ad9195c6af30d9899cd28/qiskit-2.5.0-cp310-abi3-manylinux_2_28_s390x.whl", hash = "sha256:4aa04541b78f3a81967ae411733929749fd67ae4bce2d228a9cdcb06e64dc9c7", size = 9512568, upload-time = "2026-07-02T23:31:04.374Z" },
+    { url = "https://files.pythonhosted.org/packages/da/a4/78971e41c5ce8bd54f750f82d5ce7313cae821b0730c8fdac9dd8cbaafd7/qiskit-2.5.0-cp310-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:6efe02541f49c97aac2073befd9458a37cfae58a3ee1616db12ee3ee8791eef7", size = 9763212, upload-time = "2026-07-02T20:05:38.61Z" },
+    { url = "https://files.pythonhosted.org/packages/08/c1/193fbdfceebec892c7aed59ccbd521dacc1e596780032ba7ba5a138a0a27/qiskit-2.5.0-cp310-abi3-win_amd64.whl", hash = "sha256:f9daa14b6499ec0da4db0eadb57d28ea2a38922cefa158b49723f78c544a27f5", size = 9449710, upload-time = "2026-07-02T20:05:41.156Z" },
+]
+
+[[package]]
 name = "quimb"
 version = "1.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2455,6 +2482,27 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/6f/93831a3bfe789542ed0c1d0d74b78b440f055d6dc3ea4640eba2d95e6e23/rpds_py-2026.5.1-pp311-pypy311_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:c74005a7bb87752acf351c93897ec63ad77a07a0da7ecad9c050e32e7286ba34", size = 557243, upload-time = "2026-05-28T12:02:08.013Z" },
     { url = "https://files.pythonhosted.org/packages/1f/ff/0b3d604614ffc77522c6b288fdbce68957eb583da1002aa65ba38ac0ee40/rpds_py-2026.5.1-pp311-pypy311_pp73-musllinux_1_2_i686.whl", hash = "sha256:8213afbe8a3a906fb9acb2014423fe3359ee783d0bf90995f70623a3217bfa6c", size = 623541, upload-time = "2026-05-28T12:02:09.661Z" },
     { url = "https://files.pythonhosted.org/packages/ea/ea/e7b0251441da9adfeaebcf29601d10f2a1455fcf0772fae9e7e19032bd96/rpds_py-2026.5.1-pp311-pypy311_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:8c43a8a973270fd173bf48cdf80bbe66312421cba68d40845034f174f2389049", size = 586326, upload-time = "2026-05-28T12:02:11.47Z" },
+]
+
+[[package]]
+name = "rustworkx"
+version = "0.18.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ff/1a/545aa3a3e251e9da00e4acf0e5472b7fbbb15360f56d9d5342c1f93b8b93/rustworkx-0.18.0.tar.gz", hash = "sha256:5ca9cf8dbee50f8def012119ebb64771ae86916993417415aba9e845831cb436", size = 894567, upload-time = "2026-06-18T04:38:56.141Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/70/18b310752b0652d4a755b46853268c00c33401101a47f87697ad25966453/rustworkx-0.18.0-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:7440ba70b87bd16811d92e57d76108840dbdd89aa2fc55e4d324fa2fb6b7f9c9", size = 2295936, upload-time = "2026-06-18T04:38:01.598Z" },
+    { url = "https://files.pythonhosted.org/packages/02/4e/09152f4422204f020346a8a2b0e2f05f12d8cc60eeeee99b24f649985514/rustworkx-0.18.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:7fce5218ebfb8d8f5313def1f15aad8d3c3c2bbe03e33805dff8cf8bb70370a1", size = 2145057, upload-time = "2026-06-18T04:38:03.253Z" },
+    { url = "https://files.pythonhosted.org/packages/22/68/69198f41f7f9c39fb5b2e561bf41d4cbd117fa5dfdf4631d8ba28e5ff69b/rustworkx-0.18.0-cp310-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:7e0c626f76bc71d414a02502be7ec0ac2dd6eca369886bc66a2650607f2d9de6", size = 2391659, upload-time = "2026-06-18T04:38:04.942Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/81/8ac568efe0289b0ecd826cd697c3581b6a25e134145926cbfef762656167/rustworkx-0.18.0-cp310-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:91b37c5bb54e233e16c4f47383385f17be03e6a344821c2f6a39a0aebee54538", size = 2189469, upload-time = "2026-06-18T04:38:06.51Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/a4/96492d7af2ddcd15368f80329e3514060b122f306c4406fac98c08a97865/rustworkx-0.18.0-cp310-abi3-manylinux_2_28_ppc64le.whl", hash = "sha256:bcd15f7a637ca0654f329ed42a6db0cf7eac15ed89e0b32cb9d16b1b21937979", size = 2504116, upload-time = "2026-06-18T04:38:43.441Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/b0/005383bd7dc110b06ca731bd2115482f3a8c6389e0c8fe1f7f259380c4c8/rustworkx-0.18.0-cp310-abi3-manylinux_2_28_s390x.whl", hash = "sha256:567ace3b0d8ac709dc4ad4ce164472f5f59508739355221480170327a6736777", size = 3170967, upload-time = "2026-06-18T04:38:39.929Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/2f/95ca9ef9285cc6793b3e041efca6c5a194ca6731b0af732631ee074a67b3/rustworkx-0.18.0-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:b91cdcffeab5f498de44905a373e47e345da8f6c4f40fc969421548c4e7a5219", size = 2254008, upload-time = "2026-06-18T04:38:08.245Z" },
+    { url = "https://files.pythonhosted.org/packages/19/7b/9df6a80162e6f90fd9945e3f8063c2aa41285c27aefce1d171f99c2b829f/rustworkx-0.18.0-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:03dd1ab42974bc0ff957eccc330c0c0d9887d88240c0cd050039e215af5a3c45", size = 2447140, upload-time = "2026-06-18T04:38:09.767Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/b3/4d159b33bbc73dbebad050a0226dcfb0753d7f05fa55a8d5351e85c8c953/rustworkx-0.18.0-cp310-abi3-win32.whl", hash = "sha256:eb87a45864ffe36e4d86e826d12bb54dac9e4f76c214997dee624281d8711684", size = 2057237, upload-time = "2026-06-18T04:38:11.28Z" },
+    { url = "https://files.pythonhosted.org/packages/99/1b/b0dc8d3751c0c58d16db72bff2954a9d3871c166147007590a3aaec4d42e/rustworkx-0.18.0-cp310-abi3-win_amd64.whl", hash = "sha256:602df896b4479b83c6456f702f8ba2ac1cbb972b30723d5fe2e84e6ff3de7d70", size = 2289224, upload-time = "2026-06-18T04:38:12.961Z" },
 ]
 
 [[package]]
@@ -2762,6 +2810,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/e3/55dcc2cfbc3ca9c29519eb6884dd1415ecb53b0e934862d3559ddcb7e20b/stack_data-0.6.3.tar.gz", hash = "sha256:836a778de4fec4dcd1dcd89ed8abff8a221f58308462e1c4aa2a3cf30148f0b9", size = 44707, upload-time = "2023-09-30T13:58:05.479Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695", size = 24521, upload-time = "2023-09-30T13:58:03.53Z" },
+]
+
+[[package]]
+name = "stevedore"
+version = "5.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/dd/04d56c2a5232358df41f3d0f0e31833d378b6c8ed7803a6b1b7867b0eba6/stevedore-5.9.0.tar.gz", hash = "sha256:abbd0af7a38a8bbb1d6adea2e35b17609cf004eaac323e88a8d8963640dd2b3c", size = 514850, upload-time = "2026-07-02T11:38:08.509Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/62/8d/008761f6e1000600e5303db30d05724bdcf3d2d186cbb59fac79b52e39ed/stevedore-5.9.0-py3-none-any.whl", hash = "sha256:e520945d4c257700eddc1eb1d79df04b2ea578eef185e0e3fa5b442fc848d3f7", size = 54463, upload-time = "2026-07-02T11:38:07.43Z" },
 ]
 
 [[package]]
