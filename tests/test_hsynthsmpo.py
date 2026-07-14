@@ -7,7 +7,16 @@ pytest.importorskip("qiskit")
 
 from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
-from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
+from mpstab.models.ansatze import (
+    QAE,
+    QFT,
+    QPE,
+    CircuitAnsatz,
+    Grover,
+    HardwareEfficient,
+    QFTPhaseKernel,
+    TrotterIsing,
+)
 
 set_backend("numpy")
 set_rng_seed()
@@ -167,3 +176,78 @@ def test_count_two_qubit_gates_full_cut():
     assert counts["n_tail_rotations"] == 0
     assert counts["synthesized_head_2q_gates"] >= 0
     assert counts["original_circuit_2q_gates"] >= 0
+
+
+# ---------------------------------------------------------------------------
+# Broad coverage over the circuit-library ansatze
+# ---------------------------------------------------------------------------
+def _observables(n):
+    """A spread of Pauli observables of length n, including Y-heavy ones."""
+    return [
+        "Z" * n,
+        "X" * n,
+        "Y" * n,  # odd/even #Y -- exercises the expval convention
+        ("XYZ" * n)[:n],
+        ("IY" * n)[:n],
+        "Y" + "I" * (n - 1),  # single Y on qubit 0 (was the bug trigger)
+        "I" * (n - 1) + "Y",
+    ]
+
+
+_LIBRARY_ANSATZE = [
+    ("QFT", lambda: QFT(nqubits=4)),
+    ("QFTPhaseKernel", lambda: QFTPhaseKernel(nqubits=4)),
+    ("Grover", lambda: Grover(nqubits=3)),
+    ("QPE", lambda: QPE(n_counting=3)),
+    ("QAE", lambda: QAE(n_counting=3)),
+    ("TrotterIsing", lambda: TrotterIsing(nqubits=4, n_steps=2)),
+]
+
+
+@pytest.mark.parametrize("label,factory", _LIBRARY_ANSATZE, ids=[a[0] for a in _LIBRARY_ANSATZE])
+def test_library_ansatze_split_matches_qibo(label, factory):
+    ansatz = factory()
+    hs = HSynthSMPO(ansatz)
+    n = ansatz.nqubits
+    n_dressed = len(hs.magic_gates)
+    cuts = sorted({0, 1, n_dressed // 2, n_dressed - 1, n_dressed})
+
+    for observable in _observables(n):
+        reference = expectation_with_qibo(
+            mpstab_ansatz=ansatz, observable_str=observable
+        )
+        # base HSMPO and every split cut must agree with the statevector.
+        assert np.allclose(hs.expectation(observable), reference, atol=1e-6), (
+            f"[{label} base / {observable}]"
+        )
+        for cut in cuts:
+            split = hs.expectation_from_split(observable, cut_index=cut)
+            assert np.allclose(split, reference, atol=1e-6), (
+                f"[{label} / {observable} / cut={cut}] "
+                f"split={split:+.6f} reference={reference:+.6f}"
+            )
+
+
+@pytest.mark.parametrize("nqubits", [6, 8, 10])
+def test_split_matches_qibo_more_qubits(nqubits):
+    # Larger systems (statevector still tractable). We sweep cuts with modest
+    # tails (cut_index >= n_dressed // 2): with no bond cap those folds are
+    # analytically exact and cheap. The opposite extreme (cut=0, the *entire*
+    # scrambled observable folded into a single MPO) needs exponentially large
+    # bond and is the intended approximation regime -- it is exercised exactly at
+    # small n by test_library_ansatze_split_matches_qibo instead.
+    ansatz = TrotterIsing(nqubits=nqubits, n_steps=2)
+    hs = HSynthSMPO(ansatz)
+    n_dressed = len(hs.magic_gates)
+    cuts = sorted({n_dressed // 2, n_dressed - 3, n_dressed - 1, n_dressed})
+
+    for observable in ["Z" * nqubits, "Y" * nqubits, ("XYZ" * nqubits)[:nqubits]]:
+        reference = expectation_with_qibo(
+            mpstab_ansatz=ansatz, observable_str=observable
+        )
+        for cut in cuts:
+            split = hs.expectation_from_split(observable, cut_index=cut)
+            assert np.allclose(split, reference, atol=1e-6), (
+                f"[n={nqubits} / {observable} / cut={cut}] "
+                f"split={split:+.6f} reference={reference:+.6f}"
+            )

@@ -512,3 +512,297 @@ class CircuitAnsatz(Ansatz):
             raise TypeError("Expected a Qibo Circuit instance")
         self._circuit = value
         self.nqubits = value.nqubits
+
+
+# ---------------------------------------------------------------------------
+# Circuit-library ansatze
+#
+# A collection of textbook circuits (QFT, Grover, QPE, QAE, Trotter, ...) ported
+# from the `hsmpo4transpilation` project, useful as HSMPO/HSynthSMPO benchmarks.
+#
+# They are written with *high-level* gates (CU1, SWAP, TOFFOLI, RZZ, ...) and,
+# by default, transpiled to the native gate set on construction (via
+# `hardware_compatible_circuit`). That unrolling turns every non-Clifford gate
+# into an `rz` rotation, which is what HSMPO understands -- so there is no need
+# to hand-decompose anything. Pass ``transpile=False`` to keep the raw
+# high-level circuit (e.g. for inspection); note HSMPO requires the transpiled
+# form.
+# ---------------------------------------------------------------------------
+def _qft_circuit(n: int) -> Circuit:
+    """QFT sub-circuit using H, controlled-phase (CU1) and SWAP (no transpilation)."""
+    circuit = Circuit(n)
+    for j in range(n):
+        circuit.add(gates.H(j))
+        for k in range(j + 1, n):
+            circuit.add(gates.CU1(k, j, theta=2 * np.pi / 2 ** (k - j + 1)))
+    for j in range(n // 2):
+        circuit.add(gates.SWAP(j, n - 1 - j))
+    return circuit
+
+
+def _multi_controlled_z(circuit: Circuit, controls: List[int], target: int) -> None:
+    """Append a multi-controlled-Z built from CZ / TOFFOLI (so it unrolls).
+
+    Uses the exact identities for up to two controls (CZ, and CCZ = H.CCX.H).
+    For more than two controls it chains pairwise Toffolis sharing the target --
+    the same construction as the original ``hsmpo4transpilation`` benchmark,
+    which is a faithful multi-controlled-Z only for ``len(controls) <= 2``; for
+    larger control sets it is a benchmark-oriented approximation, so do not rely
+    on Grover oracle correctness at ``nqubits > 3``.
+    """
+    n_ctrl = len(controls)
+    if n_ctrl == 0:
+        circuit.add(gates.Z(target))
+    elif n_ctrl == 1:
+        circuit.add(gates.CZ(controls[0], target))
+    elif n_ctrl == 2:
+        circuit.add(gates.H(target))
+        circuit.add(gates.TOFFOLI(controls[0], controls[1], target))
+        circuit.add(gates.H(target))
+    else:
+        circuit.add(gates.H(target))
+        for c in controls[:-1]:
+            circuit.add(gates.TOFFOLI(c, controls[-1], target))
+        circuit.add(gates.H(target))
+
+
+@dataclass(kw_only=True)
+class _CompiledAnsatz(Ansatz):
+    """
+    Base for circuit-library ansatze that build a high-level circuit and (by
+    default) transpile it to the native gate set so HSMPO can consume it.
+
+    Subclasses implement :meth:`_build_circuit`.
+
+    Args:
+        transpile: If ``True`` (default), unroll the built circuit into
+            ``native_gates`` (Clifford GPI2 gates are frozen, as in
+            :class:`TranspiledAnsatz`). If ``False``, keep the raw high-level
+            circuit.
+        native_gates: Target native gate set for transpilation.
+        connectivity: Optional device connectivity graph for transpilation.
+    """
+
+    transpile: bool = True
+    native_gates: Optional[List] = field(
+        default_factory=lambda: [gates.GPI2, gates.RZ, gates.Z, gates.CZ]
+    )
+    connectivity: Optional[nx.Graph] = None
+
+    def __post_init__(self):
+        super().__post_init__()
+        circuit = self._build_circuit()
+        if self.transpile:
+            circuit = hardware_compatible_circuit(
+                circuit, self.native_gates, self.connectivity
+            )
+            for g in circuit.parametrized_gates:
+                if isinstance(g, gates.GPI2) and g.clifford:
+                    g.trainable = False
+        self._circuit = circuit
+
+    def _build_circuit(self) -> Circuit:
+        raise NotImplementedError
+
+    @property
+    def circuit(self):
+        return self._circuit
+
+
+@dataclass(kw_only=True)
+class QFT(_CompiledAnsatz):
+    """Quantum Fourier Transform (H, controlled-phase and SWAP)."""
+
+    def _build_circuit(self) -> Circuit:
+        return _qft_circuit(self.nqubits)
+
+
+@dataclass(kw_only=True)
+class QFTPhaseKernel(_CompiledAnsatz):
+    """QFT followed by a diagonal RZ phase kernel (no closing inverse QFT).
+
+    The trailing RZ layer's magic rotations get Clifford-backpropagated through
+    the QFT's H/CU1/SWAP structure -- a stronger HSMPO test than a single
+    trailing CZ chain.
+
+    Args:
+        coeffs: Per-qubit RZ angles. Default: binary-weighted ``2*pi/2^(j+1)``.
+    """
+
+    coeffs: Optional[np.ndarray] = None
+
+    def _build_circuit(self) -> Circuit:
+        n = self.nqubits
+        coeffs = self.coeffs
+        if coeffs is None:
+            coeffs = np.array([2 * np.pi / 2 ** (j + 1) for j in range(n)])
+
+        circuit = _qft_circuit(n)
+        for j, theta in enumerate(coeffs):
+            circuit.add(gates.RZ(j, theta=float(theta)))
+        return circuit
+
+
+@dataclass(kw_only=True)
+class Grover(_CompiledAnsatz):
+    """Grover search: H^n then n_iterations x (oracle + diffuser).
+
+    The oracle phase-flips ``marked_state`` (default |1...1>) via a
+    multi-controlled-Z; the diffuser is the standard inversion-about-the-mean.
+    See :func:`_multi_controlled_z` for the oracle-correctness caveat at
+    ``nqubits > 3``.
+
+    Args:
+        marked_state: Integer in [0, 2^nqubits). Default 2^nqubits - 1.
+        n_iterations: Grover iterations. Default round(pi/4 * sqrt(2^nqubits)).
+    """
+
+    marked_state: Optional[int] = None
+    n_iterations: Optional[int] = None
+
+    def _build_circuit(self) -> Circuit:
+        n = self.nqubits
+        marked_state = self.marked_state
+        n_iterations = self.n_iterations
+        if marked_state is None:
+            marked_state = (1 << n) - 1
+        if n_iterations is None:
+            n_iterations = max(1, int(round(np.pi / 4 * np.sqrt(2**n))))
+
+        circuit = Circuit(n)
+        for q in range(n):
+            circuit.add(gates.H(q))
+
+        for _ in range(n_iterations):
+            # Oracle: phase-flip on |marked_state>.
+            for q in range(n):
+                if not (marked_state >> (n - 1 - q)) & 1:
+                    circuit.add(gates.X(q))
+            _multi_controlled_z(circuit, controls=list(range(n - 1)), target=n - 1)
+            for q in range(n):
+                if not (marked_state >> (n - 1 - q)) & 1:
+                    circuit.add(gates.X(q))
+
+            # Diffuser: H^n (2|0><0| - I) H^n.
+            for q in range(n):
+                circuit.add(gates.H(q))
+                circuit.add(gates.X(q))
+            _multi_controlled_z(circuit, controls=list(range(n - 1)), target=n - 1)
+            for q in range(n):
+                circuit.add(gates.X(q))
+                circuit.add(gates.H(q))
+
+        return circuit
+
+
+@dataclass(kw_only=True)
+class QPE(_CompiledAnsatz):
+    """Quantum Phase Estimation for U = diag(1, e^{2 pi i phase}).
+
+    Layout: ``n_counting`` counting qubits + 1 eigenstate qubit (prepared in
+    |1>). Controlled-U^{2^k} is a controlled phase (CU1); the counting register
+    is closed with an inverse QFT. ``nqubits`` is derived as ``n_counting + 1``.
+
+    Args:
+        n_counting: Number of counting qubits.
+        phase: True phase in [0, 1); accuracy ~ 1/2^n_counting.
+    """
+
+    n_counting: int = 3
+    phase: float = 0.375
+    nqubits: int = field(init=False)
+
+    def __post_init__(self):
+        self.nqubits = self.n_counting + 1
+        super().__post_init__()
+
+    def _build_circuit(self) -> Circuit:
+        n = self.nqubits
+        eig = self.n_counting
+
+        circuit = Circuit(n)
+        circuit.add(gates.X(eig))
+        for q in range(self.n_counting):
+            circuit.add(gates.H(q))
+
+        for k in range(self.n_counting):
+            circuit.add(gates.CU1(k, eig, theta=2 * np.pi * self.phase * (2**k)))
+
+        # Inverse QFT on the counting register (added gate by gate since it acts
+        # on a sub-register of the full circuit).
+        for gate in _qft_circuit(self.n_counting).invert().queue:
+            circuit.add(gate)
+        return circuit
+
+
+@dataclass(kw_only=True)
+class QAE(_CompiledAnsatz):
+    """Canonical Quantum Amplitude Estimation.
+
+    ``n_counting`` counting qubits + 1 work qubit. State preparation is
+    A = R_Y(2*theta_A) on the work qubit (amplitude a = sin^2(theta_A)). The
+    controlled Grover powers are modelled, as in the ``hsmpo4transpilation``
+    benchmark, by controlled phases (CU1) with binary-scaled angles, closed with
+    an inverse QFT on the counting register. ``nqubits`` is ``n_counting + 1``.
+
+    Args:
+        n_counting: Number of counting qubits.
+        theta_A: Angle controlling the amplitude. Default 0.4 rad.
+    """
+
+    n_counting: int = 3
+    theta_A: float = 0.4
+    nqubits: int = field(init=False)
+
+    def __post_init__(self):
+        self.nqubits = self.n_counting + 1
+        super().__post_init__()
+
+    def _build_circuit(self) -> Circuit:
+        n = self.nqubits
+        work = self.n_counting
+
+        circuit = Circuit(n)
+        circuit.add(gates.RY(work, theta=2 * self.theta_A))
+        for q in range(self.n_counting):
+            circuit.add(gates.H(q))
+
+        for k in range(self.n_counting):
+            circuit.add(gates.CU1(k, work, theta=2 * (2**k) * self.theta_A))
+
+        for gate in _qft_circuit(self.n_counting).invert().queue:
+            circuit.add(gate)
+        return circuit
+
+
+@dataclass(kw_only=True)
+class TrotterIsing(_CompiledAnsatz):
+    """First-order Trotter evolution of the 1D transverse-field Ising model.
+
+        H = -J sum_j Z_j Z_{j+1} - h sum_j X_j   (open boundaries)
+
+    Each step applies ZZ rotations (via RZZ) then transverse-field RX rotations,
+    producing a long structured sequence of magic rotations between Cliffords.
+
+    Args:
+        n_steps: Number of Trotter steps.
+        dt: Time step.
+        J: Coupling strength.
+        h: Transverse field strength.
+    """
+
+    n_steps: int = 4
+    dt: float = 0.2
+    J: float = 1.0
+    h: float = 0.5
+
+    def _build_circuit(self) -> Circuit:
+        n = self.nqubits
+        circuit = Circuit(n)
+        for _ in range(self.n_steps):
+            for j in range(n - 1):
+                circuit.add(gates.RZZ(j, j + 1, theta=-2 * self.J * self.dt))
+            for j in range(n):
+                circuit.add(gates.RX(j, theta=-2 * self.h * self.dt))
+        return circuit
+
