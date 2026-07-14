@@ -222,10 +222,17 @@ class QuimbEngine(TensorNetworkEngine):
         Due to truncation we loose unitary norm, so normalizing is needed when computing expectation.
         """
         self.norm = state_circuit.norm(squared=True).real
-        circuit_tn_dag = state_circuit.reindex(
+        # Contract <psi| O |psi>. The operator MPO has upper (output) index
+        # `k{i}` and lower (input) index `b{i}`. The ket must feed the operator's
+        # *input*, so it is reindexed k->b; the (conjugated) bra keeps `k{i}` to
+        # meet the operator's output. Reindexing the bra instead would contract
+        # O with the ket/bra swapped, i.e. evaluate <psi|O^T|psi> -- wrong for
+        # non-symmetric operators such as any with an odd number of Y's.
+        ket = state_circuit.reindex(
             {f"k{i}": f"b{i}" for i in range(state_circuit.L)}
         )
-        return (circuit_tn_dag.H & operator & state_circuit).contract(
+        bra = state_circuit.H
+        return (bra & operator & ket).contract(
             backend=self.backend, optimize=self.optimizer
         ).real / self.norm
 
@@ -260,9 +267,17 @@ class QuimbEngine(TensorNetworkEngine):
         Heisenberg-conjugate an MPO `operator` by the Pauli rotation
         R = exp(-i * angle/2 * generator), returning R^dag . operator . R.
 
-        Since the rotation generators are (real) Pauli strings, R(angle)^dag is
-        simply R(-angle). The two MPO-MPO products are compressed to the given
-        bond dimension.
+        This is the standard observable-side conjugation: folding R into the
+        observable so that <R psi| O |R psi> = <psi| R^dag O R |psi>. Since the
+        generators are Pauli strings, ``R(angle)^dag == R(-angle)``. Each MPO-MPO
+        product is compressed to ``max_bond_dimension``.
+
+        Note: even with ``max_bond_dimension=None`` quimb applies its default SVD
+        cutoff, so folding *many* rotations (a long tail) accrues a small
+        truncation error and the exact operator rank of a scrambled observable
+        grows exponentially -- exactness is only cheap/attainable for modest tail
+        lengths. This is the intended MPO-tail approximation (see
+        :meth:`HSynthSMPO.mpo_tail_approximation`).
         """
         rotation_mpo = self.PauliExp(generator, angle)
         rotation_mpo_dag = self.PauliExp(generator, -angle)

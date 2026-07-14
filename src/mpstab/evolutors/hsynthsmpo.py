@@ -90,10 +90,11 @@ class HSynthSMPO(HSMPO):
         """
         Build the observable MPO with the tail rotations folded in.
 
-        Returns ``(operator, sign)`` where ``operator`` is
-        ``O' = R_k^dag ... R_1^dag O R_1 ... R_k`` with ``O`` the backpropagated
-        observable, and each conjugation compressed to ``max_bond_dimension``
-        (``None`` means no truncation, i.e. the exact operator).
+        Returns ``(operator, sign)`` with ``O`` the backpropagated observable and
+        each tail rotation folded via :meth:`TensorNetworkEngine.conjugate_operator`
+        (see that method for the fold convention). Each conjugation is compressed
+        to ``max_bond_dimension`` (``None`` means no truncation / the exact
+        operator).
         """
         backprop_observable, sign = self.stab_engine.backpropagate(
             observable=observable, clifford_circuit=self.clifford_circuit

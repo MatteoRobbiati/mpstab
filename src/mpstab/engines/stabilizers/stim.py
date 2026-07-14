@@ -92,6 +92,22 @@ class StimEngine(StabilizersEngine):
                 stim_c.append("S", q)
             elif name == "sdg":
                 stim_c.append("S_DAG", q)
+            elif name == "gpi2":
+                # GPI2(phi) is a pi/2 rotation about the axis (cos phi, sin phi, 0).
+                # It is Clifford only at multiples of pi/2, mapping to stim as:
+                #   0 -> SQRT_X, pi/2 -> SQRT_Y, pi -> SQRT_X_DAG, 3pi/2 -> SQRT_Y_DAG
+                # (verified via U P U^dag against stim's named-gate tableaux).
+                phi = g.parameters[0]
+                if is_approx(phi, 0):
+                    stim_c.append("SQRT_X", q)
+                elif is_approx(phi, np.pi / 2):
+                    stim_c.append("SQRT_Y", q)
+                elif is_approx(phi, np.pi) or is_approx(phi, -np.pi):
+                    stim_c.append("SQRT_X_DAG", q)
+                elif is_approx(phi, -np.pi / 2) or is_approx(phi, 3 * np.pi / 2):
+                    stim_c.append("SQRT_Y_DAG", q)
+                else:
+                    raise ValueError(f"Gate {g} is not Clifford.")
             elif name in ["rx", "ry", "rz"]:
                 theta = g.parameters[0]
                 axis = name[1].upper()
@@ -112,4 +128,14 @@ class StimEngine(StabilizersEngine):
                     if "not Clifford" in str(e):
                         raise
                     # Otherwise silently handle the traced case
+            elif name in ["measure", "id", "barrier"]:
+                # Non-unitary / no-op on the Pauli frame: nothing to backpropagate.
+                continue
+            else:
+                # Fail loudly rather than silently dropping a gate from the
+                # Clifford backpropagation (a silent skip yields wrong results).
+                raise ValueError(
+                    f"Gate '{name}' is not supported by the stim backpropagation "
+                    "engine. Ensure the Clifford part uses supported gates."
+                )
         return stim_c
