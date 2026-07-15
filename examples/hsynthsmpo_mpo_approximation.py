@@ -13,7 +13,7 @@ approximation in the tail. This script sweeps the cut index (hence the tail
 length) at a fixed bond cap and shows the approximation growing as more
 rotations are pushed into the MPO.
 
-Requires the optional transpilation extra:  pip install "mpstab[transpilation]"
+Requires the optional rustiq extra:  pip install "mpstab[rustiq]"
 """
 
 import numpy as np
@@ -61,7 +61,7 @@ for cut_index in range(n_dressed, -1, -1):
     info = hs.mpo_tail_approximation(
         OBSERVABLE, cut_index=cut_index, reference_max_bond=None
     )
-    counts = hs.count_two_qubit_gates(cut_index)
+    counts = hs.foldable_head_gate_counts(cut_index)
     print(
         f"{cut_index:>4} {n_dressed - cut_index:>5} "
         f"{counts['synthesized_head_2q_gates']:>8} "

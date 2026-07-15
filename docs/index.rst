@@ -34,6 +34,7 @@ Among our core features:
    guides/working_with_engines
    guides/using_ansatze
    guides/fidelity_and_approximation
+   guides/rustiq_resynthesis
 
 .. toctree::
    :maxdepth: 2

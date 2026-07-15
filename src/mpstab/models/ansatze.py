@@ -7,6 +7,7 @@ from typing import List, Optional
 import networkx as nx
 import numpy as np
 from qibo import Circuit, gates
+from qibo.models import QFT as qibo_qft
 from qibo.noise import NoiseModel
 
 from mpstab.models.utils import hardware_compatible_circuit, replace_non_clifford_gate
@@ -530,14 +531,7 @@ class CircuitAnsatz(Ansatz):
 # ---------------------------------------------------------------------------
 def _qft_circuit(n: int) -> Circuit:
     """QFT sub-circuit using H, controlled-phase (CU1) and SWAP (no transpilation)."""
-    circuit = Circuit(n)
-    for j in range(n):
-        circuit.add(gates.H(j))
-        for k in range(j + 1, n):
-            circuit.add(gates.CU1(k, j, theta=2 * np.pi / 2 ** (k - j + 1)))
-    for j in range(n // 2):
-        circuit.add(gates.SWAP(j, n - 1 - j))
-    return circuit
+    return qibo_qft(nqubits=n)
 
 
 def _multi_controlled_z(circuit: Circuit, controls: List[int], target: int) -> None:

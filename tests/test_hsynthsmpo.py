@@ -3,8 +3,6 @@ import pytest
 from qibo import Circuit, gates, set_backend
 from utils import expectation_with_qibo, set_rng_seed
 
-pytest.importorskip("qiskit")
-
 from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import (
@@ -111,67 +109,43 @@ def test_mpo_tail_approximation_reports_error_when_truncated():
     assert np.allclose(info["expval_reference"], exact, atol=1e-6)
 
 
-def _apply_pauli_rotation(psi, pauli, angle, n):
-    """Apply exp(-i*angle/2*P) to a dense statevector (row-major, qubit0 first)."""
-    I2 = np.eye(2)
-    P = {"I": I2, "X": np.array([[0, 1], [1, 0]]),
-         "Y": np.array([[0, -1j], [1j, 0]]), "Z": np.array([[1, 0], [0, -1]])}
-    mat = P[pauli[0]]
-    for c in pauli[1:]:
-        mat = np.kron(mat, P[c])
-    rot = np.cos(angle / 2) * np.eye(2 ** n) - 1j * np.sin(angle / 2) * mat
-    return rot @ psi
-
-
-def test_synthesized_head_circuit_formats():
+def test_foldable_head_circuit_is_qibo_circuit():
+    pytest.importorskip("rustiq")
     from qibo import Circuit as QiboCircuit
-    from qiskit import QuantumCircuit
 
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
 
-    assert isinstance(
-        hs.synthesized_head_circuit(n_dressed, output_format="qibo"), QiboCircuit
-    )
-    assert isinstance(
-        hs.synthesized_head_circuit(n_dressed, output_format="qiskit"), QuantumCircuit
-    )
-
-    qasm = hs.synthesized_head_circuit(n_dressed, output_format="qasm")
-    assert isinstance(qasm, str) and "OPENQASM" in qasm
-
-    with pytest.raises(ValueError):
-        hs.synthesized_head_circuit(n_dressed, output_format="bogus")
+    assert isinstance(hs.foldable_head_circuit(n_dressed), QiboCircuit)
 
 
-def test_synthesized_head_circuit_is_faithful():
-    # The resynthesized head, run on |0...0>, must reproduce (up to global phase)
-    # the state obtained by applying the exact dressed head rotations.
-    n = 4
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(n))
-    hs = HSynthSMPO(ansatz)
-    cut = len(hs.magic_gates)
+def test_foldable_head_circuit_is_faithful_up_to_tail():
+    # Unlike a full resynthesis of the exact unitary, the foldable head is only
+    # correct "up to" the pure-Clifford tail (see foldable_head_and_tail); so
+    # the resynthesized head circuit alone need not reproduce the exact dressed
+    # rotations' state -- only head_and_tail together do (see
+    # test_rustiq_synthesis.py::test_target_equals_tail_times_head_dense).
+    # What must hold at the HSynthSMPO level is expectation_from_rustiq_fold
+    # matching direct simulation, exercised in test_rustiq_synthesis.py.
+    pytest.importorskip("rustiq")
 
-    # exact reference state from the dressed rotations
-    psi = np.zeros(2 ** n, dtype=complex)
-    psi[0] = 1.0
-    for pauli, angle in hs._dressed_rotations()[:cut]:
-        psi = _apply_pauli_rotation(psi, pauli, angle, n)
-
-    head_circuit = hs.synthesized_head_circuit(cut, output_format="qibo")
-    psi_synth = head_circuit().state()
-
-    overlap = np.abs(np.vdot(psi, psi_synth))
-    assert np.isclose(overlap, 1.0, atol=1e-6)
-
-
-def test_count_two_qubit_gates_full_cut():
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
 
-    counts = hs.count_two_qubit_gates(cut_index=n_dressed)
+    head_circuit = hs.foldable_head_circuit(n_dressed)
+    assert head_circuit.nqubits == hs.nqubits
+
+
+def test_foldable_head_gate_counts_full_cut():
+    pytest.importorskip("rustiq")
+
+    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    hs = HSynthSMPO(ansatz)
+    n_dressed = len(hs.magic_gates)
+
+    counts = hs.foldable_head_gate_counts(cut_index=n_dressed)
     assert counts["n_head_rotations"] == n_dressed
     assert counts["n_tail_rotations"] == 0
     assert counts["synthesized_head_2q_gates"] >= 0

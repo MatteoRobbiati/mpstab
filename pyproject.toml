@@ -27,7 +27,7 @@ dependencies = [
 [project.optional-dependencies]
 pytorch = ["torch"]
 jax = ["jax"]
-transpilation = ["qiskit>=1.3"]
+rustiq = ["rustiq @ git+https://github.com/smartiel/rustiq.git"]
 
 [project.urls]
 Repository = "https://github.com/MatteoRobbiati/mpstab/"

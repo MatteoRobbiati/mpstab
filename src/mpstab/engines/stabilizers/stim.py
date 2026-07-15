@@ -62,6 +62,37 @@ class StimEngine(StabilizersEngine):
         # mpstab.Pauli handles signs by checking description[0] in phase_to_xz.keys()
         return res_str[1:], -1 if res_str.startswith("-") else 1
 
+    def fold_pauli_through_tableau(
+        self, pauli_str: str, tableau: stim.Tableau, sign: float = 1.0
+    ):
+        """
+        Reabsorb a Clifford ``tableau`` into a Pauli observable: returns
+        ``M = tableau^dag . P . tableau`` as a (signed) Pauli, so that applying
+        ``tableau`` last to a state ``psi`` gives
+        ``<psi|tableau^dag . P . tableau|psi> = <psi|M|psi>``.
+
+        Used to exactly reabsorb a pure-Clifford residual (e.g. the tail
+        produced by
+        :func:`mpstab.evolutors.quantum_hardware.rustiq_synthesis.build_head_and_residual`)
+        into an observable, with no tensor-network truncation involved.
+
+        Args:
+            pauli_str: Pauli string (qubit-0-leftmost), e.g. "XZIZ".
+            tableau: The Clifford tableau to reabsorb (applied last).
+            sign: +/-1 prefactor on the input Pauli.
+
+        Returns:
+            (pauli_str, sign): the folded observable (qubit-0-leftmost).
+        """
+        p = stim.PauliString(pauli_str)
+        if sign < 0:
+            p = -p
+        out = tableau.inverse()(p)
+        out_sign = float(out.sign.real if hasattr(out.sign, "real") else out.sign)
+        label = str(out)
+        label = (label[1:] if label and label[0] in "+-" else label).replace("_", "I")
+        return label, out_sign
+
     def _qibo_to_stim(self, circuit: Circuit) -> stim.Circuit:
         """Helper to convert a Qibo circuit into a Stim circuit."""
         stim_c = stim.Circuit()

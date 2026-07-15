@@ -16,7 +16,11 @@ from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
 from mpstab.evolutors.optimization import (
     minimize_expectation_dmrg as _minimize_expectation_dmrg,
 )
-from mpstab.evolutors.utils import gate2generator, validate_pauli_observable
+from mpstab.evolutors.utils import (
+    dressed_rotations,
+    gate2generator,
+    validate_pauli_observable,
+)
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 from mpstab.models.entropies import stabilizer_renyi_entropy_mps
 
@@ -58,6 +62,58 @@ class HSMPO:
         # Store the engine class that created the precomputed MPS for validation later
         self._mps_engine_type = type(self.tn_engine)
 
+    @classmethod
+    def rotations_only(
+        cls,
+        ansatz: Union[Ansatz, Circuit],
+        stab_engine: StabilizersEngine = None,
+        tn_engine: TensorNetworkEngine = None,
+    ):
+        """
+        Build an instance skipping the eager MPS precompute done in ``__post_init__``.
+
+        Sets only what the dressed-rotation / resynthesis path needs -- ``ansatz``,
+        ``initial_state``, engines, ``magic_gates`` and ``clifford_circuit`` -- and
+        never builds ``original_circuit_mps``. Useful when only the dressed
+        rotations or a resynthesized circuit are needed: construction stays cheap
+        and never touches the (generally exponentially large) exact state MPS.
+
+        Any method that needs ``original_circuit_mps`` (e.g. :meth:`expectation`)
+        will raise ``AttributeError`` on an instance built this way; call
+        :meth:`set_engines` to compute it and "upgrade" to a fully built instance.
+
+        Args:
+            ansatz: The ansatz (or plain qibo ``Circuit``) to wrap.
+            stab_engine: Stabilizers engine (``StimEngine`` if ``None``).
+            tn_engine: Tensor-network engine (``QuimbEngine`` if ``None``).
+        """
+        if stab_engine is None:
+            stab_engine = StimEngine()
+        elif not isinstance(stab_engine, StabilizersEngine):
+            raise ValueError(
+                f"Provided stabilizers engine {stab_engine} is not supported."
+            )
+
+        if tn_engine is None:
+            tn_engine = QuimbEngine()
+        elif not isinstance(tn_engine, TensorNetworkEngine):
+            raise ValueError(
+                f"Provided tensor-network engine {tn_engine} is not supported."
+            )
+
+        self = cls.__new__(cls)
+        if isinstance(ansatz, Circuit):
+            ansatz = CircuitAnsatz(qibo_circuit=ansatz)
+        self.ansatz = ansatz
+        self.max_bond_dimension = None
+        self.initial_state = Circuit(ansatz.nqubits)
+        self.stab_engine = stab_engine
+        self.tn_engine = tn_engine
+        (self.magic_gates, self.clifford_circuit), _ = ansatz.partitionate_circuit(
+            replacement_probability=0.0, replacement_method="closest"
+        )
+        return self
+
     def _precompute_original_mps(self):
         """
         Precompute the MPS evolved once using the magic/clifford decomposition
@@ -82,15 +138,17 @@ class HSMPO:
         )
 
         # Apply each magic gate evolution
-        for k, magic_gate in self.magic_gates:
-            clifford_subcircuit = self._clifford_subcircuit(self.clifford_circuit, k)
-            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
-
-            # Apply pauli rotation to the evolved MPS
+        for generator, angle in dressed_rotations(
+            self.nqubits,
+            self.stab_engine,
+            self.magic_gates,
+            self.clifford_circuit,
+            self._gate_angle,
+        ):
             self.tn_engine.pauli_rot(
                 state_circuit=evolved_mps,
                 generator=generator,
-                angle=self._gate_angle(magic_gate) * sign,
+                angle=angle,
                 max_bond_dimension=self.max_bond_dimension,
             )
 
