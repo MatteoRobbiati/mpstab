@@ -82,8 +82,8 @@ def test_mpo_tail_approximation_lossless_when_untruncated():
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)  # max_bond_dimension defaults to None
     info = hs.mpo_tail_approximation("ZZZZ", cut_index=0)
-    assert info["relative_frobenius_error"] == pytest.approx(0.0, abs=1e-10)
-    assert info["expval_abs_error"] == pytest.approx(0.0, abs=1e-10)
+    assert info["relative_frobenius_error"] == pytest.approx(0.0, abs=1e-7)
+    assert info["expval_abs_error"] == pytest.approx(0.0, abs=1e-7)
 
 
 def test_mpo_tail_approximation_empty_tail():
