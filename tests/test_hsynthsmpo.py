@@ -64,7 +64,9 @@ def test_split_matches_base_expectation(cut_index):
 def test_return_fidelity():
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
-    expval, fidelity = hs.expectation_from_split("ZZZZ", cut_index=2, return_fidelity=True)
+    expval, fidelity = hs.expectation_from_split(
+        "ZZZZ", cut_index=2, return_fidelity=True
+    )
     assert np.isreal(expval)
     assert 0.0 <= fidelity <= 1.0 + 1e-6
 
@@ -77,39 +79,49 @@ def test_native_engine_not_supported():
         hs.expectation_from_split("ZZZZ", cut_index=2)
 
 
-def test_mpo_tail_approximation_lossless_when_untruncated():
+def test_tail_truncation_lossless_when_untruncated():
     # No bond cap => the folded tail MPO is exact => zero error.
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)  # max_bond_dimension defaults to None
-    info = hs.mpo_tail_approximation("ZZZZ", cut_index=0)
-    assert info["relative_frobenius_error"] == pytest.approx(0.0, abs=1e-7)
-    assert info["expval_abs_error"] == pytest.approx(0.0, abs=1e-7)
+    info = hs.tail_truncation("ZZZZ", cut_index=0)
+    assert info.relative_frobenius_error == pytest.approx(0.0, abs=1e-7)
+    assert info.expval_abs_error == pytest.approx(0.0, abs=1e-7)
 
 
-def test_mpo_tail_approximation_empty_tail():
+def test_tail_truncation_empty_tail():
     # cut_index == number of dressed rotations => empty tail => exact operator.
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz, max_bond_dimension=2)
     n_dressed = len(hs.magic_gates)
-    info = hs.mpo_tail_approximation("ZZZZ", cut_index=n_dressed)
-    assert info["relative_frobenius_error"] == pytest.approx(0.0, abs=1e-10)
+    info = hs.tail_truncation("ZZZZ", cut_index=n_dressed)
+    assert info.relative_frobenius_error == pytest.approx(0.0, abs=1e-10)
 
 
-def test_mpo_tail_approximation_reports_error_when_truncated():
+def test_tail_truncation_reports_error_when_truncated():
     # Aggressive bond cap on a full tail => nonzero operator error; the exact
-    # (reference) operator still reproduces the true expectation, since with
+    # (untruncated) tail fold still reproduces the true expectation, since with
     # cut_index=0 the state is exactly |0...0>.
     ansatz = HardwareEfficient(nqubits=6, nlayers=2)
     hs = HSynthSMPO(ansatz, max_bond_dimension=1)
-    info = hs.mpo_tail_approximation("Z" * 6, cut_index=0, reference_max_bond=None)
-    assert info["relative_frobenius_error"] >= 0.0
-    assert info["approx_max_bond"] <= info["reference_max_bond"]
+    info = hs.tail_truncation("Z" * 6, cut_index=0, reference_max_bond=None)
+    assert info.relative_frobenius_error >= 0.0
+    assert info.expval_abs_error >= 0.0
 
+    reference_operator, sign = hs.tail_operator(
+        "Z" * 6, cut_index=0, max_bond_dimension=None
+    )
+    state_mps = hs._build_state_mps([])
+    reference_expval = (
+        np.real(
+            hs.tn_engine.expval(state_circuit=state_mps, operator=reference_operator)
+        )
+        * sign
+    )
     exact = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str="Z" * 6)
-    assert np.allclose(info["expval_reference"], exact, atol=1e-6)
+    assert np.allclose(reference_expval, exact, atol=1e-6)
 
 
-def test_foldable_head_circuit_is_qibo_circuit():
+def test_resynthesize_head_is_qibo_circuit():
     pytest.importorskip("rustiq")
     from qibo import Circuit as QiboCircuit
 
@@ -117,39 +129,43 @@ def test_foldable_head_circuit_is_qibo_circuit():
     hs = HSynthSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
 
-    assert isinstance(hs.foldable_head_circuit(n_dressed), QiboCircuit)
+    resynth = hs.resynthesize_head(n_dressed)
+    assert isinstance(resynth.circuit, QiboCircuit)
+    assert resynth.circuit.nqubits == hs.nqubits
+    assert resynth.method == "rustiq"
+    assert resynth.cut_index == n_dressed
 
 
-def test_foldable_head_circuit_is_faithful_up_to_tail():
-    # Unlike a full resynthesis of the exact unitary, the foldable head is only
-    # correct "up to" the pure-Clifford tail (see foldable_head_and_tail); so
-    # the resynthesized head circuit alone need not reproduce the exact dressed
-    # rotations' state -- only head_and_tail together do (see
-    # test_rustiq_synthesis.py::test_target_equals_tail_times_head_dense).
-    # What must hold at the HSynthSMPO level is expectation_from_rustiq_fold
-    # matching direct simulation, exercised in test_rustiq_synthesis.py.
+def test_resynthesize_head_gate_counts_full_cut():
     pytest.importorskip("rustiq")
 
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
 
-    head_circuit = hs.foldable_head_circuit(n_dressed)
-    assert head_circuit.nqubits == hs.nqubits
+    resynth = hs.resynthesize_head(n_dressed)
+    assert resynth.n_gates >= resynth.n_two_qubit_gates >= 0
 
 
-def test_foldable_head_gate_counts_full_cut():
-    pytest.importorskip("rustiq")
+def test_resynthesize_head_naive_fallback_has_identity_tail():
+    import stim
+
+    from mpstab.evolutors.quantum_hardware.naive_synthesis import (
+        build_naive_head_and_residual,
+    )
 
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
+    dressed = hs._dressed_rotations()
 
-    counts = hs.foldable_head_gate_counts(cut_index=n_dressed)
-    assert counts["n_head_rotations"] == n_dressed
-    assert counts["n_tail_rotations"] == 0
-    assert counts["synthesized_head_2q_gates"] >= 0
-    assert counts["original_circuit_2q_gates"] >= 0
+    head, tail_tableau, tail_gates = build_naive_head_and_residual(
+        [p for p, _ in dressed], [a for _, a in dressed]
+    )
+    assert tail_gates == []
+    assert tail_tableau == stim.Tableau(hs.nqubits)
+    assert len(head) > 0
+    assert n_dressed > 0
 
 
 # ---------------------------------------------------------------------------
@@ -178,7 +194,9 @@ _LIBRARY_ANSATZE = [
 ]
 
 
-@pytest.mark.parametrize("label,factory", _LIBRARY_ANSATZE, ids=[a[0] for a in _LIBRARY_ANSATZE])
+@pytest.mark.parametrize(
+    "label,factory", _LIBRARY_ANSATZE, ids=[a[0] for a in _LIBRARY_ANSATZE]
+)
 def test_library_ansatze_split_matches_qibo(label, factory):
     ansatz = factory()
     hs = HSynthSMPO(ansatz)
@@ -191,9 +209,9 @@ def test_library_ansatze_split_matches_qibo(label, factory):
             mpstab_ansatz=ansatz, observable_str=observable
         )
         # base HSMPO and every split cut must agree with the statevector.
-        assert np.allclose(hs.expectation(observable), reference, atol=1e-6), (
-            f"[{label} base / {observable}]"
-        )
+        assert np.allclose(
+            hs.expectation(observable), reference, atol=1e-6
+        ), f"[{label} base / {observable}]"
         for cut in cuts:
             split = hs.expectation_from_split(observable, cut_index=cut)
             assert np.allclose(split, reference, atol=1e-6), (

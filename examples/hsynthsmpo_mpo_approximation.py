@@ -13,7 +13,10 @@ approximation in the tail. This script sweeps the cut index (hence the tail
 length) at a fixed bond cap and shows the approximation growing as more
 rotations are pushed into the MPO.
 
-Requires the optional rustiq extra:  pip install "mpstab[rustiq]"
+Uses ``resynthesize_head`` for the head 2-qubit-gate counts; with the optional
+rustiq extra installed (``pip install "mpstab[rustiq]"``) this reports the
+optimized head, otherwise it falls back to a dependency-free (but not
+gate-count-optimized) decomposition.
 """
 
 import numpy as np
@@ -51,33 +54,32 @@ print(f"observable: {OBSERVABLE}\n")
 # ---------------------------------------------------------------------------
 header = (
     f"{'cut':>4} {'tail':>5} {'2q_head':>8} "
-    f"{'expval':>11} {'exp_err':>11} {'rel_F_err':>11} "
-    f"{'approx_bd':>10} {'exact_bd':>9}"
+    f"{'expval':>11} {'exp_err':>11} {'rel_F_err':>11} {'fidelity':>9}"
 )
 print(header)
 print("-" * len(header))
 
 for cut_index in range(n_dressed, -1, -1):
-    info = hs.mpo_tail_approximation(
-        OBSERVABLE, cut_index=cut_index, reference_max_bond=None
-    )
-    counts = hs.foldable_head_gate_counts(cut_index)
+    info = hs.tail_truncation(OBSERVABLE, cut_index=cut_index, reference_max_bond=None)
+    expval = hs.expectation_from_split(OBSERVABLE, cut_index=cut_index)
+    n_two_qubit_gates = hs.resynthesize_head(cut_index).n_two_qubit_gates
     print(
         f"{cut_index:>4} {n_dressed - cut_index:>5} "
-        f"{counts['synthesized_head_2q_gates']:>8} "
-        f"{info['expval_approx']:>11.5f} "
-        f"{info['expval_abs_error']:>11.3e} "
-        f"{info['relative_frobenius_error']:>11.3e} "
-        f"{info['approx_max_bond']:>10} {info['reference_max_bond']:>9}"
+        f"{n_two_qubit_gates:>8} "
+        f"{expval:>11.5f} "
+        f"{info.expval_abs_error:>11.3e} "
+        f"{info.relative_frobenius_error:>11.3e} "
+        f"{info.fidelity_estimate:>9.5f}"
     )
 
 print(
     "\nReading the table:\n"
-    "  * cut = n_dressed (top row): the whole circuit is resynthesized into the\n"
-    "    state, the MPO tail is empty -> exact operator (rel_F_err = 0).\n"
+    "  * cut = n_dressed (top row): the whole circuit is applied to the state,\n"
+    "    the MPO tail is empty -> exact operator (rel_F_err = 0, fidelity = 1).\n"
     "  * cut = 0 (bottom row): every rotation is folded into the MPO. The exact\n"
-    "    MPO bond (exact_bd) blows up while approx_bd stays at the cap, so the\n"
-    "    truncation -- and the resulting error -- is largest here.\n"
+    "    (untruncated) reference operator's bond dimension blows up while the\n"
+    "    working one stays at the cap, so the truncation -- and the resulting\n"
+    "    error -- is largest here.\n"
     "  * exp_err is the impact on the actual expectation value; it is typically\n"
     "    much smaller than the operator-level rel_F_err, because only the part of\n"
     "    the MPO overlapping the state matters."

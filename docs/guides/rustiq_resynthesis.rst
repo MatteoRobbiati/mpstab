@@ -46,17 +46,15 @@ Basic usage
     from mpstab.models.ansatze import HardwareEfficient
 
     ansatz = HardwareEfficient(nqubits=6, nlayers=2)
+    hs = HSynthSMPO(ansatz)
 
-    # rotations_only skips the eager MPS precompute -- only the dressed
-    # rotations are needed here, so construction stays O(1) in system size.
-    hs = HSynthSMPO.rotations_only(ansatz)
+    # Resynthesize ALL dressed rotations into a hardware-native circuit, and
+    # measure it with a finite shot budget -- there is no exact route.
+    result = hs.expectation_at_cut("Z" * 6, cut_index=len(hs.magic_gates), n_shots=20000)
 
-    # Resynthesize ALL dressed rotations and fold the resulting pure-Clifford
-    # tail exactly into the observable -- no approximation involved.
-    expval = hs.expectation_from_rustiq_fold("Z" * 6)
-
-    # The actual hardware-native circuit you would run:
-    head_circuit = hs.foldable_head_circuit(cut_index=len(hs.magic_gates))
+    # The actual hardware-native circuit that gets run:
+    resynth = hs.resynthesize_head(cut_index=len(hs.magic_gates))
+    head_circuit = resynth.circuit
 
 Partial cuts: gate-count profiling
 -----------------------------------
@@ -68,13 +66,15 @@ resynthesis cost grows as more of the circuit is included:
 .. code-block:: python
 
     for cut in range(0, len(hs.magic_gates) + 1, 5):
-        counts = hs.foldable_head_gate_counts(cut)
-        print(counts["n_head_rotations"], counts["synthesized_head_2q_gates"])
+        resynth = hs.resynthesize_head(cut)
+        print(resynth.n_gates, resynth.n_two_qubit_gates)
 
-A partial cut is **not** combined with an exact expectation value: the
-rotations left out of the resynthesis are still non-Clifford, and their
-Heisenberg conjugation is generally not a single Pauli -- which is exactly
-why the (approximate) MPO-tail path exists, see
-:doc:`fidelity_and_approximation` and ``HSynthSMPO.mpo_tail_approximation``.
-
-See ``examples/hsynthsmpo_rustiq_fold.py`` for a complete, runnable script.
+A partial cut leaves a pure-Clifford residual (``resynth.tail_tableau``): the
+``"pauli"`` route of :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut`
+folds it into the sampled Pauli terms automatically before grouping (see the
+module docstring of :mod:`mpstab.evolutors.hsynthsmpo`); the ``"shadows"``
+route instead raises unless ``tail_handling="append"`` is passed, since
+folding it into the tail MPO would destroy the product structure its
+contraction relies on. Rotations left out of the resynthesis entirely are
+still non-Clifford and get folded approximately into the tail MPO -- see
+:doc:`fidelity_and_approximation` and ``HSynthSMPO.tail_truncation``.

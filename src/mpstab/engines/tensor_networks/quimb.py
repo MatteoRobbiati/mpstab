@@ -228,9 +228,7 @@ class QuimbEngine(TensorNetworkEngine):
         # meet the operator's output. Reindexing the bra instead would contract
         # O with the ket/bra swapped, i.e. evaluate <psi|O^T|psi> -- wrong for
         # non-symmetric operators such as any with an odd number of Y's.
-        ket = state_circuit.reindex(
-            {f"k{i}": f"b{i}" for i in range(state_circuit.L)}
-        )
+        ket = state_circuit.reindex({f"k{i}": f"b{i}" for i in range(state_circuit.L)})
         bra = state_circuit.H
         return (bra & operator & ket).contract(
             backend=self.backend, optimize=self.optimizer
@@ -277,7 +275,7 @@ class QuimbEngine(TensorNetworkEngine):
         truncation error and the exact operator rank of a scrambled observable
         grows exponentially -- exactness is only cheap/attainable for modest tail
         lengths. This is the intended MPO-tail approximation (see
-        :meth:`HSynthSMPO.mpo_tail_approximation`).
+        :meth:`HSynthSMPO.tail_truncation`).
         """
         rotation_mpo = self.PauliExp(generator, angle)
         rotation_mpo_dag = self.PauliExp(generator, -angle)
