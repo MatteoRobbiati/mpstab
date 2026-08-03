@@ -188,6 +188,21 @@ class HSMPO:
         return self.ansatz.nparams
 
     @property
+    def n_magic_gates(self) -> int:
+        """Number of non-Clifford ("magic") gates in the original AnsatzCircuit as split up by partitionate_circuit."""
+        return len(self.magic_gates)
+
+    @property
+    def n_clifford_gates(self) -> int:
+        """Number of Clifford gates in the precomputed Clifford-only Qibo Circuit."""
+        return len(self.clifford_circuit.queue)
+
+    @property
+    def n_gates(self) -> int:
+        """Total number of (non-measurement) gates in the original AnsatzCircuit."""
+        return self.n_magic_gates + self.n_clifford_gates
+
+    @property
     def truncation_fidelity_pure_tn(self) -> float:
         return _qibo_circuit_to_quimb(
             nqubits=self.nqubits,
