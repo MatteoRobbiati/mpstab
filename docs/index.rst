@@ -42,6 +42,8 @@ Among our core features:
 
    api/evolutors
    api/engines
+   api/quantum_hardware
+   api/pauli
    api/models
 
 Indices and tables

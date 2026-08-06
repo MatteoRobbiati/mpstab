@@ -1,14 +1,17 @@
+"""Error mitigation built on the surrogate."""
+
 import copy
 import random
 from typing import Optional
 
 import numpy as np
 import tqdm
-from qibo import Circuit, get_backend, hamiltonians, symbols
+from qibo import Circuit, get_backend
 from qibo.noise import NoiseModel
 from scipy.optimize import curve_fit
 
 from mpstab.evolutors.hsmpo import HSMPO
+from mpstab.hamiltonians import pauli_string_to_hamiltonian
 from mpstab.models.ansatze import Ansatz
 
 
@@ -20,81 +23,89 @@ def TNCDR(
     initial_state: Circuit = None,
     replacement_method: str = "closest",
     ncircuits: int = 50,
-    nshots: Optional[int] = None,  # TODO: discuss it
+    nshots: Optional[int] = None,
     random_seed: int = 42,
     fit_map=lambda x, a, b: a * x + b,
     expval_threshold: float = 1e-7,
     max_bond_dimension: Optional[int] = None,
 ):
+    """
+    Tensor-network Clifford data regression.
 
-    # Fix the RNG seed for reproducibility
+    Samples ``ncircuits`` lower-magic circuits from the ansatz, computes each
+    one's exact expectation value on the surrogate and its noisy value under
+    ``noise_model``, then fits ``fit_map`` from noisy to exact. The fit is what
+    later corrects a noisy hardware measurement.
+
+    Args:
+        observable: the Pauli string to mitigate.
+        ansatz: the circuit to sample lower-magic variants of.
+        noise_model: the noise to apply when computing noisy values.
+        replacement_probability: chance of replacing each magic gate with a
+            Clifford one.
+        initial_state: state-preparation circuit; defaults to ``|0...0>``.
+        replacement_method: ``"closest"`` or ``"random"`` Clifford angle.
+        ncircuits: training circuits to sample.
+        nshots: shot budget for the noisy values; ``None`` evaluates them exactly.
+        random_seed: RNG seed.
+        fit_map: the regression model, linear by default.
+        expval_threshold: skip training points whose exact value is smaller than
+            this, since they carry almost no signal to fit against.
+        max_bond_dimension: MPS truncation cap for the surrogate.
+
+    Returns:
+        ``(training_data, popt)``, the sampled noisy/exact pairs and the fitted
+        parameters of ``fit_map``.
+    """
     random.seed(random_seed)
     np.random.seed(random_seed)
     backend = get_backend()
     backend.set_seed(random_seed)
 
-    # Construct the symbolic form from the observable pauli operators
-    form = 1
-    for i, pauli in enumerate(observable):
-        form *= getattr(symbols, pauli)(i)
+    ham = pauli_string_to_hamiltonian(observable)
 
-    # Compute the expectation value using the symbolic Hamiltonian
-    ham = hamiltonians.SymbolicHamiltonian(form=form)
-
-    # Here we collect the tncdr results
     training_data = {
         "noisy_expvals": [],
         "exact_expvals": [],
     }
 
-    for i in tqdm.tqdm(range(ncircuits)):
-        # Construct the hybrid surrogate
-        evo = HSMPO(
+    for _ in tqdm.tqdm(range(ncircuits)):
+        surrogate = HSMPO(
             ansatz=ansatz,
             initial_state=initial_state,
             max_bond_dimension=max_bond_dimension,
         )
-
-        # Exact expval from surrogate
-        exact_expval, partitions = evo.expectation_from_partition(
+        exact_expval, partitions = surrogate.expectation_from_partition(
             replacement_probability=replacement_probability,
             observable=observable,
             return_partitions=True,
             replacement_method=replacement_method,
         )
-
-        # TODO: discuss this
         if np.abs(exact_expval) < expval_threshold:
             continue
 
-        # TODO: return the mitigated value as well (as it is done in Qibo)
         sampled_circuit = density_matrix_circuit(partitions["full_circuit"])
         if initial_state is not None:
-            density_init_state = density_matrix_circuit(copy.deepcopy(initial_state))
-            initialised_sampled_circuit = density_init_state + sampled_circuit
-        else:
-            initialised_sampled_circuit = sampled_circuit
-
-        noisy_init_sampled_circuit = noise_model.apply(initialised_sampled_circuit)
-
-        noisy_expval = ham.expectation(noisy_init_sampled_circuit().state())
+            sampled_circuit = (
+                density_matrix_circuit(copy.deepcopy(initial_state)) + sampled_circuit
+            )
+        noisy_circuit = noise_model.apply(sampled_circuit)
+        noisy_expval = ham.expectation(noisy_circuit().state())
 
         training_data["exact_expvals"].append(exact_expval)
         training_data["noisy_expvals"].append(noisy_expval)
 
-    # Convert lists to numpy arrays for curve_fit
-    noisy_array = np.array(training_data["noisy_expvals"])
-    exact_array = np.array(training_data["exact_expvals"])
-
-    # Perform the curve fit using the provided mapping (default: linear)
-    popt, _ = curve_fit(fit_map, noisy_array, exact_array)
-
+    popt, _ = curve_fit(
+        fit_map,
+        np.array(training_data["noisy_expvals"]),
+        np.array(training_data["exact_expvals"]),
+    )
     return training_data, popt
 
 
 def density_matrix_circuit(circuit):
-    """Helper method to convert a circuit into its correspondent with `density_matrix=True`."""
-    circ = Circuit(circuit.nqubits, density_matrix=True)
+    """The same circuit rebuilt with ``density_matrix=True``, so noise can act on it."""
+    density_circuit = Circuit(circuit.nqubits, density_matrix=True)
     for gate in circuit.queue:
-        circ.add(gate)
-    return circ
+        density_circuit.add(gate)
+    return density_circuit

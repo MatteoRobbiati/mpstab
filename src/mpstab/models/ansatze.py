@@ -1,3 +1,5 @@
+"""Circuit templates to simulate: variational patterns and textbook algorithms."""
+
 import random
 from abc import ABC
 from copy import deepcopy
@@ -74,20 +76,21 @@ class Ansatz(ABC):
         self, replacement_probability: float, replacement_method: str
     ):
         """
-        Partitionate the circuit replacing non-Clifford (magic) gates with a given probability.
+        Split the circuit into a Clifford part and the magic gates left over.
 
-        For each gate in the original circuit:
+        Each non-Clifford gate is replaced by the nearest Clifford one with
+        probability ``replacement_probability``, and kept as a magic gate
+        otherwise. Every magic gate is recorded with the number of Clifford gates
+        preceding it, which is where it has to be reinserted later.
 
-        - If the gate is non-Clifford, with probability replacement_probability it is
-          replaced by a Clifford gate via replace_non_clifford_gate.
-        - The processed gate (whether replaced or not) is added to the overall circuit.
-        - Simultaneously, consecutive gates of the same type (Clifford or non-Clifford)
-          are collected into blocks.
+        Args:
+            replacement_probability: chance of replacing each non-Clifford gate.
+            replacement_method: ``"closest"`` or ``"random"`` Clifford angle.
 
         Returns:
-            partitioned_circuit (Circuit): the complete processed circuit.
-            clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive Clifford gates.
-            non_clifford_blocks (List[Circuit]): list of circuits, each a block of consecutive non-Clifford gates.
+            ``((magic_gates, clifford_circuit), full_circuit)``, where
+            ``magic_gates`` is a list of ``(breakpoint_index, gate)`` and
+            ``full_circuit`` is the sampled circuit including its magic gates.
         """
         magic_gates = []
         clifford_only_circuit = Circuit(
@@ -458,8 +461,6 @@ class FloquetAnsatz(Ansatz):
         clifford_only_circuit += clifford_block_1
         full_circuit += full_circuit_1
 
-        print("theta: ", self.theta)
-
         # 3) the central RZ
         rz = gates.RZ(q=self.target_qubit, theta=self.theta)
         full_circuit.add(deepcopy(rz))
@@ -516,18 +517,14 @@ class CircuitAnsatz(Ansatz):
 
 
 # ---------------------------------------------------------------------------
-# Circuit-library ansatze
+# Circuit-library ansatze: textbook algorithms (QFT, Grover, QPE, QAE, Trotter)
+# to benchmark HSMPO and HSynthSMPO against.
 #
-# A collection of textbook circuits (QFT, Grover, QPE, QAE, Trotter, ...) ported
-# from the `hsmpo4transpilation` project, useful as HSMPO/HSynthSMPO benchmarks.
-#
-# They are written with *high-level* gates (CU1, SWAP, TOFFOLI, RZZ, ...) and,
-# by default, transpiled to the native gate set on construction (via
-# `hardware_compatible_circuit`). That unrolling turns every non-Clifford gate
-# into an `rz` rotation, which is what HSMPO understands -- so there is no need
-# to hand-decompose anything. Pass ``transpile=False`` to keep the raw
-# high-level circuit (e.g. for inspection); note HSMPO requires the transpiled
-# form.
+# They are written with high-level gates (CU1, SWAP, TOFFOLI, RZZ, ...) and
+# transpiled to the native gate set on construction, which turns every
+# non-Clifford gate into an `rz` rotation -- the form HSMPO understands, so
+# nothing needs hand-decomposing. Pass ``transpile=False`` to keep the raw
+# high-level circuit for inspection; HSMPO itself needs the transpiled form.
 # ---------------------------------------------------------------------------
 def _qft_circuit(n: int) -> Circuit:
     """QFT sub-circuit using H, controlled-phase (CU1) and SWAP (no transpilation)."""
@@ -535,14 +532,13 @@ def _qft_circuit(n: int) -> Circuit:
 
 
 def _multi_controlled_z(circuit: Circuit, controls: List[int], target: int) -> None:
-    """Append a multi-controlled-Z built from CZ / TOFFOLI (so it unrolls).
+    """
+    Append a multi-controlled-Z built from CZ and TOFFOLI, so that it unrolls.
 
-    Uses the exact identities for up to two controls (CZ, and CCZ = H.CCX.H).
-    For more than two controls it chains pairwise Toffolis sharing the target --
-    the same construction as the original ``hsmpo4transpilation`` benchmark,
-    which is a faithful multi-controlled-Z only for ``len(controls) <= 2``; for
-    larger control sets it is a benchmark-oriented approximation, so do not rely
-    on Grover oracle correctness at ``nqubits > 3``.
+    Exact for up to two controls (CZ, and CCZ = H.CCX.H). Beyond that it chains
+    pairwise Toffolis sharing the target, which is a benchmark-oriented
+    approximation rather than a faithful multi-controlled-Z: do not rely on
+    Grover oracle correctness above 3 qubits.
     """
     n_ctrl = len(controls)
     if n_ctrl == 0:
@@ -735,9 +731,9 @@ class QAE(_CompiledAnsatz):
 
     ``n_counting`` counting qubits + 1 work qubit. State preparation is
     A = R_Y(2*theta_A) on the work qubit (amplitude a = sin^2(theta_A)). The
-    controlled Grover powers are modelled, as in the ``hsmpo4transpilation``
-    benchmark, by controlled phases (CU1) with binary-scaled angles, closed with
-    an inverse QFT on the counting register. ``nqubits`` is ``n_counting + 1``.
+    controlled Grover powers are modelled by controlled phases (CU1) with
+    binary-scaled angles, closed with an inverse QFT on the counting register.
+    ``nqubits`` is ``n_counting + 1``.
 
     Args:
         n_counting: Number of counting qubits.
@@ -799,4 +795,3 @@ class TrotterIsing(_CompiledAnsatz):
             for j in range(n):
                 circuit.add(gates.RX(j, theta=-2 * self.h * self.dt))
         return circuit
-

@@ -1,16 +1,17 @@
-"""Abstract API for tensor-network engines."""
+"""The interface a tensor-network engine must implement."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Any
 
+#: What each method takes and returns is engine-specific: an engine may
+#: represent states and operators however it likes, as long as the objects it
+#: hands back are the ones it is later given.
+
 
 class TensorNetworkEngine(ABC):
-    """
-    Abstract interface that a tensor-network engine must implement for mpstab.
-
-    """
+    """MPS state evolution and MPO expectation values."""
 
     @abstractmethod
     def build_circuit_mps(
@@ -21,44 +22,35 @@ class TensorNetworkEngine(ABC):
         max_bond_dimension: int | None = None,
     ):
         """
-        Create and return an MPS-like object initialised to `initial_state`.
-        - n: number of qubits
-        - initial_state_amplitudes: array-like of single-site amplitudes
-        - initial_state_circuit: qibo circuit to be converted to quimb in engine
-        - max_bond_dimension: optional truncation parameter
+        Build an MPS on ``n`` qubits in the given initial state.
+
+        Args:
+            n: number of qubits.
+            initial_state_amplitudes: array of per-site single-qubit amplitudes.
+            initial_state_circuit: the same state as a qibo circuit. Engines take
+                whichever of the two forms they prefer.
+            max_bond_dimension: truncation cap, or ``None`` for no cap.
         """
-        raise NotImplementedError
 
     @abstractmethod
     def pauli_mpo(self, pauli_string: str | Any):
-        """
-        Return an MPO object representing the supplied Pauli string (or equivalent).
-        """
-        raise NotImplementedError
+        """Build the MPO for a Pauli string."""
 
     @abstractmethod
     def expval(self, state_circuit: Any, operator: Any):
-        """
-        Compute the expectation value of `operator` on `state_circuit`.
-        The types of `state_circuit` and `operator` depend on the engine's internal representations.
-        """
-        raise NotImplementedError
+        """Expectation value of ``operator`` on ``state_circuit``."""
 
     @abstractmethod
     def pauli_rot(
         self, state_circuit: Any, generator: str, angle: float, max_bond_dimension: int
     ):
-        """
-        Apply a Pauli rotation specified by `generator` and `angle` to the MPS.
-        """
-        raise NotImplementedError
+        """Apply ``exp(-i angle/2 generator)`` to the state, in place."""
 
     @abstractmethod
     def conjugate_operator(
         self, operator: Any, generator: str, angle: float, max_bond_dimension: int
     ):
         """
-        Heisenberg-conjugate `operator` by the Pauli rotation
-        R = exp(-i * angle/2 * generator), returning R^dag . operator . R.
+        Heisenberg-conjugate ``operator`` by ``R = exp(-i angle/2 generator)``,
+        returning ``R^dag . operator . R``.
         """
-        raise NotImplementedError

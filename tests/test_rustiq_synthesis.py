@@ -1,14 +1,15 @@
 """
-Foldable low-level-rustiq resynthesis (`mpstab.evolutors.quantum_hardware`).
+rustiq resynthesis (`mpstab.quantum_hardware.synthesis`).
 
 Covers:
-  - target == tail . head at the unitary level (dense, small n);
-  - tail tableaus (not gate lists -- rustiq's fix_clifford=True is
-    non-deterministic) are reproducible across repeated calls;
-  - head_counts_only matches the (expensive) exact head from
-    build_head_and_residual;
-  - HSynthSMPO.expectation_from_rustiq_fold matches direct qibo simulation.
+  - target == residual . head at the unitary level (dense, small n);
+  - residual tableaus are reproducible across repeated calls, while gate lists
+    need not be (rustiq's fix_clifford=True draws randomly);
+  - head_counts_only agrees with the (expensive) exact head;
+  - resynthesizing the whole chain and folding the residual into the observable
+    reproduces direct qibo simulation.
 """
+
 import numpy as np
 import pytest
 from qibo import Circuit, gates, set_backend
@@ -16,23 +17,17 @@ from utils import expectation_with_qibo, set_rng_seed
 
 pytest.importorskip("rustiq")
 
+from mpstab.engines import StimEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
-from mpstab.evolutors.quantum_hardware import (
+from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
+from mpstab.pauli import PAULI_MATRICES as _PAULI_MATS
+from mpstab.quantum_hardware import (
     build_head_and_residual,
-    fold_observable,
     head_counts_only,
     head_to_qibo_circuit,
 )
-from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
 set_backend("numpy")
-
-_PAULI_MATS = {
-    "I": np.eye(2, dtype=complex),
-    "X": np.array([[0, 1], [1, 0]], dtype=complex),
-    "Y": np.array([[0, -1j], [1j, 0]], dtype=complex),
-    "Z": np.array([[1, 0], [0, -1]], dtype=complex),
-}
 
 
 def _pauli_matrix(pauli_str):
@@ -60,7 +55,7 @@ def _target_unitary(paulis, angles):
 def _unitary_from_gate_list(gate_list, n):
     """Dense unitary of a rustiq-vocabulary gate list, via qibo circuit columns."""
     circuit = head_to_qibo_circuit(gate_list, n)
-    dim = 2 ** n
+    dim = 2**n
     columns = []
     for k in range(dim):
         basis_state = np.zeros(dim, dtype=complex)
@@ -139,62 +134,80 @@ def test_build_head_and_residual_empty_input():
     assert len(tail_tableau) == 0
 
 
-def test_fold_observable_roundtrip_identity_tableau():
+def test_folding_an_identity_residual_leaves_the_observable_alone():
     import stim
 
     identity = stim.Tableau(3)
-    folded, sign = fold_observable(identity, "XYZ", sign=1.0)
+    engine = StimEngine()
+
+    folded, sign = engine.fold_pauli_through_tableau("XYZ", identity, sign=1.0)
     assert folded == "XYZ"
     assert sign == 1.0
 
-    folded, sign = fold_observable(identity, "XYZ", sign=-1.0)
+    folded, sign = engine.fold_pauli_through_tableau("XYZ", identity, sign=-1.0)
     assert folded == "XYZ"
     assert sign == -1.0
 
 
+def _expectation_via_full_resynthesis(hs, observable):
+    """
+    The whole resynthesis path end to end, exactly, with no sampling anywhere.
+
+    Two folds put the observable in the head circuit's frame. The head realises
+    only the dressed-rotation chain R, so the observable is first backpropagated
+    through the circuit's Clifford part (giving M, as
+    :meth:`HSMPO.expectation` does). Then, since ``R = U_residual . U_head``,
+    ``R^dag M R = U_head^dag (U_residual^dag M U_residual) U_head``, so M is
+    folded through the residual before being evaluated on ``U_head|0>``.
+    """
+    backpropagated, clifford_sign = hs.stab_engine.backpropagate(
+        observable=observable, clifford_circuit=hs.clifford_circuit
+    )
+    resynthesis = hs.resynthesize_head(cut_index=len(hs.magic_gates))
+    folded, residual_sign = hs.stab_engine.fold_pauli_through_tableau(
+        backpropagated, resynthesis.tail_tableau, 1.0
+    )
+    state = resynthesis.circuit().state()
+    expval = np.real(np.conj(state) @ _pauli_matrix(folded) @ state)
+    return clifford_sign * residual_sign * expval
+
+
 @pytest.mark.parametrize("observable", ["ZZZZ", "XIII", "IZIX", "YYYY"])
-def test_expectation_from_rustiq_fold_matches_direct_simulation(observable):
+def test_full_resynthesis_and_fold_matches_direct_simulation(observable):
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO.rotations_only(ansatz)
 
-    expval = hs.expectation_from_rustiq_fold(observable)
+    expval = _expectation_via_full_resynthesis(hs, observable)
     reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str=observable)
 
     assert np.allclose(expval, reference, atol=1e-6)
 
 
-def test_expectation_from_rustiq_fold_library_ansatze():
+def test_full_resynthesis_and_fold_on_library_ansatz():
     ansatz = HardwareEfficient(nqubits=5, nlayers=2)
     hs = HSynthSMPO.rotations_only(ansatz)
     observable = "Z" * 5
 
-    expval = hs.expectation_from_rustiq_fold(observable)
+    expval = _expectation_via_full_resynthesis(hs, observable)
     reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str=observable)
 
     assert np.allclose(expval, reference, atol=1e-6)
 
 
-def test_foldable_head_and_tail_partial_cut_gate_counts():
-    # Partial cuts are only claimed to be correct/useful for gate-count
-    # profiling (mirrors the hsmpo4transpilation prototype's usage) -- not for
-    # combining with an exact expectation value (see expectation_from_rustiq_fold's
-    # docstring for why a partial tail can't be folded exactly as a single Pauli).
+def test_resynthesize_head_gate_counts_across_partial_cuts():
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO.rotations_only(ansatz)
     n_dressed = len(hs.magic_gates)
 
     for cut in (0, n_dressed // 2, n_dressed):
-        counts = hs.foldable_head_gate_counts(cut)
-        assert counts["n_head_rotations"] == cut
-        assert counts["n_tail_rotations"] == n_dressed - cut
-        assert counts["synthesized_head_total_gates"] >= 0
-        assert counts["synthesized_head_2q_gates"] >= 0
-        assert counts["synthesized_head_2q_gates"] <= counts["synthesized_head_total_gates"]
-        assert counts["original_circuit_2q_gates"] >= 0
-
-    circuit = hs.foldable_head_circuit(n_dressed)
-    assert isinstance(circuit, Circuit)
-    assert circuit.nqubits == hs.nqubits
+        resynthesis = hs.resynthesize_head(cut)
+        assert resynthesis.cut_index == cut
+        assert resynthesis.method == "rustiq"
+        assert isinstance(resynthesis.circuit, Circuit)
+        assert resynthesis.circuit.nqubits == hs.nqubits
+        assert 0 <= resynthesis.n_two_qubit_gates <= resynthesis.n_gates
+        # One rotation is placed per dressed Pauli in the head.
+        assert resynthesis.n_gates >= cut
 
 
 def test_rustiq_import_error_has_install_hint(monkeypatch):

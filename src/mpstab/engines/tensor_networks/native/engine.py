@@ -1,16 +1,22 @@
+"""Pure-Python tensor-network engine."""
+
 from __future__ import annotations
 
 from typing import Any
 
 from mpstab.engines.tensor_networks.abstract import TensorNetworkEngine
-from mpstab.evolutors.tensor_network.circuit_mps import CircuitMPS
-from mpstab.evolutors.tensor_network.operators.observables import PauliMPO
+from mpstab.engines.tensor_networks.native.circuit_mps import CircuitMPS
+from mpstab.engines.tensor_networks.native.operators.observables import PauliMPO
 
 
 class NativeTensorNetworkEngine(TensorNetworkEngine):
     """
-    Thin adapter that exposes the minimal API required by HybridSurrogate
-    while reusing the existing evolutors.tensor_network implementation.
+    MPS evolution and expectation values on the in-package tensor network.
+
+    Supports state-side evolution and expectation values. Operator-side
+    conjugation, and so the whole head/tail split of
+    :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`, needs
+    :class:`~mpstab.engines.QuimbEngine`.
     """
 
     def build_circuit_mps(
@@ -20,11 +26,7 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
         initial_state_circuit: Any,
         max_bond_dimension: int | None = None,
     ):
-        """
-        Create a CircuitMPS initialised with `initial_state`.
-        `initial_state` is passed as-is to CircuitMPS (the caller creates the
-        array of single-qubit amplitudes as before).
-        """
+        """Build a :class:`CircuitMPS` from the per-site amplitudes."""
         return CircuitMPS(
             n=n,
             initial_state=initial_state_amplitudes,
@@ -32,11 +34,11 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
         )
 
     def pauli_mpo(self, pauli_string: str | object):
-        """Return the existing PauliMPO for the given pauli_string."""
+        """Build the :class:`PauliMPO` for a Pauli string."""
         return PauliMPO(pauli_string)
 
     def expval(self, state_circuit: CircuitMPS, operator: PauliMPO):
-        """Compute the expectation value of `operator` on `state`."""
+        """Expectation value of ``operator`` on ``state_circuit``."""
         return state_circuit.expval(operator)
 
     def pauli_rot(
@@ -46,7 +48,12 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
         angle: float,
         max_bond_dimension: int,
     ):
-        """Apply a Pauli rotation specified by `generator` and `angle` to the MPS."""
+        """
+        Apply ``exp(-i angle/2 generator)`` to the state.
+
+        The bond cap comes from the :class:`CircuitMPS` itself, set at
+        construction, so ``max_bond_dimension`` is ignored here.
+        """
         return state_circuit.pauli_rot(generator, angle)
 
     def conjugate_operator(
@@ -58,7 +65,6 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
     ):
         """Not supported: operator-side conjugation requires QuimbEngine."""
         raise NotImplementedError(
-            "conjugate_operator is only implemented for QuimbEngine. "
-            "The NativeTensorNetworkEngine does not support the transpiled-head "
-            "/ MPO-tail split used by HSynthSMPO."
+            "conjugate_operator is only implemented for QuimbEngine. Call "
+            "set_engines(tn_engine=QuimbEngine()) to use the head/tail split."
         )

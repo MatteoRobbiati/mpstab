@@ -110,7 +110,7 @@ def test_tail_truncation_reports_error_when_truncated():
     reference_operator, sign = hs.tail_operator(
         "Z" * 6, cut_index=0, max_bond_dimension=None
     )
-    state_mps = hs._build_state_mps([])
+    state_mps = hs._head_state_mps([])
     reference_expval = (
         np.real(
             hs.tn_engine.expval(state_circuit=state_mps, operator=reference_operator)
@@ -150,9 +150,7 @@ def test_resynthesize_head_gate_counts_full_cut():
 def test_resynthesize_head_naive_fallback_has_identity_tail():
     import stim
 
-    from mpstab.evolutors.quantum_hardware.naive_synthesis import (
-        build_naive_head_and_residual,
-    )
+    from mpstab.quantum_hardware.synthesis import build_naive_head_and_residual
 
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)

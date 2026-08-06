@@ -1,15 +1,10 @@
 """
-Frequencies -> the measurement result. Never touches a backend: everything
-here is pure post-processing of the frequency dictionaries a
-:class:`~mpstab.evolutors.quantum_hardware.plan.QiboSimulator`-like backend
-returned for a :class:`~mpstab.evolutors.quantum_hardware.plan.MeasurementPlan`'s
-circuits.
+Frequencies to a result: post-processing of what a backend measured.
 
-The point-estimate value comes from qibo's own
-:meth:`qibo.hamiltonians.SymbolicHamiltonian.expectation_from_samples`, which
-already implements the diagonal-observable-from-frequencies computation
-correctly; only the standard error (which that method does not report) is
-computed here.
+Nothing here touches a backend. The point estimate for the ``"pauli"`` route
+comes from qibo's own
+:meth:`qibo.hamiltonians.SymbolicHamiltonian.expectation_from_samples`; only the
+standard error, which qibo does not report, is computed here.
 """
 
 from __future__ import annotations
@@ -20,37 +15,47 @@ import numpy as np
 from qibo import symbols
 from qibo.hamiltonians import SymbolicHamiltonian
 
-from mpstab.evolutors.quantum_hardware.tail import mpo_site_arrays
+from mpstab.quantum_hardware.pauli_expansion import mpo_site_arrays
 
-#: 3 u^dag |b><b| u - I for the six (basis, outcome) pairs, ``u`` the
-#: single-qubit Clifford that rotates the given Pauli into the Z frame.
-_H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
-_SDG = np.array([[1, 0], [0, -1j]], dtype=complex)
-_BASIS_ROTATIONS = {"X": _H, "Y": _H @ _SDG, "Z": np.eye(2, dtype=complex)}
 _BASIS_INDEX = {"X": 0, "Y": 1, "Z": 2}
-_SNAPSHOT_FACTORS = np.empty((3, 2, 2, 2), dtype=complex)
-for _label, _i in _BASIS_INDEX.items():
-    _u = _BASIS_ROTATIONS[_label]
-    for _b in (0, 1):
-        _ket = _u.conj().T[:, _b : _b + 1]
-        _SNAPSHOT_FACTORS[_i, _b] = 3.0 * (_ket @ _ket.conj().T) - np.eye(2)
+
+
+def _snapshot_factors() -> np.ndarray:
+    """
+    ``3 u^dag |b><b| u - I`` for the six (basis, outcome) pairs, indexed
+    ``[basis, outcome]``.
+
+    ``u`` is the single-qubit Clifford rotating the given Pauli into the Z frame,
+    so this is the single-site classical-shadow inverse channel.
+    """
+    hadamard = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+    s_dagger = np.array([[1, 0], [0, -1j]], dtype=complex)
+    rotations = {"X": hadamard, "Y": hadamard @ s_dagger, "Z": np.eye(2, dtype=complex)}
+
+    factors = np.empty((3, 2, 2, 2), dtype=complex)
+    for label, index in _BASIS_INDEX.items():
+        for outcome in (0, 1):
+            ket = rotations[label].conj().T[:, outcome : outcome + 1]
+            factors[index, outcome] = 3.0 * (ket @ ket.conj().T) - np.eye(2)
+    return factors
+
+
+_SNAPSHOT_FACTORS = _snapshot_factors()
 
 
 @dataclass(frozen=True)
 class ExpectationResult:
     """
-    The measurement result: a value, its shot-noise standard error, and the
-    systematic truncation budget that goes with it.
+    A measured expectation value, its shot noise and its truncation budget.
 
     Attributes:
         value: the (real) expectation value.
         stderr: standard error from shot noise alone.
-        truncation_l1: rigorous discarded-Pauli-mass bound (``"pauli"``
-            route only; ``None`` for ``"shadows"``, which has no meaningful
-            L1/L2 split for its bond-truncation error).
-        truncation_l2: typical-case truncation estimate (Pauli-set truncation
-            for ``"pauli"``, MPO bond truncation for ``"shadows"``).
-        n_settings: distinct circuits the shots came from.
+        truncation_l1: rigorous discarded-Pauli-mass bound; ``None`` for the
+            ``"shadows"`` route, whose bond truncation has no L1/L2 split.
+        truncation_l2: typical-case truncation estimate -- Pauli-set truncation
+            for ``"pauli"``, MPO bond truncation for ``"shadows"``.
+        n_settings: number of distinct circuits the shots came from.
         n_shots: total shots used.
     """
 
@@ -63,9 +68,10 @@ class ExpectationResult:
 
     @property
     def total_error(self) -> float:
-        """``sqrt(stderr**2 + truncation_l2**2)``: the number that belongs in
-        a results table, since ``stderr`` alone omits the systematic
-        truncation bias."""
+        """
+        ``sqrt(stderr**2 + truncation_l2**2)``: the number that belongs in a
+        results table, since ``stderr`` alone omits the truncation bias.
+        """
         return float(np.sqrt(self.stderr**2 + self.truncation_l2**2))
 
     def __float__(self) -> float:
@@ -80,14 +86,12 @@ class ExpectationResult:
 
 def _variance_from_frequencies(freq: dict, weighted_supports: list) -> float:
     """
-    Exact per-shot sample variance of ``sum_i coeff_i * parity_i(bitstring)``
-    over one measurement setting, i.e. the variance of a *single* shot's
-    value, not yet of the mean (divide by the setting's shot count for that).
+    Sample variance of a *single* shot's value of ``sum_i c_i parity_i(bitstring)``
+    over one measurement setting. Divide by the setting's shot count to get the
+    variance of the mean.
 
-    Not something qibo's ``expectation_from_samples`` provides (it returns the
-    mean only), and exact rather than a per-member sum (as an
-    independent-terms approximation would give) since the joint frequency
-    table already carries the members' full covariance for free.
+    Exact rather than a sum of per-member variances, since the joint frequency
+    table already carries the members' full covariance.
     """
     total = sum(freq.values())
     if total <= 1:
@@ -95,11 +99,12 @@ def _variance_from_frequencies(freq: dict, weighted_supports: list) -> float:
     values, weights = [], []
     for bitstring, count in freq.items():
         bits = [int(b) for b in bitstring]
-        v = sum(
-            coeff * (-1) ** sum(bits[q] for q in support)
-            for support, coeff in weighted_supports
+        values.append(
+            sum(
+                coeff * (-1) ** sum(bits[q] for q in support)
+                for support, coeff in weighted_supports
+            )
         )
-        values.append(v)
         weights.append(count)
     values = np.asarray(values)
     weights = np.asarray(weights)
@@ -108,8 +113,7 @@ def _variance_from_frequencies(freq: dict, weighted_supports: list) -> float:
 
 
 def estimate_pauli(plan, frequencies) -> ExpectationResult:
-    """Turn a ``"pauli"`` :class:`~mpstab.evolutors.quantum_hardware.plan.MeasurementPlan`'s
-    frequencies into an :class:`ExpectationResult`."""
+    """Recombine a ``"pauli"`` plan's frequencies into an :class:`ExpectationResult`."""
     groups, coefficients = plan.recombination
     nqubits = len(next(iter(coefficients)))
 
@@ -117,36 +121,33 @@ def estimate_pauli(plan, frequencies) -> ExpectationResult:
     variance = 0.0
     n_shots = 0
     for group, freq in zip(groups, frequencies):
-        n_shots += sum(freq.values())
+        shots = sum(freq.values())
+        n_shots += shots
+
         weighted_supports = []
         form = 0
         for member in group.members:
-            coeff = (
-                coefficients[member].real
-                if hasattr(coefficients[member], "real")
-                else coefficients[member]
-            )
+            coeff = float(np.real(coefficients[member]))
             support = tuple(q for q, label in enumerate(member) if label != "I")
             if not support:
                 value += coeff  # identity member: parity is always 1, no shot noise
                 continue
             weighted_supports.append((support, coeff))
             term = coeff
-            for q in support:
-                term *= symbols.Z(q)
+            for qubit in support:
+                term *= symbols.Z(qubit)
             form += term
+
         if form != 0:
             value += SymbolicHamiltonian(
                 form=form, nqubits=nqubits
             ).expectation_from_samples(freq)
-        n = sum(freq.values())
-        if n > 1:
-            variance += _variance_from_frequencies(freq, weighted_supports) / n
+        if shots > 1:
+            variance += _variance_from_frequencies(freq, weighted_supports) / shots
 
-    stderr = float(np.sqrt(variance))
     return ExpectationResult(
         value=float(value),
-        stderr=stderr,
+        stderr=float(np.sqrt(variance)),
         truncation_l1=plan.truncation_l1,
         truncation_l2=plan.truncation_l2,
         n_settings=len(frequencies),
@@ -179,26 +180,24 @@ def _term_setting_stats(mpo_arrays, basis: str, freq: dict):
 
 
 def estimate_shadows(plan, frequencies) -> ExpectationResult:
-    """Turn a ``"shadows"`` :class:`~mpstab.evolutors.quantum_hardware.plan.MeasurementPlan`'s
-    frequencies into an :class:`ExpectationResult`."""
+    """Recombine a ``"shadows"`` plan's frequencies into an :class:`ExpectationResult`."""
     mpo_terms, bases = plan.recombination
     value = plan.constant
     variance = 0.0
     n_shots = 0
-    for label, coeff, sign, mpo in mpo_terms:
+    for _, coeff, sign, mpo in mpo_terms:
         arrays = mpo_site_arrays(mpo)
         sum_v = sum_v2 = 0.0
         n = 0
         for basis, freq in zip(bases, frequencies):
-            v, v2, m = _term_setting_stats(arrays, basis, freq)
-            sum_v += v
-            sum_v2 += v2
-            n += m
-        mean = sign * sum_v / n
+            setting_v, setting_v2, setting_n = _term_setting_stats(arrays, basis, freq)
+            sum_v += setting_v
+            sum_v2 += setting_v2
+            n += setting_n
         if n > 1:
             per_shot_variance = (sum_v2 - n * (sum_v / n) ** 2) / (n - 1)
             variance += coeff**2 * per_shot_variance / n
-        value += coeff * mean
+        value += coeff * sign * sum_v / n
         n_shots = n  # identical across terms: same circuits, same shots
 
     return ExpectationResult(

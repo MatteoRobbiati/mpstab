@@ -1,3 +1,6 @@
+"""The hybrid stabilizer-MPO surrogate of a quantum circuit."""
+
+import copy
 from dataclasses import dataclass
 from typing import Union
 
@@ -13,24 +16,30 @@ from mpstab.engines import (
     TensorNetworkEngine,
 )
 from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
-from mpstab.evolutors.optimization import (
-    minimize_expectation_dmrg as _minimize_expectation_dmrg,
-)
-from mpstab.evolutors.utils import (
-    dressed_rotations,
-    gate2generator,
-    validate_pauli_observable,
-)
+from mpstab.evolutors.optimization import minimize_expectation_dmrg
+from mpstab.evolutors.utils import dressed_rotations, gate_angle, gate_generator
+from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 from mpstab.models.entropies import stabilizer_renyi_entropy_mps
+from mpstab.pauli import validate_pauli_string
 
 
 @dataclass
 class HSMPO:
     """
-    Construct an hybrid stabilizer MPO surrogate of a given quantum circuit.
+    Hybrid stabilizer-MPO surrogate of a quantum circuit.
 
-    The tensor-network part is now engine-pluggable via the TensorNetworkEngine API.
+    The circuit is split into a Clifford part, handled by a stabilizers engine,
+    and the magic gates it cannot absorb, applied to an MPS as dressed Pauli
+    rotations by a tensor-network engine. Both engines are pluggable through
+    :meth:`set_engines`.
+
+    Args:
+        ansatz: the circuit to surrogate, as an :class:`~mpstab.models.ansatze.Ansatz`
+            or a plain qibo ``Circuit``.
+        max_bond_dimension: MPS truncation cap, or ``None`` for no cap.
+        initial_state: single-qubit-gates-only circuit preparing the initial
+            state. Defaults to ``|0...0>``.
     """
 
     ansatz: Union[Ansatz, Circuit]
@@ -38,29 +47,15 @@ class HSMPO:
     initial_state: Circuit = None
 
     def __post_init__(self):
-        # Wrap the qibo circuit with our ansatz in case a pure qibo
-        # circuit is provided
         if isinstance(self.ansatz, Circuit):
             self.ansatz = CircuitAnsatz(qibo_circuit=self.ansatz)
 
-        # Initial state is zero by default
         if self.initial_state is None:
             self.initial_state = Circuit(self.ansatz.nqubits)
 
-        # Default engines will be set here (stabilizers + tensor-network)
-        # and TN will be initialised by _init_tn.
+        # set_engines installs the default engines, builds the MPS and evolves
+        # it once, caching magic_gates and clifford_circuit along the way.
         self.set_engines()
-
-        # Add the initial state, which is |0> by default
-        self._init_tn(self.max_bond_dimension)
-
-        # Precompute MPS evolved once with replacement_probability=0
-        # This is cached for reuse without reconstruction
-        # Also caches magic_gates and clifford_circuit during the precomputation
-        self.original_circuit_mps = self._precompute_original_mps()
-
-        # Store the engine class that created the precomputed MPS for validation later
-        self._mps_engine_type = type(self.tn_engine)
 
     @classmethod
     def rotations_only(
@@ -70,172 +65,32 @@ class HSMPO:
         tn_engine: TensorNetworkEngine = None,
     ):
         """
-        Build an instance skipping the eager MPS precompute done in ``__post_init__``.
+        Build an instance without evolving the MPS, for the dressed-rotation and
+        resynthesis paths that never need it.
 
-        Sets only what the dressed-rotation / resynthesis path needs -- ``ansatz``,
-        ``initial_state``, engines, ``magic_gates`` and ``clifford_circuit`` -- and
-        never builds ``original_circuit_mps``. Useful when only the dressed
-        rotations or a resynthesized circuit are needed: construction stays cheap
-        and never touches the (generally exponentially large) exact state MPS.
-
-        Any method that needs ``original_circuit_mps`` (e.g. :meth:`expectation`)
-        will raise ``AttributeError`` on an instance built this way; call
-        :meth:`set_engines` to compute it and "upgrade" to a fully built instance.
+        Sets up only the ansatz, initial state, engines, ``magic_gates`` and
+        ``clifford_circuit``, so construction stays cheap and never touches the
+        (generally exponentially large) exact state. Anything needing
+        ``original_circuit_mps``, :meth:`expectation` included, raises
+        ``AttributeError``; call :meth:`set_engines` to upgrade to a full instance.
 
         Args:
-            ansatz: The ansatz (or plain qibo ``Circuit``) to wrap.
-            stab_engine: Stabilizers engine (``StimEngine`` if ``None``).
-            tn_engine: Tensor-network engine (``QuimbEngine`` if ``None``).
+            ansatz: the circuit to surrogate.
+            stab_engine: stabilizers engine, ``StimEngine`` if ``None``.
+            tn_engine: tensor-network engine, ``QuimbEngine`` if ``None``.
         """
-        if stab_engine is None:
-            stab_engine = StimEngine()
-        elif not isinstance(stab_engine, StabilizersEngine):
-            raise ValueError(
-                f"Provided stabilizers engine {stab_engine} is not supported."
-            )
-
-        if tn_engine is None:
-            tn_engine = QuimbEngine()
-        elif not isinstance(tn_engine, TensorNetworkEngine):
-            raise ValueError(
-                f"Provided tensor-network engine {tn_engine} is not supported."
-            )
-
         self = cls.__new__(cls)
         if isinstance(ansatz, Circuit):
             ansatz = CircuitAnsatz(qibo_circuit=ansatz)
         self.ansatz = ansatz
         self.max_bond_dimension = None
         self.initial_state = Circuit(ansatz.nqubits)
-        self.stab_engine = stab_engine
-        self.tn_engine = tn_engine
+        self.stab_engine = _validated_stab_engine(stab_engine)
+        self.tn_engine = _validated_tn_engine(tn_engine)
         (self.magic_gates, self.clifford_circuit), _ = ansatz.partitionate_circuit(
             replacement_probability=0.0, replacement_method="closest"
         )
         return self
-
-    def _precompute_original_mps(self):
-        """
-        Precompute the MPS evolved once using the magic/clifford decomposition
-        with replacement_probability=0.
-
-        Also caches magic_gates and clifford_circuit for later use in expectation
-        evaluations, avoiding redundant circuit partitioning.
-
-        Returns the evolved MPS for caching.
-        """
-        import copy
-
-        # Start from a clean copy of the initial MPS
-        self._init_tn(self.max_bond_dimension)
-        evolved_mps = copy.deepcopy(self.mps)
-
-        # Get magic gates and clifford structure with no replacements
-        # (cache these for later use)
-        (self.magic_gates, self.clifford_circuit), _ = self.ansatz.partitionate_circuit(
-            replacement_probability=0.0,
-            replacement_method="closest",
-        )
-
-        # Apply each magic gate evolution
-        for generator, angle in dressed_rotations(
-            self.nqubits,
-            self.stab_engine,
-            self.magic_gates,
-            self.clifford_circuit,
-            self._gate_angle,
-        ):
-            self.tn_engine.pauli_rot(
-                state_circuit=evolved_mps,
-                generator=generator,
-                angle=angle,
-                max_bond_dimension=self.max_bond_dimension,
-            )
-
-        return evolved_mps
-
-    def _init_tn(self, max_bond_dimension: int | None = None):
-        """
-        Initialize the tensor network (MPS) to the factorized state specified
-        by the initial_state circuit.
-
-        The code still builds the per-qubit amplitudes from the qibo Circuit as
-        before, but the actual MPS object is created through the TN engine.
-
-        Passing both amplitudes for native engine and and full initial circuit for quimb.
-        """
-
-        amplitudes = []
-        for q in range(self.nqubits):
-
-            light_circ, light_dict = self.initial_state.light_cone(q)
-
-            # Check whether the initial state is constructed properly
-            # (with one-qubit gates only)
-            if len(light_dict.items()) > 1:
-                raise ValueError(
-                    "Ensure only 1-qubit gates compose the initial state preparation circuit."
-                )
-
-            # Add the initial state tensor (single-qubit amplitude vector)
-            amplitudes.append(light_circ().state())
-
-        self.mps = self.tn_engine.build_circuit_mps(
-            n=self.nqubits,
-            initial_state_amplitudes=np.array(amplitudes),
-            initial_state_circuit=self.initial_state,
-            max_bond_dimension=max_bond_dimension,
-        )
-
-    def expectation(
-        self, observable: Union[str, SymbolicHamiltonian], return_fidelity: bool = False
-    ):
-        """
-        Compute the expectation value of an observable with respect
-        to the full ansatz circuit (no partitioning).
-        """
-
-        if isinstance(observable, SymbolicHamiltonian):
-            if return_fidelity:
-                return (
-                    self._expectation_from_symbolic_hamiltonian(hamiltonian=observable),
-                    self.tn_engine.norm,
-                )
-            else:
-                return self._expectation_from_symbolic_hamiltonian(
-                    hamiltonian=observable
-                )
-
-        elif isinstance(observable, str):
-            # Validate observable string format and length
-            validate_pauli_observable(observable, self.nqubits)
-
-            # Use cached clifford circuit for observable backpropagation
-            # (computed once during MPS initialization)
-            backprop_observable, sign = self.stab_engine.backpropagate(
-                observable=observable, clifford_circuit=self.clifford_circuit
-            )
-
-            mpo = self.tn_engine.pauli_mpo(backprop_observable)
-
-            # Delegate to engine - handles all engine-specific details internally
-            expval = self.tn_engine.expval(
-                state_circuit=self.original_circuit_mps, operator=mpo
-            )
-
-            expval = np.real(expval) * sign
-
-            if return_fidelity:
-                return (
-                    expval,
-                    self.original_circuit_mps.norm(squared=True),
-                )
-            else:
-                return expval
-        else:
-            raise ValueError(
-                f"Given observable of type {type(observable)}, but only list or Qibo's SymbolicHamiltonian are supported"
-            )
 
     @property
     def nqubits(self):
@@ -245,8 +100,205 @@ class HSMPO:
     def nparams(self):
         return self.ansatz.nparams
 
+    def set_engines(
+        self,
+        stab_engine: StabilizersEngine | None = None,
+        tn_engine: TensorNetworkEngine | None = None,
+    ):
+        """
+        Install the stabilizers and tensor-network engines, then rebuild the
+        cached MPS with them.
+
+        Args:
+            stab_engine: stabilizers engine, ``StimEngine`` if ``None``.
+            tn_engine: tensor-network engine, ``QuimbEngine`` if ``None``. The
+                native engine supports :meth:`expectation` but not
+                :meth:`minimize_expectation`.
+        """
+        self.stab_engine = _validated_stab_engine(stab_engine)
+        self.tn_engine = _validated_tn_engine(tn_engine)
+        self._init_tn(max_bond_dimension=self.max_bond_dimension)
+        self.original_circuit_mps = self._precompute_original_mps()
+
+    def _init_tn(self, max_bond_dimension: int | None = None):
+        """
+        Reset ``self.mps`` to the product state ``initial_state`` prepares.
+
+        Both forms are handed to the engine, which takes whichever it prefers:
+        the per-qubit amplitudes for the native engine, the circuit itself for
+        quimb.
+
+        Raises:
+            ValueError: if ``initial_state`` entangles any pair of qubits.
+        """
+        amplitudes = []
+        for qubit in range(self.nqubits):
+            light_circuit, light_cone = self.initial_state.light_cone(qubit)
+            if len(light_cone) > 1:
+                raise ValueError(
+                    "The initial-state circuit must be made of one-qubit gates "
+                    f"only, but qubit {qubit}'s light cone covers {len(light_cone)}."
+                )
+            amplitudes.append(light_circuit().state())
+
+        self.mps = self.tn_engine.build_circuit_mps(
+            n=self.nqubits,
+            initial_state_amplitudes=np.array(amplitudes),
+            initial_state_circuit=self.initial_state,
+            max_bond_dimension=max_bond_dimension,
+        )
+
+    def _dressed_rotations(self):
+        """Every magic gate's ``(generator, signed_angle)``, in circuit order."""
+        return dressed_rotations(
+            self.nqubits, self.stab_engine, self.magic_gates, self.clifford_circuit
+        )
+
+    def _precompute_original_mps(self):
+        """
+        Evolve the MPS through every dressed rotation of the unmodified circuit.
+
+        Also caches ``magic_gates`` and ``clifford_circuit``, so later expectation
+        values do not re-partition the circuit.
+        """
+        self._init_tn(self.max_bond_dimension)
+        evolved_mps = copy.deepcopy(self.mps)
+
+        (self.magic_gates, self.clifford_circuit), _ = self.ansatz.partitionate_circuit(
+            replacement_probability=0.0, replacement_method="closest"
+        )
+
+        for generator, angle in self._dressed_rotations():
+            self.tn_engine.pauli_rot(
+                state_circuit=evolved_mps,
+                generator=generator,
+                angle=angle,
+                max_bond_dimension=self.max_bond_dimension,
+            )
+        return evolved_mps
+
+    def expectation(self, observable: Observable, return_fidelity: bool = False):
+        """
+        Expectation value of ``observable`` on the full circuit, with no
+        magic-gate replacement.
+
+        Args:
+            observable: a Pauli string or any other format
+                :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+            return_fidelity: also return the MPS's squared norm, which truncation
+                pushes below 1.
+        """
+        constant, terms = pauli_terms(observable, self.nqubits)
+        expval = constant + sum(
+            coefficient * self._term_expectation(pauli, self.original_circuit_mps)
+            for pauli, coefficient in terms.items()
+        )
+
+        if return_fidelity:
+            return expval, self.original_circuit_mps.norm(squared=True)
+        return expval
+
+    def _term_expectation(self, pauli: str, state_mps) -> float:
+        """
+        Expectation value of one Pauli string, backpropagated through the cached
+        Clifford circuit before being contracted against ``state_mps``.
+        """
+        backpropagated, sign = self.stab_engine.backpropagate(
+            observable=pauli, clifford_circuit=self.clifford_circuit
+        )
+        mpo = self.tn_engine.pauli_mpo(backpropagated)
+        return (
+            np.real(self.tn_engine.expval(state_circuit=state_mps, operator=mpo)) * sign
+        )
+
+    def expectation_from_partition(
+        self,
+        observable: Observable,
+        replacement_probability: float,
+        replacement_method: str = "closest",
+        return_partitions: bool = False,
+    ):
+        """
+        Expectation value on a lower-magic circuit sampled from the ansatz.
+
+        Args:
+            observable: a Pauli string or any other format
+                :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+            replacement_probability: chance of replacing each magic gate with a
+                Clifford one.
+            replacement_method: ``"closest"`` or ``"random"`` Clifford angle.
+            return_partitions: also return the magic gates, the Clifford-only
+                circuit and the sampled full circuit.
+
+        Returns:
+            ``(expval, partitions)``, with ``partitions`` ``None`` unless
+            ``return_partitions``.
+        """
+        self._init_tn(self.max_bond_dimension)
+        (magic_gates, clifford_circuit), full_circuit = (
+            self.ansatz.partitionate_circuit(
+                replacement_probability=replacement_probability,
+                replacement_method=replacement_method,
+            )
+        )
+        self._evolve_magic_gates(self.mps, magic_gates, clifford_circuit)
+
+        constant, terms = pauli_terms(observable, self.nqubits)
+        expval = constant
+        for pauli, coefficient in terms.items():
+            backpropagated, sign = self.stab_engine.backpropagate(
+                observable=pauli, clifford_circuit=clifford_circuit
+            )
+            mpo = self.tn_engine.pauli_mpo(backpropagated)
+            expval += (
+                coefficient
+                * self.tn_engine.expval(state_circuit=self.mps, operator=mpo)
+                * sign
+            )
+
+        partitions = (
+            {
+                "magic_gates": magic_gates,
+                "only_cliffords": clifford_circuit,
+                "full_circuit": full_circuit,
+            }
+            if return_partitions
+            else None
+        )
+        return expval, partitions
+
+    def _evolve_magic_gates(self, state_mps, magic_gates, clifford_circuit):
+        """
+        Apply each magic gate to ``state_mps`` as a dressed Pauli rotation,
+        dressing it with the Clifford prefix that precedes it.
+        """
+        for breakpoint_index, magic_gate in magic_gates:
+            prefix = self._clifford_subcircuit(clifford_circuit, breakpoint_index)
+            generator, sign = self.stab_engine.backpropagate(
+                gate_generator(magic_gate, self.nqubits), prefix
+            )
+            self.tn_engine.pauli_rot(
+                state_circuit=state_mps,
+                generator=generator,
+                angle=gate_angle(magic_gate) * sign,
+                max_bond_dimension=self.max_bond_dimension,
+            )
+
+    @staticmethod
+    def _clifford_subcircuit(clifford_circuit: Circuit, k: int = 0) -> Circuit:
+        """The first ``k`` gates of ``clifford_circuit``; all of them if ``k`` is ``None``."""
+        queue = clifford_circuit.queue[:k] if k is not None else clifford_circuit.queue
+        subcircuit = Circuit(clifford_circuit.nqubits)
+        for gate in queue:
+            subcircuit.add(gate)
+        return subcircuit
+
     @property
     def truncation_fidelity_pure_tn(self) -> float:
+        """
+        Truncation fidelity of running the whole circuit as a plain MPS, with no
+        stabilizer help: the baseline the hybrid representation improves on.
+        """
         return _qibo_circuit_to_quimb(
             nqubits=self.nqubits,
             qibo_circ=self.initial_state + self.ansatz.circuit,
@@ -258,258 +310,46 @@ class HSMPO:
         replacement_probability: float = 0.0,
         replacement_method: str = "closest",
     ) -> float:
+        r"""
+        Truncation fidelity of the hybrid MPS,
+        :math:`|\langle\Psi_t|\Psi_t\rangle|^2`, which equals the fidelity against
+        the untruncated state because :math:`\Psi` is normalised.
         """
-        Truncation fidelity between truncated and original state :math:`|\\langle\\Psi_t|\\Psi_t\rangle|^2/|\\langle\\Psi|\\Psi\rangle|^2 = |\\langle\\Psi_t|\\Psi_t\rangle|^2`, being Ψ normalized.
-        """
-
-        # Reset MPS to initial state
         self._init_tn(self.max_bond_dimension)
-
-        # Partitionate circuit
         (magic_gates, clifford_circuit), _ = self.ansatz.partitionate_circuit(
             replacement_probability=replacement_probability,
             replacement_method=replacement_method,
         )
-
-        # Apply pauli rotations (generated from dropped magic gates) on the MPS
-        for k, magic_gate in magic_gates:
-
-            clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
-            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
-
-            self.tn_engine.pauli_rot(
-                state_circuit=self.mps,
-                generator=generator,
-                angle=self._gate_angle(magic_gate) * sign,
-                max_bond_dimension=self.max_bond_dimension,
-            )
-
+        self._evolve_magic_gates(self.mps, magic_gates, clifford_circuit)
         return self.mps.norm(squared=True)
 
     def stabilizer_renyi_entropy(
         self, alpha: int = 2, n_samples: int = 1000, seed=None
     ):
         """
-        Estimate the Stabilizer Rényi Entropy of order alpha using the MPS representation.
-        This is a stochastic estimator based on uniform Pauli sampling, following Lami & Collura (PRL 2023).
+        Stochastic estimate of the stabilizer Renyi entropy of order ``alpha``.
 
         Args:
-            alpha: Rényi order (integer ≥ 2)
-            n_samples: Number of random Pauli strings to sample for the estimation
-            seed: Random seed for reproducibility
-
-        Returns:
-            Estimated Stabilizer Rényi Entropy S_α.
+            alpha: Renyi order, at least 2.
+            n_samples: random Pauli strings to sample.
+            seed: RNG seed.
         """
-
         return stabilizer_renyi_entropy_mps(
             self, alpha=alpha, n_samples=n_samples, seed=seed
         )
 
-    def expectation_from_partition(
-        self,
-        observable: Union[str, SymbolicHamiltonian],
-        replacement_probability: float,
-        replacement_method: str = "closest",
-        return_partitions: bool = False,
-    ):
-        """
-        Sample a lower-magic circuit from the ansatz, and compute its expectation value w.r.t. the observable.
-        """
-
-        # Reset MPS to initial state
-        self._init_tn(self.max_bond_dimension)
-
-        # Partitionate circuit
-        (magic_gates, clifford_circuit), full_circuit = (
-            self.ansatz.partitionate_circuit(
-                replacement_probability=replacement_probability,
-                replacement_method=replacement_method,
-            )
-        )
-
-        # Apply pauli rotations (generated from dropped magic gates) on the MPS
-        for k, magic_gate in magic_gates:
-
-            clifford_subcircuit = self._clifford_subcircuit(clifford_circuit, k)
-            generator, sign = self._conjugate_generator(magic_gate, clifford_subcircuit)
-
-            self.tn_engine.pauli_rot(
-                state_circuit=self.mps,
-                generator=generator,
-                angle=self._gate_angle(magic_gate) * sign,
-                max_bond_dimension=self.max_bond_dimension,
-            )
-
-        # Compute the conjugate of the observable via the stabilizer engine
-        new_observable, sign = self.stab_engine.backpropagate(
-            observable=observable, clifford_circuit=clifford_circuit
-        )
-
-        # Collect partitions into a dictionary in case we want to return it
-        if return_partitions:
-            partitions = {
-                "magic_gates": magic_gates,
-                "only_cliffords": clifford_circuit,
-                "full_circuit": full_circuit,
-            }
-        else:
-            partitions = None
-
-        # mpo is created through the TN engine, and expectation value is computed via the TN engine as well.
-        mpo = self.tn_engine.pauli_mpo(new_observable)
-        return (
-            self.tn_engine.expval(state_circuit=self.mps, operator=mpo) * sign,
-            partitions,
-        )
-
-    @staticmethod
-    def _gate_angle(gate):
-        """Return the rotation angle for a gate, including fixed-angle gates like T."""
-        # T = Rz(π/4); parametric gates (rx, ry, rz) carry their angle in parameters
-        _fixed_angles = {"t": np.pi / 4}
-        if gate.name in _fixed_angles:
-            return _fixed_angles[gate.name]
-        return gate.parameters[0]
-
-    def _conjugate_generator(self, gate, clifford_circuit):
-        """Conjugate a given gate generator by a sequence of Clifford circuits."""
-
-        if gate.name not in ["rx", "ry", "rz", "t"]:
-            raise ValueError("mpstab currently supports only rotational gates.")
-
-        generator = "".join(
-            [
-                gate2generator[gate.name] if q in gate.target_qubits else "I"
-                for q in range(self.nqubits)
-            ]
-        )
-        return self.stab_engine.backpropagate(generator, clifford_circuit)
-
-    def set_engines(
-        self,
-        stab_engine: StabilizersEngine | None = None,
-        tn_engine: TensorNetworkEngine | None = None,
-    ):
-        """
-        Set both stabilizers and tensor-network engines.
-
-        - stab_engine: instance of StabilizersEngine (if None, StimEngine is used)
-        - tn_engine: instance of TensorNetworkEngine (if None, QuimbEngine is used)
-
-        Note: NativeTensorNetworkEngine is supported for expectation() calculations,
-        but minimize_expectation() requires QuimbEngine.
-        """
-
-        # ---- stabilizers engine (existing behaviour) ----
-        if stab_engine is None:
-            stab_engine = StimEngine()
-
-        if not isinstance(stab_engine, StabilizersEngine):
-            raise ValueError(
-                f"Provided stabilizers engine {stab_engine} is not supported."
-            )
-
-        self.stab_engine = stab_engine
-
-        # ---- tensor-network engine (new) ----
-        if tn_engine is None:
-            tn_engine = QuimbEngine()
-
-        if not isinstance(tn_engine, TensorNetworkEngine):
-            raise ValueError(
-                f"Provided tensor-network engine {tn_engine} is not supported."
-            )
-
-        # Allow NativeTensorNetworkEngine for expectation() only.
-        # minimize_expectation() will validate engine compatibility when called.
-        self.tn_engine = tn_engine
-        self._init_tn(max_bond_dimension=self.max_bond_dimension)
-
-        # Recompute the cached MPS with the new engine
-        # (in case we're switching engines after initialization)
-        self.original_circuit_mps = self._precompute_original_mps()
-        self._mps_engine_type = type(self.tn_engine)
-
-    def _clifford_subcircuit(self, clifford_circuit: Circuit, k: int = 0) -> Circuit:
-        """Return a sub-circuit of a given Clifford circuit, cut at index `k`."""
-        cut_queue = (
-            clifford_circuit.queue[:k] if k is not None else clifford_circuit.queue
-        )
-
-        clifford_subcircuit = Circuit(clifford_circuit.nqubits)
-        for gate in cut_queue:
-            clifford_subcircuit.add(gate)
-
-        return clifford_subcircuit
-
-    def _expectation_from_symbolic_hamiltonian(
-        self, hamiltonian: SymbolicHamiltonian
-    ) -> float:
-        """
-        Compute the expectation value of a Qibo SymbolicHamiltonian.
-
-        Args:
-            hamiltonian (SymbolicHamiltonian): a Qibo Hamiltonian object.
-
-        Returns:
-            float: The total expectation value, computed as sum of single contributions.
-        """
-
-        # Leveraging Qibo's features
-        coeffs, pauli_names, target_qubits = hamiltonian.simple_terms
-        constant = hamiltonian.constant.real
-
-        total_expval = constant
-
-        # Computing the contributions using the precomputed evolved MPS
-        # and cached clifford circuit
-        for coeff, p_name, targets in zip(coeffs, pauli_names, target_qubits):
-
-            # For now mpstab requires padding with identities
-            full_pauli_list = ["I"] * hamiltonian.nqubits
-
-            # Fill in the specific Pauli operators at the correct positions
-            for i, qubit_idx in enumerate(targets):
-                full_pauli_list[qubit_idx] = p_name[i]
-
-            full_pauli_string = "".join(full_pauli_list)
-
-            # Backpropagate the specific term through the cached clifford circuit
-            new_observable, sign = self.stab_engine.backpropagate(
-                observable=full_pauli_string, clifford_circuit=self.clifford_circuit
-            )
-
-            # Contraction for the Hamiltonian term using the precomputed evolved MPS
-            mpo = self.tn_engine.pauli_mpo(new_observable)
-            term_expval = self.tn_engine.expval(
-                state_circuit=self.original_circuit_mps, operator=mpo
-            )
-
-            total_expval += coeff.real * term_expval * sign
-
-        return total_expval
+    def get_parameters(self) -> np.ndarray:
+        """The circuit's current parameters."""
+        return self.ansatz.circuit.get_parameters()
 
     def set_parameters(self, parameters: np.ndarray):
-        """
-        Set circuit parameters and automatically re-precompute the MPS cache.
-
-        This ensures the MPS state always matches the current circuit parameters.
-
-        Args:
-            parameters: Array of circuit parameter values.
-        """
+        """Set the circuit's parameters and rebuild the cached MPS to match."""
         self.ansatz.circuit.set_parameters(parameters)
-        # Re-precompute MPS with updated parameters
         self.original_circuit_mps = self._precompute_original_mps()
-
-    def get_parameters(self) -> np.ndarray:
-        """Get current circuit parameters."""
-        return self.ansatz.circuit.get_parameters()
 
     def minimize_expectation(
         self,
-        observables: Union[str, list, dict, SymbolicHamiltonian],
+        observables: Observable,
         method: str = "dmrg",
         bond_dims: Union[int, list] = None,
         cutoff: float = 1e-9,
@@ -518,54 +358,64 @@ class HSMPO:
         verbosity: int = 1,
     ):
         """
-        Minimize expectation value(s) using the specified method.
-
-        This delegates to the optimization module (defaults to DMRG, much more
-        efficient than circuit-based VQE).
+        Minimize an observable over MPS tensors with DMRG, starting from the
+        cached MPS.
 
         Args:
-            observables: Hamiltonian to minimize. Can be:
-                - str: Single observable (e.g., "ZZZZ")
-                - list of str: Multiple observables (e.g., ["ZZZZ", "XXXX"])
-                - dict: Observable -> coefficient (e.g., {"ZZZZ": 1.0, "XXXX": 0.5})
-                - SymbolicHamiltonian: Qibo Hamiltonian object
-            method: 'dmrg' (default, recommended), or 'circuit' for gradient-free VQE
-            bond_dims: Max bond dimensions (DMRG only)
-            cutoff: SVD truncation (DMRG only)
-            tol: Energy convergence tolerance (DMRG only)
-            max_sweeps: Maximum sweeps (DMRG only)
-            verbosity: Verbosity level
+            observables: the Hamiltonian to minimize, in any format
+                :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+            method: only ``"dmrg"`` is implemented.
+            bond_dims: max bond dimension per sweep, or one value for all.
+            cutoff: SVD truncation cutoff.
+            tol: energy convergence tolerance.
+            max_sweeps: maximum number of sweeps.
+            verbosity: DMRG verbosity, 0 to 2.
 
         Returns:
-            dict with 'ground_state', 'energy', 'converged', etc.
+            A dict with ``ground_state``, ``energy``, ``converged``,
+            ``num_sweeps`` and ``energy_history``.
 
         Raises:
-            NotImplementedError: If using NativeTensorNetworkEngine
-                (DMRG requires QuimbEngine)
+            NotImplementedError: with a tensor-network engine other than
+                :class:`~mpstab.engines.QuimbEngine`, or an unimplemented method.
         """
-        # Validate engine compatibility for DMRG
         if isinstance(self.tn_engine, NativeTensorNetworkEngine):
             raise NotImplementedError(
-                "DMRG optimization requires QuimbEngine. "
-                "NativeTensorNetworkEngine is not supported for minimize_expectation(). "
-                "Please use QuimbEngine or call set_engines(tn_engine=QuimbEngine()) "
-                "to enable DMRG optimization. "
-                "Note: expectation() still works with NativeTensorNetworkEngine."
+                "DMRG optimization requires QuimbEngine. Call "
+                "set_engines(tn_engine=QuimbEngine()) to enable it; expectation() "
+                "keeps working on NativeTensorNetworkEngine."
             )
+        if method.lower() != "dmrg":
+            raise ValueError(f"Unknown method {method!r}, expected 'dmrg'.")
 
-        if method.lower() == "dmrg":
-            return _minimize_expectation_dmrg(
-                self,
-                observables=observables,
-                bond_dims=bond_dims,
-                cutoff=cutoff,
-                tol=tol,
-                max_sweeps=max_sweeps,
-                verbosity=verbosity,
-            )
-        elif method.lower() == "circuit":
-            raise NotImplementedError(
-                "Circuit-based VQE removed. Use DMRG instead via method='dmrg'"
-            )
-        else:
-            raise ValueError(f"Unknown method: {method}. Use 'dmrg' or 'circuit'")
+        return minimize_expectation_dmrg(
+            self,
+            observables=observables,
+            bond_dims=bond_dims,
+            cutoff=cutoff,
+            tol=tol,
+            max_sweeps=max_sweeps,
+            verbosity=verbosity,
+        )
+
+
+def _validated_stab_engine(stab_engine) -> StabilizersEngine:
+    if stab_engine is None:
+        return StimEngine()
+    if not isinstance(stab_engine, StabilizersEngine):
+        raise ValueError(
+            f"{stab_engine} is not a StabilizersEngine; pass StimEngine() or "
+            "NativeStabilizersEngine()."
+        )
+    return stab_engine
+
+
+def _validated_tn_engine(tn_engine) -> TensorNetworkEngine:
+    if tn_engine is None:
+        return QuimbEngine()
+    if not isinstance(tn_engine, TensorNetworkEngine):
+        raise ValueError(
+            f"{tn_engine} is not a TensorNetworkEngine; pass QuimbEngine() or "
+            "NativeTensorNetworkEngine()."
+        )
+    return tn_engine

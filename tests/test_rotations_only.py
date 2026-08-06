@@ -3,6 +3,7 @@
 skips the eager MPS precompute in `__post_init__`, for when only the dressed
 rotations or a resynthesized circuit are needed.
 """
+
 import time
 
 import numpy as np
@@ -19,7 +20,7 @@ set_backend("numpy")
 
 
 def _small_entangled_circuit(n=4):
-    from qibo import gates, Circuit
+    from qibo import Circuit, gates
 
     circ = Circuit(n)
     for q in range(n):
@@ -45,7 +46,9 @@ def test_rotations_only_sets_expected_attributes():
 
     # Same partitioning (deterministic, replacement_probability=0.0).
     assert len(lazy.magic_gates) == len(full.magic_gates)
-    assert [g.name for _, g in lazy.magic_gates] == [g.name for _, g in full.magic_gates]
+    assert [g.name for _, g in lazy.magic_gates] == [
+        g.name for _, g in full.magic_gates
+    ]
     assert len(lazy.clifford_circuit.queue) == len(full.clifford_circuit.queue)
 
 
@@ -55,7 +58,6 @@ def test_rotations_only_skips_mps_precompute():
 
     assert not hasattr(lazy, "original_circuit_mps")
     assert not hasattr(lazy, "mps")
-    assert not hasattr(lazy, "_mps_engine_type")
 
     with pytest.raises(AttributeError):
         lazy.expectation("Z" * ansatz.nqubits)
