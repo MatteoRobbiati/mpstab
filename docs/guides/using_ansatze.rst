@@ -36,6 +36,35 @@ Wrap any existing Qibo circuit as an ansatz::
     simulator = HSMPO(ansatz=ansatz)
 
 
+Circuit-library ansätze
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+MPSTAB ships a small library of textbook circuits — ``QFT``, ``QFTPhaseKernel``,
+``Grover``, ``QPE``, ``QAE`` and ``TrotterIsing`` — useful as HSMPO/HSynthSMPO
+benchmarks. They are written with high-level gates (``CU1``, ``SWAP``,
+``TOFFOLI``, ``RZZ``, …) and, by default, transpiled to a native gate set on
+construction, so every non-Clifford gate becomes an ``rz`` rotation that HSMPO
+can consume — you never hand-decompose anything::
+
+    from mpstab import HSMPO
+    from mpstab.models.ansatze import QFT, TrotterIsing, Grover
+
+    # Quantum Fourier Transform on 6 qubits (transpiled by default)
+    ansatz = QFT(nqubits=6)
+    simulator = HSMPO(ansatz=ansatz)
+    simulator.expectation("Z" * 6)
+
+    # Trotterized transverse-field Ising evolution
+    ising = TrotterIsing(nqubits=8, n_steps=4, dt=0.2, J=1.0, h=0.5)
+
+    # Grover search; QPE/QAE take ``n_counting`` and add one work qubit
+    grover = Grover(nqubits=4)
+
+Pass ``transpile=False`` to keep the raw high-level circuit for inspection
+(HSMPO itself requires the transpiled form). These pair naturally with
+``HSynthSMPO`` and its cut-index split — see :doc:`../api/engines`.
+
+
 Building Custom Ansätze
 ------------------------
 

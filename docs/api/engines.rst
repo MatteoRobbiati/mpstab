@@ -13,7 +13,7 @@ Stabilizer Engines
 
 Handle pure stabilizer/Clifford circuit simulation.
 
-.. automodule:: mpstab.engines.stabilizers.native
+.. automodule:: mpstab.engines.stabilizers.native.engine
    :members:
    :undoc-members:
    :show-inheritance:
@@ -40,7 +40,7 @@ Tensor Network Engines
 
 Manage non-Clifford effects through Matrix Product Operator (MPO) representations.
 
-.. automodule:: mpstab.engines.tensor_networks.native
+.. automodule:: mpstab.engines.tensor_networks.native.engine
    :members:
    :undoc-members:
    :show-inheritance:

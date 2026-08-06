@@ -27,9 +27,13 @@ dependencies = [
 [project.optional-dependencies]
 pytorch = ["torch"]
 jax = ["jax"]
+rustiq = ["rustiq @ git+https://github.com/smartiel/rustiq.git"]
 
 [project.urls]
 Repository = "https://github.com/MatteoRobbiati/mpstab/"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mpstab"]

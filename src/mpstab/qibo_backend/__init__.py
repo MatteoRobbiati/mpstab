@@ -1,35 +1,25 @@
+"""mpstab as a qibo backend, so qibo circuits can be run through the surrogate."""
+
 from qibo.config import raise_error
 
 from mpstab.engines import QuimbEngine, StimEngine
 
 
 class MetaBackend:
-    """
-    Backend loader for the MPSTAB hybrid stabilizer-MPO simulator.
-
-    Provides simple initialization of the hybrid stabilizer-MPO representation
-    as a Qibo backend. Configure with stabilizer and tensor-network engines
-    to customize the simulation strategy.
-    """
+    """Backend loader qibo calls to obtain an mpstab backend."""
 
     @staticmethod
     def load(backend_name: str = "mpstab", **kwargs):
         """
-        Load and initialize the MPSTAB backend.
-
-        Create an MPSTAB backend instance configured with specified engines
-        for stabilizer simulation and tensor-network contraction.
+        Build an :class:`~mpstab.qibo_backend.mpstab.MPStabBackend`.
 
         Args:
-            backend_name: Must be "mpstab" to load the MPSTAB backend
-            stab_engine: Stabilizer engine (default: StimEngine)
-            tn_engine: Tensor-network engine (default: QuimbEngine)
-
-        Returns:
-            MPStabBackend: Configured backend instance
+            backend_name: must be ``"mpstab"``.
+            stab_engine: stabilizers engine, ``StimEngine`` by default.
+            tn_engine: tensor-network engine, ``QuimbEngine`` by default.
 
         Raises:
-            ValueError: If backend_name is not "mpstab"
+            ValueError: if ``backend_name`` is anything else.
         """
         if backend_name != "mpstab":
             raise_error(
@@ -44,5 +34,5 @@ class MetaBackend:
         )
 
     def list_available(self) -> dict:
-        """Lists available backends."""
+        """The backends this loader can provide."""
         return {"mpstab": True}

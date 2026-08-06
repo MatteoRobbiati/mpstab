@@ -238,36 +238,47 @@ class TestDMRGOptimization:
 
 
 class TestHamiltonianConversion:
-    """Test Hamiltonian format conversion."""
+    """`mpstab.hamiltonians.pauli_terms` over every observable format."""
 
-    def test_hamiltonian_to_dict_str(self):
-        """Test conversion from string to dict."""
-        from mpstab.evolutors.optimization import hamiltonian_to_dict
+    def test_pauli_terms_from_str(self):
+        from mpstab.hamiltonians import pauli_terms
 
-        result = hamiltonian_to_dict("ZZZZ")
-        assert result == {"ZZZZ": 1.0}
+        constant, terms = pauli_terms("ZZZZ", nqubits=4)
+        assert constant == 0.0
+        assert terms == {"ZZZZ": 1.0}
 
-    def test_hamiltonian_to_dict_list(self):
-        """Test conversion from list to dict."""
-        from mpstab.evolutors.optimization import hamiltonian_to_dict
+    def test_pauli_terms_from_list(self):
+        from mpstab.hamiltonians import pauli_terms
 
-        result = hamiltonian_to_dict(["ZZZZ", "XXXX", "YYYY"])
-        expected = {"ZZZZ": 1.0, "XXXX": 1.0, "YYYY": 1.0}
-        assert result == expected
+        constant, terms = pauli_terms(["ZZZZ", "XXXX", "YYYY"], nqubits=4)
+        assert constant == 0.0
+        assert terms == {"ZZZZ": 1.0, "XXXX": 1.0, "YYYY": 1.0}
 
-    def test_hamiltonian_to_dict_dict(self):
-        """Test that dict passes through unchanged."""
-        from mpstab.evolutors.optimization import hamiltonian_to_dict
+    def test_pauli_terms_from_dict(self):
+        from mpstab.hamiltonians import pauli_terms
 
         input_dict = {"ZZZZ": 1.0, "XXXX": 0.5}
-        result = hamiltonian_to_dict(input_dict)
-        assert result == input_dict
+        constant, terms = pauli_terms(input_dict, nqubits=4)
+        assert constant == 0.0
+        assert terms == input_dict
 
-    def test_hamiltonian_to_dict_symbolic(self):
-        """Test conversion from SymbolicHamiltonian to dict."""
-        from mpstab.evolutors.optimization import hamiltonian_to_dict
+    def test_pauli_terms_rejects_malformed_pauli_string(self):
+        from mpstab.hamiltonians import pauli_terms
 
-        # Build simple XXZ
+        with pytest.raises(ValueError):
+            pauli_terms("2*ZZZZ", nqubits=4)
+        with pytest.raises(ValueError):
+            pauli_terms("ZZZ", nqubits=4)
+
+    def test_pauli_terms_rejects_unknown_type(self):
+        from mpstab.hamiltonians import pauli_terms
+
+        with pytest.raises(ValueError):
+            pauli_terms(42, nqubits=4)
+
+    def test_pauli_terms_from_symbolic_hamiltonian(self):
+        from mpstab.hamiltonians import pauli_terms
+
         ham_form = (
             X(0) * X(1)
             + Y(0) * Y(1)
@@ -277,19 +288,31 @@ class TestHamiltonianConversion:
         )
         H = SymbolicHamiltonian(nqubits=4, form=ham_form)
 
-        result = hamiltonian_to_dict(H, nqubits=4)
+        constant, terms = pauli_terms(H, nqubits=4)
 
-        # Should have XX, YY, ZZ terms (distributed across the 4 qubits with padding)
-        assert len(result) > 0, "Should have some terms"
+        assert constant == 0.0
+        # Terms are padded with identities out to the full width.
+        assert all(len(pauli) == 4 for pauli in terms)
+        assert terms["XXII"] == pytest.approx(1.0)
+        assert terms["YYII"] == pytest.approx(1.0)
+        assert terms["ZZII"] == pytest.approx(0.5)
+        assert terms["IZZI"] == pytest.approx(0.5)
+        assert terms["IIZZ"] == pytest.approx(0.5)
 
-        # Check for any terms with X or Y operators
-        has_x_terms = any("X" in k for k in result.keys())
-        has_y_terms = any("Y" in k for k in result.keys())
-        has_z_terms = any("Z" in k for k in result.keys())
+    def test_pauli_terms_sums_repeated_strings(self):
+        from mpstab.hamiltonians import pauli_terms
 
-        assert has_x_terms, "Should have X terms"
-        assert has_y_terms, "Should have Y terms"
-        assert has_z_terms, "Should have Z terms"
+        H = SymbolicHamiltonian(nqubits=2, form=Z(0) * Z(1) + 0.25 * Z(0) * Z(1))
+        _, terms = pauli_terms(H, nqubits=2)
+        assert terms == {"ZZ": pytest.approx(1.25)}
+
+    def test_pauli_terms_keeps_constant_out_of_the_term_map(self):
+        from mpstab.hamiltonians import pauli_terms
+
+        H = SymbolicHamiltonian(nqubits=2, form=Z(0) * Z(1) + 3.0)
+        constant, terms = pauli_terms(H, nqubits=2)
+        assert constant == pytest.approx(3.0)
+        assert terms == {"ZZ": pytest.approx(1.0)}
 
 
 class TestEngineSupportValidation:

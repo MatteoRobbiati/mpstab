@@ -42,6 +42,47 @@ def test_expectation_matches_qibo(observable):
     assert np.allclose(exp_hybrid, exp_qibo, atol=1e-6)
 
 
+def _all_pauli_strings(n):
+    """All non-identity Pauli strings of length n."""
+    import itertools
+
+    return [
+        "".join(p)
+        for p in itertools.product("IXYZ", repeat=n)
+        if set(p) != {"I"}
+    ]
+
+
+def test_expectation_matches_qibo_full_pauli_sweep():
+    """Regression: base HSMPO must match qibo for *every* Pauli observable.
+
+    Earlier tests only used Y observables that evaluated to ~0 on their circuit,
+    so a sign error in the (transposed) expval contraction for observables with
+    an odd number of Y's went unnoticed. This sweeps all 3-qubit Paulis on a
+    circuit with generic nonzero expectation values, which pins that convention.
+    """
+    circ = Circuit(3)
+    for q in range(3):
+        circ.add(gates.H(q))
+    circ.add(gates.CNOT(0, 1))
+    circ.add(gates.RY(1, theta=0.5))
+    circ.add(gates.RX(2, theta=0.3))
+    circ.add(gates.CZ(1, 2))
+    circ.add(gates.RZ(0, theta=0.7))
+
+    ansatz = CircuitAnsatz(qibo_circuit=circ)
+    hs = HSMPO(ansatz)
+
+    for observable in _all_pauli_strings(3):
+        exp_hybrid = hs.expectation(observable)
+        exp_qibo = expectation_with_qibo(
+            mpstab_ansatz=ansatz, observable_str=observable
+        )
+        assert np.allclose(exp_hybrid, exp_qibo, atol=1e-6), (
+            f"[{observable}] hybrid={exp_hybrid:+.6f} qibo={exp_qibo:+.6f}"
+        )
+
+
 def test_expectation_from_partition_with_qubit_scaling():
     times = []
 

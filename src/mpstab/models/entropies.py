@@ -1,3 +1,5 @@
+"""Stabilizer Renyi entropy, a measure of how much magic a state carries."""
+
 from itertools import product
 from typing import TYPE_CHECKING
 
@@ -5,13 +7,15 @@ import numpy as np
 from qibo import symbols
 from qibo.hamiltonians import SymbolicHamiltonian
 
+from mpstab.pauli import PAULI_LABELS
+
 if TYPE_CHECKING:
-    from mpstab.models.hsmpo import HSMPO
+    from mpstab.evolutors.hsmpo import HSMPO
 
 
 def generate_pauli_strings(n: int) -> list[str]:
-    """Generate all possible n-qubit Pauli strings."""
-    return ["".join(p) for p in product("IXYZ", repeat=n)]
+    """Every ``n``-qubit Pauli string. There are ``4**n`` of them."""
+    return ["".join(p) for p in product(PAULI_LABELS, repeat=n)]
 
 
 def stabilizer_renyi_entropy(state: np.ndarray, alpha: int) -> float:
@@ -81,7 +85,7 @@ def stabilizer_renyi_entropy_mps(
 
     rng = np.random.default_rng(seed)
     n = hsmpo.nqubits
-    pauli_chars = np.array(["I", "X", "Y", "Z"])
+    pauli_chars = np.array(list(PAULI_LABELS))
 
     # Each sample is an independent draw of n Pauli operators
     # Shape: (n_samples, n)
