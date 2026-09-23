@@ -24,6 +24,7 @@ same split. It is a reference for validating the sampled routes, not a
 measurement route, and :meth:`HSynthSMPO.expectation_at_cut` never calls it.
 """
 
+import dataclasses
 from dataclasses import dataclass
 from typing import List, Tuple, Union
 
@@ -321,20 +322,33 @@ class HSynthSMPO(HSMPO):
                 on the observable, and pools Pauli strings shared between terms so
                 each is measured once with the summed coefficient.
             cut_index: the split point.
-            method: ``"pauli"`` or ``"shadows"``.
+            method: ``"pauli"``, ``"shadows"`` or ``"tnice"``. ``"tnice"`` runs
+                on exactly the same circuits, bases and shots as ``"shadows"``
+                -- see :meth:`_shadow_plan` -- and only replaces the fixed
+                canonical-dual post-processing with the MPS-optimized
+                estimator of :mod:`~mpstab.quantum_hardware.tnice`, so the two
+                can be compared on identical measurement data.
             n_shots: a fixed shot budget. Exactly one of this and ``epsilon``.
             epsilon: a target standard error, which sizes the shot budget from the
-                per-route variance predictor.
+                per-route variance predictor. For ``"tnice"`` this reuses
+                ``"shadows"``'s canonical-dual predictor, a conservative upper
+                bound on the (unknown ahead of fitting) optimized variance.
             backend: anything with ``execute_circuits(circuits, nshots)``.
                 Defaults to :class:`~mpstab.quantum_hardware.QiboSimulator`.
             max_bond_dimension: bond cap for every tail fold; ``-1`` means
                 ``self.max_bond_dimension``.
-            tail_handling: ``"shadows"`` only. ``"forbid"`` raises if resynthesis
-                left a non-trivial Clifford residual; ``"append"`` runs it as extra
-                gates after the head.
-            seed: RNG seed for Pauli sampling and random shadow bases.
-            method_kwargs: ``"pauli"`` takes ``n_string_samples`` (default 200),
-                ``"shadows"`` takes ``shots_per_setting`` (default 1).
+            tail_handling: ``"shadows"`` and ``"tnice"`` only. ``"forbid"``
+                raises if resynthesis left a non-trivial Clifford residual;
+                ``"append"`` runs it as extra gates after the head.
+            seed: RNG seed for Pauli sampling, random shadow bases, and (for
+                ``"tnice"``) the train/test shot split.
+            method_kwargs: ``"pauli"`` takes ``n_string_samples`` (default
+                200); ``"shadows"`` and ``"tnice"`` take ``shots_per_setting``
+                (default 1); ``"tnice"`` additionally takes ``lam`` (default
+                0.999), ``n_sweeps`` (default 4), ``bond_dimension`` (default
+                ``None``, meaning the tail MPO's own) and ``test_fraction``
+                (default 0.5), forwarded to
+                :func:`~mpstab.quantum_hardware.estimate.estimate_tnice`.
 
         Raises:
             ValueError: on an unknown ``method``, or if neither or both of
@@ -343,15 +357,21 @@ class HSynthSMPO(HSMPO):
         self._require_quimb("expectation_at_cut")
         if (n_shots is None) == (epsilon is None):
             raise ValueError("Exactly one of n_shots or epsilon must be given.")
-        if method not in ("pauli", "shadows"):
+        if method not in ("pauli", "shadows", "tnice"):
             raise ValueError(
-                f"Unknown method {method!r}, expected 'pauli' or 'shadows'."
+                f"Unknown method {method!r}, expected 'pauli', 'shadows' or 'tnice'."
             )
         if max_bond_dimension == -1:
             max_bond_dimension = self.max_bond_dimension
 
         constant, terms = pauli_terms(observable, self.nqubits)
         resynthesis = self.resynthesize_head(cut_index)
+
+        estimator_kwargs = {}
+        if method == "tnice":
+            for key in ("lam", "n_sweeps", "bond_dimension", "test_fraction"):
+                if key in method_kwargs:
+                    estimator_kwargs[key] = method_kwargs.pop(key)
 
         build_plan = self._pauli_plan if method == "pauli" else self._shadow_plan
         plan = build_plan(
@@ -366,13 +386,15 @@ class HSynthSMPO(HSMPO):
             tail_handling=tail_handling,
             **method_kwargs,
         )
+        if method == "tnice":
+            plan = dataclasses.replace(plan, method="tnice")
 
         backend = backend or QiboSimulator()
         frequencies = [
             backend.execute_circuits([circuit], shots)[0]
             for circuit, shots in zip(plan.circuits, plan.shots)
         ]
-        return estimate(plan, frequencies)
+        return estimate(plan, frequencies, **estimator_kwargs)
 
     def _pauli_plan(
         self,

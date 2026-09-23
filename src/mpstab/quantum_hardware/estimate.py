@@ -15,7 +15,8 @@ import numpy as np
 from qibo import symbols
 from qibo.hamiltonians import SymbolicHamiltonian
 
-from mpstab.quantum_hardware.pauli_expansion import mpo_site_arrays
+from mpstab.quantum_hardware import tnice
+from mpstab.quantum_hardware.pauli_expansion import mpo_site_arrays, mpo_to_pauli_mps
 
 _BASIS_INDEX = {"X": 0, "Y": 1, "Z": 2}
 
@@ -210,12 +211,87 @@ def estimate_shadows(plan, frequencies) -> ExpectationResult:
     )
 
 
-def estimate(plan, frequencies) -> ExpectationResult:
-    """Dispatch to :func:`estimate_pauli` or :func:`estimate_shadows` by ``plan.method``."""
+def estimate_tnice(
+    plan,
+    frequencies,
+    lam: float = 0.999,
+    n_sweeps: int = 4,
+    bond_dimension: int | None = None,
+    test_fraction: float = 0.5,
+    seed: int | None = None,
+) -> ExpectationResult:
+    """
+    Recombine a ``"tnice"`` plan's frequencies -- built identically to a
+    ``"shadows"`` plan, see
+    :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO._shadow_plan` -- with the
+    TN-ICE estimator of
+    :mod:`~mpstab.quantum_hardware.tnice` instead of the fixed canonical-dual
+    contraction :func:`estimate_shadows` uses, so the two can be compared on
+    identical measurement data.
+
+    Splits the shots into a training half, which fits ``omega`` per term via
+    :func:`~mpstab.quantum_hardware.tnice.fit_omega_mps`, and a held-out test
+    half the final value and standard error come from -- avoiding the
+    overfitting the paper's Sec. 7.3 warns an in-sample estimate would show.
+
+    Args:
+        plan, frequencies: as :func:`estimate_shadows`.
+        lam, n_sweeps, bond_dimension: forwarded to
+            :func:`~mpstab.quantum_hardware.tnice.fit_omega_mps`.
+        test_fraction: fraction of each circuit's shots held out for the
+            final estimate; the rest trains ``omega``.
+        seed: RNG seed for the train/test split.
+    """
+    mpo_terms, bases = plan.recombination
+    outcomes, counts = tnice.shots_to_outcomes(bases, frequencies)
+    (train_outcomes, train_weights), (test_outcomes, test_weights) = (
+        tnice.split_train_test(outcomes, counts, test_fraction, seed)
+    )
+    n_test = float(test_weights.sum())
+
+    value = plan.constant
+    variance = 0.0
+    for _, coeff, sign, mpo in mpo_terms:
+        pauli_mps = mpo_to_pauli_mps(mpo)
+        omega = tnice.fit_omega_mps(
+            pauli_mps,
+            train_outcomes,
+            train_weights,
+            lam=lam,
+            n_sweeps=n_sweeps,
+            bond_dimension=bond_dimension,
+            seed=seed,
+        )
+        term_values = tnice.evaluate_omega(omega, test_outcomes)
+        mean, per_shot_variance = tnice.weighted_mean_and_variance(
+            term_values, test_weights
+        )
+        if n_test > 1:
+            variance += coeff**2 * per_shot_variance / n_test
+        value += coeff * sign * mean
+
+    return ExpectationResult(
+        value=float(value),
+        stderr=float(np.sqrt(variance)),
+        truncation_l1=None,
+        truncation_l2=plan.truncation_l2,
+        n_settings=len(frequencies),
+        n_shots=int(counts.sum()),
+    )
+
+
+def estimate(plan, frequencies, **kwargs) -> ExpectationResult:
+    """
+    Dispatch to :func:`estimate_pauli`, :func:`estimate_shadows` or
+    :func:`estimate_tnice` by ``plan.method``. ``kwargs`` are forwarded only
+    to :func:`estimate_tnice`, the only one of the three that takes any.
+    """
     if plan.method == "pauli":
         return estimate_pauli(plan, frequencies)
     if plan.method == "shadows":
         return estimate_shadows(plan, frequencies)
+    if plan.method == "tnice":
+        return estimate_tnice(plan, frequencies, **kwargs)
     raise ValueError(
-        f"Unknown plan method {plan.method!r}, expected 'pauli' or 'shadows'."
+        f"Unknown plan method {plan.method!r}, expected 'pauli', 'shadows' or 'tnice'."
     )
