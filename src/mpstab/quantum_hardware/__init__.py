@@ -17,7 +17,7 @@ Importing this package never requires the optional ``rustiq`` dependency, which
 :mod:`~mpstab.quantum_hardware.synthesis` imports lazily.
 """
 
-from mpstab.quantum_hardware.backend import QiboSimulator
+from mpstab.quantum_hardware.backend import QiboSimulator, execute_plan
 from mpstab.quantum_hardware.estimate import (
     ExpectationResult,
     estimate,
@@ -89,6 +89,7 @@ __all__ = [
     "estimate_shadows",
     "estimate_tnice",
     "evaluate_omega",
+    "execute_plan",
     "fit_omega_mps",
     "fold_pool_through_tableau",
     "group_qwc",

@@ -44,6 +44,7 @@ from mpstab.quantum_hardware import (
     build_shadow_plan,
     count_two_qubit_gates,
     estimate,
+    execute_plan,
     fold_pool_through_tableau,
     head_to_qibo_circuit,
     pool_pauli_terms,
@@ -344,10 +345,17 @@ class HSynthSMPO(HSMPO):
                 ``"tnice"``) the train/test shot split.
             method_kwargs: ``"pauli"`` takes ``n_string_samples`` (default
                 200); ``"shadows"`` and ``"tnice"`` take ``shots_per_setting``
-                (default 1); ``"tnice"`` additionally takes ``lam`` (default
-                0.999), ``n_sweeps`` (default 4), ``bond_dimension`` (default
-                ``None``, meaning the tail MPO's own) and ``test_fraction``
-                (default 0.5), forwarded to
+                (default 1) and ``truncation_reference_max_bond`` (default
+                ``-1``: estimate ``truncation_l2`` from the cheap
+                reference-free norm-ratio proxy in :meth:`tail_truncation`
+                rather than building a second, more-truncated-than-usual
+                tail fold to compare against -- pass an explicit bond, or
+                ``None`` for a fully untruncated one, only if you need the
+                exact ``expval_abs_error`` estimate and are prepared to pay
+                for building that reference); ``"tnice"`` additionally takes
+                ``lam`` (default 0.999), ``n_sweeps`` (default 4),
+                ``bond_dimension`` (default ``None``, meaning the tail MPO's
+                own) and ``test_fraction`` (default 0.5), forwarded to
                 :func:`~mpstab.quantum_hardware.estimate.estimate_tnice`.
 
         Raises:
@@ -390,10 +398,7 @@ class HSynthSMPO(HSMPO):
             plan = dataclasses.replace(plan, method="tnice")
 
         backend = backend or QiboSimulator()
-        frequencies = [
-            backend.execute_circuits([circuit], shots)[0]
-            for circuit, shots in zip(plan.circuits, plan.shots)
-        ]
+        frequencies = execute_plan(backend, plan)
         return estimate(plan, frequencies, **estimator_kwargs)
 
     def _pauli_plan(
@@ -421,7 +426,7 @@ class HSynthSMPO(HSMPO):
             )
             ensembles.append((coefficient * sign, ensemble))
             l1, l2 = truncation_error_estimate(ensemble)
-            diagnostics.append((abs(coefficient), l1, l2))
+            diagnostics.append((abs(coefficient), l1, l2, ensemble.retained_weight))
 
         pooled = pool_pauli_terms(ensembles)
         if resynthesis.tail_tableau != stim.Tableau(self.nqubits):
@@ -429,16 +434,19 @@ class HSynthSMPO(HSMPO):
                 pooled, resynthesis.tail_tableau, self.stab_engine
             )
 
-        truncation_l1, truncation_l2 = _aggregate_truncation(diagnostics)
+        truncation_l1, truncation_l2, retained_weight = _aggregate_truncation(
+            diagnostics
+        )
         return build_pauli_plan(
             resynthesis.circuit,
             self.nqubits,
-            {pauli: float(np.real(c)) for pauli, c in pooled.items()},
+            _assert_real_coefficients(pooled),
             n_shots,
             epsilon,
             constant=constant,
             truncation_l1=truncation_l1,
             truncation_l2=truncation_l2,
+            retained_weight=retained_weight,
         )
 
     def _shadow_plan(
@@ -453,8 +461,24 @@ class HSynthSMPO(HSMPO):
         seed,
         tail_handling,
         shots_per_setting=1,
+        truncation_reference_max_bond=-1,
     ):
-        """Fold each term's tail MPO and pick random measurement bases."""
+        """
+        Fold each term's tail MPO and pick random measurement bases.
+
+        Args:
+            truncation_reference_max_bond: bond cap for the *reference* fold
+                :meth:`tail_truncation` compares against to estimate
+                ``truncation_l2``. ``-1`` (default) skips building any
+                reference fold at all, using the cheap reference-free
+                norm-ratio proxy (``tail_truncation(..., exact=False)``)
+                instead. An explicit int, or ``None`` for a fully
+                untruncated reference, switches to the exact
+                ``expval_abs_error`` estimate -- at the cost of building that
+                second, less-truncated tail fold, which is exactly the
+                object ``max_bond_dimension`` exists to avoid building by
+                default.
+        """
         circuit = self._shadow_circuit(resynthesis, cut_index, tail_handling)
 
         mpo_terms = []
@@ -464,13 +488,31 @@ class HSynthSMPO(HSMPO):
 
         truncation_l2 = 0.0
         if max_bond_dimension is not None:
-            truncation_l2 = sum(
-                abs(coefficient)
-                * self.tail_truncation(
-                    pauli, cut_index, reference_max_bond=None, exact=True
-                ).expval_abs_error
-                for pauli, coefficient in terms.items()
-            )
+            if truncation_reference_max_bond == -1:
+                truncation_l2 = sum(
+                    abs(coefficient)
+                    * np.sqrt(
+                        max(
+                            0.0,
+                            1.0
+                            - self.tail_truncation(
+                                pauli, cut_index, exact=False
+                            ).fidelity_estimate,
+                        )
+                    )
+                    for pauli, coefficient in terms.items()
+                )
+            else:
+                truncation_l2 = sum(
+                    abs(coefficient)
+                    * self.tail_truncation(
+                        pauli,
+                        cut_index,
+                        reference_max_bond=truncation_reference_max_bond,
+                        exact=True,
+                    ).expval_abs_error
+                    for pauli, coefficient in terms.items()
+                )
 
         return build_shadow_plan(
             circuit,
@@ -524,17 +566,59 @@ class HSynthSMPO(HSMPO):
             )
 
 
-def _aggregate_truncation(diagnostics: list) -> Tuple[float, float]:
+def _aggregate_truncation(diagnostics: list) -> Tuple[float, float, float]:
     """
-    Combine per-term ``(|coeff|, l1, l2)`` truncation estimates.
+    Combine per-term ``(|coeff|, l1, l2, retained_weight)`` truncation
+    diagnostics.
 
     L1 adds by the triangle inequality, rigorous for any combination of terms;
-    L2 adds in quadrature, assuming the terms' errors are independent.
+    L2 adds in quadrature, assuming the terms' errors are independent;
+    retained_weight is the ``|coeff|``-weighted average of each term's own
+    :attr:`~mpstab.quantum_hardware.pauli_expansion.PauliEnsemble.retained_weight`
+    -- a diagnostic for whether ``n_string_samples`` covered enough of the
+    observable, not a rigorous combination of the per-term fractions.
     """
     if not diagnostics:
-        return 0.0, 0.0
-    l1 = sum(weight * term_l1 for weight, term_l1, _ in diagnostics)
+        return 0.0, 0.0, 1.0
+    total_weight = sum(weight for weight, _, _, _ in diagnostics)
+    l1 = sum(weight * term_l1 for weight, term_l1, _, _ in diagnostics)
     l2 = float(
-        np.sqrt(sum((weight * term_l2) ** 2 for weight, _, term_l2 in diagnostics))
+        np.sqrt(sum((weight * term_l2) ** 2 for weight, _, term_l2, _ in diagnostics))
     )
-    return l1, l2
+    retained_weight = (
+        sum(weight * retained for weight, _, _, retained in diagnostics) / total_weight
+        if total_weight > 0
+        else 1.0
+    )
+    return l1, l2, retained_weight
+
+
+def _assert_real_coefficients(pooled: dict, tolerance: float = 1e-8) -> dict:
+    """
+    Coerce a pooled ``{pauli: complex coefficient}`` map to real, raising
+    instead of silently truncating if any imaginary part isn't negligible.
+
+    The tail-folded, Clifford-backpropagated observable is Hermitian, so
+    every pooled coefficient should be real up to floating-point noise. A
+    non-negligible imaginary part means backpropagation, tableau folding, or
+    the input observable itself went wrong somewhere upstream -- silently
+    dropping it (``float(np.real(c))``) would hide that bug behind a
+    plausible-looking float instead of surfacing it.
+
+    Raises:
+        ValueError: if any coefficient's imaginary part exceeds ``tolerance``
+            relative to its magnitude.
+    """
+    real_coefficients = {}
+    for pauli, coefficient in pooled.items():
+        magnitude = max(abs(coefficient), 1.0)
+        if abs(np.imag(coefficient)) > tolerance * magnitude:
+            raise ValueError(
+                f"Pooled coefficient for {pauli!r} is not real within "
+                f"tolerance ({coefficient!r}); the tail-folded observable "
+                "should be Hermitian, so this points to a bug upstream "
+                "(backpropagation, tableau folding, or a non-Hermitian "
+                "input observable) rather than ordinary floating-point noise."
+            )
+        real_coefficients[pauli] = float(np.real(coefficient))
+    return real_coefficients

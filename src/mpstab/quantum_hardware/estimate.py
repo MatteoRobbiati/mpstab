@@ -52,12 +52,17 @@ class ExpectationResult:
     Attributes:
         value: the (real) expectation value.
         stderr: standard error from shot noise alone.
-        truncation_l1: rigorous discarded-Pauli-mass bound; ``None`` for the
-            ``"shadows"`` route, whose bond truncation has no L1/L2 split.
+        truncation_l1: heuristic discarded-Pauli-mass estimate (see
+            :func:`~mpstab.quantum_hardware.pauli_expansion.truncation_error_estimate`
+            -- an extrapolation, not a rigorous bound); ``None`` for the
+            ``"shadows"``/``"tnice"`` routes, whose bond truncation has no
+            L1/L2 split.
         truncation_l2: typical-case truncation estimate -- Pauli-set truncation
-            for ``"pauli"``, MPO bond truncation for ``"shadows"``.
+            for ``"pauli"``, MPO bond truncation for ``"shadows"``/``"tnice"``.
         n_settings: number of distinct circuits the shots came from.
         n_shots: total shots used.
+        retained_weight: ``"pauli"`` only, ``None`` otherwise -- see
+            :attr:`~mpstab.quantum_hardware.plan.MeasurementPlan.retained_weight`.
     """
 
     value: float
@@ -66,12 +71,22 @@ class ExpectationResult:
     truncation_l2: float
     n_settings: int
     n_shots: int
+    retained_weight: float | None = None
 
     @property
     def total_error(self) -> float:
         """
-        ``sqrt(stderr**2 + truncation_l2**2)``: the number that belongs in a
-        results table, since ``stderr`` alone omits the truncation bias.
+        A practical accuracy *bound*, not a standard error itself:
+        ``sqrt(stderr**2 + truncation_l2**2)``, combining two contributions of
+        different nature in quadrature. ``stderr`` is a statistical quantity
+        (shot noise, shrinks with more shots); ``truncation_l2`` is a
+        systematic-bias estimate (bond-dimension or Pauli-coverage
+        truncation, independent of shot count -- see ``truncation_l1`` and
+        ``retained_weight`` to tell which one is dominating). Combining them
+        in quadrature is a convenient, common convention, not a rigorous
+        derivation of a single confidence interval -- but it is still the
+        number to report in a results table, since ``stderr`` alone omits the
+        truncation bias entirely.
         """
         return float(np.sqrt(self.stderr**2 + self.truncation_l2**2))
 
@@ -153,6 +168,7 @@ def estimate_pauli(plan, frequencies) -> ExpectationResult:
         truncation_l2=plan.truncation_l2,
         n_settings=len(frequencies),
         n_shots=n_shots,
+        retained_weight=plan.retained_weight,
     )
 
 
@@ -183,9 +199,13 @@ def _term_setting_stats(mpo_arrays, basis: str, freq: dict):
 def estimate_shadows(plan, frequencies) -> ExpectationResult:
     """Recombine a ``"shadows"`` plan's frequencies into an :class:`ExpectationResult`."""
     mpo_terms, bases = plan.recombination
+    # Every term's inner loop below sums over the same (bases, frequencies),
+    # so its own shot count is always this same total -- computed once here
+    # rather than reassigned (redundantly, to an identical value) each pass.
+    n_shots = sum(sum(freq.values()) for freq in frequencies)
+
     value = plan.constant
     variance = 0.0
-    n_shots = 0
     for _, coeff, sign, mpo in mpo_terms:
         arrays = mpo_site_arrays(mpo)
         sum_v = sum_v2 = 0.0
@@ -195,11 +215,12 @@ def estimate_shadows(plan, frequencies) -> ExpectationResult:
             sum_v += setting_v
             sum_v2 += setting_v2
             n += setting_n
+        if n == 0:
+            continue  # no shots for this term: nothing to add to value/variance
         if n > 1:
             per_shot_variance = (sum_v2 - n * (sum_v / n) ** 2) / (n - 1)
             variance += coeff**2 * per_shot_variance / n
         value += coeff * sign * sum_v / n
-        n_shots = n  # identical across terms: same circuits, same shots
 
     return ExpectationResult(
         value=float(value),
@@ -208,6 +229,7 @@ def estimate_shadows(plan, frequencies) -> ExpectationResult:
         truncation_l2=plan.truncation_l2,
         n_settings=len(frequencies),
         n_shots=n_shots,
+        retained_weight=None,
     )
 
 
@@ -277,6 +299,7 @@ def estimate_tnice(
         truncation_l2=plan.truncation_l2,
         n_settings=len(frequencies),
         n_shots=int(counts.sum()),
+        retained_weight=None,
     )
 
 

@@ -268,16 +268,19 @@ def top_k_pauli_strings(mpo, k: int) -> PauliEnsemble:
 
 def truncation_error_estimate(ensemble: PauliEnsemble):
     """
-    Bound the systematic error from the Pauli strings ``ensemble`` left out.
+    Estimate the systematic error from the Pauli strings ``ensemble`` left out.
 
-    The discarded operator contributes at most ``sum |c_P|`` (L1, rigorous) and
-    typically ``sqrt(sum |c_P|**2)`` (L2) over the discarded set. The L2 mass is
-    exact from what :class:`PauliEnsemble` already carries. The L1 mass would
-    need a sum over a discarded set that is in general exponentially large and
-    never enumerated, so it is extrapolated from the sampled tail: the smallest
-    retained ``|c_P|`` sets the coefficient scale at the sampling threshold, and
+    The discarded operator contributes at most ``sum |c_P|`` (L1) and
+    ``sqrt(sum |c_P|**2)`` (L2) over the discarded set, if that set could be
+    summed exactly. The L2 value returned *is* exact -- it comes straight from
+    what :class:`PauliEnsemble` already carries (the total weight minus the
+    retained weight). The L1 value is **not** a rigorous bound: the discarded
+    set is in general exponentially large and never enumerated, so it is only
+    a heuristic extrapolation from the sampled tail -- the smallest retained
+    ``|c_P|`` sets an assumed coefficient scale at the sampling threshold, and
     dividing the exact discarded L2 mass by that scale gives an effective
-    discarded-term count whose L1 mass is ``discarded_mass / c_min``.
+    discarded-term count whose L1 mass is ``discarded_mass / c_min``. Treat it
+    as an order-of-magnitude indicator, not a certified error bound.
 
     Returns:
         ``(l1_estimate, l2_exact)``.

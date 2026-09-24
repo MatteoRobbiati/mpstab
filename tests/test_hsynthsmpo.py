@@ -4,7 +4,7 @@ from qibo import Circuit, gates, set_backend
 from utils import expectation_with_qibo, set_rng_seed
 
 from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+from mpstab.evolutors.hsynthsmpo import HSynthSMPO, _assert_real_coefficients
 from mpstab.models.ansatze import (
     QAE,
     QFT,
@@ -14,6 +14,10 @@ from mpstab.models.ansatze import (
     HardwareEfficient,
     QFTPhaseKernel,
     TrotterIsing,
+)
+from mpstab.quantum_hardware.plan import (
+    allocate_shots_by_variance,
+    build_measurement_plan,
 )
 
 set_backend("numpy")
@@ -241,3 +245,64 @@ def test_split_matches_qibo_more_qubits(nqubits):
                 f"[n={nqubits} / {observable} / cut={cut}] "
                 f"split={split:+.6f} reference={reference:+.6f}"
             )
+
+
+# ---------------------------------------------------------------------------
+# Shot budget exactness (plan.allocate_shots_by_variance)
+# ---------------------------------------------------------------------------
+
+
+def _multi_group_coefficients():
+    """
+    Pauli strings chosen to QWC-group into several distinct settings (each
+    pair below disagrees on a shared qubit, so none of them merge), with
+    unequal weights so the Neyman allocation isn't trivially uniform.
+    """
+    return {"XIII": 3.0, "ZIII": 1.0, "IXII": 2.0, "IZII": 0.5, "IIXI": 1.5}
+
+
+def test_allocate_shots_by_variance_respects_the_budget_exactly():
+    plan = build_measurement_plan(_multi_group_coefficients())
+    n_groups = len(plan.groups)
+    assert n_groups > 1, "fixture must actually produce multiple QWC groups"
+
+    for n_shots in (n_groups, n_groups + 1, n_groups + 7, 10_000, 10_007):
+        shots = allocate_shots_by_variance(plan, n_shots)
+        assert sum(shots) == n_shots, (n_shots, shots)
+        assert all(s >= 1 for s in shots), shots
+
+
+def test_allocate_shots_by_variance_raises_below_group_count():
+    plan = build_measurement_plan(_multi_group_coefficients())
+    n_groups = len(plan.groups)
+    with pytest.raises(ValueError):
+        allocate_shots_by_variance(plan, n_groups - 1)
+
+
+def test_expectation_at_cut_pauli_respects_shot_budget():
+    ansatz = HardwareEfficient(nqubits=4, nlayers=2)
+    hs = HSynthSMPO(ansatz)
+    cut_index = len(hs.magic_gates) // 2
+
+    result = hs.expectation_at_cut(
+        "XZIZ", cut_index, method="pauli", n_shots=257, seed=3, n_string_samples=50
+    )
+    assert result.n_shots == 257
+
+
+# ---------------------------------------------------------------------------
+# _assert_real_coefficients (hsynthsmpo._pauli_plan's Hermiticity guard)
+# ---------------------------------------------------------------------------
+
+
+def test_assert_real_coefficients_passes_through_real_values():
+    pooled = {"XI": 1.5, "ZZ": -0.25 + 1e-12j}  # negligible float noise
+    real = _assert_real_coefficients(pooled)
+    assert real == pytest.approx({"XI": 1.5, "ZZ": -0.25})
+    assert all(isinstance(v, float) for v in real.values())
+
+
+def test_assert_real_coefficients_raises_on_non_negligible_imaginary_part():
+    pooled = {"XI": 1.0, "ZZ": 0.5 + 0.3j}
+    with pytest.raises(ValueError, match="ZZ"):
+        _assert_real_coefficients(pooled)

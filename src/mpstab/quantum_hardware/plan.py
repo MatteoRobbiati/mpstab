@@ -151,16 +151,46 @@ def build_measurement_plan(coefficients: dict) -> PauliMeasurementPlan:
 
 def allocate_shots_by_variance(plan: PauliMeasurementPlan, n_shots: int) -> tuple:
     """
-    Split ``n_shots`` across groups proportionally to ``sqrt(V_G)``.
+    Split ``n_shots`` across groups proportionally to ``sqrt(V_G)``, respecting
+    ``n_shots`` exactly.
 
     This is the Neyman-optimal allocation, and matches the variance model
     :meth:`PauliMeasurementPlan.shots_for_precision` sizes the total against.
+    Every group needs at least one shot to be measured at all, so one shot is
+    reserved for each group first; the remainder is allocated by weight and
+    rounded with the largest-remainder method, so the returned shot counts
+    always sum to exactly ``n_shots`` (rounding a raw fractional allocation
+    per group, as a naive ``round()`` would, can drift the total away from
+    ``n_shots`` in either direction).
+
+    Raises:
+        ValueError: if ``n_shots`` is smaller than the number of groups, since
+            every group needs at least one shot.
     """
+    n_groups = len(plan.groups)
+    if n_shots < n_groups:
+        raise ValueError(
+            f"n_shots={n_shots} is smaller than the number of measurement "
+            f"settings ({n_groups}); every setting needs at least one shot. "
+            "Raise n_shots, or the epsilon target that sizes it."
+        )
+
     weights = np.sqrt(np.asarray(plan.group_variances))
     if weights.sum() == 0:
-        weights = np.ones(len(plan.groups))
-    raw = n_shots * weights / weights.sum()
-    return tuple(int(x) for x in np.maximum(1, np.round(raw)))
+        weights = np.ones(n_groups)
+
+    remaining = n_shots - n_groups
+    raw = remaining * weights / weights.sum()
+    base = np.floor(raw).astype(int)
+    leftover = remaining - int(base.sum())
+    if leftover > 0:
+        # Largest-remainder method: give the leftover shots, one each, to the
+        # groups whose floor() discarded the largest fraction.
+        remainder = raw - base
+        for index in np.argsort(-remainder)[:leftover]:
+            base[index] += 1
+
+    return tuple(int(x) + 1 for x in base)  # +1: the one shot reserved above
 
 
 @dataclass(frozen=True)
@@ -177,6 +207,14 @@ class MeasurementPlan:
     - ``"shadows"``: ``(mpo_terms, bases)``, where ``mpo_terms`` holds
       ``(label, coefficient, sign, mpo)`` per Hamiltonian term and ``bases`` has
       one basis string per circuit.
+
+    Attributes:
+        retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
+            (which sample nothing): the |coefficient|-weighted average, over
+            Hamiltonian terms, of each term's
+            :attr:`~mpstab.quantum_hardware.pauli_expansion.PauliEnsemble.retained_weight`
+            -- the fraction of the tail-folded observable's Frobenius weight
+            that ``n_string_samples`` actually covered.
     """
 
     method: str
@@ -186,6 +224,7 @@ class MeasurementPlan:
     constant: float
     truncation_l1: float | None
     truncation_l2: float
+    retained_weight: float | None = None
 
 
 def build_pauli_plan(
@@ -197,6 +236,7 @@ def build_pauli_plan(
     constant: float = 0.0,
     truncation_l1: float = 0.0,
     truncation_l2: float = 0.0,
+    retained_weight: float | None = None,
 ) -> MeasurementPlan:
     """
     Build the ``"pauli"`` route's plan: one circuit per QWC group.
@@ -208,8 +248,11 @@ def build_pauli_plan(
         n_shots: fixed total shot budget, or ``None`` to size it from ``epsilon``.
         epsilon: target standard error, or ``None`` when ``n_shots`` is given.
         constant: observable offset, added back by the estimator.
-        truncation_l1: rigorous discarded-Pauli-mass bound to report.
+        truncation_l1: heuristic discarded-Pauli-mass estimate to report (see
+            :func:`~mpstab.quantum_hardware.pauli_expansion.truncation_error_estimate`
+            -- not a rigorous bound).
         truncation_l2: typical-case discarded-Pauli-mass estimate to report.
+        retained_weight: see :attr:`MeasurementPlan.retained_weight`.
     """
     plan = build_measurement_plan(coefficients)
     if epsilon is not None:
@@ -228,6 +271,7 @@ def build_pauli_plan(
         constant=constant,
         truncation_l1=truncation_l1,
         truncation_l2=truncation_l2,
+        retained_weight=retained_weight,
     )
 
 
