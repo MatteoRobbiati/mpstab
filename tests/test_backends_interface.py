@@ -26,6 +26,14 @@ def test_stab_interfaces_vs_qibo(stab_engine, tn_engine):
 
     obs = "Z" * nqubits
 
+    if stab_engine is NativeStabilizersEngine:
+        # The fast single-pass dressed-rotation extraction (used by
+        # _precompute_original_mps whenever there are magic gates, as here)
+        # requires StimEngine; NativeStabilizersEngine now raises.
+        with pytest.raises(NotImplementedError):
+            hs.set_engines(stab_engine=stab_engine(), tn_engine=tn_engine())
+        return
+
     hs.set_engines(
         stab_engine=stab_engine(),
         tn_engine=tn_engine(),

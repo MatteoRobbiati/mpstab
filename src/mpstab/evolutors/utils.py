@@ -1,77 +1,103 @@
-import random
+"""Helpers shared by the evolutors."""
 
-from qibo import gates
+from typing import List, Tuple
 
-gate2generator = {
-    "rx": "X",
-    "ry": "Y",
-    "rz": "Z",
-    "t": "Z",
-}
+import numpy as np
+import stim
+from qibo import Circuit
 
-gate2tableau = {
-    "cx": "CNOT",
-    "h": "H",
-    "s": "S",
-    "x": "X",
-    "y": "Y",
-    "z": "Z",
-    "swap": "SWAP",
-    "cz": "CZ",
-    "rz": "RZ",
-    "ry": "RY",
-    "rx": "RX",
-    "gpi2": "GPI2",
-    "sdg": "Sdg",
-}
+from mpstab.pauli import conjugate
 
-one_qubit_cliff = "HXYZ"
+#: The Pauli each supported magic gate rotates about.
+GATE_GENERATORS = {"rx": "X", "ry": "Y", "rz": "Z", "t": "Z"}
+
+#: Rotation angles of magic gates that carry no parameter.
+FIXED_ANGLES = {"t": np.pi / 4}
 
 
-def sample_random_pauli_gate(qubit):
+def gate_angle(gate) -> float:
+    """The rotation angle of a magic gate, including fixed-angle ones like ``T``."""
+    if gate.name in FIXED_ANGLES:
+        return FIXED_ANGLES[gate.name]
+    return gate.parameters[0]
+
+
+def gate_generator(gate, nqubits: int) -> str:
     """
-    Sample a random one-qubit gate applyed to a given qubit.
-    """
-    random_letter = random.choice(one_qubit_cliff)
-    return getattr(gates, random_letter)(q=qubit)
-
-
-def _link_to_dummy(tn, dummy, tensor, tensor_direction, edge_id="v_link"):
-
-    T, d, e, data = list(tn.tensornet.in_edges(dummy, data=True, keys=True))[0]
-    dummy_direction = data["directions"][0]
-    tn.remove_edge(T, d, e)
-    tn.add_edge(T, tensor, edge_id, (dummy_direction, tensor_direction))
-    tn.tensornet.remove_node(dummy)
-
-
-def validate_pauli_observable(observable: str, nqubits: int) -> None:
-    """
-    Validate that a Pauli observable string is well-formed.
-
-    Args:
-        observable: Pauli observable string (e.g., "ZZZZZ", "XYZIX")
-        nqubits: Number of qubits in the system
+    The full-width Pauli string generating ``gate``'s rotation.
 
     Raises:
-        ValueError: If observable contains invalid characters or has incorrect length
+        ValueError: if ``gate`` is not one of the supported rotations.
     """
-    # Validate observable string contains only Pauli operators
-    valid_paulis = set("IXYZ")
-    invalid_chars = set(observable) - valid_paulis
-    if invalid_chars:
+    if gate.name not in GATE_GENERATORS:
         raise ValueError(
-            f"Observable string contains invalid characters: {invalid_chars}. "
-            f"Observable strings should only contain Pauli operators: I, X, Y, Z. "
-            f"Do not include signs, coefficients, or other characters. "
-            f"Examples: 'ZZZZZ' or 'XYZIX', not '2*ZZZZZ' or '-ZZ'."
+            f"Gate {gate.name!r} is not a supported magic gate; mpstab handles "
+            f"{sorted(GATE_GENERATORS)}."
+        )
+    return "".join(
+        GATE_GENERATORS[gate.name] if q in gate.target_qubits else "I"
+        for q in range(nqubits)
+    )
+
+
+def dressed_rotations(
+    nqubits: int,
+    stab_engine,
+    magic_gates: List[Tuple[int, object]],
+    clifford_circuit: Circuit,
+) -> List[Tuple[str, float]]:
+    """
+    Every magic gate's dressed ``(generator, signed_angle)``, in circuit order.
+
+    Each gate's generator is backpropagated through the Clifford sub-circuit
+    preceding it, then scaled by the gate's rotation angle. The Clifford circuit
+    is simulated once into a running ``stim.TableauSimulator`` and each generator
+    is conjugated at its own breakpoint, rather than re-simulating the prefix per
+    magic gate.
+
+    Requires a :class:`~mpstab.engines.StimEngine`, but only when there is magic
+    to dress: a Clifford-only circuit has no dressed rotations whatever engine is
+    in use.
+
+    Raises:
+        NotImplementedError: if there are magic gates and ``stab_engine`` is not a
+            ``StimEngine``.
+    """
+    if not magic_gates:
+        return []
+
+    from mpstab.engines.stabilizers.stim import StimEngine
+
+    if not isinstance(stab_engine, StimEngine):
+        raise NotImplementedError(
+            "Dressed-rotation extraction requires StimEngine (this circuit has "
+            f"{len(magic_gates)} magic gate(s)). Call "
+            "set_engines(stab_engine=StimEngine()) to enable it."
         )
 
-    # Validate observable string length matches number of qubits
-    if len(observable) != nqubits:
-        raise ValueError(
-            f"Observable string length ({len(observable)}) does not match "
-            f"the number of qubits ({nqubits}). "
-            f"Expected a Pauli string of length {nqubits}, "
-            f"e.g., '{'Z'*nqubits}' for measuring Z operators on all qubits."
-        )
+    simulator = stim.TableauSimulator()
+    simulator.do(stim.Circuit(f"I {nqubits - 1}"))
+
+    rotations: List[Tuple[str, float]] = []
+    pending = iter(magic_gates)
+    next_gate = next(pending, None)
+
+    def dress_gates_at(breakpoint_index: int):
+        nonlocal next_gate
+        while next_gate is not None and next_gate[0] == breakpoint_index:
+            gate = next_gate[1]
+            # current_inverse_tableau() is U^dag for the Clifford prefix U.
+            generator, sign = conjugate(
+                gate_generator(gate, nqubits), simulator.current_inverse_tableau()
+            )
+            rotations.append((generator, gate_angle(gate) * sign))
+            next_gate = next(pending, None)
+
+    dress_gates_at(0)
+    for breakpoint_index, gate in enumerate(clifford_circuit.queue, start=1):
+        one_gate = Circuit(nqubits)
+        one_gate.add(gate)
+        simulator.do(stab_engine.to_stim(one_gate))
+        dress_gates_at(breakpoint_index)
+
+    return rotations

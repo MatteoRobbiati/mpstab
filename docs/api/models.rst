@@ -15,9 +15,34 @@ Ansätze are pre-built quantum circuit patterns used as templates for quantum al
 
 **Available Ansätze**:
 
+*Wrappers & structural:*
+
 - ``Ansatz``: Abstract base class for all ansätze
 - ``CircuitAnsatz``: Wrapper for Qibo circuits
-- ``HardwareEfficient``: Industry-standard pattern for NISQ devices
+- ``TranspiledAnsatz``: Wrap a circuit and transpile it into a device's native gates
+
+*Variational patterns:*
+
+- ``HardwareEfficient``: Industry-standard RY + CZ pattern for NISQ devices
+- ``HardwareEfficientBrickwork``: Brickwork RY/RZ + CZ pattern with a ring-closing bond
+- ``HammingWeightPreserving``: RBS-based Hamming-weight-preserving ansatz
+- ``FloquetAnsatz``: Floquet echo circuit with tunable magic
+
+*Circuit library (textbook algorithms, for HSMPO/HSynthSMPO benchmarks):*
+
+- ``QFT``: Quantum Fourier Transform
+- ``QFTPhaseKernel``: QFT followed by a diagonal RZ phase kernel
+- ``Grover``: Grover search (oracle + diffuser iterations)
+- ``QPE``: Quantum Phase Estimation
+- ``QAE``: Quantum Amplitude Estimation
+- ``TrotterIsing``: First-order Trotter evolution of the transverse-field Ising model
+
+The circuit-library ansätze are written with high-level gates (``CU1``, ``SWAP``,
+``TOFFOLI``, ``RZZ``, …) and, by default, transpiled to a native gate set on
+construction so every non-Clifford gate becomes an ``rz`` rotation that HSMPO
+understands — no manual decomposition needed. Pass ``transpile=False`` to keep the
+raw high-level circuit (e.g. for inspection); HSMPO itself requires the transpiled
+form.
 
 **Key Methods**:
 
@@ -77,13 +102,20 @@ Additional Utilities
 Quick Reference
 ---------------
 
-====================  ==================================================
-Class/Function        Purpose
-====================  ==================================================
-HardwareEfficient     Standard VQA circuit pattern
-CircuitAnsatz         Wrap Qibo circuits as ansätze
+==========================  ==================================================
+Class/Function              Purpose
+==========================  ==================================================
+HardwareEfficient           Standard VQA circuit pattern
+CircuitAnsatz               Wrap Qibo circuits as ansätze
+TranspiledAnsatz            Wrap + transpile to native gates
+QFT                         Quantum Fourier Transform
+QFTPhaseKernel              QFT + diagonal RZ phase kernel
+Grover                      Grover search
+QPE                         Quantum Phase Estimation
+QAE                         Quantum Amplitude Estimation
+TrotterIsing                Trotterized transverse-field Ising evolution
 stabilizer_renyi_entropy    Calculate Renyi entropy for stabilizer states
-====================  ==================================================
+==========================  ==================================================
 
 Related Documentation
 -----------------------

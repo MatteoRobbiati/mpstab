@@ -1369,6 +1369,9 @@ jax = [
 pytorch = [
     { name = "torch" },
 ]
+rustiq = [
+    { name = "rustiq" },
+]
 
 [package.dev-dependencies]
 benchmark = [
@@ -1405,10 +1408,11 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "qibo", specifier = ">=0.2.19" },
     { name = "quimb", specifier = ">=1.12.1" },
+    { name = "rustiq", marker = "extra == 'rustiq'", git = "https://github.com/smartiel/rustiq.git" },
     { name = "stim", specifier = ">=1.15.0" },
     { name = "torch", marker = "extra == 'pytorch'" },
 ]
-provides-extras = ["pytorch", "jax"]
+provides-extras = ["pytorch", "jax", "rustiq"]
 
 [package.metadata.requires-dev]
 benchmark = [{ name = "pytest-benchmark", extras = ["histogram"], specifier = ">=4.0.0" }]
@@ -2455,6 +2459,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/6f/93831a3bfe789542ed0c1d0d74b78b440f055d6dc3ea4640eba2d95e6e23/rpds_py-2026.5.1-pp311-pypy311_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:c74005a7bb87752acf351c93897ec63ad77a07a0da7ecad9c050e32e7286ba34", size = 557243, upload-time = "2026-05-28T12:02:08.013Z" },
     { url = "https://files.pythonhosted.org/packages/1f/ff/0b3d604614ffc77522c6b288fdbce68957eb583da1002aa65ba38ac0ee40/rpds_py-2026.5.1-pp311-pypy311_pp73-musllinux_1_2_i686.whl", hash = "sha256:8213afbe8a3a906fb9acb2014423fe3359ee783d0bf90995f70623a3217bfa6c", size = 623541, upload-time = "2026-05-28T12:02:09.661Z" },
     { url = "https://files.pythonhosted.org/packages/ea/ea/e7b0251441da9adfeaebcf29601d10f2a1455fcf0772fae9e7e19032bd96/rpds_py-2026.5.1-pp311-pypy311_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:8c43a8a973270fd173bf48cdf80bbe66312421cba68d40845034f174f2389049", size = 586326, upload-time = "2026-05-28T12:02:11.47Z" },
+]
+
+[[package]]
+name = "rustiq"
+version = "1.0.0"
+source = { git = "https://github.com/smartiel/rustiq.git#425000222e21a7a28d70a08c75be968f16fd6903" }
+dependencies = [
+    { name = "networkx" },
+    { name = "numpy" },
 ]
 
 [[package]]
