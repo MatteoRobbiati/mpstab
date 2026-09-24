@@ -7,16 +7,13 @@ expectation value out of real (or simulated) quantum hardware?**
 ## The problem in one picture
 
 `HSynthSMPO` represents a circuit as a chain of "dressed" Pauli rotations. A
-cut point `k` splits that chain in two:
+cut point `k` splits that chain in two: the magic (non-Clifford) gates become
+rotations that get cut into a head and a tail; the Clifford gates are free and
+exact, absorbed however they fall relative to the cut. The head is
+resynthesised and run on the device; the tail is folded into the observable
+classically, with no shot spent on it at all:
 
-```
-|0...0>  --[ head: rotations 0..k ]--[ tail: rotations k..end ]-->  measure observable O
-              ^                          ^
-              |                          |
-        runs on the device      folded into O classically,
-                                 producing a new operator O' with
-                                 the SAME expectation on the head state
-```
+![Head/tail split: a circuit's magic gates become a chain of rotations, cut into a head that runs on the device and a tail folded classically into the observable, then measured with finite shots into an expectation value with noise and truncation.](../../../examples/hsynthsmpo_head_tail_split_concept_en.png)
 
 So instead of running the *whole* circuit and measuring `O`, we run only the
 *head* on the device and measure a *different* operator `O'` -- the
@@ -53,7 +50,9 @@ below explains what happens *inside* it.
 
 All three share the *same* first step (resynthesising the head into a
 circuit) and differ only in what they measure and how they turn the results
-back into a number.
+back into a number:
+
+![Three measurement routes from the same head on chip: pauli samples and groups Pauli strings then drops the weak ones; shadows measures a random basis per shot then contracts with the MPO, noisier per shot; tnice reuses the same shots and bases as shadows but fits an estimator on half the data and evaluates on the rest.](../../../examples/hsynthsmpo_three_measurement_routes_en.png)
 
 ### `"pauli"` -- sample and group
 
