@@ -120,6 +120,108 @@ def test_reconstruction_error_is_near_zero_at_the_seed(scrambled_mpo):
 
 
 # ---------------------------------------------------------------------------
+# 2b. Complex gauge phases in the Pauli-coefficient MPS
+# ---------------------------------------------------------------------------
+
+
+def _dense_coefficients(pauli_mps):
+    vector = pauli_mps[0]
+    for site in pauli_mps[1:]:
+        vector = np.einsum("...l,plr->...pr", vector, site)
+    return vector.reshape(-1)
+
+
+def _with_complex_gauge(pauli_mps, seed):
+    """The same coefficients, with a random complex gauge on the widest bond."""
+    rng = np.random.default_rng(seed)
+    gauged = [site.astype(complex) for site in pauli_mps]
+    bond = int(np.argmax([site.shape[2] for site in gauged[:-1]]))
+    chi = gauged[bond].shape[2]
+    gauge = rng.normal(size=(chi, chi)) + 1j * rng.normal(size=(chi, chi))
+    gauged[bond] = np.einsum("plr,rs->pls", gauged[bond], gauge)
+    gauged[bond + 1] = np.einsum("sr,prq->psq", np.linalg.inv(gauge), gauged[bond + 1])
+    return gauged
+
+
+def test_real_pauli_mps_is_exact_under_a_complex_gauge(scrambled_mpo):
+    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+    gauged = _with_complex_gauge(pauli_mps, seed=0)
+    expected = _dense_coefficients(pauli_mps).real
+
+    # The gauge changes nothing physical...
+    assert np.allclose(_dense_coefficients(gauged), expected)
+    # ...but the site-by-site real part is a different operator...
+    naive = _dense_coefficients([site.real for site in gauged])
+    assert not np.allclose(naive, expected, atol=1e-3)
+    # ...while the real rewrite is exact.
+    assert np.allclose(_dense_coefficients(tnice.real_pauli_mps(gauged)), expected)
+
+
+def test_real_pauli_mps_does_not_grow_the_bond_dimension(scrambled_mpo):
+    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+    gauged = _with_complex_gauge(pauli_mps, seed=2)
+    real_mps = tnice.real_pauli_mps(gauged)
+
+    assert all(np.isrealobj(site) for site in real_mps)
+    for original, rewritten in zip(gauged, real_mps):
+        assert rewritten.shape[1] <= original.shape[1]
+        assert rewritten.shape[2] <= original.shape[2]
+
+
+def test_canonical_seed_does_not_depend_on_the_gauge(scrambled_mpo):
+    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+    gauged = _with_complex_gauge(pauli_mps, seed=1)
+    outcomes, _ = _random_outcomes(4, 200, seed=7)
+
+    plain = tnice.evaluate_omega(tnice.canonical_omega_seed(pauli_mps), outcomes)
+    rotated = tnice.evaluate_omega(tnice.canonical_omega_seed(gauged), outcomes)
+
+    assert np.allclose(plain, rotated)
+    assert tnice.reconstruction_error(gauged, tnice.canonical_omega_seed(gauged)) < 1e-6
+
+
+def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
+    """
+    Regression test: with no fit (``n_sweeps=0``) and no held-out split
+    (``test_fraction=1.0``), the ``"tnice"`` estimator is the canonical dual
+    on every shot, so it must equal ``"shadows"`` on the same frequencies --
+    here at a cut whose tail MPS genuinely carries complex gauge phases.
+    """
+    from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+    from mpstab.models.ansatze import FloquetAnsatz
+    from mpstab.quantum_hardware.backend import QiboSimulator, execute_plan
+    from mpstab.quantum_hardware.estimate import estimate_shadows, estimate_tnice
+
+    ansatz = FloquetAnsatz(nqubits=4, nlayers=1, target_qubit=1, decompose_rzz=True)
+    hs = HSynthSMPO.rotations_only(ansatz)
+    hs.max_bond_dimension = 16
+    cut = len(hs.magic_gates) // 2
+    observable = "IZII"
+
+    tail, _ = hs.tail_operator(observable, cut)
+    assert (
+        max(np.abs(site.imag).max() for site in mpo_to_pauli_mps(tail)) > 1e-3
+    ), "this cut no longer exercises a complex gauge; pick another one"
+
+    plan = hs._shadow_plan(
+        terms={observable: 1.0},
+        constant=0.0,
+        cut_index=cut,
+        resynthesis=hs.resynthesize_head(cut),
+        max_bond_dimension=16,
+        n_shots=300,
+        epsilon=None,
+        seed=3,
+        tail_handling="append",
+    )
+    frequencies = execute_plan(QiboSimulator(), plan)
+
+    shadows = estimate_shadows(plan, frequencies)
+    canonical = estimate_tnice(plan, frequencies, n_sweeps=0, test_fraction=1.0)
+    assert canonical.value == pytest.approx(shadows.value, abs=1e-10)
+
+
+# ---------------------------------------------------------------------------
 # 3. The DMRG-like fit
 # ---------------------------------------------------------------------------
 
