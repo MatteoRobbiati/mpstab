@@ -84,6 +84,72 @@ LOCAL_CANONICAL_DUAL_MAP = 6 * LOCAL_EFFECT_MAP @ np.diag([1.0, 3.0, 3.0, 3.0])
 _LOCAL_GRAM = LOCAL_EFFECT_MAP @ LOCAL_EFFECT_MAP.T
 
 
+def real_pauli_mps(pauli_mps: list) -> list:
+    """
+    An exactly equivalent, real-valued copy of a Pauli-coefficient MPS.
+
+    A Hermitian operator's Pauli coefficients are real, but the MPS
+    :func:`~mpstab.quantum_hardware.pauli_expansion.mpo_to_pauli_mps` returns
+    can still carry complex gauge phases on its bonds -- and the real part of a
+    product is not the product of the real parts, so taking ``site.real`` site
+    by site would describe a *different* operator. Instead every site
+    ``A = R + iI`` becomes the real block ``[[R, -I], [I, R]]`` (the 2x2 real
+    representation of a complex number, bond dimension doubled), and the
+    boundary sites keep only the row/column that selects the real part of the
+    full contraction. The doubled train is then recompressed exactly by
+    :func:`_compress_real_mps`: the coefficients being real, the rank of every
+    unfolding is the same over the reals as over the complexes, so the bond
+    dimension comes back to at most the original one. Sites that are already
+    real are returned as they are, at their own bond dimension.
+    """
+    if all(
+        np.abs(np.imag(site)).max() <= 1e-12 * max(1.0, np.abs(site).max())
+        for site in pauli_mps
+    ):
+        return [np.real(site) for site in pauli_mps]
+
+    n = len(pauli_mps)
+    real_mps = []
+    for index, site in enumerate(pauli_mps):
+        re, im = np.real(site), np.imag(site)
+        block = np.concatenate(
+            [np.concatenate([re, -im], axis=2), np.concatenate([im, re], axis=2)],
+            axis=1,
+        )
+        if index == 0:
+            block = block[:, :1, :]
+        if index == n - 1:
+            block = block[:, :, :1]
+        real_mps.append(block)
+    return _compress_real_mps(real_mps)
+
+
+def _compress_real_mps(mps: list, rtol: float = 1e-12) -> list:
+    """
+    Exact recompression of a real MPS (site tensors ``(p, left, right)``).
+
+    A left-to-right QR sweep puts the train in left-canonical form; a
+    right-to-left SVD sweep then drops only the singular values below
+    ``rtol`` times the largest one on each bond, so the represented tensor is
+    unchanged and every bond shrinks to the rank of its unfolding.
+    """
+    mps = [site.copy() for site in mps]
+    for k in range(len(mps) - 1):
+        p, left, right = mps[k].shape
+        q, r = np.linalg.qr(mps[k].transpose(1, 0, 2).reshape(left * p, right))
+        mps[k] = q.reshape(left, p, -1).transpose(1, 0, 2)
+        mps[k + 1] = np.einsum("ab,pbc->pac", r, mps[k + 1])
+    for k in range(len(mps) - 1, 0, -1):
+        p, left, right = mps[k].shape
+        u, s, vt = np.linalg.svd(
+            mps[k].transpose(1, 0, 2).reshape(left, p * right), full_matrices=False
+        )
+        keep = max(1, int((s > rtol * s[0]).sum()))
+        mps[k] = vt[:keep].reshape(keep, p, right).transpose(1, 0, 2)
+        mps[k - 1] = np.einsum("pab,bc->pac", mps[k - 1], u[:, :keep] * s[:keep])
+    return mps
+
+
 def canonical_omega_seed(pauli_mps: list) -> list:
     """
     The canonical-dual reconstruction-coefficient MPS for ``pauli_mps``.
@@ -91,15 +157,15 @@ def canonical_omega_seed(pauli_mps: list) -> list:
     Applies :data:`LOCAL_CANONICAL_DUAL_MAP` to every site of ``pauli_mps``
     (an operator's exact Pauli-coefficient MPS, as
     :func:`~mpstab.quantum_hardware.pauli_expansion.mpo_to_pauli_mps`
-    returns it -- site tensors shaped ``(4, left, right)``), giving the
-    ``omega``-MPS (site tensors shaped ``(6, left, right)``, same bond
-    dimension) that reproduces the classical-shadow canonical-dual estimator
-    exactly, at zero optimization cost. The default and recommended seed for
-    :func:`fit_omega_mps`.
+    returns it -- site tensors shaped ``(4, left, right)``, made real by
+    :func:`real_pauli_mps` first), giving the ``omega``-MPS (site tensors
+    shaped ``(6, left, right)``) that reproduces the classical-shadow
+    canonical-dual estimator exactly, at zero optimization cost. The default
+    and recommended seed for :func:`fit_omega_mps`.
     """
     return [
-        np.einsum("kp,plr->klr", LOCAL_CANONICAL_DUAL_MAP, site.real)
-        for site in pauli_mps
+        np.einsum("kp,plr->klr", LOCAL_CANONICAL_DUAL_MAP, site)
+        for site in real_pauli_mps(pauli_mps)
     ]
 
 
@@ -222,7 +288,7 @@ def weighted_mean_and_variance(values: np.ndarray, weights: np.ndarray) -> tuple
 
 def reconstruction_error(pauli_mps: list, omega_mps: list) -> float:
     """``||O - Pi(omega)||``, the penalty term of Eq. (17), exactly."""
-    pauli_mps = [site.real for site in pauli_mps]
+    pauli_mps = real_pauli_mps(pauli_mps)
     psi_mps = [np.einsum("kp,klr->plr", LOCAL_EFFECT_MAP, site) for site in omega_mps]
     oo = _mps_overlap(pauli_mps, pauli_mps)
     o_psi = _mps_overlap(pauli_mps, psi_mps)
@@ -390,7 +456,7 @@ def fit_omega_mps(
     Returns:
         The optimized ``omega`` MPS, site tensors shaped ``(6, left, right)``.
     """
-    pauli_mps = [site.real for site in pauli_mps]
+    pauli_mps = real_pauli_mps(pauli_mps)
     omega = canonical_omega_seed(pauli_mps)
     if bond_dimension is not None:
         omega = _resize_bond_dimension(omega, bond_dimension, seed)
