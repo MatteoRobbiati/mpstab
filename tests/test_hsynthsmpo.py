@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 import stim
 from qibo import Circuit, gates, set_backend
+from qibo.hamiltonians import SymbolicHamiltonian
+from qibo.symbols import X, Z
 from utils import expectation_with_qibo, set_rng_seed
 
 from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
@@ -181,6 +183,166 @@ def test_tail_truncation_reports_error_when_truncated():
     )
     exact = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str="Z" * 6)
     assert np.allclose(reference_expval, exact, atol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "observable", ["ZZZZZZ", "IXIYIZ", {"ZZIIII": 0.7, "IXIYIZ": -1.2, "XIIIIX": 0.4}]
+)
+def test_split_scan_matches_simulation(observable):
+    # A tight bond cap makes every cut different; the incremental scan must
+    # still reproduce the single-cut simulation at each one, all fields.
+    hs = HSynthSMPO(HardwareEfficient(nqubits=6, nlayers=2), max_bond_dimension=2)
+    scan = hs.split_scan(observable)
+    assert [point.cut_index for point in scan] == list(
+        range(len(hs._dressed_rotations()) + 1)
+    )
+
+    for point in scan:
+        reference = hs.expectation_at_cut(
+            observable, point.cut_index, method="simulation"
+        )
+        assert point.result.value == pytest.approx(reference.value, abs=1e-10)
+        assert point.result.state_fidelity == pytest.approx(
+            reference.state_fidelity, abs=1e-10
+        )
+        assert point.result.truncation_l2 == pytest.approx(
+            reference.truncation_l2, abs=1e-10
+        )
+
+
+def test_split_scan_hamiltonian_constant_and_l1():
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    hamiltonian = SymbolicHamiltonian(
+        form=2.0 + 0.5 * Z(0) * Z(1) - 1.5 * X(2), nqubits=4
+    )
+    for point in hs.split_scan(hamiltonian, cuts=[0, 3]):
+        reference = hs.expectation_at_cut(
+            hamiltonian, point.cut_index, method="simulation"
+        )
+        assert point.result.value == pytest.approx(reference.value, abs=1e-10)
+        # The identity offset carries no truncation, so it is left out.
+        assert point.coefficient_l1 == pytest.approx(2.0)
+
+
+def test_split_scan_untruncated_is_exact():
+    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    hs = HSynthSMPO(ansatz)
+    reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str="IZIX")
+    for point in hs.split_scan("IZIX"):
+        assert point.result.value == pytest.approx(reference, abs=1e-6)
+        assert point.error_estimate == pytest.approx(0.0, abs=1e-6)
+
+
+def test_split_scan_max_bond_dimension_overrides_default():
+    hs = HSynthSMPO(HardwareEfficient(nqubits=6, nlayers=2))  # untruncated
+    scan = hs.split_scan("Z" * 6, cuts=[0], max_bond_dimension=1)
+    reference = hs.expectation_at_cut(
+        "Z" * 6, 0, method="simulation", max_bond_dimension=1
+    )
+    assert scan[0].result.truncation_l2 > 1e-6
+    assert scan[0].result.truncation_l2 == pytest.approx(reference.truncation_l2)
+
+
+def test_split_point_error_estimate():
+    hs = HSynthSMPO(HardwareEfficient(nqubits=6, nlayers=2), max_bond_dimension=2)
+    for point in hs.split_scan({"ZZIIII": 0.7, "IXIYIZ": -1.2}):
+        result = point.result
+        expected = result.truncation_l2 + 1.9 * np.sqrt(
+            max(0.0, 1.0 - result.state_fidelity)
+        )
+        assert point.error_estimate == pytest.approx(expected)
+
+
+def test_split_scan_cuts_sorted_and_deduplicated():
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    n_rotations = len(hs._dressed_rotations())
+    scan = hs.split_scan("ZZZZ", cuts=[n_rotations, 0, 2, 2])
+    assert [point.cut_index for point in scan] == [0, 2, n_rotations]
+
+
+def test_split_scan_accepts_range_and_numpy_cuts():
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    n_rotations = len(hs._dressed_rotations())
+    expected = hs.split_scan("ZZZZ", cuts=list(range(0, n_rotations + 1, 2)))
+    for cuts in (range(0, n_rotations + 1, 2), np.arange(0, n_rotations + 1, 2)):
+        scan = hs.split_scan("ZZZZ", cuts=cuts)
+        assert scan == expected
+        assert all(type(point.cut_index) is int for point in scan)
+
+
+def test_split_scan_without_rotations():
+    # A Clifford-only circuit has K = 0: the only cut is 0, the whole circuit
+    # sits in the Clifford part, and the split is exact.
+    circuit = Circuit(4)
+    for q in range(4):
+        circuit.add(gates.H(q))
+    for q in range(3):
+        circuit.add(gates.CZ(q, q + 1))
+    circuit.add(gates.S(1))
+    ansatz = CircuitAnsatz(qibo_circuit=circuit)
+    hs = HSynthSMPO(ansatz)
+    assert len(hs._dressed_rotations()) == 0
+
+    scan = hs.split_scan("IZXZ")
+    reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str="IZXZ")
+    assert [point.cut_index for point in scan] == [0]
+    assert scan[0].result.value == pytest.approx(reference, abs=1e-6)
+    assert hs.best_split("IZXZ").cut_index == 0
+
+
+def test_split_scan_rejects_bad_cuts():
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    n_rotations = len(hs._dressed_rotations())
+    for bad_cuts in ([0, -1], [0, n_rotations + 1], []):
+        with pytest.raises(ValueError):
+            hs.split_scan("ZZZZ", cuts=bad_cuts)
+
+
+def test_split_scan_native_engine_not_supported():
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    hs.set_engines(tn_engine=NativeTensorNetworkEngine())
+    with pytest.raises(NotImplementedError):
+        hs.split_scan("ZZZZ")
+
+
+def test_best_split_minimises_error_estimate():
+    hs = HSynthSMPO(HardwareEfficient(nqubits=6, nlayers=2), max_bond_dimension=2)
+    scan = hs.split_scan("ZZZZZZ")
+    best = hs.best_split(scan=scan)
+    assert best.error_estimate == min(point.error_estimate for point in scan)
+    assert best == hs.best_split("ZZZZZZ")  # same result without a cached scan
+
+
+def test_best_split_forwards_max_bond_dimension():
+    # The object is untruncated, so any tail truncation must come from the
+    # forwarded cap: picking the most truncated cut exposes it.
+    hs = HSynthSMPO(HardwareEfficient(nqubits=6, nlayers=2))
+    most_truncated = hs.best_split(
+        "Z" * 6, key=lambda point: -point.result.truncation_l2, max_bond_dimension=1
+    )
+    assert most_truncated.result.truncation_l2 > 1e-6
+
+
+def test_best_split_ties_go_to_shorter_head():
+    # A constant key ties every cut, so the shortest head wins.
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    assert hs.best_split("ZZZZ", key=lambda point: 0.0).cut_index == 0
+    assert hs.best_split("ZZZZ", cuts=[3, 1, 2], key=lambda point: 0.0).cut_index == 1
+
+
+def test_best_split_custom_key():
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    n_rotations = len(hs._dressed_rotations())
+    best = hs.best_split("ZZZZ", key=lambda point: -point.cut_index)
+    assert best.cut_index == n_rotations
+
+
+def test_best_split_needs_observable_or_scan():
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    with pytest.raises(ValueError):
+        hs.best_split()
+    with pytest.raises(ValueError):
+        hs.best_split(scan=[])
 
 
 def test_resynthesize_head_is_qibo_circuit():
