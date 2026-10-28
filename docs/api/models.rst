@@ -27,6 +27,7 @@ Ansätze are pre-built quantum circuit patterns used as templates for quantum al
 - ``HardwareEfficientBrickwork``: Brickwork RY/RZ + CZ pattern with a ring-closing bond
 - ``HammingWeightPreserving``: RBS-based Hamming-weight-preserving ansatz
 - ``FloquetAnsatz``: Floquet echo circuit with tunable magic
+- ``KickedIsing``: Kicked Ising chain with RX/RZ kicks and CNOT-RZ-CNOT couplings, already in HSMPO form
 
 *Circuit library (textbook algorithms, for HSMPO/HSynthSMPO benchmarks):*
 
