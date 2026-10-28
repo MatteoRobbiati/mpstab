@@ -52,7 +52,7 @@ import warnings
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
-from typing import List, Tuple, Union
+from typing import Callable, Dict, List, Sequence, Tuple, Union
 
 import numpy as np
 import stim
@@ -85,7 +85,13 @@ from mpstab.qpu.synthesis import (
     resolve_synthesis,
 )
 
-__all__ = ["HQSMPO", "ExpectationResult", "ResynthesizedHead", "TailTruncation"]
+__all__ = [
+    "HQSMPO",
+    "ExpectationResult",
+    "ResynthesizedHead",
+    "SplitCandidate",
+    "TailTruncation",
+]
 
 
 @dataclass(frozen=True)
@@ -138,6 +144,52 @@ class TailTruncation:
     fidelity_estimate: float
     relative_frobenius_error: Union[float, None]
     expval_abs_error: Union[float, None]
+
+
+@dataclass(frozen=True)
+class SplitCandidate:
+    """
+    One head/tail cut, as evaluated by :meth:`HQSMPO.split_scan` and ranked by
+    :meth:`HQSMPO.best_split`.
+
+    Attributes:
+        cut_index: rotations ``[0:cut_index)`` form the head, the rest the tail.
+        result: the split's classical expectation value, the same
+            :class:`ExpectationResult` as
+            ``expectation_at_cut(observable, cut_index, method="simulation")``.
+        coefficient_l1: ``sum |c_P|`` over the observable's non-identity Pauli
+            terms, which scales the head truncation in :attr:`error_estimate`.
+    """
+
+    cut_index: int
+    result: ExpectationResult
+    coefficient_l1: float
+
+    @property
+    def error_estimate(self) -> float:
+        """
+        Reference-free scale of the split's error on the expectation value, in
+        the observable's units:
+        ``truncation_l2 + coefficient_l1 * sqrt(1 - state_fidelity)``.
+
+        The tail term, ``truncation_l2``, sums over the Pauli terms ``|c_P|``
+        times the L2 norm of the Pauli weight the tail fold discarded,
+        ``sqrt(1 - ||O'||_F**2 / 2**n)``. The head term puts the head on the
+        same footing: a head state at fidelity ``F`` with the exact one is at
+        trace distance ``sqrt(1 - F)`` from it, so each term's expectation
+        value moves by at most ``2 |c_P| sqrt(1 - F)``; the factor 2 is dropped
+        to match the tail term, which is a scale rather than a bound too. The
+        two add linearly, not in quadrature as in ``total_error``, because both
+        are systematic biases that can add up, not independent noise.
+
+        Neither term is a bound, and ``state_fidelity``, the head MPS's squared
+        norm, is itself only an estimate of ``F``. Use the value to rank cuts,
+        not as an error bar; under heavy truncation it can rank them wrongly.
+        """
+        head_loss = max(0.0, 1.0 - self.result.state_fidelity)
+        return self.result.truncation_l2 + self.coefficient_l1 * float(
+            np.sqrt(head_loss)
+        )
 
 
 @dataclass
@@ -204,6 +256,7 @@ class HQSMPO(HSMPO):
         cut_index: int,
         max_bond_dimension: int = -1,
         residual: Union[stim.Tableau, None] = None,
+        light_cone: Union[bool, None] = None,
     ):
         """
         The observable with everything after the head folded in, as an MPO.
@@ -247,6 +300,8 @@ class HQSMPO(HSMPO):
             residual: the Clifford residual ``R`` to fold in, typically
                 :attr:`ResynthesizedHead.residual_tableau`. ``None`` leaves it
                 out.
+            light_cone: skip the tail rotations ``observable`` cannot see, see
+                :meth:`relevant_rotations`. ``None`` means ``self.light_cone``.
 
         Returns:
             ``(operator, sign)``: the folded MPO and the +-1 sign picked up by
@@ -259,7 +314,9 @@ class HQSMPO(HSMPO):
             observable=observable, clifford_circuit=self.clifford_circuit
         )
         tail = self._dressed_rotations()[cut_index:]
-        if self.light_cone:  # the rotations this string cannot see fold to nothing
+        if light_cone is None:
+            light_cone = self.light_cone
+        if light_cone:  # the rotations this string cannot see fold to nothing
             tail = [
                 self._dressed_rotations()[index]
                 for index in self._light_cone([backpropagated])
@@ -299,44 +356,133 @@ class HQSMPO(HSMPO):
         """
         ``expectation_at_cut(method="simulation")``: the classical split, with
         the head applied to the state MPS and the tail folded into each term.
+        The single-cut case of :meth:`_simulate_at_cuts`.
 
-        The head MPS is built once and shared by every term. ``truncation_l2``
-        estimates the tail truncation only, with the same norm-ratio proxy as the
-        ``"shadows"`` route; the head truncation is reported separately as
-        ``state_fidelity``, the head MPS's squared norm, and is not part of
-        ``total_error``.
+        ``truncation_l2`` estimates the tail truncation only, with the same
+        norm-ratio proxy as the ``"shadows"`` route; the head truncation is
+        reported separately as ``state_fidelity``, the head MPS's squared norm,
+        and is not part of ``total_error``.
         """
-        state_mps = self._head_state_mps(self._dressed_rotations()[:cut_index])
+        results = self._simulate_at_cuts(
+            terms, constant, [cut_index], max_bond_dimension
+        )
+        return results[cut_index]
 
-        value = constant
-        truncation_l2 = 0.0
+    def _simulate_at_cuts(
+        self,
+        terms: dict,
+        constant: float,
+        cuts: List[int],
+        max_bond_dimension,
+        light_cone: Union[bool, None] = None,
+    ) -> Dict[int, ExpectationResult]:
+        """
+        The classical split at several cuts, sharing the work between them:
+        the engine behind :meth:`_simulate_at_cut` and :meth:`split_scan`.
+
+        The head grows forwards (``head_{k+1} = R_k head_k``) and the tail
+        backwards (``O_k = R_k^dag O_{k+1} R_k``), so one side has to wait for
+        the other. Undoing a rotation instead is not an option: truncation is
+        not invertible, so the result would differ from a fold built from
+        scratch. The heads are the side stored, since they do not depend on
+        the observable and serve every term:
+
+        1. forward pass up to the last cut, storing the head MPS at each cut.
+           The rotations update the MPS in place, so every stored head but the
+           last is a copy (:meth:`~mpstab.engines.TensorNetworkEngine.copy_state`),
+           and a single cut makes no copy at all;
+        2. per term, a backward pass from the last cut down to the first:
+           start from :meth:`build_post_head_mpo` at the last cut, contract
+           with the stored head at each cut, then fold the rotations between
+           it and the previous cut. The fold order is the one
+           :meth:`build_post_head_mpo` uses, last rotation first, and with
+           ``light_cone`` the same rotations are skipped, so each cut gets
+           the MPS and MPO of a call at that cut alone, up to rounding.
+
+        Args:
+            terms: ``{pauli_string: coefficient}``, as from
+                :func:`~mpstab.hamiltonians.pauli_terms`.
+            constant: the observable's identity offset.
+            cuts: sorted, distinct split points in ``[0, K]``. Not checked:
+                the caller validates them.
+            max_bond_dimension: bond cap for every tail fold; ``None`` means
+                untruncated. The head MPS is capped at
+                ``self.max_bond_dimension``.
+            light_cone: skip, per term, the tail rotations it cannot see.
+                ``None`` means ``self.light_cone``.
+
+        Returns:
+            ``{cut_index: ExpectationResult}`` for every cut in ``cuts``.
+        """
+        if light_cone is None:
+            light_cone = self.light_cone
+        rotations = self._dressed_rotations()
+        last = cuts[-1]
+
+        heads = {}
+        state_mps = self.initial_mps()
+        previous = 0
+        for k in cuts:
+            self._apply_rotations(
+                state_mps, rotations[previous:k], "building head MPS"
+            )
+            # The last cut takes the MPS itself; any other needs a copy, since
+            # the rotations still to come update it in place.
+            heads[k] = (
+                state_mps if k == last else self.tn_engine.copy_state(state_mps)
+            )
+            previous = k
+
+        values = dict.fromkeys(cuts, constant)
+        truncation_l2 = dict.fromkeys(cuts, 0.0)
         for pauli, coefficient in terms.items():
             operator, sign = self.build_post_head_mpo(
-                pauli, cut_index, max_bond_dimension
+                pauli, last, max_bond_dimension, light_cone=light_cone
             )
-            value += (
-                coefficient
-                * sign
-                * np.real(
-                    self.tn_engine.expval(state_circuit=state_mps, operator=operator)
+            cone = None
+            if light_cone:
+                backpropagated, _ = self.stab_engine.backpropagate(
+                    observable=pauli, clifford_circuit=self.clifford_circuit
                 )
-            )
-            # Measured whatever the bond cap: the SVD cutoff truncates too.
-            truncation_l2 += fold_truncation_l2(
-                coefficient,
-                self.tn_engine.operator_site_arrays(operator),
-                self.nqubits,
-            )
+                cone = set(self._light_cone([backpropagated]))
+            for position in range(len(cuts) - 1, -1, -1):
+                k = cuts[position]
+                values[k] += (
+                    coefficient
+                    * sign
+                    * np.real(
+                        self.tn_engine.expval(state_circuit=heads[k], operator=operator)
+                    )
+                )
+                # Measured whatever the bond cap: the SVD cutoff truncates too.
+                truncation_l2[k] += fold_truncation_l2(
+                    coefficient,
+                    self.tn_engine.operator_site_arrays(operator),
+                    self.nqubits,
+                )
+                if position > 0:
+                    segment = [
+                        rotations[index]
+                        for index in range(k - 1, cuts[position - 1] - 1, -1)
+                        if cone is None or index in cone
+                    ]
+                    if segment:
+                        operator = self.tn_engine.conjugate_operator_many(
+                            operator, segment, max_bond_dimension
+                        )
 
-        return ExpectationResult(
-            value=float(np.real(value)),
-            stderr=0.0,
-            truncation_l1=None,
-            truncation_l2=float(truncation_l2),
-            n_settings=0,
-            n_shots=0,
-            state_fidelity=float(np.real(self.tn_engine.squared_norm(state_mps))),
-        )
+        return {
+            k: ExpectationResult(
+                value=float(np.real(values[k])),
+                stderr=0.0,
+                truncation_l1=None,
+                truncation_l2=float(truncation_l2[k]),
+                n_settings=0,
+                n_shots=0,
+                state_fidelity=float(np.real(self.tn_engine.squared_norm(heads[k]))),
+            )
+            for k in cuts
+        }
 
     def tail_truncation(
         self,
@@ -430,6 +576,123 @@ class HQSMPO(HSMPO):
             relative_frobenius_error=relative_frobenius_error,
             expval_abs_error=abs(expval(operator_approx) - expval(operator_exact)),
         )
+
+    def split_scan(
+        self,
+        observable: Observable,
+        cuts: Union[Sequence[int], None] = None,
+        max_bond_dimension: Union[int, None] = -1,
+        light_cone: Union[bool, None] = None,
+    ) -> List[SplitCandidate]:
+        """
+        Evaluate the classical split at many cuts at once.
+
+        At each cut this returns what
+        ``expectation_at_cut(observable, cut, method="simulation")`` would (up
+        to rounding), but shares the work: a forward pass applies the head
+        rotations to the state MPS once, keeping a copy at each cut, and a
+        backward pass per Pauli term folds the tail rotations into the
+        observable segment by segment, contracting it with the stored head
+        whenever it reaches a cut. That costs ``K`` head rotations and about
+        ``T * K`` tail conjugations for ``T`` terms, instead of about
+        ``T * K * C`` for ``C`` separate calls. One head MPS is held per cut,
+        so ``cuts`` also bounds the memory.
+
+        Classical only, like ``"simulation"``: meant for choosing a cut (see
+        :meth:`best_split`), not as a measurement route.
+
+        Args:
+            observable: a Pauli string (qubit-0-leftmost) or a
+                ``SymbolicHamiltonian``, as for :meth:`expectation_at_cut`.
+            cuts: the split points to evaluate, each in ``[0, K]`` with ``K`` the
+                number of dressed rotations; order and duplicates do not
+                matter. Defaults to all ``K + 1``.
+            max_bond_dimension: bond cap for every tail fold; ``-1`` means
+                ``self.max_bond_dimension``. The head MPS is capped at
+                ``self.max_bond_dimension``.
+            light_cone: fold, per term, only the tail rotations it can see
+                (:meth:`relevant_rotations`). Exact, and cheaper the more local
+                the terms are. ``None`` (the default) follows
+                ``self.light_cone``, so the candidates are scored with the same
+                fold :meth:`expectation_at_cut` will use on this instance; under
+                truncation the two settings can rank the cuts differently,
+                since skipping rotations also skips their truncation.
+
+        Returns:
+            One :class:`SplitCandidate` per distinct cut, sorted by ``cut_index``.
+
+        Raises:
+            ValueError: if ``cuts`` is empty or has a cut outside ``[0, K]``.
+            NotImplementedError: if the tensor-network engine cannot conjugate
+                an operator, see the class docstring.
+        """
+        max_bond_dimension = self._bond(max_bond_dimension)
+        constant, terms = pauli_terms(observable, self.nqubits)
+        n_rotations = len(self._dressed_rotations())
+        cut_list = sorted(
+            set(range(n_rotations + 1) if cuts is None else (int(c) for c in cuts))
+        )
+        if not cut_list:
+            raise ValueError("cuts is empty.")
+        if not 0 <= cut_list[0] <= cut_list[-1] <= n_rotations:
+            raise ValueError(f"cuts must lie in [0, {n_rotations}].")
+
+        results = self._simulate_at_cuts(
+            terms, constant, cut_list, max_bond_dimension, light_cone=light_cone
+        )
+        coefficient_l1 = float(sum(abs(c) for c in terms.values()))
+        return [SplitCandidate(k, results[k], coefficient_l1) for k in cut_list]
+
+    def best_split(
+        self,
+        observable: Union[Observable, None] = None,
+        cuts: Union[Sequence[int], None] = None,
+        key: Union[Callable[[SplitCandidate], float], None] = None,
+        scan: Union[List[SplitCandidate], None] = None,
+        max_bond_dimension: Union[int, None] = -1,
+        light_cone: Union[bool, None] = None,
+    ) -> SplitCandidate:
+        """
+        The cut minimising ``key`` over :meth:`split_scan`.
+
+        The default key, :attr:`SplitCandidate.error_estimate`, needs no exact
+        reference. It ranks the cuts of the classical split, where the head is a
+        truncated MPS. On hardware the head runs exactly, so a device run is
+        better ranked by a custom ``key``, e.g. trading ``result.truncation_l2``
+        against ``resynthesize_head(cut_index).n_two_qubit_gates``. To maximise
+        a quantity, negate it.
+
+        Args:
+            observable: forwarded to :meth:`split_scan`; not needed with
+                ``scan``.
+            cuts: forwarded to :meth:`split_scan`.
+            key: maps a :class:`SplitCandidate` to the value to minimise. Defaults
+                to :attr:`SplitCandidate.error_estimate`.
+            scan: a :meth:`split_scan` result to reuse; ``observable``,
+                ``cuts``, ``max_bond_dimension`` and ``light_cone`` are then
+                ignored.
+            max_bond_dimension: forwarded to :meth:`split_scan`.
+            light_cone: forwarded to :meth:`split_scan`.
+
+        Returns:
+            The best :class:`SplitCandidate`; ties go to the shorter head.
+
+        Raises:
+            ValueError: if neither ``observable`` nor ``scan`` is given, or
+                ``scan`` is empty.
+            NotImplementedError: from :meth:`split_scan`.
+        """
+        if key is None:
+            key = lambda point: point.error_estimate  # noqa: E731
+        if scan is None:
+            if observable is None:
+                raise ValueError("best_split needs an observable or a scan.")
+            scan = self.split_scan(
+                observable, cuts, max_bond_dimension, light_cone=light_cone
+            )
+        if not scan:
+            raise ValueError("best_split got an empty scan.")
+        return min(scan, key=lambda point: (key(point), point.cut_index))
 
     def resynthesize_head(
         self,
