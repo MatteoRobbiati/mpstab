@@ -81,16 +81,19 @@ Entanglement Metrics & Analysis
 
 Tools for analyzing entanglement and state properties.
 
-.. automodule:: mpstab.models.entropies
+.. automodule:: mpstab.models.metrics
    :members:
    :undoc-members:
    :show-inheritance:
 
 **Available Functions**:
 
-- ``stabilizer_renyi_entropy(state, alpha)``: Stabilizer Renyi entropy for a given state and order
-- ``meyer_wallach(state)``: Meyer-Wallach global entanglement of a dense state vector
+- ``stabilizer_renyi_entropy_mps(hsmpo, alpha, n_samples, seed)``: sampled stabilizer Renyi
+  entropy of the state an HSMPO represents
 - ``meyer_wallach_mps(hsmpo)``: Meyer-Wallach global entanglement of the state an HSMPO represents
+
+For a dense statevector, use Qibo's ``qibo.quantum_info.stabilizer_renyi_entropy`` and
+``qibo.quantum_info.meyer_wallach_entanglement``; the HSMPO versions follow the same conventions.
 
 
 Additional Utilities
@@ -116,7 +119,9 @@ Grover                      Grover search
 QPE                         Quantum Phase Estimation
 QAE                         Quantum Amplitude Estimation
 TrotterIsing                Trotterized transverse-field Ising evolution
-stabilizer_renyi_entropy    Calculate Renyi entropy for stabilizer states
+meyer_wallach_mps           Meyer-Wallach entanglement of an HSMPO state
+stabilizer_renyi_entropy_mps Sampled stabilizer Renyi entropy of an HSMPO
+                            state
 ==========================  ==================================================
 
 Related Documentation
