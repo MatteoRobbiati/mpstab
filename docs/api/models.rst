@@ -89,6 +89,8 @@ Tools for analyzing entanglement and state properties.
 **Available Functions**:
 
 - ``stabilizer_renyi_entropy(state, alpha)``: Stabilizer Renyi entropy for a given state and order
+- ``meyer_wallach(state)``: Meyer-Wallach global entanglement of a dense state vector
+- ``meyer_wallach_mps(hsmpo)``: Meyer-Wallach global entanglement of the state an HSMPO represents
 
 
 Additional Utilities

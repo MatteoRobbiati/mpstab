@@ -20,7 +20,10 @@ from mpstab.evolutors.optimization import minimize_expectation_dmrg
 from mpstab.evolutors.utils import dressed_rotations, gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
-from mpstab.models.entropies import stabilizer_renyi_entropy_mps
+from mpstab.models.entropies import (
+    meyer_wallach_mps,
+    stabilizer_renyi_entropy_mps,
+)
 from mpstab.pauli import validate_pauli_string
 
 
@@ -337,6 +340,13 @@ class HSMPO:
         return stabilizer_renyi_entropy_mps(
             self, alpha=alpha, n_samples=n_samples, seed=seed
         )
+
+    def meyer_wallach(self) -> float:
+        """
+        Meyer-Wallach global entanglement of the circuit's output state, from
+        the ``3n`` single-qubit Pauli expectation values.
+        """
+        return meyer_wallach_mps(self)
 
     def get_parameters(self) -> np.ndarray:
         """The circuit's current parameters."""

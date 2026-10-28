@@ -1,4 +1,7 @@
-"""Stabilizer Renyi entropy, a measure of how much magic a state carries."""
+"""
+State metrics: the stabilizer Renyi entropy, a measure of how much magic a state
+carries, and the Meyer-Wallach global entanglement.
+"""
 
 from itertools import product
 from typing import TYPE_CHECKING
@@ -122,3 +125,68 @@ def stabilizer_renyi_entropy_mps(
 
     raw = float(np.log(estimated_full_sum) / (1.0 - alpha))
     return raw / (n * np.log(2))
+
+
+def meyer_wallach(state: np.ndarray) -> float:
+    r"""
+    Exact Meyer-Wallach global entanglement of a dense state vector,
+
+    .. math::
+        Q(\psi) = 2 \left(1 - \frac{1}{n} \sum_{k=0}^{n-1} \mathrm{Tr}\,\rho_k^2\right),
+
+    with :math:`\rho_k` the reduced state of qubit :math:`k`. It is 0 for product
+    states and 1 when every qubit is maximally entangled with the rest; a
+    Haar-random state averages :math:`(2^n - 2) / (2^n + 1)`.
+    See https://arxiv.org/abs/quant-ph/0108104.
+
+    Cost is O(n 2^n), so only suitable for small n.
+    """
+    nqubits = int(np.log2(len(state)))
+    tensor = np.asarray(state).reshape([2] * nqubits)
+
+    purity_sum = 0.0
+    for k in range(nqubits):
+        m = np.moveaxis(tensor, k, 0).reshape(2, -1)
+        rho = m @ m.conj().T
+        purity_sum += np.real(np.trace(rho @ rho))
+
+    return float(2 * (1 - purity_sum / nqubits))
+
+
+def meyer_wallach_mps(hsmpo: "HSMPO") -> float:
+    r"""
+    Meyer-Wallach global entanglement of the state an HSMPO represents.
+
+    The state is :math:`C|\psi_{\mathrm{MPS}}\rangle`, with :math:`C` the cached
+    Clifford circuit, so the single-qubit reduced states cannot be read off the
+    MPS sites. Each purity is rebuilt from the qubit's Bloch vector instead,
+
+    .. math::
+        \mathrm{Tr}\,\rho_k^2 = \frac{1}{2}
+        \left(1 + \langle X_k\rangle^2 + \langle Y_k\rangle^2 + \langle Z_k\rangle^2\right),
+
+    which turns :math:`Q` into
+
+    .. math::
+        Q = 1 - \frac{1}{n} \sum_{k=0}^{n-1} \sum_{P \in \{X, Y, Z\}} \langle P_k\rangle^2,
+
+    where every :math:`\langle P_k\rangle` is backpropagated through :math:`C`
+    and contracted against the cached MPS. That is :math:`3n` contractions, exact
+    up to the MPS truncation.
+
+    Parameters
+    ----------
+    hsmpo : HSMPO
+        The hybrid stabilizer MPO object with a precomputed MPS cache.
+
+    Returns
+    -------
+    float
+        Meyer-Wallach Q of the circuit's output state.
+    """
+    n = hsmpo.nqubits
+    local_paulis = [
+        "I" * k + pauli + "I" * (n - k - 1) for k in range(n) for pauli in "XYZ"
+    ]
+    bloch_sq_sum = sum(hsmpo.expectation(p) ** 2 for p in local_paulis)
+    return float(1 - bloch_sq_sum / n)
