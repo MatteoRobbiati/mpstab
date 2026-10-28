@@ -14,10 +14,19 @@ observable, always spending a shot budget, by one of two routes:
 Resynthesising the head leaves a Clifford residual, so a device prepares
 ``U(residual) U(head)|psi_0>`` rather than the exact head state the tail
 coefficients were derived against. The ``"pauli"`` route corrects for this by
-conjugating every sampled string through the residual. The ``"shadows"`` route
-cannot: folding the residual into the tail MPO would destroy the product
-structure its ``O(n chi^2)`` contraction relies on, so it raises unless the caller
-passes ``tail_handling="append"`` to run the residual as extra gates.
+conjugating every sampled string through the residual. The ``"shadows"`` and
+``"tnice"`` routes take a ``tail_handling``:
+
+- ``"forbid"`` (default) raises on a non-trivial residual;
+- ``"append"`` runs the residual as extra gates after the head;
+- ``"fold"`` conjugates the observable *and every tail generator* through the
+  residual before folding the tail, so the device runs the head alone. A Pauli
+  conjugated by a Clifford is a Pauli, so the tail stays a Pauli-rotation fold
+  with the same MPO structure, and the result is exactly ``R^dag O' R``. It
+  saves the residual's two-qubit gates, but the residual spreads Pauli weight,
+  so the shadow variance ``sum_P c_P^2 3^w_P`` of the folded MPO can grow by
+  orders of magnitude: whether it pays off depends on the device's two-qubit
+  error.
 
 :meth:`HSynthSMPO.expectation_from_split` is the exact MPO-MPS contraction of the
 same split. It is a reference for validating the sampled routes, not a
@@ -113,7 +122,11 @@ class HSynthSMPO(HSMPO):
     """
 
     def tail_operator(
-        self, observable: str, cut_index: int, max_bond_dimension: int = -1
+        self,
+        observable: str,
+        cut_index: int,
+        max_bond_dimension: int = -1,
+        residual: Union[stim.Tableau, None] = None,
     ):
         """
         The tail-folded observable MPO and its sign.
@@ -126,6 +139,11 @@ class HSynthSMPO(HSMPO):
             cut_index: the split point; only the tail is folded.
             max_bond_dimension: bond cap for each conjugation. ``-1`` means
                 ``self.max_bond_dimension``, ``None`` means untruncated.
+            residual: a Clifford ``stim.Tableau`` ``R`` to reabsorb, typically
+                :attr:`ResynthesizedHead.tail_tableau`. The backpropagated
+                string and every tail generator are conjugated through it
+                first (a generator's sign goes into its angle), which gives
+                exactly ``R^dag O' R`` at the cost of Pauli folds only.
 
         Returns:
             ``(operator, sign)``.
@@ -138,12 +156,30 @@ class HSynthSMPO(HSMPO):
         backpropagated, sign = self.stab_engine.backpropagate(
             observable=observable, clifford_circuit=self.clifford_circuit
         )
+        if residual is not None:
+            backpropagated, residual_sign = self.stab_engine.fold_pauli_through_tableau(
+                backpropagated, residual, 1.0
+            )
+            sign = sign * residual_sign
+            tail = [self._fold_rotation(rotation, residual) for rotation in tail]
+
         operator = self.tn_engine.pauli_mpo(backpropagated)
         for generator, angle in reversed(tail):  # outermost rotation folded last
             operator = self.tn_engine.conjugate_operator(
                 operator, generator, angle, max_bond_dimension
             )
         return operator, sign
+
+    def _fold_rotation(self, rotation: Tuple[str, float], residual: stim.Tableau):
+        """
+        ``R^dag exp(-i angle/2 G) R = exp(-i angle/2 R^dag G R)``, and
+        ``R^dag G R = +-G'``, so the sign moves into the angle.
+        """
+        generator, angle = rotation
+        folded, sign = self.stab_engine.fold_pauli_through_tableau(
+            generator, residual, 1.0
+        )
+        return folded, float(np.real(sign)) * angle
 
     def _head_state_mps(self, head: List[Tuple[str, float]]):
         """The exact MPS after applying the head's dressed rotations."""
@@ -200,6 +236,7 @@ class HSynthSMPO(HSMPO):
         cut_index: int,
         reference_max_bond: Union[int, None] = None,
         exact: bool = True,
+        residual: Union[stim.Tableau, None] = None,
     ) -> TailTruncation:
         """
         Quantify how closely the truncated tail fold approximates the exact one.
@@ -211,12 +248,24 @@ class HSynthSMPO(HSMPO):
                 ``exact=True``; ``None`` means untruncated.
             exact: build the reference fold and report all three fields. When
                 ``False``, report only the reference-free ``fidelity_estimate``.
+            residual: forwarded to :meth:`tail_operator`, to assess the fold
+                ``tail_handling="fold"`` actually measures. Only with
+                ``exact=False``.
+
+        Raises:
+            NotImplementedError: for ``residual`` with ``exact=True``: the
+                ``expval_abs_error`` of a folded tail needs the device head
+                state ``R^dag |head>``, which is not built here.
         """
         self._require_quimb("tail_truncation")
         validate_pauli_string(observable, self.nqubits)
+        if residual is not None and exact:
+            raise NotImplementedError(
+                "tail_truncation(residual=...) supports exact=False only."
+            )
 
         operator_approx, sign = self.tail_operator(
-            observable, cut_index, self.max_bond_dimension
+            observable, cut_index, self.max_bond_dimension, residual=residual
         )
         fidelity_estimate = (
             float(np.real(operator_approx.norm())) ** 2 / 2**self.nqubits
@@ -340,7 +389,11 @@ class HSynthSMPO(HSMPO):
                 ``self.max_bond_dimension``.
             tail_handling: ``"shadows"`` and ``"tnice"`` only. ``"forbid"``
                 raises if resynthesis left a non-trivial Clifford residual;
-                ``"append"`` runs it as extra gates after the head.
+                ``"append"`` runs it as extra gates after the head;
+                ``"fold"`` reabsorbs it into the tail MPO (see
+                :meth:`tail_operator`), so the device runs the head alone at a
+                possibly much higher shadow variance. ``"fold"`` supports only
+                the default ``truncation_reference_max_bond=-1``.
             seed: RNG seed for Pauli sampling, random shadow bases, and (for
                 ``"tnice"``) the train/test shot split.
             method_kwargs: ``"pauli"`` takes ``n_string_samples`` (default
@@ -480,10 +533,17 @@ class HSynthSMPO(HSMPO):
                 default.
         """
         circuit = self._shadow_circuit(resynthesis, cut_index, tail_handling)
+        residual = None
+        if tail_handling == "fold" and resynthesis.tail_tableau != stim.Tableau(
+            self.nqubits
+        ):
+            residual = resynthesis.tail_tableau
 
         mpo_terms = []
         for pauli, coefficient in terms.items():
-            operator, sign = self.tail_operator(pauli, cut_index, max_bond_dimension)
+            operator, sign = self.tail_operator(
+                pauli, cut_index, max_bond_dimension, residual=residual
+            )
             mpo_terms.append((pauli, coefficient, sign, operator))
 
         truncation_l2 = 0.0
@@ -496,7 +556,7 @@ class HSynthSMPO(HSMPO):
                             0.0,
                             1.0
                             - self.tail_truncation(
-                                pauli, cut_index, exact=False
+                                pauli, cut_index, exact=False, residual=residual
                             ).fidelity_estimate,
                         )
                     )
@@ -510,6 +570,7 @@ class HSynthSMPO(HSMPO):
                         cut_index,
                         reference_max_bond=truncation_reference_max_bond,
                         exact=True,
+                        residual=residual,
                     ).expval_abs_error
                     for pauli, coefficient in terms.items()
                 )
@@ -534,20 +595,23 @@ class HSynthSMPO(HSMPO):
             ValueError: on an unknown ``tail_handling``, or on a non-trivial
                 residual under ``"forbid"``.
         """
-        if tail_handling not in ("forbid", "append"):
+        if tail_handling not in ("forbid", "append", "fold"):
             raise ValueError(
-                f"Unknown tail_handling {tail_handling!r}, expected 'forbid' or "
-                "'append'."
+                f"Unknown tail_handling {tail_handling!r}, expected 'forbid', "
+                "'append' or 'fold'."
             )
-        if resynthesis.tail_tableau == stim.Tableau(self.nqubits):
+        if (
+            resynthesis.tail_tableau == stim.Tableau(self.nqubits)
+            or tail_handling == "fold"
+        ):
             return resynthesis.circuit
         if tail_handling == "forbid":
             raise ValueError(
                 "resynthesize_head left a non-trivial Clifford residual "
-                f"({resynthesis.method} resynthesis at cut_index={cut_index}). The "
-                "shadows route cannot fold it into the tail MPO without destroying "
-                "the product structure its O(n chi^2) contraction relies on. Pass "
-                "tail_handling='append' to run the residual as extra gates instead."
+                f"({resynthesis.method} resynthesis at cut_index={cut_index}). Pass "
+                "tail_handling='append' to run it as extra gates, or "
+                "tail_handling='fold' to reabsorb it into the tail MPO (no extra "
+                "gates, but usually a higher shadow variance)."
             )
         return resynthesis.circuit + head_to_qibo_circuit(
             list(resynthesis.tail_gates), self.nqubits

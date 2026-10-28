@@ -73,8 +73,12 @@ A partial cut leaves a pure-Clifford residual (``resynth.tail_tableau``): the
 ``"pauli"`` route of :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut`
 folds it into the sampled Pauli terms automatically before grouping (see the
 module docstring of :mod:`mpstab.evolutors.hsynthsmpo`); the ``"shadows"``
-route instead raises unless ``tail_handling="append"`` is passed, since
-folding it into the tail MPO would destroy the product structure its
-contraction relies on. Rotations left out of the resynthesis entirely are
+and ``"tnice"`` routes raise unless a ``tail_handling`` is chosen:
+``"append"`` runs the residual as extra gates, while ``"fold"`` conjugates the
+Clifford-backpropagated observable and every tail generator through it, so the
+device runs the head alone. ``"fold"`` is exact and keeps the tail an MPO, but
+the residual spreads Pauli weight, which can raise the shadow variance by
+orders of magnitude -- compare ``shadow_variance_from_mpo`` of the two tail
+operators against the residual's two-qubit gate count before choosing. Rotations left out of the resynthesis entirely are
 still non-Clifford and get folded approximately into the tail MPO -- see
 :doc:`fidelity_and_approximation` and ``HSynthSMPO.tail_truncation``.
