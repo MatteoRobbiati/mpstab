@@ -308,6 +308,104 @@ def test_shadows_forbids_nontrivial_tail_unless_appended(monkeypatch, xy_observa
     assert abs(result.value - exact) <= 4 * result.total_error, result
 
 
+def test_folded_tail_operator_matches_appended_residual(monkeypatch, xy_observable):
+    """
+    ``tail_operator(residual=R)`` on the head circuit alone must equal the plain
+    tail operator on head + residual gates, exactly (dense statevector check).
+    """
+    import mpstab.evolutors.hsynthsmpo as hsmod
+    from mpstab.quantum_hardware.synthesis import head_to_qibo_circuit
+
+    hs = _hs(4, nlayers=3, seed=0)
+    cut_index = len(hs.magic_gates) - 3
+    monkeypatch.setattr(
+        hsmod, "build_head_and_residual", _fake_resynthesis_with_trailing_tail(3)
+    )
+    resynthesis = hs.resynthesize_head(cut_index)
+    assert resynthesis.tail_tableau != stim.Tableau(4)
+
+    def dense_expval(circuit, operator, sign):
+        state = np.asarray(circuit().state())
+        return sign * float(np.real(state.conj() @ (operator.to_dense() @ state)))
+
+    tail, sign = hs.tail_operator(xy_observable, cut_index, None)
+    folded, folded_sign = hs.tail_operator(
+        xy_observable, cut_index, None, residual=resynthesis.tail_tableau
+    )
+    appended = resynthesis.circuit + head_to_qibo_circuit(
+        list(resynthesis.tail_gates), 4
+    )
+    exact = hs.expectation_from_split(xy_observable, cut_index=cut_index)
+
+    assert dense_expval(appended, tail, sign) == pytest.approx(exact, abs=1e-10)
+    assert dense_expval(resynthesis.circuit, folded, folded_sign) == pytest.approx(
+        exact, abs=1e-10
+    )
+    # Dropping the residual must not give the same number, or the test is vacuous.
+    assert abs(dense_expval(resynthesis.circuit, tail, sign) - exact) > 1e-3
+
+
+@pytest.mark.parametrize("method", ["shadows", "tnice"])
+def test_fold_tail_handling_matches_split(monkeypatch, xy_observable, method):
+    import mpstab.evolutors.hsynthsmpo as hsmod
+
+    hs = _hs(4, nlayers=3, seed=0)
+    cut_index = len(hs.magic_gates) - 3
+    monkeypatch.setattr(
+        hsmod, "build_head_and_residual", _fake_resynthesis_with_trailing_tail(3)
+    )
+    resynthesis = hs.resynthesize_head(cut_index)
+
+    exact = hs.expectation_from_split(xy_observable, cut_index=cut_index)
+    result = hs.expectation_at_cut(
+        xy_observable,
+        cut_index,
+        method=method,
+        n_shots=30000,
+        seed=1,
+        tail_handling="fold",
+    )
+    assert abs(result.value - exact) <= 4 * result.total_error, result
+
+    # Same seed, same bases: "fold" measures exactly the residual's gates fewer.
+    def first_circuit(tail_handling):
+        plan = hs._shadow_plan(
+            terms={xy_observable: 1.0},
+            constant=0.0,
+            cut_index=cut_index,
+            resynthesis=resynthesis,
+            max_bond_dimension=None,
+            n_shots=10,
+            epsilon=None,
+            seed=0,
+            tail_handling=tail_handling,
+        )
+        return plan.circuits[0]
+
+    n_residual = len(resynthesis.tail_gates)
+    assert n_residual > 0
+    assert len(first_circuit("append").queue) - len(
+        first_circuit("fold").queue
+    ) == n_residual
+
+
+def test_unknown_tail_handling_raises():
+    hs = _hs(3)
+    with pytest.raises(ValueError):
+        hs.expectation_at_cut(
+            "ZZZ", cut_index=0, method="shadows", n_shots=100, tail_handling="bogus"
+        )
+
+
+def test_tail_truncation_with_residual_requires_exact_false():
+    hs = _hs(3)
+    with pytest.raises(NotImplementedError):
+        hs.tail_truncation("ZZZ", 0, exact=True, residual=stim.Tableau(3))
+    assert hs.tail_truncation(
+        "ZZZ", 0, exact=False, residual=stim.Tableau(3)
+    ).fidelity_estimate == pytest.approx(1.0)
+
+
 # ---------------------------------------------------------------------------
 # 3. A bare object exposing only execute_circuits works as a backend
 # ---------------------------------------------------------------------------
