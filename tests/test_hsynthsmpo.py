@@ -125,6 +125,85 @@ def test_tail_truncation_reports_error_when_truncated():
     assert np.allclose(reference_expval, exact, atol=1e-6)
 
 
+@pytest.mark.parametrize("observable", ["ZZZZZZ", "IXIYIZ"])
+def test_split_scan_matches_from_scratch(observable):
+    # A tight bond cap makes every cut different; the incremental scan must
+    # still reproduce the from-scratch split and both fidelities at each one.
+    hs = HSynthSMPO(HardwareEfficient(nqubits=6, nlayers=2), max_bond_dimension=2)
+    scan = hs.split_scan(observable)
+    assert [point.cut_index for point in scan] == list(
+        range(len(hs._dressed_rotations()) + 1)
+    )
+
+    for point in scan:
+        expval, fidelity = hs.expectation_from_split(
+            observable, point.cut_index, return_fidelity=True
+        )
+        operator_fidelity = hs.tail_truncation(
+            observable, point.cut_index, exact=False
+        ).fidelity_estimate
+        assert point.expval == pytest.approx(float(expval), abs=1e-10)
+        assert point.state_fidelity == pytest.approx(float(np.real(fidelity)), abs=1e-10)
+        assert point.operator_fidelity == pytest.approx(operator_fidelity, abs=1e-10)
+        assert point.score == pytest.approx(
+            point.state_fidelity * point.operator_fidelity
+        )
+
+
+def test_split_scan_untruncated_is_exact():
+    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    hs = HSynthSMPO(ansatz)
+    reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str="IZIX")
+    for point in hs.split_scan("IZIX"):
+        assert point.expval == pytest.approx(reference, abs=1e-6)
+        assert point.score == pytest.approx(1.0, abs=1e-6)
+
+
+def test_split_scan_cuts_sorted_and_deduplicated():
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    n_rotations = len(hs._dressed_rotations())
+    scan = hs.split_scan("ZZZZ", cuts=[n_rotations, 0, 2, 2])
+    assert [point.cut_index for point in scan] == [0, 2, n_rotations]
+
+
+@pytest.mark.parametrize("offset", [-1, 1])
+def test_split_scan_rejects_out_of_range_cuts(offset):
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    bad_cut = -1 if offset < 0 else len(hs._dressed_rotations()) + 1
+    with pytest.raises(ValueError):
+        hs.split_scan("ZZZZ", cuts=[0, bad_cut])
+
+
+def test_split_scan_native_engine_not_supported():
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    hs.set_engines(tn_engine=NativeTensorNetworkEngine())
+    with pytest.raises(NotImplementedError):
+        hs.split_scan("ZZZZ")
+
+
+def test_best_split_maximises_score():
+    hs = HSynthSMPO(HardwareEfficient(nqubits=6, nlayers=2), max_bond_dimension=2)
+    scan = hs.split_scan("ZZZZZZ")
+    best = hs.best_split("ZZZZZZ", scan=scan)
+    assert best.score == max(point.score for point in scan)
+    assert best == hs.best_split("ZZZZZZ")  # same result without a cached scan
+
+
+def test_best_split_ties_go_to_shorter_head():
+    # A constant key ties every cut, so the shortest head wins. (Untruncated
+    # scores are 1 only up to ~1e-15, so they do not tie exactly.)
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    assert hs.best_split("ZZZZ", key=lambda point: 0.0).cut_index == 0
+    assert hs.best_split("ZZZZ", cuts=[3, 1, 2], key=lambda point: 0.0).cut_index == 1
+
+
+def test_best_split_custom_key():
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    n_rotations = len(hs._dressed_rotations())
+    best = hs.best_split("ZZZZ", key=lambda point: point.cut_index)
+    assert best.cut_index == n_rotations
+
+
 def test_resynthesize_head_is_qibo_circuit():
     pytest.importorskip("rustiq")
     from qibo import Circuit as QiboCircuit

@@ -26,7 +26,7 @@ measurement route, and :meth:`HSynthSMPO.expectation_at_cut` never calls it.
 
 import dataclasses
 from dataclasses import dataclass
-from typing import List, Tuple, Union
+from typing import Callable, List, Sequence, Tuple, Union
 
 import numpy as np
 import stim
@@ -52,7 +52,13 @@ from mpstab.quantum_hardware import (
     truncation_error_estimate,
 )
 
-__all__ = ["HSynthSMPO", "ExpectationResult", "ResynthesizedHead", "TailTruncation"]
+__all__ = [
+    "HSynthSMPO",
+    "ExpectationResult",
+    "ResynthesizedHead",
+    "SplitPoint",
+    "TailTruncation",
+]
 
 
 @dataclass(frozen=True)
@@ -99,6 +105,31 @@ class TailTruncation:
     fidelity_estimate: float
     relative_frobenius_error: Union[float, None]
     expval_abs_error: Union[float, None]
+
+
+@dataclass(frozen=True)
+class SplitPoint:
+    """
+    One head/tail cut, as evaluated by :meth:`HSynthSMPO.split_scan`.
+
+    Attributes:
+        cut_index: rotations ``[0:cut_index)`` form the head, the rest the tail.
+        expval: the split's expectation value, as
+            :meth:`HSynthSMPO.expectation_from_split` returns it.
+        state_fidelity: squared norm of the truncated head MPS.
+        operator_fidelity: ``||O'||_F**2 / 2**n`` of the truncated tail MPO, as
+            :attr:`TailTruncation.fidelity_estimate`.
+    """
+
+    cut_index: int
+    expval: float
+    state_fidelity: float
+    operator_fidelity: float
+
+    @property
+    def score(self) -> float:
+        """Reference-free quality proxy, ``state_fidelity * operator_fidelity``."""
+        return self.state_fidelity * self.operator_fidelity
 
 
 @dataclass
@@ -246,6 +277,104 @@ class HSynthSMPO(HSMPO):
             ),
             expval_abs_error=abs(expval(operator_approx) - expval(operator_exact)),
         )
+
+    def split_scan(
+        self, observable: str, cuts: Union[Sequence[int], None] = None
+    ) -> List[SplitPoint]:
+        """
+        :meth:`expectation_from_split` and both truncation fidelities at every
+        cut, in O(K) rotations rather than the O(K^2) of calling it once per cut.
+
+        A forward pass applies the rotations to the state MPS, keeping a copy of
+        the head at each cut. A backward pass folds the rotations into the
+        observable one at a time, last first, which is the order
+        :meth:`tail_operator` uses, so each split equals the from-scratch one.
+        One head MPS is held per cut, so ``cuts`` also bounds the memory.
+
+        Args:
+            observable: a Pauli string (qubit-0-leftmost).
+            cuts: the split points to evaluate, each in ``[0, K]`` with ``K`` the
+                number of dressed rotations. Defaults to all ``K + 1``.
+
+        Returns:
+            One :class:`SplitPoint` per cut, sorted by ``cut_index``.
+        """
+        self._require_quimb("split_scan")
+        validate_pauli_string(observable, self.nqubits)
+        rotations = self._dressed_rotations()
+        n_rotations = len(rotations)
+        cut_set = set(range(n_rotations + 1) if cuts is None else cuts)
+        if cut_set and not 0 <= min(cut_set) <= max(cut_set) <= n_rotations:
+            raise ValueError(f"cuts must lie in [0, {n_rotations}].")
+
+        heads = {}
+        state_mps = self._head_state_mps([])
+        for k in range(n_rotations + 1):
+            if k in cut_set:
+                heads[k] = state_mps.copy()
+            if k < n_rotations:
+                generator, angle = rotations[k]
+                self.tn_engine.pauli_rot(
+                    state_circuit=state_mps,
+                    generator=generator,
+                    angle=angle,
+                    max_bond_dimension=self.max_bond_dimension,
+                )
+
+        operator, sign = self.tail_operator(observable, n_rotations)  # nothing folded
+        points = {}
+        for k in range(n_rotations, -1, -1):
+            if k in heads:
+                head = heads.pop(k)
+                points[k] = SplitPoint(
+                    cut_index=k,
+                    expval=float(
+                        np.real(
+                            self.tn_engine.expval(state_circuit=head, operator=operator)
+                        )
+                        * np.real(sign)
+                    ),
+                    state_fidelity=float(np.real(head.norm(squared=True))),
+                    operator_fidelity=float(np.real(operator.norm())) ** 2
+                    / 2**self.nqubits,
+                )
+            if k > 0:
+                generator, angle = rotations[k - 1]
+                operator = self.tn_engine.conjugate_operator(
+                    operator, generator, angle, self.max_bond_dimension
+                )
+        return [points[k] for k in sorted(cut_set)]
+
+    def best_split(
+        self,
+        observable: str,
+        cuts: Union[Sequence[int], None] = None,
+        key: Union[Callable[[SplitPoint], float], None] = None,
+        scan: Union[List[SplitPoint], None] = None,
+    ) -> SplitPoint:
+        """
+        The cut maximising ``key`` over :meth:`split_scan`.
+
+        The default key, :attr:`SplitPoint.score`, needs no exact reference. It
+        tracks the true error only while both fidelities stay close to 1; under
+        heavy truncation it can miss the best cut.
+
+        Args:
+            observable: a Pauli string (qubit-0-leftmost).
+            cuts: forwarded to :meth:`split_scan`.
+            key: maps a :class:`SplitPoint` to the value to maximise. Defaults
+                to :attr:`SplitPoint.score`.
+            scan: a :meth:`split_scan` result to reuse; ``observable`` and
+                ``cuts`` are then ignored.
+
+        Returns:
+            The best :class:`SplitPoint`; ties go to the shorter head.
+        """
+        if key is None:
+            key = lambda point: point.score  # noqa: E731
+        if scan is None:
+            scan = self.split_scan(observable, cuts)
+        return max(scan, key=lambda point: (key(point), -point.cut_index))
 
     def resynthesize_head(
         self, cut_index: int, metric_name: str = "count", preserve_order: bool = True
