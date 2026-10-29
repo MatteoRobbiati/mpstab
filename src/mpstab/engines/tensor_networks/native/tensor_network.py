@@ -5,21 +5,22 @@ import networkx as nx
 import numpy as np
 import scipy
 
-from mpstab.evolutors.tensor_network.utils import (
+from mpstab.engines.tensor_networks.native.utils import (
     _bond_dimension_cut,
     _complex_conjugate,
-    draw_tn,
     multi_trace,
-    paulis,
 )
+from mpstab.pauli import PAULI_MATRICES
 
 
 @dataclass
 class TensorNetwork:
     """
-    Flexible tensor-network implementation, allowing complex tensor manipulations at an abstract level.
+    A tensor network as a graph, supporting contraction and SVD splitting.
 
-    Tensors are implemented as numpy arrays, while contractions paths are implemented as a directed graph, specifically a NetworkX MultiDiGraph.
+    Tensors are numpy arrays held on the nodes of a NetworkX ``MultiDiGraph``;
+    each edge records which axis of each endpoint it joins, so an edge is a
+    contraction waiting to happen.
     """
 
     def __post_init__(self):
@@ -41,10 +42,9 @@ class TensorNetwork:
         self.add_tensor(id=id, tensor=np.array([alpha, beta]))
 
     def add_pauli_pair(self, id: str, p0: str, p1: str):
-        tensor = np.array([paulis[p0], paulis[p1]])
+        """Add a rank-3 tensor stacking the Pauli matrices ``p0`` and ``p1``."""
         self.add_tensor(
-            id=id,
-            tensor=tensor,
+            id=id, tensor=np.array([PAULI_MATRICES[p0], PAULI_MATRICES[p1]])
         )
 
     def add_copy_tensor(self, id: str, n: int):
@@ -54,9 +54,7 @@ class TensorNetwork:
 
     def complex_conjugate(self):
         """
-        Return the complex conjugate of the network.
-
-        After this procedure, node names are updated according to the following convention: 'nodename' -> 'nodename_dg'.
+        Conjugate every tensor in place, renaming each node ``name -> name_dg``.
         Edges are left unchanged.
         """
         return _complex_conjugate(self.tensornet)
@@ -70,17 +68,20 @@ class TensorNetwork:
         **edge_metadata,
     ):
         """
-        Add an edge between two tensors, representing a potential contaction.
-        Edges are *directed*, meaning the order of ``node_in`` and ``node_out`` does matter during the contraction, i.e. the same order must be used.
+        Add an edge between two tensors, marking a contraction to perform later.
+
+        Edges are *directed*: the same ``(node_in, node_out)`` order must be used
+        when the edge is contracted.
 
         Args:
-            node_in (str): first tensor to be connected
-            node_out (str): second tensor to be connected
-            edge_id (str): name of the contraction path
-            directions (tuple[int, int]): pair of integers representing which of the tensor axes (indices) are to be connected by this edge.
+            node_in: first tensor to connect.
+            node_out: second tensor to connect.
+            edge_id: name of the edge.
+            directions: which axis of each tensor this edge joins.
 
         Raises:
-            ValueError: When attempting to connect already connected tensors, or when connecting indices with incompatible dimensions.
+            ValueError: if the joined axes have different dimensions, or either
+                axis is already taken by another edge.
         """
 
         d_in, d_out = directions
@@ -110,16 +111,13 @@ class TensorNetwork:
         self.tensornet.nodes[node_out]["free_directions"][d_out] = False
 
     def remove_edge(self, node_in, node_out, edge_id):
-
+        """Remove an edge, freeing the axes it occupied on both endpoints."""
         d_in, d_out = self.tensornet.edges[node_in, node_out, edge_id]["directions"]
 
         self.tensornet.remove_edge(node_in, node_out, edge_id)
 
         self.tensornet.nodes[node_in]["free_directions"][d_in] = True
         self.tensornet.nodes[node_out]["free_directions"][d_out] = True
-
-    def draw(self, show_labels=False, title=""):
-        return draw_tn(tn=self, show_labels=show_labels, title=title)
 
     def contract(
         self,
@@ -128,25 +126,22 @@ class TensorNetwork:
         edge_ids: Union[str, list[str]],
         new_node_id: str,
     ):
+        """
+        Contract ``node_in`` and ``node_out`` over ``edge_ids`` into one node.
 
-        # Constructing a list of edges ids, useful later
+        A self-loop (``node_in == node_out``) becomes a partial trace instead of
+        a tensordot. Surviving edges are re-pointed at the merged node.
+        """
         if type(edge_ids) is str:
             edge_ids = [edge_ids]
 
-        # Collect all edges metadata in a second list
-        edge_metadatas = [
-            self.tensornet.edges[node_in, node_out, id] for id in edge_ids
-        ]
-
-        # Constructing two lists:
-        # -- 1: directions_in contains the physical directions of input nodes of the edges
-        # -- 2: directions_out contains the physical directions of output nodes of the edges
+        # The axes each edge occupies on its input and its output node.
         directions_in, directions_out = [], []
-        for metadata in edge_metadatas:
-            directions_in.append(metadata["directions"][0])
-            directions_out.append(metadata["directions"][1])
+        for edge_id in edge_ids:
+            directions = self.tensornet.edges[node_in, node_out, edge_id]["directions"]
+            directions_in.append(directions[0])
+            directions_out.append(directions[1])
 
-        # Remove the edges from the graph
         for edge_id in edge_ids:
             self.remove_edge(node_in=node_in, node_out=node_out, edge_id=edge_id)
 
@@ -181,38 +176,28 @@ class TensorNetwork:
         max_bond_dimension: Optional[int] = None,
     ):
         """
-        Perform the SVD decomposition (T=ULV*) to a tensor (T), splitting it into two child tensors (U and V*), each retaining a certain
-        subset of the original tensor's connections, and connected to each other by a diagonal middle node (L). By default the middle
-        tensor is named 'Lambda' and the edge connections to the child nodes are named 'chi'.
+        Split a tensor by SVD, ``T = U L V*``, into three connected nodes.
 
-        Edges across the TensorNetwork are updated to preserve the validity of the connections (i.e. the old indices are updated to
-        match those of the new tensors). All tensor indices must be assigned to an edge before this decomposition takes place.
-
-        When specified, can perform a cut in the bond dimension, by discarding the smallest singular values exeeding the specified number,
-        hence limiting the scaling of the cost of computation. Otherwise the full rank child tensors are kept, discarding only the zeros.
+        Each edge of ``node`` is handed to either the ``U`` or the ``V*`` child,
+        and the two are joined through the diagonal ``L``. Edges elsewhere in the
+        network are re-pointed so the network stays valid. Every axis of ``node``
+        must already be assigned to an edge.
 
         Args:
-            node (str):
-                tensor to undergo SVD decomposition
-            left_node_id (strg):
-                name of the 'left unitary' child tensor, i.e. U
-            left_node_edges (Union[str, list[str]]):
-                edges pertaining to U
-            right_node_id (str):
-                name of the 'right unitary' child tensor, i.e. V*
-            right_node_edges(Union[str, list[str]]):
-                edges pertaining to V*
-            middle_node_id (str):
-                diagonal tensor, i.e. L
-            middle_edge_left (str):
-                edge representing the matrix multiplication 'UL'
-            middle_edge_right (str):
-                edge representing the matrix multiplication 'LV*'
-            max_bond_dimension (Optional[int]):
-                maximum number of singular values to be kept after performing the SVD
+            node: the tensor to split.
+            left_node_id: name for the left unitary ``U``.
+            left_node_edges: edges to hand to ``U``.
+            right_node_id: name for the right unitary ``V*``.
+            right_node_edges: edges to hand to ``V*``.
+            middle_node_id: name for the diagonal ``L``.
+            middle_edge_left: name for the ``U``-``L`` edge.
+            middle_edge_right: name for the ``L``-``V*`` edge.
+            max_bond_dimension: keep at most this many singular values. ``None``
+                keeps the full numerical rank, discarding only zeros.
 
         Raises:
-            ValueError: if either too many or too few edges are assigned to the child tensors.
+            ValueError: if an edge of ``node`` is assigned to neither child, or
+                if more edges are assigned than ``node`` has axes.
         """
 
         if type(left_node_edges) is str:
@@ -237,7 +222,9 @@ class TensorNetwork:
         tensor = np.reshape(tensor, matrix_shape)
 
         # Perform SVD
-        svd_result = scipy.linalg.svd(tensor, full_matrices=False, lapack_driver="gesvd")
+        svd_result = scipy.linalg.svd(
+            tensor, full_matrices=False, lapack_driver="gesvd"
+        )
         left_tensor, middle_tensor, right_tensor = _bond_dimension_cut(
             *svd_result, max_bond_dimension
         )
@@ -293,16 +280,15 @@ class TensorNetwork:
         right_node_edges: Union[str, list[str]],
     ):
         """
-        Compute a trasposition vector by reordering the indices, grouping together edges pertaining to either left or right child
-        of a SVD decompoition, thus establishing a conventional order, i.e. left edges first, and right edges second, in the order
-        of appearence in the list.
+        The axis permutation putting the left child's edges before the right's.
 
         Returns:
-            transposition_vector (np.ndarray): A vector containing in position i, the index number in the tensor contained in node,
-            corresponding to the edge listed in position i according to the above convention, *before* the SVD decomposition.
+            A list whose position ``i`` holds the axis of ``node``, before the
+            split, carrying the ``i``-th edge in that order.
 
         Raises:
-            ValueError: if either too many or too few edges are assigned to the child nodes.
+            ValueError: if an edge belongs to neither child, or if more edges are
+                assigned than ``node`` has axes.
         """
         transposition_vector = [-1] * (len(left_node_edges) + len(right_node_edges))
 
@@ -317,7 +303,8 @@ class TensorNetwork:
                 return
 
             raise ValueError(
-                f"Each edge must be assigned to either the left or right child tensors during SVD. Unassigned edge: {edge_id}."
+                f"Edge {edge_id!r} is assigned to neither SVD child; every edge "
+                "must go to the left or the right one."
             )
 
         for *_, edge_id, metadata in list(
@@ -330,11 +317,11 @@ class TensorNetwork:
         ):
             _update_tv(transposition_vector, edge_id, metadata["directions"][1])
 
-        for t in transposition_vector:
-            if t < 0:
-                raise ValueError(
-                    f"Too many indices assigned to the tensor {node}. Make sure they are correct."
-                )
+        if any(axis < 0 for axis in transposition_vector):
+            raise ValueError(
+                f"More edges were assigned to the SVD children than tensor {node} "
+                "has axes."
+            )
 
         return transposition_vector
 
@@ -346,11 +333,8 @@ class TensorNetwork:
         directions_in: list,
         directions_out: list,
     ):
-        """
-        Perform the contraction by applying tensordot, assuming both nodes are distinct. Finally removes the node.
-        """
-
-        # Collecting all non-contracted index (in and out)
+        """Contract two distinct nodes with ``np.tensordot``, then remove them."""
+        # Axes not consumed by the contraction, which the merged node inherits.
         non_contracted_index_in = [
             i
             for i in range(len(self.tensornet.nodes[node_in]["shape"]))
@@ -393,9 +377,7 @@ class TensorNetwork:
     def _partial_trace(
         self, node: str, new_node_id: str, directions_in: list, directions_out: list
     ):
-        """
-        Perform the contraction by applying multitrace, assuming self loops. Finally removes the node.
-        """
+        """Contract a node's self-loops with :func:`multi_trace`, then remove it."""
         non_contracted_index = [
             i
             for i in range(len(self.tensornet.nodes[node]["shape"]))
@@ -428,19 +410,24 @@ class TensorNetwork:
         shift: int = 0,
         allowed_edges: Optional[list[str]] = None,
     ):
+        """
+        Move ``node``'s edges onto ``new_node_id``, remapping the axis they point at.
 
-        # First we take all the edges entering the node
+        ``survived_directions`` lists the old axes the new node kept, in its own
+        axis order, and ``shift`` offsets that order when the new node is a merge
+        of two tensors. ``allowed_edges``, when given, restricts which edges move.
+        """
         for u, v, edge_id, metadata in list(
             self.tensornet.out_edges(nbunch=node, keys=True, data=True)
         ):
 
-            if not allowed_edges is None and not edge_id in allowed_edges:
+            if allowed_edges is not None and edge_id not in allowed_edges:
                 continue
 
             directions = (
-                # Updated tensor direction in the new node corresponding to the edge
+                # remapped onto the new node
                 survived_directions.index(metadata["directions"][0]) + shift,
-                # Kept direction on the connected node
+                # unchanged on the far endpoint
                 metadata["directions"][1],
             )
 
@@ -449,18 +436,17 @@ class TensorNetwork:
                 node_in=new_node_id, node_out=v, edge_id=edge_id, directions=directions
             )
 
-        # Second we take all the edges exiting the node
         for u, v, edge_id, metadata in list(
             self.tensornet.in_edges(nbunch=node, keys=True, data=True)
         ):
 
-            if not allowed_edges is None and not edge_id in allowed_edges:
+            if allowed_edges is not None and edge_id not in allowed_edges:
                 continue
 
             directions = (
-                # Kept direction on the connected node
+                # unchanged on the far endpoint
                 metadata["directions"][0],
-                # Updated tensor direction in the new node corresponding to the edge
+                # remapped onto the new node
                 survived_directions.index(metadata["directions"][1]) + shift,
             )
 
@@ -468,12 +454,3 @@ class TensorNetwork:
             self.add_edge(
                 node_in=u, node_out=new_node_id, edge_id=edge_id, directions=directions
             )
-
-
-def merge_tns(tn1: TensorNetwork, tn2: TensorNetwork):
-
-    new_tensornet = nx.union(tn1.tensornet, tn2.tensornet)
-    new_tn = TensorNetwork()
-    new_tn.tensornet = new_tensornet
-
-    return new_tn

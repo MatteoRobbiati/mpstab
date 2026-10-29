@@ -67,6 +67,14 @@ PyTorch and JAX are **not installed by default**. Install them on demand:
     # Both backends
     uv sync --extra pytorch --extra jax
 
+The foldable low-level-rustiq resynthesis path (see
+:doc:`guides/rustiq_resynthesis`) needs the optional ``rustiq`` package, built
+from source (it ships no PyPI wheels):
+
+::
+
+    uv sync --extra rustiq
+
 Dependency Groups
 -----------------
 
