@@ -16,7 +16,7 @@ readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "numpy>=2.0.0",
-    "qibo>=0.2.19",
+    "qibo>=0.3.6",
     "click>=8.1.0",
     "cotengra",
     "matplotlib>=3.10.0",
