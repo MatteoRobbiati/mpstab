@@ -20,7 +20,6 @@ from mpstab.evolutors.optimization import minimize_expectation_dmrg
 from mpstab.evolutors.utils import dressed_rotations, gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
-from mpstab.models.entropies import stabilizer_renyi_entropy_mps
 from mpstab.pauli import validate_pauli_string
 
 
@@ -322,21 +321,6 @@ class HSMPO:
         )
         self._evolve_magic_gates(self.mps, magic_gates, clifford_circuit)
         return self.mps.norm(squared=True)
-
-    def stabilizer_renyi_entropy(
-        self, alpha: int = 2, n_samples: int = 1000, seed=None
-    ):
-        """
-        Stochastic estimate of the stabilizer Renyi entropy of order ``alpha``.
-
-        Args:
-            alpha: Renyi order, at least 2.
-            n_samples: random Pauli strings to sample.
-            seed: RNG seed.
-        """
-        return stabilizer_renyi_entropy_mps(
-            self, alpha=alpha, n_samples=n_samples, seed=seed
-        )
 
     def get_parameters(self) -> np.ndarray:
         """The circuit's current parameters."""
