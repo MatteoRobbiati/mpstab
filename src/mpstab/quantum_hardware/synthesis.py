@@ -16,7 +16,7 @@ Two synthesisers produce that pair:
 - :func:`build_head_and_residual` uses rustiq's Pauli-network synthesis, which
   cancels gates across rotations. ``rustiq`` is optional and not on PyPI, so it
   is imported lazily; install it with ``pip install "mpstab[rustiq]"``.
-- :func:`build_naive_head_and_residual` needs no extra dependency and costs
+- :func:`build_cnot_ladder_head_and_residual` needs no extra dependency and costs
   ``2*(w-1)`` CNOTs per weight-``w`` rotation, with an identity residual.
 
 Both return gate lists using two entry shapes: a placed rotation
@@ -201,7 +201,7 @@ def _place_rotations(skeleton, paulis, angles, nqubits) -> list:
     return head
 
 
-def build_naive_head_and_residual(paulis: list[str], angles: list[float]):
+def build_cnot_ladder_head_and_residual(paulis: list[str], angles: list[float]):
     """
     Decompose every dressed rotation into an exact CNOT-ladder circuit.
 

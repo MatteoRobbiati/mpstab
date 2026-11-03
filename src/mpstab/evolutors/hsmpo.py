@@ -2,9 +2,10 @@
 
 import copy
 from dataclasses import dataclass
-from typing import Union
+from typing import List, Tuple, Union
 
 import numpy as np
+import stim
 from qibo import Circuit
 from qibo.hamiltonians import SymbolicHamiltonian
 
@@ -17,11 +18,11 @@ from mpstab.engines import (
 )
 from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
 from mpstab.evolutors.optimization import minimize_expectation_dmrg
-from mpstab.evolutors.utils import dressed_rotations, gate_angle, gate_generator
+from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 from mpstab.models.entropies import stabilizer_renyi_entropy_mps
-from mpstab.pauli import validate_pauli_string
+from mpstab.pauli import conjugate, validate_pauli_string
 
 
 @dataclass
@@ -148,11 +149,85 @@ class HSMPO:
             max_bond_dimension=max_bond_dimension,
         )
 
-    def _dressed_rotations(self):
-        """Every magic gate's ``(generator, signed_angle)``, in circuit order."""
-        return dressed_rotations(
-            self.nqubits, self.stab_engine, self.magic_gates, self.clifford_circuit
-        )
+    @staticmethod
+    def _conjugate_rotation(
+        rotation: Tuple[str, float], tableau: stim.Tableau
+    ) -> Tuple[str, float]:
+        """
+        Conjugate a Pauli rotation by a Clifford tableau:
+        ``U exp(-i angle/2 G) U^dag = exp(-i angle/2 U G U^dag)``.
+
+        ``U G U^dag = +-G'`` is again a Pauli string, so the sign moves into the
+        angle and the result is still a ``(generator, angle)`` rotation.
+
+        Args:
+            rotation: ``(generator, angle)``, the generator a Pauli string.
+            tableau: the Clifford ``U``. Pass ``tableau.inverse()`` to get
+                ``U^dag R U``, as in :func:`~mpstab.pauli.conjugate`.
+
+        Returns:
+            ``(generator, angle)`` for the conjugated rotation.
+        """
+        generator, angle = rotation
+        conjugated, sign = conjugate(generator, tableau)
+        return conjugated, sign * angle
+
+    def _dressed_rotations(self) -> List[Tuple[str, float]]:
+        """
+        Every magic gate's dressed ``(generator, signed_angle)``, in circuit order.
+
+        Each gate's rotation is conjugated by the Clifford sub-circuit preceding
+        it (:meth:`_conjugate_rotation`). The Clifford circuit is simulated once
+        into a running ``stim.TableauSimulator`` and each rotation is conjugated
+        at its own breakpoint, rather than re-simulating the prefix per magic
+        gate.
+
+        Requires a :class:`~mpstab.engines.StimEngine`, but only when there is
+        magic to dress: a Clifford-only circuit has no dressed rotations whatever
+        engine is in use.
+
+        Raises:
+            NotImplementedError: if there are magic gates and the stabilizers
+                engine is not a ``StimEngine``.
+        """
+        if not self.magic_gates:
+            return []
+
+        if not isinstance(self.stab_engine, StimEngine):
+            raise NotImplementedError(
+                "Dressed-rotation extraction requires StimEngine (this circuit has "
+                f"{len(self.magic_gates)} magic gate(s)). Call "
+                "set_engines(stab_engine=StimEngine()) to enable it."
+            )
+
+        simulator = stim.TableauSimulator()
+        simulator.do(stim.Circuit(f"I {self.nqubits - 1}"))
+
+        rotations: List[Tuple[str, float]] = []
+        pending = iter(self.magic_gates)
+        next_gate = next(pending, None)
+
+        def dress_gates_at(breakpoint_index: int):
+            nonlocal next_gate
+            while next_gate is not None and next_gate[0] == breakpoint_index:
+                gate = next_gate[1]
+                # current_inverse_tableau() is U^dag for the Clifford prefix U.
+                rotations.append(
+                    self._conjugate_rotation(
+                        (gate_generator(gate, self.nqubits), gate_angle(gate)),
+                        simulator.current_inverse_tableau(),
+                    )
+                )
+                next_gate = next(pending, None)
+
+        dress_gates_at(0)
+        for breakpoint_index, gate in enumerate(self.clifford_circuit.queue, start=1):
+            one_gate = Circuit(self.nqubits)
+            one_gate.add(gate)
+            simulator.do(self.stab_engine.to_stim(one_gate))
+            dress_gates_at(breakpoint_index)
+
+        return rotations
 
     def _precompute_original_mps(self):
         """

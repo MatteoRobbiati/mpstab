@@ -21,6 +21,8 @@ from mpstab.engines import QuimbEngine
 from mpstab.pauli import PAULI_ARRAY as PAULIS
 from mpstab.pauli import PAULI_LABELS as LABELS
 from mpstab.quantum_hardware.pauli_expansion import (
+    _draw_one_string,
+    _right_environments,
     enumerate_pauli_coefficients,
     mpo_to_pauli_mps,
     sample_pauli_strings,
@@ -103,11 +105,6 @@ def test_sampler_frequencies_match_exact_marginals(scrambled_mpo):
     rng = np.random.default_rng(0)
     counts: dict = {}
     n_draws = 20000
-    from mpstab.quantum_hardware.pauli_expansion import (
-        _draw_one_string,
-        _right_environments,
-    )
-
     tensors = mpo_to_pauli_mps(scrambled_mpo)
     envs = _right_environments(tensors)
     for _ in range(n_draws):

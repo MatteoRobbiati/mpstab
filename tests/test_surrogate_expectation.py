@@ -1,3 +1,4 @@
+import itertools
 import time
 
 import numpy as np
@@ -44,8 +45,6 @@ def test_expectation_matches_qibo(observable):
 
 def _all_pauli_strings(n):
     """All non-identity Pauli strings of length n."""
-    import itertools
-
     return [
         "".join(p)
         for p in itertools.product("IXYZ", repeat=n)

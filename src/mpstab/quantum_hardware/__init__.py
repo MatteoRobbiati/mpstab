@@ -49,7 +49,7 @@ from mpstab.quantum_hardware.plan import (
 )
 from mpstab.quantum_hardware.synthesis import (
     build_head_and_residual,
-    build_naive_head_and_residual,
+    build_cnot_ladder_head_and_residual,
     count_two_qubit_gates,
     head_counts_only,
     head_to_qibo_circuit,
@@ -78,7 +78,7 @@ __all__ = [
     "allocate_shots_by_variance",
     "build_head_and_residual",
     "build_measurement_plan",
-    "build_naive_head_and_residual",
+    "build_cnot_ladder_head_and_residual",
     "build_pauli_plan",
     "build_shadow_plan",
     "canonical_omega_seed",

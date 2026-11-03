@@ -63,6 +63,10 @@ class ExpectationResult:
         n_shots: total shots used.
         retained_weight: ``"pauli"`` only, ``None`` otherwise -- see
             :attr:`~mpstab.quantum_hardware.plan.MeasurementPlan.retained_weight`.
+        state_fidelity: ``"simulation"`` only, ``None`` otherwise: the squared
+            norm of the head MPS, which its truncation pushes below 1. The
+            hardware methods run the head on the device, so they have no head
+            truncation to report.
     """
 
     value: float
@@ -72,6 +76,7 @@ class ExpectationResult:
     n_settings: int
     n_shots: int
     retained_weight: float | None = None
+    state_fidelity: float | None = None
 
     @property
     def total_error(self) -> float:
@@ -86,7 +91,8 @@ class ExpectationResult:
         in quadrature is a convenient, common convention, not a rigorous
         derivation of a single confidence interval -- but it is still the
         number to report in a results table, since ``stderr`` alone omits the
-        truncation bias entirely.
+        truncation bias entirely. For ``"simulation"`` it covers the tail
+        truncation only; the head truncation shows in ``state_fidelity``.
         """
         return float(np.sqrt(self.stderr**2 + self.truncation_l2**2))
 

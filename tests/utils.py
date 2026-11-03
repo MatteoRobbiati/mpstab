@@ -3,6 +3,7 @@ import random
 import numpy as np
 from qibo import Circuit, gates, hamiltonians
 from qibo.backends import Backend, construct_backend, get_backend
+from qibo.symbols import X, Y, Z
 
 from mpstab.hamiltonians import pauli_string_to_hamiltonian
 
@@ -74,8 +75,6 @@ def construct_symbolic_hamiltonian(
     """Construct a random symbolic hamiltonian."""
 
     set_rng_seed(rng_seed)
-
-    from qibo.symbols import X, Y, Z
 
     if qibo_backend is None:
         qibo_backend = construct_backend("numpy")

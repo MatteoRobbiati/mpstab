@@ -7,15 +7,16 @@ measures the resulting circuit with a finite shot budget via
 ``expectation_at_cut``. The resynthesis Clifford residual (if any) is folded
 into the sampled Pauli terms automatically -- see the module docstring of
 ``mpstab.evolutors.hsynthsmpo`` for why that fold has to happen before QWC
-grouping. ``expectation_from_split`` (exact, no resynthesis, no shot noise) is
+grouping. ``method="simulation"`` (classical, no resynthesis, no shot noise) is
 used here only as the reference the shot-based estimate is checked against.
 
 With the optional rustiq extra installed (``pip install "mpstab[rustiq]"``)
-the head is gate-count-optimized; otherwise the naive fallback is used, at
+the head is gate-count-optimized; otherwise the CNOT-ladder fallback is used, at
 the cost of that saving (see ``resynthesize_head``'s docstring).
 """
 
 import numpy as np
+import stim
 from qibo import set_backend
 
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
@@ -50,12 +51,13 @@ print(
 # 2. Measure it with a finite shot budget, and compare against the exact
 #    (no-resynthesis, no shot-noise) reference.
 # ---------------------------------------------------------------------------
-exact = hs.expectation_from_split(OBSERVABLE, cut_index=n_dressed)
+exact = hs.expectation_at_cut(OBSERVABLE, n_dressed, method="simulation").value
 result = hs.expectation_at_cut(
     OBSERVABLE, cut_index=n_dressed, method="pauli", n_shots=20000, seed=0
 )
 print(
-    f"\nexpectation_from_split({OBSERVABLE!r}) = {exact:+.6f}  (exact, reference only)"
+    f"\nexpectation_at_cut({OBSERVABLE!r}, method='simulation') = {exact:+.6f}"
+    "  (classical, reference only)"
 )
 print(f"expectation_at_cut({OBSERVABLE!r}, method='pauli') = {result!r}")
 print(
@@ -69,9 +71,7 @@ print(
 print(f"\n{'cut':>5} | {'head total':>10} {'head 2Q':>8} {'tail trivial':>12}")
 for cut in sorted({0, n_dressed // 2, n_dressed}):
     r = hs.resynthesize_head(cut)
-    import stim
-
-    trivial = r.tail_tableau == stim.Tableau(hs.nqubits)
+    trivial = r.residual_tableau == stim.Tableau(hs.nqubits)
     print(f"{cut:>5} | {r.n_gates:>10} {r.n_two_qubit_gates:>8} {str(trivial):>12}")
 
 print(

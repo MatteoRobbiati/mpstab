@@ -60,8 +60,10 @@ print(header)
 print("-" * len(header))
 
 for cut_index in range(n_dressed, -1, -1):
-    info = hs.tail_truncation(OBSERVABLE, cut_index=cut_index, reference_max_bond=None)
-    expval = hs.expectation_from_split(OBSERVABLE, cut_index=cut_index)
+    info = hs.tail_truncation(
+        OBSERVABLE, cut_index=cut_index, reference_max_bond=None, with_expval=True
+    )
+    expval = hs.expectation_at_cut(OBSERVABLE, cut_index, method="simulation").value
     n_two_qubit_gates = hs.resynthesize_head(cut_index).n_two_qubit_gates
     print(
         f"{cut_index:>4} {n_dressed - cut_index:>5} "

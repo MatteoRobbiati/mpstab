@@ -69,13 +69,14 @@ resynthesis cost grows as more of the circuit is included:
         resynth = hs.resynthesize_head(cut)
         print(resynth.n_gates, resynth.n_two_qubit_gates)
 
-A partial cut leaves a pure-Clifford residual (``resynth.tail_tableau``): the
+A partial cut leaves a pure-Clifford residual (``resynth.residual_tableau``): the
 ``"pauli"`` route of :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut`
 folds it into the sampled Pauli terms automatically before grouping (see the
 module docstring of :mod:`mpstab.evolutors.hsynthsmpo`); the ``"shadows"``
-and ``"tnice"`` routes raise unless a ``tail_handling`` is chosen:
-``"append"`` runs the residual as extra gates, while ``"fold"`` conjugates the
-Clifford-backpropagated observable and every tail generator through it, so the
+and ``"tnice"`` routes take a ``tail_handling``:
+``"append_to_head_circuit"`` (default) runs the residual as extra gates, while
+``"fold"`` conjugates the Clifford-backpropagated observable and every tail
+generator through it, so the
 device runs the head alone. ``"fold"`` is exact and keeps the tail an MPO, but
 the residual spreads Pauli weight, which can raise the shadow variance by
 orders of magnitude -- compare ``shadow_variance_from_mpo`` of the two tail
