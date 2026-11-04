@@ -18,7 +18,7 @@ import pathlib
 import numpy as np
 import pytest
 import stim
-from qibo import set_backend
+from qibo import get_backend, set_backend
 from qibo.hamiltonians import SymbolicHamiltonian
 from qibo.symbols import X, Z
 
@@ -28,7 +28,12 @@ from mpstab.evolutors.hsynthsmpo import (
     ResynthesizedHead,
 )
 from mpstab.models.ansatze import HardwareEfficient
-from mpstab.quantum_hardware import count_two_qubit_gates
+from mpstab.quantum_hardware import (
+    QiboSimulator,
+    count_two_qubit_gates,
+    estimate,
+    execute_plan,
+)
 from mpstab.quantum_hardware.synthesis import (
     build_cnot_ladder_head_and_residual,
     head_to_qibo_circuit,
@@ -161,6 +166,51 @@ def test_unknown_method_raises():
     hs = _hs(3)
     with pytest.raises(ValueError):
         hs.expectation_at_cut("ZZZ", cut_index=0, method="bogus", n_shots=1000)
+
+
+# ---------------------------------------------------------------------------
+# Staged pipeline: plan -> execute_plan -> estimate
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("method", ["pauli", "shadows"])
+def test_plan_builds_without_running(method):
+    hs = _hs(4)
+    plan = hs.plan("ZZZZ", 2, method=method, n_shots=200, seed=0)
+    assert plan.method == method
+    assert len(plan.circuits) == len(plan.shots) > 0
+    assert sum(plan.shots) == 200
+    assert all(circuit.measurements for circuit in plan.circuits)
+
+
+def test_plan_rejects_simulation():
+    hs = _hs(3)
+    with pytest.raises(ValueError):
+        hs.plan("ZZZ", 0, method="simulation", n_shots=100)
+
+
+@pytest.mark.parametrize("method", ["pauli", "shadows", "tnice"])
+def test_staged_pipeline_matches_expectation_at_cut(method, xy_observable):
+    # The three stages by hand give exactly what expectation_at_cut gives in
+    # one call, with the same seed and the same simulator seed.
+    hs = _hs(4)
+    cut_index = 2
+
+    get_backend().set_seed(11)
+    one_call = hs.expectation_at_cut(
+        xy_observable, cut_index, method=method, n_shots=2000, seed=3
+    )
+
+    get_backend().set_seed(11)
+    plan = hs.plan(
+        xy_observable, cut_index, method=method, n_shots=2000, seed=3
+    )
+    frequencies = execute_plan(QiboSimulator(), plan)
+    kwargs = {"seed": 3} if method == "tnice" else {}
+    staged = estimate(plan, frequencies, **kwargs)
+
+    assert staged.value == pytest.approx(one_call.value, abs=1e-12)
+    assert staged.stderr == pytest.approx(one_call.stderr, abs=1e-12)
 
 
 # ---------------------------------------------------------------------------
@@ -428,6 +478,17 @@ def test_bare_object_with_execute_circuits_works_as_backend():
     )
     assert isinstance(result.value, float)
     assert result.n_shots > 0
+
+
+def test_execute_plan_rejects_a_backend_that_drops_results():
+    class DroppingBackend:
+        def execute_circuits(self, circuits, nshots):
+            return [circuit(nshots=nshots).frequencies() for circuit in circuits[1:]]
+
+    hs = _hs(4)
+    plan = hs.plan("ZZZZ", 2, method="shadows", n_shots=20, seed=0)
+    with pytest.raises(ValueError, match="DroppingBackend"):
+        execute_plan(DroppingBackend(), plan)
 
 
 # ---------------------------------------------------------------------------

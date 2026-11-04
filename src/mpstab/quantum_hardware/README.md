@@ -46,6 +46,11 @@ estimate.py           measured        ->  a value + its error bar
 function that runs all four steps and hands back the result. Everything
 below explains what happens *inside* it.
 
+On a real device the steps happen at different times, so they can also be run
+one by one: `HSynthSMPO.plan` builds the plan and, given an `out_folder`, saves
+its circuits as OpenQASM with their shots (`storage.py`). A device backend runs
+those files, and `estimate(plan, frequencies)` recombines the counts.
+
 ## Three ways to turn O' into a number
 
 All three share the *same* first step (resynthesising the head into a

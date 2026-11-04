@@ -12,12 +12,20 @@ The pipeline is four steps, one module each:
 4. :mod:`~mpstab.quantum_hardware.estimate` turns the measured frequencies into
    an :class:`~mpstab.quantum_hardware.estimate.ExpectationResult`.
 
-:mod:`~mpstab.quantum_hardware.backend` holds the default simulator backend.
+:mod:`~mpstab.quantum_hardware.backend` holds the backend contract, the default
+simulator backend and the OpenQASM export of a plan's circuits;
+:mod:`~mpstab.quantum_hardware.storage` saves a plan's circuits and shots to a
+folder, so they can run on a device.
 Importing this package never requires the optional ``rustiq`` dependency, which
 :mod:`~mpstab.quantum_hardware.synthesis` imports lazily.
 """
 
-from mpstab.quantum_hardware.backend import QiboSimulator, execute_plan
+from mpstab.quantum_hardware.backend import (
+    QiboSimulator,
+    circuit_to_qasm,
+    execute_plan,
+    plan_to_qasm,
+)
 from mpstab.quantum_hardware.estimate import (
     ExpectationResult,
     estimate,
@@ -47,6 +55,7 @@ from mpstab.quantum_hardware.plan import (
     build_shadow_plan,
     group_qwc,
 )
+from mpstab.quantum_hardware.storage import save_circuits
 from mpstab.quantum_hardware.synthesis import (
     build_head_and_residual,
     build_cnot_ladder_head_and_residual,
@@ -82,6 +91,7 @@ __all__ = [
     "build_pauli_plan",
     "build_shadow_plan",
     "canonical_omega_seed",
+    "circuit_to_qasm",
     "count_two_qubit_gates",
     "enumerate_pauli_coefficients",
     "estimate",
@@ -98,9 +108,11 @@ __all__ = [
     "mpo_site_arrays",
     "mpo_to_pauli_mps",
     "outcome_index",
+    "plan_to_qasm",
     "pool_pauli_terms",
     "reconstruction_error",
     "sample_pauli_strings",
+    "save_circuits",
     "shadow_variance_from_mpo",
     "shots_to_outcomes",
     "split_train_test",
