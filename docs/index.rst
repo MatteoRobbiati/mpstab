@@ -29,11 +29,13 @@ Among our core features:
    :caption: Tutorials & Examples
 
    examples/introduction
+   examples/state_metrics
    guides/dmrg_optimization
    guides/qibo_backend_provider
    guides/working_with_engines
    guides/using_ansatze
    guides/fidelity_and_approximation
+   guides/rustiq_resynthesis
 
 .. toctree::
    :maxdepth: 2
@@ -41,6 +43,8 @@ Among our core features:
 
    api/evolutors
    api/engines
+   api/quantum_hardware
+   api/pauli
    api/models
 
 Indices and tables

@@ -1,30 +1,15 @@
 import random
 
 import numpy as np
-from qibo import Circuit, gates, hamiltonians, symbols
+from qibo import Circuit, gates, hamiltonians
 from qibo.backends import Backend, construct_backend, get_backend
+
+from mpstab.hamiltonians import pauli_string_to_hamiltonian
 
 DEFAULT_REPLACEMENT_PROBABILITY = 0.75
 DEFAULT_MAX_BD = 128
 DEFAULT_RNG_SEED = 42
 DEFAULT_ATOL = 1e-6
-
-
-def obs_string_to_qibo_hamiltonian(observable: str) -> hamiltonians.SymbolicHamiltonian:
-    """
-    Convert a string representation of a Pauli observable to a Qibo symbolic Hamiltonian.
-
-    Args:
-        observable (str): A string representing the Pauli observable, e.g., "XZIY".
-
-    Returns:
-        hamiltonians.SymbolicHamiltonian: The corresponding Qibo symbolic Hamiltonian.
-    """
-    form = 1
-    for i, pauli in enumerate(observable):
-        form *= getattr(symbols, pauli)(i)
-    ham = hamiltonians.SymbolicHamiltonian(form=form)
-    return ham
 
 
 def set_rng_seed(seed: int = DEFAULT_RNG_SEED):
@@ -76,10 +61,8 @@ def expectation_with_qibo(mpstab_ansatz, observable_str):
             f"Please consider lighten the test, this function is using statevector simulation, which can be really slow for the provided {len(observable_str)} problem"
         )
 
-    qibo_ham = obs_string_to_qibo_hamiltonian(observable_str)
-    expval = qibo_ham.expectation_from_state(mpstab_ansatz.circuit().state())
-
-    return expval
+    qibo_ham = pauli_string_to_hamiltonian(observable_str)
+    return qibo_ham.expectation_from_state(mpstab_ansatz.circuit().state())
 
 
 def construct_symbolic_hamiltonian(
