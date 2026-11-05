@@ -201,6 +201,45 @@ class HardwareEfficientBrickwork(Ansatz):
 
 
 @dataclass
+class KickedIsing(Ansatz):
+    r"""
+    Build a kicked Ising circuit on an open chain.
+
+    Each of the ``n_steps`` steps applies the kicks :math:`R_X(\theta_h)` and
+    then :math:`R_Z(\theta_z)` on every qubit, followed by the couplings
+    :math:`R_{ZZ}(\theta_J)` on the even bonds and then on the odd bonds. Every
+    coupling is written as ``CNOT · RZ(theta_j) · CNOT``, the form HSMPO splits
+    into Clifford and magic gates, so the circuit needs no transpilation. At the
+    default ``theta_j = -pi/2`` the couplings are Clifford and only the kicks are
+    magic, so the MPS bond dimension grows with the number of steps.
+
+    Args:
+        nqubits: number of qubits in the chain.
+        n_steps: number of kick-and-couple steps.
+        theta_h: angle of the transverse kicks :math:`R_X`.
+        theta_z: angle of the longitudinal kicks :math:`R_Z`.
+        theta_j: angle of the :math:`R_{ZZ}` couplings.
+    """
+
+    n_steps: int = 1
+    theta_h: float = 0.8
+    theta_z: float = 0.0
+    theta_j: float = -0.5 * np.pi
+
+    def __post_init__(self):
+        super().__post_init__()
+        for _ in range(self.n_steps):
+            for q in range(self.nqubits):
+                self.circuit.add(gates.RX(q=q, theta=self.theta_h))
+                self.circuit.add(gates.RZ(q=q, theta=self.theta_z))
+            for start in (0, 1):
+                for q in range(start, self.nqubits - 1, 2):
+                    self.circuit.add(gates.CNOT(q, q + 1))
+                    self.circuit.add(gates.RZ(q=q + 1, theta=self.theta_j))
+                    self.circuit.add(gates.CNOT(q, q + 1))
+
+
+@dataclass
 class HammingWeightPreserving(Ansatz):
     """
     Hamming-weight-preserving ansatz built from decomposed RBS gates.

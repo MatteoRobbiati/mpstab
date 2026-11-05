@@ -21,7 +21,7 @@ from mpstab.evolutors.optimization import minimize_expectation_dmrg
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
-from mpstab.models.entropies import stabilizer_renyi_entropy_mps
+from mpstab.models.metrics import stabilizer_renyi_entropy_mps
 from mpstab.pauli import conjugate, validate_pauli_string
 
 
@@ -369,6 +369,21 @@ class HSMPO:
         return subcircuit
 
     @property
+    def n_magic_gates(self) -> int:
+        """Number of non-Clifford ("magic") gates in the original AnsatzCircuit as split up by partitionate_circuit."""
+        return len(self.magic_gates)
+
+    @property
+    def n_clifford_gates(self) -> int:
+        """Number of Clifford gates in the precomputed Clifford-only Qibo Circuit."""
+        return len(self.clifford_circuit.queue)
+
+    @property
+    def n_gates(self) -> int:
+        """Total number of (non-measurement) gates in the original AnsatzCircuit."""
+        return self.n_magic_gates + self.n_clifford_gates
+
+    @property
     def truncation_fidelity_pure_tn(self) -> float:
         """
         Truncation fidelity of running the whole circuit as a plain MPS, with no
@@ -397,21 +412,6 @@ class HSMPO:
         )
         self._evolve_magic_gates(self.mps, magic_gates, clifford_circuit)
         return self.mps.norm(squared=True)
-
-    def stabilizer_renyi_entropy(
-        self, alpha: int = 2, n_samples: int = 1000, seed=None
-    ):
-        """
-        Stochastic estimate of the stabilizer Renyi entropy of order ``alpha``.
-
-        Args:
-            alpha: Renyi order, at least 2.
-            n_samples: random Pauli strings to sample.
-            seed: RNG seed.
-        """
-        return stabilizer_renyi_entropy_mps(
-            self, alpha=alpha, n_samples=n_samples, seed=seed
-        )
 
     def get_parameters(self) -> np.ndarray:
         """The circuit's current parameters."""
