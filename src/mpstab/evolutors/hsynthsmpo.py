@@ -4,34 +4,47 @@ The head/tail split of an HSMPO's dressed rotations, measured with finite shots.
 The dressed-rotation chain is cut at ``cut_index``. The head is resynthesised
 into a circuit a device can run; the tail is folded into the observable, leaving
 an MPO. :meth:`HSynthSMPO.expectation_at_cut` then measures the head against that
-observable, always spending a shot budget, by one of two routes:
+observable with a shot budget, by one of the routes below:
 
 - ``"pauli"`` samples Pauli strings from the tail MPO and groups them into
   qubit-wise-commuting measurement settings.
 - ``"shadows"`` measures random single-qubit Pauli bases and contracts each
-  snapshot against the tail MPO directly.
+  snapshot against the tail MPO directly; ``"tnice"`` runs on the same
+  measurements and only replaces this estimator with the MPS-optimized one.
 
 Resynthesising the head leaves a Clifford residual, so a device prepares
 ``U(residual) U(head)|psi_0>`` rather than the exact head state the tail
 coefficients were derived against. The ``"pauli"`` route corrects for this by
-conjugating every sampled string through the residual. The ``"shadows"`` route
-cannot: folding the residual into the tail MPO would destroy the product
-structure its ``O(n chi^2)`` contraction relies on, so it raises unless the caller
-passes ``tail_handling="append"`` to run the residual as extra gates.
+conjugating every sampled string through the residual. The ``"shadows"`` and
+``"tnice"`` routes take a ``tail_handling``:
 
-:meth:`HSynthSMPO.expectation_from_split` is the exact MPO-MPS contraction of the
-same split. It is a reference for validating the sampled routes, not a
-measurement route, and :meth:`HSynthSMPO.expectation_at_cut` never calls it.
+- ``"append_to_head_circuit"`` (default) runs the residual as extra gates after
+  the head: exact, with the shadow variance of the unfolded tail;
+- ``"fold"`` conjugates the observable *and every tail generator* through the
+  residual before folding the tail, so the device runs the head alone. A Pauli
+  conjugated by a Clifford is a Pauli, so the tail stays a Pauli-rotation fold
+  with the same MPO structure, and the result is exactly ``R^dag O' R``. It
+  saves the residual's two-qubit gates, but the residual spreads Pauli weight,
+  so the shadow variance ``sum_P c_P^2 3^w_P`` of the folded MPO can grow by
+  orders of magnitude: whether it pays off depends on the device's two-qubit
+  error.
+
+``expectation_at_cut(method="simulation")`` is the classical MPO-MPS
+contraction of the same split, with the head as a truncated MPS. It is a
+reference for validating the hardware methods, not a measurement route: this
+class is meant for hardware, and the hardware methods are the recommended way
+to use it.
 """
 
 import dataclasses
+import warnings
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import List, Tuple, Union
 
 import numpy as np
 import stim
 
-from mpstab.engines import QuimbEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.pauli import validate_pauli_string
@@ -39,7 +52,7 @@ from mpstab.quantum_hardware import (
     ExpectationResult,
     QiboSimulator,
     build_head_and_residual,
-    build_naive_head_and_residual,
+    build_cnot_ladder_head_and_residual,
     build_pauli_plan,
     build_shadow_plan,
     count_two_qubit_gates,
@@ -64,17 +77,18 @@ class ResynthesizedHead:
 
     Attributes:
         circuit: a runnable qibo ``Circuit``, without measurement gates.
-        tail_tableau: the Clifford residual as a ``stim.Tableau``.
-        tail_gates: the same residual as a gate list, for ``tail_handling="append"``.
+        residual_tableau: the Clifford residual as a ``stim.Tableau``.
+        residual_gates: the same residual as a gate list, for
+            ``tail_handling="append_to_head_circuit"``.
         n_gates: gates in the head.
         n_two_qubit_gates: two-qubit gates in the head.
         cut_index: the split point the head came from.
-        method: ``"rustiq"`` or ``"naive"``.
+        method: ``"rustiq"`` or ``"cnot_ladder"``.
     """
 
     circuit: object
-    tail_tableau: object
-    tail_gates: tuple
+    residual_tableau: object
+    residual_gates: tuple
     n_gates: int
     n_two_qubit_gates: int
     cut_index: int
@@ -87,13 +101,16 @@ class TailTruncation:
     How closely the truncated tail fold approximates the exact one, cheapest view
     first. Returned by :meth:`HSynthSMPO.tail_truncation`.
 
+    The first two fields compare operators only. They depend on the observable
+    the tail is folded onto, not on the head state.
+
     Attributes:
         fidelity_estimate: ``||O_approx||_F**2 / 2**n``, a norm-ratio estimate
             needing only the working truncation, with no exact reference built.
         relative_frobenius_error: ``||O_approx - O_exact||_F / ||O_exact||_F``;
             ``None`` unless ``exact=True`` was requested.
-        expval_abs_error: ``|<O_approx> - <O_exact>|`` on the same head state;
-            ``None`` unless ``exact=True``.
+        expval_abs_error: ``|<O_approx> - <O_exact>|`` on the exact head state;
+            ``None`` unless ``with_expval=True`` was requested.
     """
 
     fidelity_estimate: float
@@ -112,23 +129,59 @@ class HSynthSMPO(HSMPO):
     that can conjugate an operator.
     """
 
-    def tail_operator(
-        self, observable: str, cut_index: int, max_bond_dimension: int = -1
+    def build_post_head_mpo(
+        self,
+        observable: str,
+        cut_index: int,
+        max_bond_dimension: int = -1,
+        residual: Union[stim.Tableau, None] = None,
     ):
         """
-        The tail-folded observable MPO and its sign.
+        The observable with everything after the head folded in, as an MPO.
 
-        Backpropagates ``observable`` through the circuit's Clifford part, then
-        folds the tail rotations ``[cut_index:]`` into it.
+        Heisenberg picture: the Clifford part, the tail rotations ``[cut_index:]``
+        and, optionally, a Clifford residual are moved into the observable, so
+        that ``<O> = sign * <head| operator |head>``. The steps are:
+
+        1. backpropagate ``observable`` through the Clifford part with ``stim``,
+           ``O -> sign * O'``, still a single Pauli string;
+        2. if ``residual`` ``R`` is given, conjugate ``O'`` and every tail
+           generator through it. Each one stays a Pauli string, and a
+           generator's sign goes into its angle. This gives exactly
+           ``R^dag T^dag O' T R`` without ever building ``R`` as an operator;
+        3. turn ``O'`` into an MPO and conjugate it by the tail rotations,
+           innermost first, truncating each step to ``max_bond_dimension``.
+
+        Without ``residual`` the MPO pairs with the exact head state. With it,
+        the MPO pairs with :attr:`ResynthesizedHead.circuit` run alone, so the
+        device skips the residual's gates.
+
+        Callers:
+
+        - ``expectation_at_cut(method="simulation")`` and :meth:`tail_truncation`
+          use it as the classical reference;
+        - the ``"pauli"`` route passes no ``residual``. It samples Pauli strings
+          from the MPO and folds each sampled string through ``R`` afterwards
+          (:func:`~mpstab.quantum_hardware.pauli_expansion.fold_pool_through_tableau`),
+          which is cheaper and unaffected by truncation;
+        - the ``"shadows"`` and ``"tnice"`` routes pass ``residual`` under
+          ``tail_handling="fold"``, because their estimators contract the whole
+          MPO, so ``R`` has to be inside it. The price is usually more Pauli
+          weight, and therefore a higher shadow variance.
 
         Args:
             observable: a Pauli string (qubit-0-leftmost).
-            cut_index: the split point; only the tail is folded.
+            cut_index: the split point; only rotations ``[cut_index:]`` are
+                folded.
             max_bond_dimension: bond cap for each conjugation. ``-1`` means
                 ``self.max_bond_dimension``, ``None`` means untruncated.
+            residual: the Clifford residual ``R`` to fold in, typically
+                :attr:`ResynthesizedHead.residual_tableau`. ``None`` leaves it
+                out.
 
         Returns:
-            ``(operator, sign)``.
+            ``(operator, sign)``: the folded MPO and the +-1 sign picked up by
+            the Clifford backpropagation and, if given, the residual fold.
         """
         validate_pauli_string(observable, self.nqubits)
         if max_bond_dimension == -1:
@@ -138,6 +191,17 @@ class HSynthSMPO(HSMPO):
         backpropagated, sign = self.stab_engine.backpropagate(
             observable=observable, clifford_circuit=self.clifford_circuit
         )
+        if residual is not None:
+            backpropagated, residual_sign = self.stab_engine.fold_pauli_through_tableau(
+                backpropagated, residual, 1.0
+            )
+            sign = sign * residual_sign
+            residual_inverse = residual.inverse()
+            tail = [
+                self._conjugate_rotation(rotation, residual_inverse)
+                for rotation in tail
+            ]
+
         operator = self.tn_engine.pauli_mpo(backpropagated)
         for generator, angle in reversed(tail):  # outermost rotation folded last
             operator = self.tn_engine.conjugate_operator(
@@ -162,37 +226,48 @@ class HSynthSMPO(HSMPO):
             )
         return state_mps
 
-    def expectation_from_split(
-        self, observable: str, cut_index: int, return_fidelity: bool = False
-    ):
+    def _simulate_at_cut(
+        self, terms: dict, constant: float, cut_index: int, max_bond_dimension
+    ) -> ExpectationResult:
         """
-        Exact expectation value from the split: the head applied to the state MPS,
-        the tail folded into the observable.
+        ``expectation_at_cut(method="simulation")``: the classical split, with
+        the head applied to the state MPS and the tail folded into each term.
 
-        A reference for validating :meth:`expectation_at_cut`, not a measurement
-        route.
-
-        Args:
-            observable: a Pauli string (qubit-0-leftmost).
-            cut_index: the split point.
-            return_fidelity: also return the state MPS's squared norm.
-
-        Returns:
-            The (real) expectation value, or ``(expval, fidelity)``.
+        The head MPS is built once and shared by every term. ``truncation_l2``
+        estimates the tail truncation only, with the same norm-ratio proxy as the
+        ``"shadows"`` route; the head truncation is reported separately as
+        ``state_fidelity``, the head MPS's squared norm, and is not part of
+        ``total_error``.
         """
-        self._require_quimb("expectation_from_split")
-        validate_pauli_string(observable, self.nqubits)
-
         state_mps = self._head_state_mps(self._dressed_rotations()[:cut_index])
-        operator, sign = self.tail_operator(observable, cut_index)
-        expval = (
-            np.real(self.tn_engine.expval(state_circuit=state_mps, operator=operator))
-            * sign
-        )
 
-        if return_fidelity:
-            return expval, state_mps.norm(squared=True)
-        return expval
+        value = constant
+        truncation_l2 = 0.0
+        for pauli, coefficient in terms.items():
+            operator, sign = self.build_post_head_mpo(
+                pauli, cut_index, max_bond_dimension
+            )
+            value += (
+                coefficient
+                * sign
+                * np.real(
+                    self.tn_engine.expval(state_circuit=state_mps, operator=operator)
+                )
+            )
+            if max_bond_dimension is not None:
+                truncation_l2 += abs(coefficient) * np.sqrt(
+                    max(0.0, 1.0 - self._fold_fidelity(operator))
+                )
+
+        return ExpectationResult(
+            value=float(np.real(value)),
+            stderr=0.0,
+            truncation_l1=None,
+            truncation_l2=float(truncation_l2),
+            n_settings=0,
+            n_shots=0,
+            state_fidelity=float(np.real(state_mps.norm(squared=True))),
+        )
 
     def tail_truncation(
         self,
@@ -200,36 +275,76 @@ class HSynthSMPO(HSMPO):
         cut_index: int,
         reference_max_bond: Union[int, None] = None,
         exact: bool = True,
+        residual: Union[stim.Tableau, None] = None,
+        with_expval: bool = False,
+        max_bond_dimension: Union[int, None] = -1,
     ) -> TailTruncation:
         """
         Quantify how closely the truncated tail fold approximates the exact one.
+
+        By default only operators are compared: the tail fold truncated to
+        ``max_bond_dimension`` against a reference fold truncated to
+        ``reference_max_bond``, with no head state built. The truncation is
+        strongly observable-dependent, because the tail is folded onto the
+        target observable: the same circuit, cut and bond cap can be lossless
+        for one observable (e.g. one outside the tail's backward light cone,
+        which stays a single Pauli string) and heavily truncated for another.
+        Re-assess it for every observable, or every Hamiltonian term.
 
         Args:
             observable: a Pauli string (qubit-0-leftmost).
             cut_index: the split point.
             reference_max_bond: bond cap for the reference fold when
                 ``exact=True``; ``None`` means untruncated.
-            exact: build the reference fold and report all three fields. When
-                ``False``, report only the reference-free ``fidelity_estimate``.
-        """
-        self._require_quimb("tail_truncation")
-        validate_pauli_string(observable, self.nqubits)
+            exact: build the reference fold and report
+                ``relative_frobenius_error``. When ``False``, report only the
+                reference-free ``fidelity_estimate``.
+            residual: forwarded to :meth:`build_post_head_mpo` for both folds, to
+                assess the fold ``tail_handling="fold"`` actually measures.
+            with_expval: also build the exact head state and report
+                ``expval_abs_error``. Needs ``exact=True``.
+            max_bond_dimension: bond cap for the fold under test. ``-1`` means
+                ``self.max_bond_dimension``, ``None`` means untruncated.
 
-        operator_approx, sign = self.tail_operator(
-            observable, cut_index, self.max_bond_dimension
+        Returns:
+            A :class:`TailTruncation`. ``fidelity_estimate`` is always set,
+            ``relative_frobenius_error`` only with ``exact=True``, and
+            ``expval_abs_error`` only with ``with_expval=True``; the others are
+            ``None``.
+
+        Raises:
+            ValueError: for ``with_expval`` without ``exact``.
+            NotImplementedError: for ``with_expval`` with ``residual``: the
+                ``expval_abs_error`` of a folded tail needs the device head
+                state ``R^dag |head>``, which is not built here.
+        """
+        validate_pauli_string(observable, self.nqubits)
+        if with_expval and not exact:
+            raise ValueError("tail_truncation(with_expval=True) needs exact=True.")
+        if with_expval and residual is not None:
+            raise NotImplementedError(
+                "tail_truncation(residual=...) does not support with_expval=True."
+            )
+
+        operator_approx, sign = self.build_post_head_mpo(
+            observable, cut_index, max_bond_dimension, residual=residual
         )
-        fidelity_estimate = (
-            float(np.real(operator_approx.norm())) ** 2 / 2**self.nqubits
-        )
+        fidelity_estimate = self._fold_fidelity(operator_approx)
         if not exact:
             return TailTruncation(fidelity_estimate, None, None)
 
-        state_mps = self._head_state_mps(self._dressed_rotations()[:cut_index])
-        operator_exact, _ = self.tail_operator(
-            observable, cut_index, reference_max_bond
+        operator_exact, _ = self.build_post_head_mpo(
+            observable, cut_index, reference_max_bond, residual=residual
         )
         exact_norm = float(np.real(operator_exact.norm()))
         difference_norm = float(np.real((operator_approx - operator_exact).norm()))
+        relative_frobenius_error = (
+            difference_norm / exact_norm if exact_norm != 0 else 0.0
+        )
+        if not with_expval:
+            return TailTruncation(fidelity_estimate, relative_frobenius_error, None)
+
+        state_mps = self._head_state_mps(self._dressed_rotations()[:cut_index])
 
         def expval(operator):
             return (
@@ -241,11 +356,17 @@ class HSynthSMPO(HSMPO):
 
         return TailTruncation(
             fidelity_estimate=fidelity_estimate,
-            relative_frobenius_error=(
-                difference_norm / exact_norm if exact_norm != 0 else 0.0
-            ),
+            relative_frobenius_error=relative_frobenius_error,
             expval_abs_error=abs(expval(operator_approx) - expval(operator_exact)),
         )
+
+    def _fold_fidelity(self, operator) -> float:
+        """
+        ``||O||_F**2 / 2**n`` of a folded tail MPO: 1 for an exact fold of a
+        Pauli string, since conjugation by a unitary preserves the norm, and
+        lower by the weight the truncation discarded.
+        """
+        return float(np.real(operator.norm())) ** 2 / 2**self.nqubits
 
     def resynthesize_head(
         self, cut_index: int, metric_name: str = "count", preserve_order: bool = True
@@ -259,44 +380,26 @@ class HSynthSMPO(HSMPO):
         which gives no gate-count saving but keeps the hardware path working
         without the optional dependency.
 
+        Cached on the head's dressed rotations (see :func:`_resynthesize`), so
+        repeated calls at the same cut, e.g. from :meth:`expectation_at_cut` for
+        several observables or methods, resynthesise once, while new parameters
+        give new rotations and hence a fresh resynthesis. The returned head is
+        shared between those calls: don't modify its ``circuit`` or
+        ``residual_tableau`` in place.
+
         Args:
             cut_index: the split point.
             metric_name: rustiq metric, ``"count"`` or ``"depth"``.
             preserve_order: keep the (non-commuting) rotation order.
         """
-        dressed = self._dressed_rotations()[:cut_index]
-        paulis = [pauli for pauli, _ in dressed]
-        angles = [angle for _, angle in dressed]
-        try:
-            head, tail_tableau, tail_gates = build_head_and_residual(
-                paulis, angles, metric_name=metric_name, preserve_order=preserve_order
-            )
-            method = "rustiq"
-        except ImportError:
-            import warnings
-
-            warnings.warn(
-                "rustiq is not installed; falling back to the naive CNOT-ladder "
-                "resynthesis (no gate-count saving). Install it with pip install "
-                '"mpstab[rustiq]" for the optimized head.',
-                stacklevel=2,
-            )
-            head, tail_tableau, tail_gates = build_naive_head_and_residual(
-                paulis, angles
-            )
-            method = "naive"
-
-        if len(tail_tableau) != self.nqubits:  # degenerate cut_index == 0 case
-            tail_tableau = stim.Tableau(self.nqubits)
-
-        return ResynthesizedHead(
-            circuit=head_to_qibo_circuit(head, self.nqubits),
-            tail_tableau=tail_tableau,
-            tail_gates=tuple(tail_gates),
-            n_gates=len(head),
-            n_two_qubit_gates=count_two_qubit_gates(head),
-            cut_index=cut_index,
-            method=method,
+        # float() so the key hashes by value whatever the backend returns as an
+        # angle (a framework tensor would hash by identity, or not at all).
+        rotations = tuple(
+            (generator, float(angle))
+            for generator, angle in self._dressed_rotations()[:cut_index]
+        )
+        return _resynthesize(
+            rotations, self.nqubits, cut_index, metric_name, preserve_order
         )
 
     def expectation_at_cut(
@@ -308,13 +411,22 @@ class HSynthSMPO(HSMPO):
         epsilon: Union[float, None] = None,
         backend=None,
         max_bond_dimension: Union[int, None] = -1,
-        tail_handling: str = "forbid",
+        tail_handling: str = "append_to_head_circuit",
         seed: Union[int, None] = None,
         **method_kwargs,
     ) -> ExpectationResult:
         """
         Resynthesise the head, build the measurement circuits, run them and
         recombine the results, in one call.
+
+        This class is meant for hardware: use ``"pauli"``, ``"shadows"`` or
+        ``"tnice"``, which run the head exactly on a device (or simulator) and
+        keep only the tail classical. ``"simulation"`` instead contracts the
+        head, as a truncated MPS, against the tail MPO, entirely classically. It
+        is a reference for validating the hardware methods, or for comparing a
+        device run against the classical split; it is not a measurement route,
+        and at large scale it is exactly the computation the hardware methods
+        exist to avoid.
 
         Args:
             observable: a Pauli string (qubit-0-leftmost) or a
@@ -323,13 +435,18 @@ class HSynthSMPO(HSMPO):
                 on the observable, and pools Pauli strings shared between terms so
                 each is measured once with the summed coefficient.
             cut_index: the split point.
-            method: ``"pauli"``, ``"shadows"`` or ``"tnice"``. ``"tnice"`` runs
-                on exactly the same circuits, bases and shots as ``"shadows"``
-                -- see :meth:`_shadow_plan` -- and only replaces the fixed
+            method: ``"pauli"``, ``"shadows"``, ``"tnice"`` or
+                ``"simulation"``. ``"tnice"`` runs on exactly the same
+                circuits, bases and shots as ``"shadows"`` -- see
+                :meth:`_shadow_plan` -- and only replaces the fixed
                 canonical-dual post-processing with the MPS-optimized
                 estimator of :mod:`~mpstab.quantum_hardware.tnice`, so the two
                 can be compared on identical measurement data.
-            n_shots: a fixed shot budget. Exactly one of this and ``epsilon``.
+                ``"simulation"`` is classical, see above and
+                :meth:`_simulate_at_cut`: it needs no resynthesis, backend or
+                shots, and ignores ``tail_handling`` and ``seed``.
+            n_shots: a fixed shot budget. Exactly one of this and ``epsilon``
+                for the hardware methods; neither for ``"simulation"``.
             epsilon: a target standard error, which sizes the shot budget from the
                 per-route variance predictor. For ``"tnice"`` this reuses
                 ``"shadows"``'s canonical-dual predictor, a conservative upper
@@ -337,42 +454,48 @@ class HSynthSMPO(HSMPO):
             backend: anything with ``execute_circuits(circuits, nshots)``.
                 Defaults to :class:`~mpstab.quantum_hardware.QiboSimulator`.
             max_bond_dimension: bond cap for every tail fold; ``-1`` means
-                ``self.max_bond_dimension``.
-            tail_handling: ``"shadows"`` and ``"tnice"`` only. ``"forbid"``
-                raises if resynthesis left a non-trivial Clifford residual;
-                ``"append"`` runs it as extra gates after the head.
+                ``self.max_bond_dimension``. With ``"simulation"`` the head MPS
+                is capped at ``self.max_bond_dimension``.
+            tail_handling: ``"shadows"`` and ``"tnice"`` only, what to do with a
+                non-trivial Clifford residual left by the resynthesis.
+                ``"append_to_head_circuit"`` (default) runs it as extra gates
+                after the head; ``"fold"`` reabsorbs it into the tail MPO (see
+                :meth:`build_post_head_mpo`), so the device runs the head alone at a
+                possibly much higher shadow variance.
             seed: RNG seed for Pauli sampling, random shadow bases, and (for
                 ``"tnice"``) the train/test shot split.
             method_kwargs: ``"pauli"`` takes ``n_string_samples`` (default
                 200); ``"shadows"`` and ``"tnice"`` take ``shots_per_setting``
-                (default 1) and ``truncation_reference_max_bond`` (default
-                ``-1``: estimate ``truncation_l2`` from the cheap
-                reference-free norm-ratio proxy in :meth:`tail_truncation`
-                rather than building a second, more-truncated-than-usual
-                tail fold to compare against -- pass an explicit bond, or
-                ``None`` for a fully untruncated one, only if you need the
-                exact ``expval_abs_error`` estimate and are prepared to pay
-                for building that reference); ``"tnice"`` additionally takes
+                (default 1); ``"tnice"`` additionally takes
                 ``lam`` (default 0.999), ``n_sweeps`` (default 4),
                 ``bond_dimension`` (default ``None``, meaning the tail MPO's
                 own) and ``test_fraction`` (default 0.5), forwarded to
                 :func:`~mpstab.quantum_hardware.estimate.estimate_tnice`.
 
         Raises:
-            ValueError: on an unknown ``method``, or if neither or both of
-                ``n_shots`` and ``epsilon`` are given.
+            ValueError: on an unknown ``method``, if neither or both of
+                ``n_shots`` and ``epsilon`` are given for a hardware method, or
+                if either is given with ``method="simulation"``.
         """
-        self._require_quimb("expectation_at_cut")
-        if (n_shots is None) == (epsilon is None):
-            raise ValueError("Exactly one of n_shots or epsilon must be given.")
-        if method not in ("pauli", "shadows", "tnice"):
+        if method not in ("pauli", "shadows", "tnice", "simulation"):
             raise ValueError(
-                f"Unknown method {method!r}, expected 'pauli', 'shadows' or 'tnice'."
+                f"Unknown method {method!r}, expected 'pauli', 'shadows', "
+                "'tnice' or 'simulation'."
             )
+        if method == "simulation":
+            if n_shots is not None or epsilon is not None:
+                raise ValueError(
+                    "method='simulation' spends no shots; drop n_shots and epsilon."
+                )
+        elif (n_shots is None) == (epsilon is None):
+            raise ValueError("Exactly one of n_shots or epsilon must be given.")
         if max_bond_dimension == -1:
             max_bond_dimension = self.max_bond_dimension
 
         constant, terms = pauli_terms(observable, self.nqubits)
+        if method == "simulation":
+            return self._simulate_at_cut(terms, constant, cut_index, max_bond_dimension)
+
         resynthesis = self.resynthesize_head(cut_index)
 
         estimator_kwargs = {}
@@ -418,7 +541,9 @@ class HSynthSMPO(HSMPO):
         rng = np.random.default_rng(seed)
         ensembles, diagnostics = [], []
         for pauli, coefficient in terms.items():
-            operator, sign = self.tail_operator(pauli, cut_index, max_bond_dimension)
+            operator, sign = self.build_post_head_mpo(
+                pauli, cut_index, max_bond_dimension
+            )
             ensemble = sample_pauli_strings(
                 operator,
                 n_samples=n_string_samples,
@@ -429,9 +554,9 @@ class HSynthSMPO(HSMPO):
             diagnostics.append((abs(coefficient), l1, l2, ensemble.retained_weight))
 
         pooled = pool_pauli_terms(ensembles)
-        if resynthesis.tail_tableau != stim.Tableau(self.nqubits):
+        if resynthesis.residual_tableau != stim.Tableau(self.nqubits):
             pooled = fold_pool_through_tableau(
-                pooled, resynthesis.tail_tableau, self.stab_engine
+                pooled, resynthesis.residual_tableau, self.stab_engine
             )
 
         truncation_l1, truncation_l2, retained_weight = _aggregate_truncation(
@@ -461,57 +586,31 @@ class HSynthSMPO(HSMPO):
         seed,
         tail_handling,
         shots_per_setting=1,
-        truncation_reference_max_bond=-1,
     ):
         """
         Fold each term's tail MPO and pick random measurement bases.
 
-        Args:
-            truncation_reference_max_bond: bond cap for the *reference* fold
-                :meth:`tail_truncation` compares against to estimate
-                ``truncation_l2``. ``-1`` (default) skips building any
-                reference fold at all, using the cheap reference-free
-                norm-ratio proxy (``tail_truncation(..., exact=False)``)
-                instead. An explicit int, or ``None`` for a fully
-                untruncated reference, switches to the exact
-                ``expval_abs_error`` estimate -- at the cost of building that
-                second, less-truncated tail fold, which is exactly the
-                object ``max_bond_dimension`` exists to avoid building by
-                default.
+        ``truncation_l2`` is estimated from each folded MPO's norm (see
+        :meth:`_fold_fidelity`), so no reference fold and no head state are
+        built.
         """
-        circuit = self._shadow_circuit(resynthesis, cut_index, tail_handling)
+        circuit = self._shadow_circuit(resynthesis, tail_handling)
+        residual = None
+        if tail_handling == "fold" and resynthesis.residual_tableau != stim.Tableau(
+            self.nqubits
+        ):
+            residual = resynthesis.residual_tableau
 
         mpo_terms = []
-        for pauli, coefficient in terms.items():
-            operator, sign = self.tail_operator(pauli, cut_index, max_bond_dimension)
-            mpo_terms.append((pauli, coefficient, sign, operator))
-
         truncation_l2 = 0.0
-        if max_bond_dimension is not None:
-            if truncation_reference_max_bond == -1:
-                truncation_l2 = sum(
-                    abs(coefficient)
-                    * np.sqrt(
-                        max(
-                            0.0,
-                            1.0
-                            - self.tail_truncation(
-                                pauli, cut_index, exact=False
-                            ).fidelity_estimate,
-                        )
-                    )
-                    for pauli, coefficient in terms.items()
-                )
-            else:
-                truncation_l2 = sum(
-                    abs(coefficient)
-                    * self.tail_truncation(
-                        pauli,
-                        cut_index,
-                        reference_max_bond=truncation_reference_max_bond,
-                        exact=True,
-                    ).expval_abs_error
-                    for pauli, coefficient in terms.items()
+        for pauli, coefficient in terms.items():
+            operator, sign = self.build_post_head_mpo(
+                pauli, cut_index, max_bond_dimension, residual=residual
+            )
+            mpo_terms.append((pauli, coefficient, sign, operator))
+            if max_bond_dimension is not None:
+                truncation_l2 += abs(coefficient) * np.sqrt(
+                    max(0.0, 1.0 - self._fold_fidelity(operator))
                 )
 
         return build_shadow_plan(
@@ -526,44 +625,76 @@ class HSynthSMPO(HSMPO):
             truncation_l2=float(truncation_l2),
         )
 
-    def _shadow_circuit(self, resynthesis, cut_index, tail_handling):
+    def _shadow_circuit(self, resynthesis, tail_handling):
         """
         The circuit the shadows route measures, handling a non-trivial residual.
 
         Raises:
-            ValueError: on an unknown ``tail_handling``, or on a non-trivial
-                residual under ``"forbid"``.
+            ValueError: on an unknown ``tail_handling``.
         """
-        if tail_handling not in ("forbid", "append"):
+        if tail_handling not in ("append_to_head_circuit", "fold"):
             raise ValueError(
-                f"Unknown tail_handling {tail_handling!r}, expected 'forbid' or "
-                "'append'."
+                f"Unknown tail_handling {tail_handling!r}, expected "
+                "'append_to_head_circuit' or 'fold'."
             )
-        if resynthesis.tail_tableau == stim.Tableau(self.nqubits):
+        if (
+            resynthesis.residual_tableau == stim.Tableau(self.nqubits)
+            or tail_handling == "fold"
+        ):
             return resynthesis.circuit
-        if tail_handling == "forbid":
-            raise ValueError(
-                "resynthesize_head left a non-trivial Clifford residual "
-                f"({resynthesis.method} resynthesis at cut_index={cut_index}). The "
-                "shadows route cannot fold it into the tail MPO without destroying "
-                "the product structure its O(n chi^2) contraction relies on. Pass "
-                "tail_handling='append' to run the residual as extra gates instead."
-            )
         return resynthesis.circuit + head_to_qibo_circuit(
-            list(resynthesis.tail_gates), self.nqubits
+            list(resynthesis.residual_gates), self.nqubits
         )
 
-    def _require_quimb(self, method_name: str):
-        """
-        Raises:
-            NotImplementedError: unless the tensor-network engine is a
-                :class:`~mpstab.engines.QuimbEngine`.
-        """
-        if not isinstance(self.tn_engine, QuimbEngine):
-            raise NotImplementedError(
-                f"{method_name} requires QuimbEngine, the only engine that can "
-                "conjugate an operator. Call set_engines(tn_engine=QuimbEngine())."
-            )
+
+@lru_cache(maxsize=32)
+def _resynthesize(
+    rotations: Tuple[Tuple[str, float], ...],
+    nqubits: int,
+    cut_index: int,
+    metric_name: str,
+    preserve_order: bool,
+) -> ResynthesizedHead:
+    """
+    The body of :meth:`HSynthSMPO.resynthesize_head`, cached on its arguments.
+
+    The key holds the head's dressed rotations rather than the evolutor, so a
+    repeated call with the same rotations returns the same
+    :class:`ResynthesizedHead` object without running rustiq again, and changing
+    the circuit's parameters changes the angles, hence the key: the cache never
+    serves a stale head and needs no invalidation.
+    """
+    paulis = [pauli for pauli, _ in rotations]
+    angles = [angle for _, angle in rotations]
+    try:
+        head, residual_tableau, residual_gates = build_head_and_residual(
+            paulis, angles, metric_name=metric_name, preserve_order=preserve_order
+        )
+        method = "rustiq"
+    except ImportError:
+        warnings.warn(
+            "rustiq is not installed; falling back to the CNOT-ladder "
+            "resynthesis (no gate-count saving). Install it with pip install "
+            '"mpstab[rustiq]" for the optimized head.',
+            stacklevel=3,
+        )
+        head, residual_tableau, residual_gates = build_cnot_ladder_head_and_residual(
+            paulis, angles
+        )
+        method = "cnot_ladder"
+
+    if len(residual_tableau) != nqubits:  # degenerate cut_index == 0 case
+        residual_tableau = stim.Tableau(nqubits)
+
+    return ResynthesizedHead(
+        circuit=head_to_qibo_circuit(head, nqubits),
+        residual_tableau=residual_tableau,
+        residual_gates=tuple(residual_gates),
+        n_gates=len(head),
+        n_two_qubit_gates=count_two_qubit_gates(head),
+        cut_index=cut_index,
+        method=method,
+    )
 
 
 def _aggregate_truncation(diagnostics: list) -> Tuple[float, float, float]:

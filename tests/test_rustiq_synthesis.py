@@ -10,8 +10,11 @@ Covers:
     reproduces direct qibo simulation.
 """
 
+import builtins
+
 import numpy as np
 import pytest
+import stim
 from qibo import Circuit, gates, set_backend
 from utils import expectation_with_qibo, set_rng_seed
 
@@ -96,23 +99,23 @@ def test_target_equals_tail_times_head_dense():
     _, paulis, angles = _dressed_paulis_and_angles(n)
     assert len(paulis) > 3  # non-trivial rotation chain
 
-    head, tail_tableau, tail_gates = build_head_and_residual(paulis, angles)
+    head, residual_tableau, residual_gates = build_head_and_residual(paulis, angles)
 
     U_target = _target_unitary(paulis, angles)
     U_head = _unitary_from_gate_list(head, n)
-    U_tail = _unitary_from_gate_list(tail_gates, n)
+    U_tail = _unitary_from_gate_list(residual_gates, n)
 
     assert _equal_up_to_global_phase(U_target, U_tail @ U_head)
 
 
-def test_tail_tableau_reproducible_across_calls_gate_list_not_necessarily():
+def test_residual_tableau_reproducible_across_calls_gate_list_not_necessarily():
     _, paulis, angles = _dressed_paulis_and_angles(4)
 
-    _, tail_tableau_1, tail_gates_1 = build_head_and_residual(paulis, angles)
-    _, tail_tableau_2, tail_gates_2 = build_head_and_residual(paulis, angles)
+    _, residual_tableau_1, residual_gates_1 = build_head_and_residual(paulis, angles)
+    _, residual_tableau_2, residual_gates_2 = build_head_and_residual(paulis, angles)
 
     # The Clifford OPERATOR is unique -- compare tableaus, not gate lists.
-    assert tail_tableau_1 == tail_tableau_2
+    assert residual_tableau_1 == residual_tableau_2
 
 
 def test_head_counts_only_matches_exact_head():
@@ -128,15 +131,13 @@ def test_head_counts_only_matches_exact_head():
 
 
 def test_build_head_and_residual_empty_input():
-    head, tail_tableau, tail_gates = build_head_and_residual([], [])
+    head, residual_tableau, residual_gates = build_head_and_residual([], [])
     assert head == []
-    assert tail_gates == []
-    assert len(tail_tableau) == 0
+    assert residual_gates == []
+    assert len(residual_tableau) == 0
 
 
 def test_folding_an_identity_residual_leaves_the_observable_alone():
-    import stim
-
     identity = stim.Tableau(3)
     engine = StimEngine()
 
@@ -165,7 +166,7 @@ def _expectation_via_full_resynthesis(hs, observable):
     )
     resynthesis = hs.resynthesize_head(cut_index=len(hs.magic_gates))
     folded, residual_sign = hs.stab_engine.fold_pauli_through_tableau(
-        backpropagated, resynthesis.tail_tableau, 1.0
+        backpropagated, resynthesis.residual_tableau, 1.0
     )
     state = resynthesis.circuit().state()
     expval = np.real(np.conj(state) @ _pauli_matrix(folded) @ state)
@@ -211,8 +212,6 @@ def test_resynthesize_head_gate_counts_across_partial_cuts():
 
 
 def test_rustiq_import_error_has_install_hint(monkeypatch):
-    import builtins
-
     real_import = builtins.__import__
 
     def fake_import(name, *args, **kwargs):

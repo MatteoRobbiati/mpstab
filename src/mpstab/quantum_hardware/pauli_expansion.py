@@ -313,9 +313,9 @@ def pool_pauli_terms(terms) -> dict:
     return pooled
 
 
-def fold_pool_through_tableau(pool: dict, tail_tableau, stab_engine) -> dict:
+def fold_pool_through_tableau(pool: dict, residual_tableau, stab_engine) -> dict:
     """
-    Conjugate every pooled ``{pauli: coefficient}`` entry through ``tail_tableau``.
+    Conjugate every pooled ``{pauli: coefficient}`` entry through ``residual_tableau``.
 
     A device running a resynthesised head prepares ``U(head)|psi_0>``, not the
     exact head state the tail-folded coefficients were derived against; the two
@@ -327,13 +327,13 @@ def fold_pool_through_tableau(pool: dict, tail_tableau, stab_engine) -> dict:
 
     Args:
         pool: ``{pauli: coefficient}``, already pooled across Hamiltonian terms.
-        tail_tableau: the Clifford residual, a ``stim.Tableau``.
+        residual_tableau: the Clifford residual, a ``stim.Tableau``.
         stab_engine: a :class:`~mpstab.engines.StimEngine`.
     """
     folded: dict = {}
     for label, coefficient in pool.items():
         folded_label, sign = stab_engine.fold_pauli_through_tableau(
-            label, tail_tableau, 1.0
+            label, residual_tableau, 1.0
         )
         folded[folded_label] = folded.get(folded_label, 0.0) + coefficient * sign
     return folded

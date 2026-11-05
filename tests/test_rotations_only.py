@@ -8,7 +8,7 @@ import time
 
 import numpy as np
 import pytest
-from qibo import set_backend
+from qibo import Circuit, gates, set_backend
 
 from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine, StimEngine
 from mpstab.engines.stabilizers.native import NativeStabilizersEngine
@@ -20,8 +20,6 @@ set_backend("numpy")
 
 
 def _small_entangled_circuit(n=4):
-    from qibo import Circuit, gates
-
     circ = Circuit(n)
     for q in range(n):
         circ.add(gates.H(q))
