@@ -21,6 +21,7 @@ from mpstab.engines import QuimbEngine
 from mpstab.pauli import PAULI_ARRAY as PAULIS
 from mpstab.pauli import PAULI_LABELS as LABELS
 from mpstab.quantum_hardware.pauli_expansion import (
+    PauliEnsemble,
     _draw_one_string,
     _right_environments,
     enumerate_pauli_coefficients,
@@ -236,6 +237,34 @@ def test_truncation_error_estimate_is_zero_when_nothing_is_discarded(scrambled_m
     l1, l2 = truncation_error_estimate(ensemble)
     assert l1 == pytest.approx(0.0, abs=1e-6)
     assert l2 == pytest.approx(0.0, abs=1e-6)
+
+
+@pytest.mark.parametrize("retained", [1.0, 1 - 1e-16, 1 - 2.2e-16, 1 - 1e-14])
+def test_truncation_error_estimate_ignores_rounding_noise_in_retained_weight(retained):
+    """
+    Keeping every string can leave ``retained_weight`` a few ulps below 1 on some
+    platforms (it did on Linux CI). That noise, divided by a numerically-zero
+    retained coefficient, used to give an L1 estimate of ~1e33.
+    """
+    ensemble = PauliEnsemble(
+        strings=("II", "XZ"),
+        coefficients=np.array([0.7, 1e-49]),
+        retained_weight=retained,
+        total_weight=1.0,
+    )
+    assert truncation_error_estimate(ensemble) == (0.0, 0.0)
+
+
+def test_truncation_error_estimate_still_reports_real_discarded_weight():
+    ensemble = PauliEnsemble(
+        strings=("II", "XZ"),
+        coefficients=np.array([0.7, 1e-49]),
+        retained_weight=0.9,
+        total_weight=1.0,
+    )
+    l1, l2 = truncation_error_estimate(ensemble)
+    assert l2 == pytest.approx(np.sqrt(0.1))
+    assert l1 == pytest.approx(0.1 / 0.7)  # scale set by the significant coefficient
 
 
 def test_shadow_variance_from_mpo_matches_brute_force_enumeration(scrambled_mpo):

@@ -266,6 +266,10 @@ def top_k_pauli_strings(mpo, k: int) -> PauliEnsemble:
     )
 
 
+# Relative size below which a weight is floating-point noise, not signal.
+_WEIGHT_ROUNDOFF = 1e-12
+
+
 def truncation_error_estimate(ensemble: PauliEnsemble):
     """
     Estimate the systematic error from the Pauli strings ``ensemble`` left out.
@@ -286,11 +290,22 @@ def truncation_error_estimate(ensemble: PauliEnsemble):
         ``(l1_estimate, l2_exact)``.
     """
     discarded_mass = max(0.0, ensemble.total_weight * (1.0 - ensemble.retained_weight))
+    # ``retained_weight`` is a ratio of floating-point sums, so keeping every string
+    # can still leave a discarded mass of a few ulps (platform dependent), which
+    # is rounding noise, not discarded weight.
+    if discarded_mass <= _WEIGHT_ROUNDOFF * ensemble.total_weight:
+        return 0.0, 0.0
     l2 = float(np.sqrt(discarded_mass))
-    if ensemble.coefficients.size == 0 or discarded_mass == 0.0:
+    if ensemble.coefficients.size == 0:
         return l2, l2
-    c_min = float(np.min(np.abs(ensemble.coefficients)))
-    return (discarded_mass / c_min if c_min > 0 else l2), l2
+    # Only coefficients that carry weight set the scale: a retained string whose
+    # coefficient is numerically zero (e.g. 1e-49) says nothing about the
+    # sampling threshold, and dividing by it blows the estimate up.
+    magnitudes = np.abs(ensemble.coefficients)
+    significant = magnitudes[magnitudes > _WEIGHT_ROUNDOFF * magnitudes.max()]
+    if significant.size == 0:
+        return l2, l2
+    return discarded_mass / float(significant.min()), l2
 
 
 def pool_pauli_terms(terms) -> dict:
