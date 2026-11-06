@@ -119,6 +119,48 @@ def test_reconstruction_error_is_near_zero_at_the_seed(scrambled_mpo):
     assert tnice.reconstruction_error(pauli_mps, omega) < 1e-6
 
 
+def _phase_gauged(pauli_mps, seed):
+    """The same MPS in another bond gauge: ``A_k -> conj(D_{k-1}) A_k D_k``."""
+    rng = np.random.default_rng(seed)
+    phases = [None] + [
+        np.exp(1j * rng.uniform(0, 2 * np.pi, site.shape[2])) for site in pauli_mps[:-1]
+    ]
+    phases.append(None)
+    gauged = []
+    for k, site in enumerate(pauli_mps):
+        site = site.astype(complex)
+        if phases[k] is not None:
+            site = site * np.conj(phases[k])[None, :, None]
+        if phases[k + 1] is not None:
+            site = site * phases[k + 1][None, None, :]
+        gauged.append(site)
+    return gauged
+
+
+@pytest.mark.parametrize("gauge_seed", [0, 1, 2])
+def test_seed_and_reconstruction_do_not_depend_on_the_bond_gauge(
+    scrambled_mpo, gauge_seed
+):
+    """
+    The site tensors of a Hermitian operator's Pauli MPS are real only in a lucky
+    gauge, fixed by whichever LAPACK SVD built the MPO; the estimator must not
+    depend on it. (Taking ``.real`` site by site did, and was wrong on Linux.)
+    """
+    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+    gauged = _phase_gauged(pauli_mps, gauge_seed)
+
+    omega = tnice.canonical_omega_seed(gauged)
+    assert tnice.reconstruction_error(gauged, omega) < 1e-6
+
+    rng = np.random.default_rng(0)
+    outcomes = rng.integers(0, 6, size=(50, 4))
+    np.testing.assert_allclose(
+        tnice.evaluate_omega(omega, outcomes),
+        tnice.evaluate_omega(tnice.canonical_omega_seed(pauli_mps), outcomes),
+        atol=1e-8,
+    )
+
+
 # ---------------------------------------------------------------------------
 # 3. The DMRG-like fit
 # ---------------------------------------------------------------------------
