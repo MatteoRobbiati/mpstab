@@ -218,24 +218,7 @@ def test_both_routes_match_hsmpo_for_symbolic_hamiltonian(cut_fraction):
     assert abs(shadows.value - exact) <= 4 * shadows.total_error + 1e-3, shadows
 
 
-@pytest.mark.parametrize(
-    "cut_fraction",
-    [
-        0.0,
-        pytest.param(
-            0.5,
-            marks=pytest.mark.xfail(
-                reason=(
-                    "Fails on the Linux CI (estimate ~0.03 vs exact ~-0.38) but "
-                    "passes on macOS with the locked environment; not reproduced "
-                    "locally yet. Remove once investigated."
-                ),
-                strict=False,
-            ),
-        ),
-        1.0,
-    ],
-)
+@pytest.mark.parametrize("cut_fraction", [0.0, 1.0])
 def test_tnice_matches_simulation_for_pauli_string(cut_fraction, xy_observable):
     """
     ``"tnice"`` shares its circuits and shots with ``"shadows"`` (same seed,
