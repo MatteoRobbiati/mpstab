@@ -1,10 +1,12 @@
 import jax
+import jax.numpy as jnp
 import numpy as np
 import pytest
 import torch
 from qibo import Circuit, gates
 
 from mpstab.engines import QuimbEngine, StimEngine
+from mpstab.engines.tensor_networks._jax_svd import safe_svd
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
@@ -84,3 +86,38 @@ def test_gradients_jax():
         ]
     )
     np.testing.assert_allclose(gradient, expected, atol=1e-4)
+
+
+def _svd_loss(svd, matrix, weights):
+    u, s, vh = svd(matrix, full_matrices=False)
+    return jnp.real(jnp.sum(jnp.abs(u * s @ vh * weights) ** 2)) + jnp.sum(
+        s * jnp.arange(s.size)
+    )
+
+
+@pytest.mark.parametrize("shape", [(4, 4), (6, 3), (3, 6)])
+@pytest.mark.parametrize("is_complex", [False, True])
+def test_safe_svd_gradient_matches_jax_on_generic_matrices(shape, is_complex):
+    rng = np.random.default_rng(0)
+    matrix = rng.standard_normal(shape)
+    if is_complex:
+        matrix = matrix + 1j * rng.standard_normal(shape)
+    weights = rng.standard_normal(shape)
+
+    expected = jax.grad(lambda x: _svd_loss(jnp.linalg.svd, x, weights))(matrix)
+    actual = jax.grad(lambda x: _svd_loss(safe_svd, x, weights))(matrix)
+    np.testing.assert_allclose(actual, expected, atol=1e-5)
+
+
+@pytest.mark.parametrize("zeros", [1, 2, 3])
+def test_safe_svd_gradient_is_finite_on_repeated_zero_singular_values(zeros):
+    """
+    An MPS evolved from a product state is compressed through matrices like these
+    at its first rotations. jax's own SVD derivative is ``nan`` there, which made
+    the first-layer gradients ``nan`` on one CI runner.
+    """
+    matrix = np.diag([1.0] + [0.0] * zeros + [0.5] * (3 - zeros))
+    matrix[1 : 1 + zeros, 1 : 1 + zeros] = 0.0
+    weights = np.random.default_rng(1).standard_normal((4, 4))
+    gradient = jax.grad(lambda x: _svd_loss(safe_svd, x, weights))(matrix)
+    assert np.all(np.isfinite(np.asarray(gradient)))

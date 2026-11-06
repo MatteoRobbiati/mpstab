@@ -116,6 +116,11 @@ class QuimbEngine(TensorNetworkEngine):
         elif backend == "jax":
             import jax.numpy
 
+            from ._jax_svd import install
+
+            # jax's SVD derivative is nan on repeated zero singular values, which
+            # an MPS evolved from a product state hits at its first compressions.
+            install()
             self.np = jax.numpy
         elif backend == "torch":
             import torch
