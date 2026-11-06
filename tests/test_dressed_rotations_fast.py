@@ -65,9 +65,9 @@ def test_dressed_rotations_match_reference(label, factory):
 
 
 def test_dressed_rotations_is_faster_than_reference():
-    # Large enough that the O(nmagic^2) reference is clearly, robustly slower,
-    # while still completing quickly.
-    ansatz = QFT(nqubits=18)
+    # Large enough that the O(nmagic^2) reference is clearly, robustly slower
+    # (~50x at n=10), while still completing in seconds: n=18 took ~3 minutes.
+    ansatz = QFT(nqubits=10)
     hs = HSynthSMPO.rotations_only(ansatz)
 
     t0 = time.perf_counter()
@@ -84,7 +84,7 @@ def test_dressed_rotations_is_faster_than_reference():
         f"reference ({t_reference:.3f}s)"
     )
     print(
-        f"\n[dressed_rotations] QFT n=18, nmagic={len(hs.magic_gates)}: "
+        f"\n[dressed_rotations] QFT n=10, nmagic={len(hs.magic_gates)}: "
         f"reference={t_reference:.3f}s fast={t_fast:.3f}s "
         f"speedup={t_reference / t_fast:.1f}x"
     )
@@ -93,9 +93,9 @@ def test_dressed_rotations_is_faster_than_reference():
 def _rotation(generator: str, angle: float) -> np.ndarray:
     """Dense ``exp(-i angle/2 G)`` for a Pauli string ``G``, qubit 0 leftmost."""
     dense = reduce(np.kron, [PAULI_MATRICES[label] for label in generator])
-    return np.cos(angle / 2) * np.eye(2 ** len(generator)) - 1j * np.sin(
-        angle / 2
-    ) * dense
+    return (
+        np.cos(angle / 2) * np.eye(2 ** len(generator)) - 1j * np.sin(angle / 2) * dense
+    )
 
 
 @pytest.mark.parametrize("seed", range(5))
