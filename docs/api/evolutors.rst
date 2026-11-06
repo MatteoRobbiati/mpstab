@@ -1,26 +1,20 @@
 Evolutors
 =========
 
-Evolutors are the high-level managers of quantum circuit simulation in MPSTAB. They orchestrate the flow through a quantum circuit, deciding when to use stabilizer methods versus tensor network methods for maximum efficiency.
-
-**Key Concept**: Evolutors handle the temporal evolution of quantum states through circuit gates, managing the hybrid representation.
+Evolutors are the high-level managers of a simulation. They partition a circuit
+into a Clifford part and the magic gates that resist it, then drive the
+stabilizer and tensor-network engines through the result.
 
 HSMPO: Hybrid Stabilizer MPO
 -----------------------------
 
-The main HSMPO class combines stabilizer states with tensor network representations.
+The Clifford part is absorbed into the observable and the magic gates are applied
+to an MPS as dressed Pauli rotations.
 
 .. automodule:: mpstab.evolutors.hsmpo
    :members:
    :undoc-members:
    :show-inheritance:
-
-**Key Methods**:
-
-- ``__init__(ansatz, max_bond_dimension, initial_state)``: Initialize the simulator
-- ``expectation(observable, return_fidelity=False)``: Compute expectation value of a Pauli observable
-- ``truncation_fidelity()``: Compute truncation fidelity of current state
-- ``set_engines()``: Configure stabilizer and tensor network engines
 
 **Usage Example**::
 
@@ -38,32 +32,30 @@ The main HSMPO class combines stabilizer states with tensor network representati
     print(f"Expectation value: {result}")
     print(f"Fidelity: {fidelity}")
 
+HSynthSMPO: Head/Tail Split
+---------------------------
+
+Splits the dressed-rotation chain in two: a head resynthesized into a circuit a
+device can run, and a tail folded into the observable. See
+:doc:`../guides/rustiq_resynthesis`.
+
+.. automodule:: mpstab.evolutors.hsynthsmpo
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Optimization
+------------
+
+.. automodule:: mpstab.evolutors.optimization
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Utilities
 ---------
 
-Helper functions for evolutor operations.
-
 .. automodule:: mpstab.evolutors.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Stabilizer Evolution Tools
---------------------------
-
-Low-level stabilizer state management and evolution.
-
-.. automodule:: mpstab.evolutors.stabilizer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Tensor Network Evolution Tools
-------------------------------
-
-Low-level tensor network (MPS/MPO) management and operations.
-
-.. automodule:: mpstab.evolutors.tensor_network.tensor_network
    :members:
    :undoc-members:
    :show-inheritance:

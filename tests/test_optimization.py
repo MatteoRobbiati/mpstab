@@ -14,6 +14,8 @@ from qibo.hamiltonians import SymbolicHamiltonian
 from qibo.symbols import X, Y, Z
 
 from mpstab import HSMPO
+from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
+from mpstab.hamiltonians import pauli_terms
 from mpstab.models.ansatze import HardwareEfficient
 
 
@@ -63,13 +65,9 @@ def get_qibo_ground_state_energy(hamiltonian_dict: dict, nqubits: int) -> float:
     H = SymbolicHamiltonian(nqubits=nqubits, form=pauli_form, constant=constant)
 
     # Use qibo's dense matrix representation
-    from scipy.sparse.linalg import eigsh
-
     matrix = H.matrix.todense() if hasattr(H.matrix, "todense") else H.matrix
 
     # Find minimum eigenvalue
-    import numpy as np
-
     eigenvalues = np.linalg.eigvalsh(matrix)
     return float(np.real(eigenvalues[0]))
 
@@ -238,36 +236,35 @@ class TestDMRGOptimization:
 
 
 class TestHamiltonianConversion:
-    """Test Hamiltonian format conversion."""
+    """`mpstab.hamiltonians.pauli_terms` over every observable format."""
 
-    def test_hamiltonian_to_dict_str(self):
-        """Test conversion from string to dict."""
-        from mpstab.evolutors.optimization import hamiltonian_to_dict
+    def test_pauli_terms_from_str(self):
+        constant, terms = pauli_terms("ZZZZ", nqubits=4)
+        assert constant == 0.0
+        assert terms == {"ZZZZ": 1.0}
 
-        result = hamiltonian_to_dict("ZZZZ")
-        assert result == {"ZZZZ": 1.0}
+    def test_pauli_terms_from_list(self):
+        constant, terms = pauli_terms(["ZZZZ", "XXXX", "YYYY"], nqubits=4)
+        assert constant == 0.0
+        assert terms == {"ZZZZ": 1.0, "XXXX": 1.0, "YYYY": 1.0}
 
-    def test_hamiltonian_to_dict_list(self):
-        """Test conversion from list to dict."""
-        from mpstab.evolutors.optimization import hamiltonian_to_dict
-
-        result = hamiltonian_to_dict(["ZZZZ", "XXXX", "YYYY"])
-        expected = {"ZZZZ": 1.0, "XXXX": 1.0, "YYYY": 1.0}
-        assert result == expected
-
-    def test_hamiltonian_to_dict_dict(self):
-        """Test that dict passes through unchanged."""
-        from mpstab.evolutors.optimization import hamiltonian_to_dict
-
+    def test_pauli_terms_from_dict(self):
         input_dict = {"ZZZZ": 1.0, "XXXX": 0.5}
-        result = hamiltonian_to_dict(input_dict)
-        assert result == input_dict
+        constant, terms = pauli_terms(input_dict, nqubits=4)
+        assert constant == 0.0
+        assert terms == input_dict
 
-    def test_hamiltonian_to_dict_symbolic(self):
-        """Test conversion from SymbolicHamiltonian to dict."""
-        from mpstab.evolutors.optimization import hamiltonian_to_dict
+    def test_pauli_terms_rejects_malformed_pauli_string(self):
+        with pytest.raises(ValueError):
+            pauli_terms("2*ZZZZ", nqubits=4)
+        with pytest.raises(ValueError):
+            pauli_terms("ZZZ", nqubits=4)
 
-        # Build simple XXZ
+    def test_pauli_terms_rejects_unknown_type(self):
+        with pytest.raises(ValueError):
+            pauli_terms(42, nqubits=4)
+
+    def test_pauli_terms_from_symbolic_hamiltonian(self):
         ham_form = (
             X(0) * X(1)
             + Y(0) * Y(1)
@@ -277,19 +274,27 @@ class TestHamiltonianConversion:
         )
         H = SymbolicHamiltonian(nqubits=4, form=ham_form)
 
-        result = hamiltonian_to_dict(H, nqubits=4)
+        constant, terms = pauli_terms(H, nqubits=4)
 
-        # Should have XX, YY, ZZ terms (distributed across the 4 qubits with padding)
-        assert len(result) > 0, "Should have some terms"
+        assert constant == 0.0
+        # Terms are padded with identities out to the full width.
+        assert all(len(pauli) == 4 for pauli in terms)
+        assert terms["XXII"] == pytest.approx(1.0)
+        assert terms["YYII"] == pytest.approx(1.0)
+        assert terms["ZZII"] == pytest.approx(0.5)
+        assert terms["IZZI"] == pytest.approx(0.5)
+        assert terms["IIZZ"] == pytest.approx(0.5)
 
-        # Check for any terms with X or Y operators
-        has_x_terms = any("X" in k for k in result.keys())
-        has_y_terms = any("Y" in k for k in result.keys())
-        has_z_terms = any("Z" in k for k in result.keys())
+    def test_pauli_terms_sums_repeated_strings(self):
+        H = SymbolicHamiltonian(nqubits=2, form=Z(0) * Z(1) + 0.25 * Z(0) * Z(1))
+        _, terms = pauli_terms(H, nqubits=2)
+        assert terms == {"ZZ": pytest.approx(1.25)}
 
-        assert has_x_terms, "Should have X terms"
-        assert has_y_terms, "Should have Y terms"
-        assert has_z_terms, "Should have Z terms"
+    def test_pauli_terms_keeps_constant_out_of_the_term_map(self):
+        H = SymbolicHamiltonian(nqubits=2, form=Z(0) * Z(1) + 3.0)
+        constant, terms = pauli_terms(H, nqubits=2)
+        assert constant == pytest.approx(3.0)
+        assert terms == {"ZZ": pytest.approx(1.0)}
 
 
 class TestEngineSupportValidation:
@@ -297,8 +302,6 @@ class TestEngineSupportValidation:
 
     def test_native_tensor_network_engine_raises_not_implemented(self):
         """Test that NativeTensorNetworkEngine raises NotImplementedError during initialization."""
-        from mpstab.engines.tensor_networks.native import NativeTensorNetworkEngine
-
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
 
         with pytest.raises(
@@ -310,8 +313,6 @@ class TestEngineSupportValidation:
 
     def test_native_tensor_network_engine_error_during_post_init(self):
         """Test that NativeTensorNetworkEngine raises error at HSMPO creation if set as default."""
-        from mpstab.engines.tensor_networks.native import NativeTensorNetworkEngine
-
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
 
@@ -324,8 +325,6 @@ class TestEngineSupportValidation:
 
     def test_quimb_engine_works(self):
         """Test that QuimbEngine works correctly (should pass without error)."""
-        from mpstab.engines.tensor_networks.quimb import QuimbEngine
-
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
 
@@ -342,8 +341,6 @@ class TestEngineSupportValidation:
 
     def test_expectation_with_quimb_engine(self):
         """Test expectation calculation with QuimbEngine (default)."""
-        from mpstab.engines import QuimbEngine
-
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
         hsmpo.set_engines(tn_engine=QuimbEngine())
@@ -354,8 +351,6 @@ class TestEngineSupportValidation:
 
     def test_expectation_with_native_engine(self):
         """Test expectation calculation with NativeTensorNetworkEngine."""
-        from mpstab.engines import NativeTensorNetworkEngine
-
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
 
@@ -368,8 +363,6 @@ class TestEngineSupportValidation:
 
     def test_minimize_expectation_fails_with_native_engine(self):
         """Test that minimize_expectation raises NotImplementedError for NativeTensorNetworkEngine."""
-        from mpstab.engines import NativeTensorNetworkEngine
-
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
 
@@ -390,8 +383,6 @@ class TestEngineSupportValidation:
 
     def test_minimize_expectation_works_with_quimb_engine(self):
         """Test that minimize_expectation works with QuimbEngine."""
-        from mpstab.engines import QuimbEngine
-
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
         hsmpo.set_engines(tn_engine=QuimbEngine())
@@ -413,8 +404,6 @@ class TestEngineSupportValidation:
 
     def test_expectation_accuracy_native_vs_quimb(self):
         """Verify expectation values match between native and quimb engines."""
-        from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
-
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
 
         # Calculate with Quimb engine

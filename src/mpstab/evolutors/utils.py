@@ -1,77 +1,34 @@
-import random
+"""Helpers shared by the evolutors."""
 
-from qibo import gates
+import numpy as np
 
-gate2generator = {
-    "rx": "X",
-    "ry": "Y",
-    "rz": "Z",
-    "t": "Z",
-}
+#: The Pauli each supported magic gate rotates about.
+GATE_GENERATORS = {"rx": "X", "ry": "Y", "rz": "Z", "t": "Z"}
 
-gate2tableau = {
-    "cx": "CNOT",
-    "h": "H",
-    "s": "S",
-    "x": "X",
-    "y": "Y",
-    "z": "Z",
-    "swap": "SWAP",
-    "cz": "CZ",
-    "rz": "RZ",
-    "ry": "RY",
-    "rx": "RX",
-    "gpi2": "GPI2",
-    "sdg": "Sdg",
-}
-
-one_qubit_cliff = "HXYZ"
+#: Rotation angles of magic gates that carry no parameter.
+FIXED_ANGLES = {"t": np.pi / 4}
 
 
-def sample_random_pauli_gate(qubit):
+def gate_angle(gate) -> float:
+    """The rotation angle of a magic gate, including fixed-angle ones like ``T``."""
+    if gate.name in FIXED_ANGLES:
+        return FIXED_ANGLES[gate.name]
+    return gate.parameters[0]
+
+
+def gate_generator(gate, nqubits: int) -> str:
     """
-    Sample a random one-qubit gate applyed to a given qubit.
-    """
-    random_letter = random.choice(one_qubit_cliff)
-    return getattr(gates, random_letter)(q=qubit)
-
-
-def _link_to_dummy(tn, dummy, tensor, tensor_direction, edge_id="v_link"):
-
-    T, d, e, data = list(tn.tensornet.in_edges(dummy, data=True, keys=True))[0]
-    dummy_direction = data["directions"][0]
-    tn.remove_edge(T, d, e)
-    tn.add_edge(T, tensor, edge_id, (dummy_direction, tensor_direction))
-    tn.tensornet.remove_node(dummy)
-
-
-def validate_pauli_observable(observable: str, nqubits: int) -> None:
-    """
-    Validate that a Pauli observable string is well-formed.
-
-    Args:
-        observable: Pauli observable string (e.g., "ZZZZZ", "XYZIX")
-        nqubits: Number of qubits in the system
+    The full-width Pauli string generating ``gate``'s rotation.
 
     Raises:
-        ValueError: If observable contains invalid characters or has incorrect length
+        ValueError: if ``gate`` is not one of the supported rotations.
     """
-    # Validate observable string contains only Pauli operators
-    valid_paulis = set("IXYZ")
-    invalid_chars = set(observable) - valid_paulis
-    if invalid_chars:
+    if gate.name not in GATE_GENERATORS:
         raise ValueError(
-            f"Observable string contains invalid characters: {invalid_chars}. "
-            f"Observable strings should only contain Pauli operators: I, X, Y, Z. "
-            f"Do not include signs, coefficients, or other characters. "
-            f"Examples: 'ZZZZZ' or 'XYZIX', not '2*ZZZZZ' or '-ZZ'."
+            f"Gate {gate.name!r} is not a supported magic gate; mpstab handles "
+            f"{sorted(GATE_GENERATORS)}."
         )
-
-    # Validate observable string length matches number of qubits
-    if len(observable) != nqubits:
-        raise ValueError(
-            f"Observable string length ({len(observable)}) does not match "
-            f"the number of qubits ({nqubits}). "
-            f"Expected a Pauli string of length {nqubits}, "
-            f"e.g., '{'Z'*nqubits}' for measuring Z operators on all qubits."
-        )
+    return "".join(
+        GATE_GENERATORS[gate.name] if q in gate.target_qubits else "I"
+        for q in range(nqubits)
+    )
