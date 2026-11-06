@@ -218,7 +218,7 @@ def test_both_routes_match_hsmpo_for_symbolic_hamiltonian(cut_fraction):
     assert abs(shadows.value - exact) <= 4 * shadows.total_error + 1e-3, shadows
 
 
-@pytest.mark.parametrize("cut_fraction", [0.0, 1.0])
+@pytest.mark.parametrize("cut_fraction", [0.0, 0.5, 1.0])
 def test_tnice_matches_simulation_for_pauli_string(cut_fraction, xy_observable):
     """
     ``"tnice"`` shares its circuits and shots with ``"shadows"`` (same seed,
@@ -240,7 +240,25 @@ def test_tnice_matches_simulation_for_pauli_string(cut_fraction, xy_observable):
         seed=2,
         tail_handling="append_to_head_circuit",
     )
-    assert abs(result.value - exact) <= 4 * result.total_error + 1e-6, result
+    if abs(result.value - exact) > 4 * result.total_error + 1e-6:
+        # Seen failing only on the Linux CI. Report what is needed to tell an
+        # estimator bug from a platform effect: the same measurement data through
+        # the fixed canonical-dual ("shadows") post-processing, and the BLAS.
+        shadows = hs.expectation_at_cut(
+            xy_observable,
+            cut_index,
+            method="shadows",
+            n_shots=30000,
+            seed=2,
+            tail_handling="append_to_head_circuit",
+        )
+        try:
+            blas = np.show_config(mode="dicts")["Build Dependencies"]["blas"]
+        except Exception:  # pragma: no cover - diagnostics only
+            blas = "unknown"
+        pytest.fail(
+            f"tnice {result}\nexact {exact:+.6f}\nshadows {shadows}\nblas {blas}"
+        )
 
 
 def test_tnice_appended_nontrivial_tail_matches_simulation(xy_observable):
