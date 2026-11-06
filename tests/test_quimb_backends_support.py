@@ -1,3 +1,5 @@
+import traceback
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -73,6 +75,19 @@ def test_gradients_jax():
 
     parameters = np.array(circuit.get_parameters()).ravel()
     gradient = np.array(jax.grad(f)(parameters))
+
+    if np.isnan(gradient).any():
+        # Seen on one CI runner only: find the primitive that creates the first nan.
+        try:
+            with jax.debug_nans(True):
+                jax.grad(f)(parameters)
+            where = "debug_nans did not raise"
+        except Exception:  # noqa: BLE001 - diagnostics only
+            where = "\n".join(traceback.format_exc().splitlines()[-70:])
+        pytest.fail(
+            f"nan in {int(np.isnan(gradient).sum())}/{gradient.size} gradient "
+            f"entries; jax {jax.__version__}\n{where}"
+        )
 
     eps = 1e-5
     expected = np.array(
