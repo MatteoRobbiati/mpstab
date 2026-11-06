@@ -252,12 +252,31 @@ def test_tnice_matches_simulation_for_pauli_string(cut_fraction, xy_observable):
             seed=2,
             tail_handling="append_to_head_circuit",
         )
+        # Same shots, other tnice settings: 0 sweeps is the unbiased canonical-dual
+        # seed, so it separates "the optimization breaks it" from the data.
+        variants = {}
+        for label, kwargs in (
+            ("sweeps=0", {"n_sweeps": 0}),
+            ("sweeps=1", {"n_sweeps": 1}),
+            ("sweeps=2", {"n_sweeps": 2}),
+            ("lam=0.9999", {"lam": 0.9999}),
+        ):
+            variants[label] = hs.expectation_at_cut(
+                xy_observable,
+                cut_index,
+                method="tnice",
+                n_shots=30000,
+                seed=2,
+                tail_handling="append_to_head_circuit",
+                **kwargs,
+            ).value
         try:
             blas = np.show_config(mode="dicts")["Build Dependencies"]["blas"]
         except Exception:  # pragma: no cover - diagnostics only
             blas = "unknown"
         pytest.fail(
-            f"tnice {result}\nexact {exact:+.6f}\nshadows {shadows}\nblas {blas}"
+            f"tnice {result}\nexact {exact:+.6f}\nshadows {shadows}\n"
+            f"tnice variants {variants}\nblas {blas}"
         )
 
 
