@@ -46,6 +46,7 @@ to use it.
 import dataclasses
 import warnings
 from dataclasses import dataclass
+from datetime import datetime
 from functools import lru_cache
 from typing import List, Tuple, Union
 
@@ -517,6 +518,7 @@ class HSynthSMPO(HSMPO):
             max_bond_dimension=max_bond_dimension,
             tail_handling=tail_handling,
             seed=seed,
+            out_folder=False,
             **method_kwargs,
         )
         frequencies = execute_plan(backend or QiboSimulator(), plan)
@@ -537,8 +539,8 @@ class HSynthSMPO(HSMPO):
     ) -> MeasurementPlan:
         """
         Build the measurement circuits for ``observable`` at ``cut_index``,
-        without running them, and save them as OpenQASM if ``out_folder`` is
-        given.
+        without running them, and save them as OpenQASM unless ``out_folder``
+        is ``False``.
 
         This is the first of the three stages :meth:`expectation_at_cut` chains,
         exposed so the circuits can run anywhere, e.g. on a real device: run the
@@ -561,7 +563,10 @@ class HSynthSMPO(HSMPO):
             tail_handling: as in :meth:`expectation_at_cut`.
             seed: as in :meth:`expectation_at_cut`.
             out_folder: where to save the circuits and shots, see
-                :func:`~mpstab.quantum_hardware.storage.save_circuits`. ``None``
+                :func:`~mpstab.quantum_hardware.storage.save_circuits`.
+                ``None`` (the default) saves them to a new folder
+                ``planned_runs/plan_<method>_cut<cut_index>_<timestamp>``
+                under the current directory and prints its path; ``False``
                 saves nothing.
             plan_kwargs: ``"pauli"`` takes ``n_string_samples`` (default 200);
                 ``"shadows"`` and ``"tnice"`` take ``shots_per_setting``
@@ -572,8 +577,8 @@ class HSynthSMPO(HSMPO):
 
         Raises:
             ValueError: on an unknown ``method``, if neither or both of
-                ``n_shots`` and ``epsilon`` are given, or if ``out_folder`` is
-                given without a ``seed``.
+                ``n_shots`` and ``epsilon`` are given, or if the circuits are
+                saved (``out_folder`` is not ``False``) without a ``seed``.
 
         """
         if method not in ("pauli", "shadows", "tnice"):
@@ -583,10 +588,11 @@ class HSynthSMPO(HSMPO):
             )
         if (n_shots is None) == (epsilon is None):
             raise ValueError("Exactly one of n_shots or epsilon must be given.")
-        if out_folder is not None and seed is None:
+        if out_folder is not False and seed is None:
             raise ValueError(
-                "plan(out_folder=...) needs a seed: the plan is not saved, and "
-                "rebuilding it for estimate takes the same seed."
+                "plan() saves the circuits, so it needs a seed: the plan itself "
+                "is not saved, and rebuilding it for estimate takes the same "
+                "seed. Pass out_folder=False to build the plan without saving."
             )
         if max_bond_dimension == -1:
             max_bond_dimension = self.max_bond_dimension
@@ -609,7 +615,14 @@ class HSynthSMPO(HSMPO):
         )
         if method == "tnice":
             plan = dataclasses.replace(plan, method="tnice")
-        if out_folder is not None:
+        if out_folder is None:
+            # Local time with its UTC offset; microseconds, so plans built in
+            # a loop do not collide.
+            timestamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S-%f%z")
+            out_folder = f"planned_runs/plan_{method}_cut{cut_index}_{timestamp}"
+            save_circuits(plan, out_folder)
+            print(f"Circuits saved to {out_folder}")
+        elif out_folder is not False:
             save_circuits(plan, out_folder)
         return plan
 

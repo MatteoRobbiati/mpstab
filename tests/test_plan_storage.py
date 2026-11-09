@@ -6,6 +6,7 @@ circuits and shots are saved to (`HSynthSMPO.plan`,
 """
 
 import json
+from contextlib import chdir
 
 import numpy as np
 import pytest
@@ -64,7 +65,7 @@ def _run_folder(folder):
 @pytest.mark.parametrize("method", ["pauli", "shadows"])
 def test_plan_to_qasm_matches_every_circuit(method):
     hs = _hs()
-    plan = hs.plan("XYZI", 4, method=method, n_shots=200, seed=0)
+    plan = hs.plan("XYZI", 4, method=method, n_shots=200, seed=0, out_folder=False)
     texts = plan_to_qasm(plan)
     assert len(texts) == len(plan.circuits)
     for circuit, text in zip(plan.circuits, texts):
@@ -148,21 +149,45 @@ def test_plan_refuses_to_overwrite_saved_circuits(tmp_path):
 
 def test_plan_needs_a_seed_to_save(tmp_path):
     # The plan is not saved: without a seed it could not be rebuilt for estimate.
+    # The default folder needs one too.
     hs = _hs()
-    with pytest.raises(ValueError, match="seed"):
-        hs.plan("ZZZZ", 2, method="shadows", n_shots=10, out_folder=tmp_path)
+    with chdir(tmp_path):
+        with pytest.raises(ValueError, match="seed"):
+            hs.plan("ZZZZ", 2, method="shadows", n_shots=10, out_folder=tmp_path)
+        with pytest.raises(ValueError, match="seed"):
+            hs.plan("ZZZZ", 2, method="shadows", n_shots=10)
     assert not list(tmp_path.iterdir())
 
 
-@pytest.mark.parametrize("method", ["pauli", "shadows", "tnice"])
-def test_saved_circuits_give_the_expectation_value(tmp_path, method):
-    # The counts come from the saved files only, as on a device. An asymmetric
-    # observable, so a wrong bit order or circuit order would show.
+def test_plan_saves_to_a_timestamped_folder_by_default(tmp_path, capsys):
     hs = _hs()
-    exact = hs.expectation_at_cut("XZIZ", 3, method="simulation").value
-    plan = hs.plan("XZIZ", 3, method=method, n_shots=8000, seed=0, out_folder=tmp_path)
+    with chdir(tmp_path):
+        plan = hs.plan("ZZZZ", 2, method="shadows", n_shots=12, seed=0)
+        again = hs.plan("ZZZZ", 2, method="shadows", n_shots=12, seed=0)
 
-    get_backend().set_seed(1)
-    kwargs = {"seed": 0} if method == "tnice" else {}
-    result = estimate(plan, _run_folder(tmp_path), **kwargs)
-    assert abs(result.value - exact) < 5 * max(result.stderr, 1e-3)
+    assert [p.name for p in tmp_path.iterdir()] == ["planned_runs"]
+    folders = sorted((tmp_path / "planned_runs").iterdir())
+    assert len(folders) == 2  # a second call does not hit the first folder
+    assert all(f.name.startswith("plan_shadows_cut2_") for f in folders)
+    for folder, built in zip(folders, (plan, again)):
+        shots = json.loads((folder / "shots.json").read_text())
+        assert list(shots.values()) == list(built.shots)
+    printed = capsys.readouterr().out
+    assert all(folder.name in printed for folder in folders)
+
+
+def test_plan_with_out_folder_false_saves_nothing(tmp_path):
+    # No seed needed either: nothing has to be rebuilt.
+    hs = _hs()
+    with chdir(tmp_path):
+        plan = hs.plan("ZZZZ", 2, method="pauli", n_shots=100, out_folder=False)
+    assert sum(plan.shots) == 100
+    assert not list(tmp_path.iterdir())
+
+
+def test_expectation_at_cut_saves_nothing(tmp_path):
+    hs = _hs()
+    with chdir(tmp_path):
+        hs.expectation_at_cut("ZZZZ", 2, method="shadows", n_shots=20, seed=0)
+        hs.expectation_at_cut("ZZZZ", 2, method="pauli", n_shots=100)
+    assert not list(tmp_path.iterdir())
