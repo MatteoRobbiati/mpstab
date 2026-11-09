@@ -29,6 +29,13 @@ conjugating every sampled string through the residual. The ``"shadows"`` and
   orders of magnitude: whether it pays off depends on the device's two-qubit
   error.
 
+:meth:`HSynthSMPO.expectation_at_cut` chains three stages that can also be run
+separately, e.g. to execute the circuits on a real device and post-process the
+results later: :meth:`HSynthSMPO.plan` builds the circuits and can save them as
+OpenQASM, a device backend runs them, and
+:func:`~mpstab.quantum_hardware.estimate.estimate` recombines the frequencies
+using the plan.
+
 ``expectation_at_cut(method="simulation")`` is the classical MPO-MPS
 contraction of the same split, with the head as a truncated MPS. It is a
 reference for validating the hardware methods, not a measurement route: this
@@ -50,6 +57,7 @@ from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.pauli import validate_pauli_string
 from mpstab.quantum_hardware import (
     ExpectationResult,
+    MeasurementPlan,
     QiboSimulator,
     build_head_and_residual,
     build_cnot_ladder_head_and_residual,
@@ -62,6 +70,7 @@ from mpstab.quantum_hardware import (
     head_to_qibo_circuit,
     pool_pauli_terms,
     sample_pauli_strings,
+    save_circuits,
     truncation_error_estimate,
 )
 
@@ -417,7 +426,11 @@ class HSynthSMPO(HSMPO):
     ) -> ExpectationResult:
         """
         Resynthesise the head, build the measurement circuits, run them and
-        recombine the results, in one call.
+        recombine the results, in one call: :meth:`plan`, then
+        :func:`~mpstab.quantum_hardware.backend.execute_plan` on ``backend``,
+        then :func:`~mpstab.quantum_hardware.estimate.estimate`. To run the
+        circuits on a device and post-process later, call those three stages
+        separately.
 
         This class is meant for hardware: use ``"pauli"``, ``"shadows"`` or
         ``"tnice"``, which run the head exactly on a device (or simulator) and
@@ -463,7 +476,8 @@ class HSynthSMPO(HSMPO):
                 :meth:`build_post_head_mpo`), so the device runs the head alone at a
                 possibly much higher shadow variance.
             seed: RNG seed for Pauli sampling, random shadow bases, and (for
-                ``"tnice"``) the train/test shot split.
+                ``"tnice"``) the train/test shot split, forwarded to
+                :func:`~mpstab.quantum_hardware.estimate.estimate_tnice`.
             method_kwargs: ``"pauli"`` takes ``n_string_samples`` (default
                 200); ``"shadows"`` and ``"tnice"`` take ``shots_per_setting``
                 (default 1); ``"tnice"`` additionally takes
@@ -477,32 +491,108 @@ class HSynthSMPO(HSMPO):
                 ``n_shots`` and ``epsilon`` are given for a hardware method, or
                 if either is given with ``method="simulation"``.
         """
-        if method not in ("pauli", "shadows", "tnice", "simulation"):
-            raise ValueError(
-                f"Unknown method {method!r}, expected 'pauli', 'shadows', "
-                "'tnice' or 'simulation'."
-            )
         if method == "simulation":
             if n_shots is not None or epsilon is not None:
                 raise ValueError(
                     "method='simulation' spends no shots; drop n_shots and epsilon."
                 )
-        elif (n_shots is None) == (epsilon is None):
-            raise ValueError("Exactly one of n_shots or epsilon must be given.")
-        if max_bond_dimension == -1:
-            max_bond_dimension = self.max_bond_dimension
-
-        constant, terms = pauli_terms(observable, self.nqubits)
-        if method == "simulation":
+            if max_bond_dimension == -1:
+                max_bond_dimension = self.max_bond_dimension
+            constant, terms = pauli_terms(observable, self.nqubits)
             return self._simulate_at_cut(terms, constant, cut_index, max_bond_dimension)
-
-        resynthesis = self.resynthesize_head(cut_index)
 
         estimator_kwargs = {}
         if method == "tnice":
             for key in ("lam", "n_sweeps", "bond_dimension", "test_fraction"):
                 if key in method_kwargs:
                     estimator_kwargs[key] = method_kwargs.pop(key)
+            estimator_kwargs["seed"] = seed
+
+        plan = self.plan(
+            observable,
+            cut_index,
+            method=method,
+            n_shots=n_shots,
+            epsilon=epsilon,
+            max_bond_dimension=max_bond_dimension,
+            tail_handling=tail_handling,
+            seed=seed,
+            **method_kwargs,
+        )
+        frequencies = execute_plan(backend or QiboSimulator(), plan)
+        return estimate(plan, frequencies, **estimator_kwargs)
+
+    def plan(
+        self,
+        observable: Observable,
+        cut_index: int,
+        method: str = "pauli",
+        n_shots: Union[int, None] = None,
+        epsilon: Union[float, None] = None,
+        max_bond_dimension: Union[int, None] = -1,
+        tail_handling: str = "append_to_head_circuit",
+        seed: Union[int, None] = None,
+        out_folder=None,
+        **plan_kwargs,
+    ) -> MeasurementPlan:
+        """
+        Build the measurement circuits for ``observable`` at ``cut_index``,
+        without running them, and save them as OpenQASM if ``out_folder`` is
+        given.
+
+        This is the first of the three stages :meth:`expectation_at_cut` chains,
+        exposed so the circuits can run anywhere, e.g. on a real device: run the
+        saved circuits, then pass the counts and the returned plan to
+        :func:`~mpstab.quantum_hardware.estimate.estimate`.
+
+        Only the circuits and shots are saved, not the returned plan, which
+        :func:`~mpstab.quantum_hardware.estimate.estimate` needs. Building it
+        again takes the same model, the same arguments and a fixed ``seed``.
+        Even then the residual's gates can differ, so the saved circuits are
+        the ones to run: never replace them with those of a rebuilt plan.
+
+        Args:
+            observable: as in :meth:`expectation_at_cut`.
+            cut_index: as in :meth:`expectation_at_cut`.
+            method: ``"pauli"``, ``"shadows"`` or ``"tnice"``.
+            n_shots: as in :meth:`expectation_at_cut`.
+            epsilon: as in :meth:`expectation_at_cut`.
+            max_bond_dimension: as in :meth:`expectation_at_cut`.
+            tail_handling: as in :meth:`expectation_at_cut`.
+            seed: as in :meth:`expectation_at_cut`.
+            out_folder: where to save the circuits and shots, see
+                :func:`~mpstab.quantum_hardware.storage.save_circuits`. ``None``
+                saves nothing.
+            plan_kwargs: ``"pauli"`` takes ``n_string_samples`` (default 200);
+                ``"shadows"`` and ``"tnice"`` take ``shots_per_setting``
+                (default 1).
+
+        Returns:
+            A :class:`~mpstab.quantum_hardware.plan.MeasurementPlan`.
+
+        Raises:
+            ValueError: on an unknown ``method``, if neither or both of
+                ``n_shots`` and ``epsilon`` are given, or if ``out_folder`` is
+                given without a ``seed``.
+
+        """
+        if method not in ("pauli", "shadows", "tnice"):
+            raise ValueError(
+                f"Unknown method {method!r}, expected 'pauli', 'shadows', "
+                "'tnice' or, in expectation_at_cut only, 'simulation'."
+            )
+        if (n_shots is None) == (epsilon is None):
+            raise ValueError("Exactly one of n_shots or epsilon must be given.")
+        if out_folder is not None and seed is None:
+            raise ValueError(
+                "plan(out_folder=...) needs a seed: the plan is not saved, and "
+                "rebuilding it for estimate takes the same seed."
+            )
+        if max_bond_dimension == -1:
+            max_bond_dimension = self.max_bond_dimension
+
+        constant, terms = pauli_terms(observable, self.nqubits)
+        resynthesis = self.resynthesize_head(cut_index)
 
         build_plan = self._pauli_plan if method == "pauli" else self._shadow_plan
         plan = build_plan(
@@ -515,14 +605,13 @@ class HSynthSMPO(HSMPO):
             epsilon=epsilon,
             seed=seed,
             tail_handling=tail_handling,
-            **method_kwargs,
+            **plan_kwargs,
         )
         if method == "tnice":
             plan = dataclasses.replace(plan, method="tnice")
-
-        backend = backend or QiboSimulator()
-        frequencies = execute_plan(backend, plan)
-        return estimate(plan, frequencies, **estimator_kwargs)
+        if out_folder is not None:
+            save_circuits(plan, out_folder)
+        return plan
 
     def _pauli_plan(
         self,
