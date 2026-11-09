@@ -2,19 +2,18 @@
 The backend contract for running a :class:`~mpstab.quantum_hardware.plan.MeasurementPlan`.
 
 A backend is any object with an ``execute_circuits(circuits, nshots)`` method
-returning one frequency dictionary per circuit -- exactly what qibo's
-``Circuit.__call__(nshots=...).frequencies()`` gives. That single method is the
-whole contract: no base class to subclass, so a qibolab device, an adapter
-around a provider's SDK, or a mock is a drop-in replacement for
-:class:`QiboSimulator` below.
+returning one frequency dictionary per circuit, as qibo's
+``Circuit.__call__(nshots=...).frequencies()`` does; there is no base class to
+subclass. :class:`QiboSimulator` below is the default.
 
 Bitstrings are qubit-0-leftmost throughout mpstab, as in qibo. A backend whose
 provider reports them the other way round, qubit 0 rightmost as in qiskit, must
 reverse them before returning.
 
 :func:`circuit_to_qasm` and :func:`plan_to_qasm` write a plan's circuits as
-OpenQASM 2, the form a device backend works on: see
-:func:`~mpstab.quantum_hardware.storage.save_circuits`.
+OpenQASM 2, the form a device backend works on;
+:func:`~mpstab.quantum_hardware.storage.save_circuits` writes them to disk for
+an offline run.
 """
 
 from __future__ import annotations
