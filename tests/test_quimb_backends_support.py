@@ -8,7 +8,7 @@ import torch
 from qibo import Circuit, gates
 
 from mpstab.engines import QuimbEngine, StimEngine
-from mpstab.engines.tensor_networks._jax_svd import safe_svd
+from mpstab.engines.tensor_networks._jax_linalg import safe_qr, safe_svd
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
@@ -64,43 +64,46 @@ def test_gradients_jax():
     covered, since torch's ``backward`` cannot differentiate through the complex
     SVD the MPS evolution uses.
     """
-    nqubits, nlayers, observable = 4, 2, "ZXZX"
-    circuit = _non_clifford_circuit(nqubits, nlayers, np.random.default_rng(0))
-    hs = HSMPO(CircuitAnsatz(qibo_circuit=circuit))
-    hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine(backend="jax"))
+    # float64: where jax's QR derivative is degenerate, safe_qr nudges the input by
+    # sqrt(eps), which is 1e-8 here but ~3e-4 in float32.
+    with jax.enable_x64(True):
+        nqubits, nlayers, observable = 4, 2, "ZXZX"
+        circuit = _non_clifford_circuit(nqubits, nlayers, np.random.default_rng(0))
+        hs = HSMPO(CircuitAnsatz(qibo_circuit=circuit))
+        hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine(backend="jax"))
 
-    def f(parameters):
-        hs.set_parameters(parameters)
-        return hs.expectation(observable)
+        def f(parameters):
+            hs.set_parameters(parameters)
+            return hs.expectation(observable)
 
-    parameters = np.array(circuit.get_parameters()).ravel()
-    gradient = np.array(jax.grad(f)(parameters))
+        parameters = np.array(circuit.get_parameters()).ravel()
+        gradient = np.array(jax.grad(f)(parameters))
 
-    if np.isnan(gradient).any():
-        # Seen on one CI runner only: find the primitive that creates the first nan.
-        try:
-            with jax.debug_nans(True):
-                jax.grad(f)(parameters)
-            where = "debug_nans did not raise"
-        except Exception:  # noqa: BLE001 - diagnostics only
-            where = "\n".join(traceback.format_exc().splitlines()[-70:])
-        pytest.fail(
-            f"nan in {int(np.isnan(gradient).sum())}/{gradient.size} gradient "
-            f"entries; jax {jax.__version__}\n{where}"
-        )
-
-    eps = 1e-5
-    expected = np.array(
-        [
-            (
-                _dense_expectation(circuit, parameters + eps * e, observable)
-                - _dense_expectation(circuit, parameters - eps * e, observable)
+        if np.isnan(gradient).any():
+            # Seen on one CI runner only: find the primitive that creates the first nan.
+            try:
+                with jax.debug_nans(True):
+                    jax.grad(f)(parameters)
+                where = "debug_nans did not raise"
+            except Exception:  # noqa: BLE001 - diagnostics only
+                where = "\n".join(traceback.format_exc().splitlines()[-70:])
+            pytest.fail(
+                f"nan in {int(np.isnan(gradient).sum())}/{gradient.size} gradient "
+                f"entries; jax {jax.__version__}\n{where}"
             )
-            / (2 * eps)
-            for e in np.eye(len(parameters))
-        ]
-    )
-    np.testing.assert_allclose(gradient, expected, atol=1e-4)
+
+        eps = 1e-5
+        expected = np.array(
+            [
+                (
+                    _dense_expectation(circuit, parameters + eps * e, observable)
+                    - _dense_expectation(circuit, parameters - eps * e, observable)
+                )
+                / (2 * eps)
+                for e in np.eye(len(parameters))
+            ]
+        )
+        np.testing.assert_allclose(gradient, expected, atol=1e-4)
 
 
 def _svd_loss(svd, matrix, weights):
@@ -136,3 +139,59 @@ def test_safe_svd_gradient_is_finite_on_repeated_zero_singular_values(zeros):
     weights = np.random.default_rng(1).standard_normal((4, 4))
     gradient = jax.grad(lambda x: _svd_loss(safe_svd, x, weights))(matrix)
     assert np.all(np.isfinite(np.asarray(gradient)))
+
+
+def _qr_loss(qr, matrix, weights_q, weights_r):
+    q, r = qr(matrix)
+    return jnp.real(jnp.sum(q * weights_q) + jnp.sum(r * weights_r))
+
+
+@pytest.mark.parametrize("shape", [(4, 4), (6, 3)])
+@pytest.mark.parametrize("is_complex", [False, True])
+def test_safe_qr_gradient_matches_jax_on_generic_matrices(shape, is_complex):
+    rng = np.random.default_rng(0)
+    matrix = rng.standard_normal(shape)
+    if is_complex:
+        matrix = matrix + 1j * rng.standard_normal(shape)
+    weights_q = rng.standard_normal((shape[0], shape[1]))
+    weights_r = rng.standard_normal((shape[1], shape[1]))
+
+    expected = jax.grad(lambda x: _qr_loss(jnp.linalg.qr, x, weights_q, weights_r))(
+        matrix
+    )
+    actual = jax.grad(lambda x: _qr_loss(safe_qr, x, weights_q, weights_r))(matrix)
+    np.testing.assert_allclose(actual, expected, atol=1e-5)
+
+
+@pytest.mark.parametrize("zero_column", [0, 1, 2])
+def test_safe_qr_gradient_is_finite_on_a_zero_column(zero_column):
+    """
+    A zero column puts a zero on ``R``'s diagonal, and jax's own QR derivative then
+    returns ``nan`` (``invalid value (nan) encountered in triangular_solve``), which
+    is what made the first-layer gradients ``nan`` on the macOS CI runner.
+    """
+    rng = np.random.default_rng(1)
+    matrix = rng.standard_normal((4, 3))
+    matrix[:, zero_column] = 0.0
+    weights_q = rng.standard_normal((4, 3))
+    weights_r = rng.standard_normal((3, 3))
+
+    gradient = jax.grad(lambda x: _qr_loss(safe_qr, x, weights_q, weights_r))(matrix)
+    assert np.all(np.isfinite(np.asarray(gradient)))
+
+
+@pytest.mark.parametrize("zero_column", [0, 1, 2])
+def test_safe_qr_gradient_is_accurate_in_float64(zero_column):
+    """``Q @ R`` is the input, so the gradient of ``sum(w * Q @ R)`` must be ``w``."""
+    rng = np.random.default_rng(2)
+    matrix = rng.standard_normal((5, 3))
+    matrix[:, zero_column] = 0.0
+    weights = rng.standard_normal((5, 3))
+
+    def product(x):
+        q, r = safe_qr(x)
+        return jnp.sum(weights * (q @ r))
+
+    with jax.enable_x64(True):
+        gradient = jax.grad(product)(jnp.asarray(matrix))
+    np.testing.assert_allclose(np.asarray(gradient), weights, atol=1e-6)
