@@ -1,12 +1,13 @@
+"""An MPS circuit simulator built on the pure-Python tensor network."""
+
 from copy import deepcopy
 from typing import Optional
 
 import networkx as nx
 import numpy as np
 
-from mpstab.evolutors.tensor_network import TensorNetwork
-from mpstab.evolutors.tensor_network.operators import MPO
-from mpstab.evolutors.tensor_network.operators.gates import (
+from mpstab.engines.tensor_networks.native.operators import MPO
+from mpstab.engines.tensor_networks.native.operators.gates import (
     CNOT,
     CZ,
     SWAP,
@@ -19,17 +20,18 @@ from mpstab.evolutors.tensor_network.operators.gates import (
     Y,
     Z,
 )
-from mpstab.evolutors.tensor_network.operators.utils import basis
+from mpstab.engines.tensor_networks.native.operators.utils import basis
+from mpstab.engines.tensor_networks.native.tensor_network import TensorNetwork
 
 
 class CircuitMPS(TensorNetwork):
     """
-    Simple quantum circuit simulator based on Matrix Product States (MPS) TensorNetworks.
+    A quantum circuit simulated as a matrix product state.
 
-    The state of the circuit is stored in a MPS in the Vidal canonical form, and evoleved using a Time Evolution
-    Block Decimation (TEBD) approach, preserving the canonical form.
-
-    Include methods to apply MPOs as gates, measure expectation values of MPO observables and compute MPS amplitudes.
+    The state is kept in Vidal canonical form -- site tensors ``T{q}`` separated
+    by Schmidt-coefficient tensors ``L{q}`` -- and evolved by applying MPOs and
+    re-splitting by SVD, which preserves that form. Gates are applied through
+    :meth:`apply`, observables read out through :meth:`expval`.
     """
 
     def __init__(
@@ -38,7 +40,18 @@ class CircuitMPS(TensorNetwork):
         initial_state: Optional[str | np.ndarray] = None,
         max_bond_dimension: Optional[int] = None,
     ):
+        """
+        Args:
+            n: number of qubits, at least 2.
+            initial_state: per-site amplitudes, or a string of ``0``/``1``/``+``/
+                ``-`` characters. Defaults to all zeros.
+            max_bond_dimension: truncation cap applied at every SVD, or ``None``
+                for no cap.
 
+        Raises:
+            ValueError: on fewer than 2 qubits, or an initial state of the wrong
+                length.
+        """
         self.n_qubits = n
         self.max_bond_dimension = max_bond_dimension
 
@@ -46,14 +59,18 @@ class CircuitMPS(TensorNetwork):
             initial_state = n * "0"
         if type(initial_state) is str:
             initial_state = [basis(bit) for bit in initial_state]
-        assert n >= 2, "This implementation only supports 2-qubit or more MPSs"
-        assert n == len(
-            initial_state
-        ), f"Intial state qubits ({len(initial_state)}) and circuit qubits ({n}) must match."
+        if n < 2:
+            raise ValueError(f"CircuitMPS needs at least 2 qubits, got {n}.")
+        if n != len(initial_state):
+            raise ValueError(
+                f"Initial state covers {len(initial_state)} qubits but the circuit "
+                f"has {n}."
+            )
 
         super().__init__()
 
-        # Add qubits (3-legged tensors)
+        # One site tensor T{q} plus a measurement stub D{q} per qubit, with
+        # Schmidt tensors L{q} on the bonds between them.
         self.add_tensor("T0", tensor=np.reshape(initial_state[0], (2, 1)))
         self.add_measurement("D0")
         self.add_edge("T0", "D0", "phyisical0", (0, 0))
@@ -67,32 +84,36 @@ class CircuitMPS(TensorNetwork):
             self.add_edge(f"T{q}", f"L{q-1}", f"chi{q-1}_r", (2, 0))
             self.add_edge(f"T{q-1}", f"L{q-1}", f"chi{q-1}_l", (1, 1))
 
-        # Contract the trivial unused leg
+        # Close the last site's dangling right bond.
         self.add_tensor("tmp", tensor=np.array([1]))
         self.add_edge(f"T{n-1}", "tmp", "link", (1, 0))
         self.contract(f"T{n-1}", "tmp", "link", f"T{n-1}")
 
     def bipartite_entanglement_entropy(self, cut: int):
         """
-        Compute the Von Neumann entanglement entropy with respect to the bipartition separating the first `cut` sites.
+        Von Neumann entanglement entropy across the bond after the first ``cut``
+        sites, read straight off the Schmidt coefficients the canonical form keeps.
         """
-
-        assert (
-            cut >= 1 and cut <= self.n_qubits - 1
-        ), "Both partitions must be non-empty"
-        d = np.diagonal(self.tensornet.nodes[f"L{cut-1}"]["tensor"]) ** 2
-        return np.sum(-d * np.log(d))
+        if not 1 <= cut <= self.n_qubits - 1:
+            raise ValueError(
+                f"Cut {cut} leaves an empty partition; it must be between 1 and "
+                f"{self.n_qubits - 1}."
+            )
+        spectrum = np.diagonal(self.tensornet.nodes[f"L{cut-1}"]["tensor"]) ** 2
+        return np.sum(-spectrum * np.log(spectrum))
 
     def amplitude(self, basis_element: str):
         """
-        Compute the amplitude with respect to a given basis element.
+        The amplitude of a given basis element.
 
         Args:
-            basis_element (str): A string composed of a combination of either 0,1,+ and - for each qubit in the system.
+            basis_element: one of ``0``, ``1``, ``+`` or ``-`` per qubit.
         """
-        assert (
-            len(basis_element) == self.n_qubits
-        ), "Basis elements have the wrong number of qubits"
+        if len(basis_element) != self.n_qubits:
+            raise ValueError(
+                f"Basis element covers {len(basis_element)} qubits but the state "
+                f"has {self.n_qubits}."
+            )
 
         mps = deepcopy(self)
         for q, state in enumerate(basis_element):
@@ -109,82 +130,59 @@ class CircuitMPS(TensorNetwork):
         return mps.tensornet.nodes["F"]["tensor"].item()
 
     def cnot(self, control, target):
-        """
-        Apply a CNOT gate to the circuit
-        """
+        """Apply a CNOT gate."""
         gate = CNOT if control < target else CNOT_inv
         return self.apply(gate, sorted([control, target]))
 
     def cz(self, control, target):
-        """
-        Apply a CZ gate to the circuit
-        """
+        """Apply a CZ gate."""
         return self.apply(CZ, sorted([control, target]))
 
     def swap(self, control, target):
-        """
-        Apply a SWAP gate to the circuit
-        """
+        """Apply a SWAP gate."""
         return self.apply(SWAP, sorted([control, target]))
 
     def h(self, qubit):
-        """
-        Apply a Hadamard gate to the circuit
-        """
+        """Apply a Hadamard gate."""
         self.apply(H, [qubit])
 
     def x(self, qubit):
-        """
-        Apply a bit flip (X gate) to the circuit
-        """
+        """Apply an X gate."""
         self.apply(X, [qubit])
 
     def y(self, qubit):
-        """
-        Apply a bit and phase flip (Y gate) to the circuit
-        """
+        """Apply a Y gate."""
         self.apply(Y, [qubit])
 
     def z(self, qubit):
-        """
-        Apply a phase flip (Z gate) to the circuit
-        """
+        """Apply a Z gate."""
         self.apply(Z, [qubit])
 
     def s(self, qubit):
-        """
-        Apply a S gate (sqrt(Z)) to the circuit
-        """
+        """Apply an S gate."""
         self.apply(S, [qubit])
 
     def t(self, qubit):
-        """
-        Apply a magic gate T to the circuit
-        """
+        """Apply a T gate."""
         self.apply(T, [qubit])
 
     def pauli_rot(self, pauli_generator, theta, qubits=None):
-        """
-        Apply the gate exp(-i `theta`/2 P), where P is a generic pauli string generating the rotation.
-        """
+        """Apply ``exp(-i theta/2 P)`` for the Pauli string ``pauli_generator``."""
         self.apply(PauliExp(pauli_generator, theta), qubits)
 
     def expval(self, obs: MPO, sites: Optional[list[int]] = None):
         """
-        Compute the expectation value of an MPO observable.
+        Expectation value of an MPO observable.
+
+        Sites outside the observable's support are traced out before contracting
+        the bra, the observable and the ket layer by layer.
 
         Args:
-            obs (MPO): Observable to be used
-            sites (sites): Qubits pertaining to the observable
+            obs: the observable.
+            sites: the qubits it acts on, which must be adjacent and ascending.
+                Defaults to every qubit.
         """
-
-        if sites is None:
-            sites = [i for i in range(self.n_qubits)]
-        else:
-            for s, s_next in zip(sites, sites[1:]):
-                assert (
-                    s_next - s == 1
-                ), f"All qubits in the MPO must be adjacent and ascending order. Given link {s}->{s_next}."
+        sites = self._check_sites(sites)
 
         # "Ket" MPS
         tn = deepcopy(self)
@@ -255,19 +253,31 @@ class CircuitMPS(TensorNetwork):
         res = tn.tensornet.nodes["F"]["tensor"].item()
         return np.real(res)
 
+    def _check_sites(self, sites: Optional[list[int]]) -> list[int]:
+        """Default ``sites`` to the whole register, and require them contiguous."""
+        if sites is None:
+            return list(range(self.n_qubits))
+        for site, next_site in zip(sites, sites[1:]):
+            if next_site - site != 1:
+                raise ValueError(
+                    "An MPO's qubits must be adjacent and ascending; got the jump "
+                    f"{site} -> {next_site}."
+                )
+        return sites
+
     def apply(self, mpo: MPO, sites: Optional[list[int]] = None):
         """
-        Update the MPS by applying a unitary operation implemented as an MPO.
-        Perform the update while keeping the canonical form.
-        """
+        Apply an MPO to the state, keeping the canonical form.
 
-        if sites is None:
-            sites = [i for i in range(self.n_qubits)]
-        else:
-            for s, s_next in zip(sites, sites[1:]):
-                assert (
-                    s_next - s == 1
-                ), f"All qubits in the MPO must be adjacent and ascending order. Given link {s}->{s_next}."
+        Contracts the MPO in pairwise, re-splitting by SVD at every bond and
+        reinserting the Schmidt coefficients that the contraction absorbed.
+
+        Args:
+            mpo: the operator to apply.
+            sites: the qubits it acts on, which must be adjacent and ascending.
+                Defaults to every qubit.
+        """
+        sites = self._check_sites(sites)
 
         # Link the MPS and MPO along the physical direction
         self.tensornet = nx.union(self.tensornet, mpo.tensornet)
@@ -364,18 +374,18 @@ class CircuitMPS(TensorNetwork):
         left_edge_name: Optional[str] = None,
     ):
         """
-        Inserts a square matrix along an edge of the TensorNetwork.
+        Insert a square matrix into an edge, splitting it in two.
 
         Args:
-            left_node (str): Left node identifying the connection
-            right_node (str): Right node identifying the connection
-            edge (str): Edge name
-            matrix (np.ndarray): Square matrix to be inserted
-            matrix_name (str): Label of the matrix tensor in the TensorNetworks
-            right_edge_name (Optional[str]): Name of the newly created edge on the right.
-                If None the previous edge name is kept.
-            left_edge_name (Optional[str]): Name of the newly created edge on the left.
-                If None the previous edge name is kept.
+            left_node: node on the left of the edge.
+            right_node: node on the right of the edge.
+            edge: the edge to split.
+            matrix: the square matrix to insert.
+            matrix_name: node name for the inserted matrix.
+            right_edge_name: name for the new edge on the right; ``None`` reuses
+                the old edge name.
+            left_edge_name: name for the new edge on the left; ``None`` reuses the
+                old edge name.
         """
 
         dleft, dright = self.tensornet.edges[left_node, right_node, edge]["directions"]
@@ -403,18 +413,19 @@ class CircuitMPS(TensorNetwork):
         out_edge_id: str = "physical",
     ):
         """
-        Connects a newly added tensor with two free directions, one input and one output, replacing the dummy tensor
-        for the in direction edge, and reconnectig the now free dummy node to the out direction.
+        Splice a newly added tensor in where a dummy node hangs::
 
-        Graphically, this is can be represented as  (M)-(dummy)  -(T)-  =>  (M)-(T)-(dummy)
-        where T is the newly added tensor.
+            (M)-(dummy)  -(T)-   =>   (M)-(T)-(dummy)
+
+        The dummy takes the tensor's output axis, so it stays available as the
+        chain's free end.
 
         Args:
-            dummy (str): Dummy tensor to be shifted
-            tensor (str): Tensor to be connected
-            tensor_directions (tuple[int, int]): Directions along with the connection has to be performed
-            in_edge_id (str): Name of the incoming connection
-            out_edge_id (str): Name of the outgoing connection
+            dummy: the dummy node to shift along.
+            tensor: the tensor to splice in.
+            tensor_directions: its (input, output) axes.
+            in_edge_id: name for the incoming edge.
+            out_edge_id: name for the outgoing edge.
         """
         self._link_to_dummy(dummy, tensor, tensor_directions[0], in_edge_id)
         self.add_edge(tensor, dummy, out_edge_id, (tensor_directions[1], 0))
@@ -422,10 +433,10 @@ class CircuitMPS(TensorNetwork):
     def _link_to_dummy(
         self, dummy: str, tensor: str, tensor_direction: int, edge_id: str = "v_link"
     ):
-        """
-        Link a dummy node to a tensor with a free directions.
-        """
-        T, d, e, data = list(self.tensornet.in_edges(dummy, data=True, keys=True))[0]
+        """Move the edge feeding ``dummy`` onto a free axis of ``tensor``."""
+        source, target, edge, data = list(
+            self.tensornet.in_edges(dummy, data=True, keys=True)
+        )[0]
         dummy_direction = data["directions"][0]
-        self.remove_edge(T, d, e)
-        self.add_edge(T, tensor, edge_id, (dummy_direction, tensor_direction))
+        self.remove_edge(source, target, edge)
+        self.add_edge(source, tensor, edge_id, (dummy_direction, tensor_direction))

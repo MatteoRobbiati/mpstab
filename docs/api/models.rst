@@ -15,9 +15,35 @@ Ansätze are pre-built quantum circuit patterns used as templates for quantum al
 
 **Available Ansätze**:
 
+*Wrappers & structural:*
+
 - ``Ansatz``: Abstract base class for all ansätze
 - ``CircuitAnsatz``: Wrapper for Qibo circuits
-- ``HardwareEfficient``: Industry-standard pattern for NISQ devices
+- ``TranspiledAnsatz``: Wrap a circuit and transpile it into a device's native gates
+
+*Variational patterns:*
+
+- ``HardwareEfficient``: Industry-standard RY + CZ pattern for NISQ devices
+- ``HardwareEfficientBrickwork``: Brickwork RY/RZ + CZ pattern with a ring-closing bond
+- ``HammingWeightPreserving``: RBS-based Hamming-weight-preserving ansatz
+- ``FloquetAnsatz``: Floquet echo circuit with tunable magic
+- ``KickedIsing``: Kicked Ising chain with RX/RZ kicks and CNOT-RZ-CNOT couplings, already in HSMPO form
+
+*Circuit library (textbook algorithms, for HSMPO/HSynthSMPO benchmarks):*
+
+- ``QFT``: Quantum Fourier Transform
+- ``QFTPhaseKernel``: QFT followed by a diagonal RZ phase kernel
+- ``Grover``: Grover search (oracle + diffuser iterations)
+- ``QPE``: Quantum Phase Estimation
+- ``QAE``: Quantum Amplitude Estimation
+- ``TrotterIsing``: First-order Trotter evolution of the transverse-field Ising model
+
+The circuit-library ansätze are written with high-level gates (``CU1``, ``SWAP``,
+``TOFFOLI``, ``RZZ``, …) and, by default, transpiled to a native gate set on
+construction so every non-Clifford gate becomes an ``rz`` rotation that HSMPO
+understands — no manual decomposition needed. Pass ``transpile=False`` to keep the
+raw high-level circuit (e.g. for inspection); HSMPO itself requires the transpiled
+form.
 
 **Key Methods**:
 
@@ -56,14 +82,19 @@ Entanglement Metrics & Analysis
 
 Tools for analyzing entanglement and state properties.
 
-.. automodule:: mpstab.models.entropies
+.. automodule:: mpstab.models.metrics
    :members:
    :undoc-members:
    :show-inheritance:
 
 **Available Functions**:
 
-- ``stabilizer_renyi_entropy(state, alpha)``: Stabilizer Renyi entropy for a given state and order
+- ``stabilizer_renyi_entropy_mps(hsmpo, alpha, n_samples, seed)``: sampled stabilizer Renyi
+  entropy of the state an HSMPO represents
+- ``meyer_wallach_mps(hsmpo)``: Meyer-Wallach global entanglement of the state an HSMPO represents
+
+For a dense statevector, use Qibo's ``qibo.quantum_info.stabilizer_renyi_entropy`` and
+``qibo.quantum_info.meyer_wallach_entanglement``; the HSMPO versions follow the same conventions.
 
 
 Additional Utilities
@@ -77,13 +108,22 @@ Additional Utilities
 Quick Reference
 ---------------
 
-====================  ==================================================
-Class/Function        Purpose
-====================  ==================================================
-HardwareEfficient     Standard VQA circuit pattern
-CircuitAnsatz         Wrap Qibo circuits as ansätze
-stabilizer_renyi_entropy    Calculate Renyi entropy for stabilizer states
-====================  ==================================================
+==========================  ==================================================
+Class/Function              Purpose
+==========================  ==================================================
+HardwareEfficient           Standard VQA circuit pattern
+CircuitAnsatz               Wrap Qibo circuits as ansätze
+TranspiledAnsatz            Wrap + transpile to native gates
+QFT                         Quantum Fourier Transform
+QFTPhaseKernel              QFT + diagonal RZ phase kernel
+Grover                      Grover search
+QPE                         Quantum Phase Estimation
+QAE                         Quantum Amplitude Estimation
+TrotterIsing                Trotterized transverse-field Ising evolution
+meyer_wallach_mps           Meyer-Wallach entanglement of an HSMPO state
+stabilizer_renyi_entropy_mps Sampled stabilizer Renyi entropy of an HSMPO
+                            state
+==========================  ==================================================
 
 Related Documentation
 -----------------------
