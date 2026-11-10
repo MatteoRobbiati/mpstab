@@ -59,8 +59,8 @@ from mpstab.quantum_hardware import (
     ExpectationResult,
     MeasurementPlan,
     QiboSimulator,
-    build_head_and_residual,
     build_cnot_ladder_head_and_residual,
+    build_head_and_residual,
     build_pauli_plan,
     build_shadow_plan,
     count_two_qubit_gates,
@@ -654,7 +654,14 @@ class HSynthSMPO(HSMPO):
         return build_pauli_plan(
             resynthesis.circuit,
             self.nqubits,
-            _assert_real_coefficients(pooled),
+            _assert_real_coefficients(
+                pooled,
+                truncated=(
+                    max_bond_dimension is not None
+                    if max_bond_dimension != -1
+                    else self.max_bond_dimension is not None
+                ),
+            ),
             n_shots,
             epsilon,
             constant=constant,
@@ -813,10 +820,23 @@ def _aggregate_truncation(diagnostics: list) -> Tuple[float, float, float]:
     return l1, l2, retained_weight
 
 
-def _assert_real_coefficients(pooled: dict, tolerance: float = 1e-8) -> dict:
+def _assert_real_coefficients(
+    pooled: dict, tolerance: float = 1e-8, truncated: bool = False
+) -> dict:
     """
     Coerce a pooled ``{pauli: complex coefficient}`` map to real, raising
     instead of silently truncating if any imaginary part isn't negligible.
+
+    With ``truncated=True`` (the tail MPO was compressed to a finite bond
+    dimension) the imaginary parts are dropped without raising: the bond
+    truncation in ``conjugate_operator`` does not preserve Hermiticity (the
+    intermediate ``R^dag O`` is not Hermitian, and Pauli-structured operators
+    have degenerate singular values, so even a single compression picks an
+    arbitrary subspace), so a truncated MPO carries an anti-Hermitian part of
+    the order of the truncation error. Taking the real part of every Pauli
+    coefficient is exactly the projection ``(O + O^dag) / 2`` onto the
+    Hermitian part, the closest Hermitian operator, which is never farther
+    from the exact (Hermitian) observable than ``O`` itself.
 
     The tail-folded, Clifford-backpropagated observable is Hermitian, so
     every pooled coefficient should be real up to floating-point noise. A
@@ -832,7 +852,7 @@ def _assert_real_coefficients(pooled: dict, tolerance: float = 1e-8) -> dict:
     real_coefficients = {}
     for pauli, coefficient in pooled.items():
         magnitude = max(abs(coefficient), 1.0)
-        if abs(np.imag(coefficient)) > tolerance * magnitude:
+        if not truncated and abs(np.imag(coefficient)) > tolerance * magnitude:
             raise ValueError(
                 f"Pooled coefficient for {pauli!r} is not real within "
                 f"tolerance ({coefficient!r}); the tail-folded observable "

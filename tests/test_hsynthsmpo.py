@@ -283,7 +283,9 @@ def test_library_ansatze_simulation_matches_qibo(label, factory):
             hs.expectation(observable), reference, atol=1e-6
         ), f"[{label} base / {observable}]"
         for cut in cuts:
-            simulated = hs.expectation_at_cut(observable, cut, method="simulation").value
+            simulated = hs.expectation_at_cut(
+                observable, cut, method="simulation"
+            ).value
             assert np.allclose(simulated, reference, atol=1e-6), (
                 f"[{label} / {observable} / cut={cut}] "
                 f"simulated={simulated:+.6f} reference={reference:+.6f}"
@@ -308,7 +310,9 @@ def test_simulation_matches_qibo_more_qubits(nqubits):
             mpstab_ansatz=ansatz, observable_str=observable
         )
         for cut in cuts:
-            simulated = hs.expectation_at_cut(observable, cut, method="simulation").value
+            simulated = hs.expectation_at_cut(
+                observable, cut, method="simulation"
+            ).value
             assert np.allclose(simulated, reference, atol=1e-6), (
                 f"[n={nqubits} / {observable} / cut={cut}] "
                 f"simulated={simulated:+.6f} reference={reference:+.6f}"
@@ -374,3 +378,9 @@ def test_assert_real_coefficients_raises_on_non_negligible_imaginary_part():
     pooled = {"XI": 1.0, "ZZ": 0.5 + 0.3j}
     with pytest.raises(ValueError, match="ZZ"):
         _assert_real_coefficients(pooled)
+
+
+def test_assert_real_coefficients_projects_when_truncated():
+    pooled = {"XY": 0.5 - 2e-4j, "ZZ": -0.25 + 0j}
+    real = _assert_real_coefficients(pooled, truncated=True)
+    assert real == {"XY": 0.5, "ZZ": -0.25}
