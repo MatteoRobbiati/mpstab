@@ -173,7 +173,7 @@ def test_unknown_method_raises():
 @pytest.mark.parametrize("method", ["pauli", "shadows"])
 def test_plan_builds_without_running(method):
     hs = _hs(4)
-    plan = hs.plan("ZZZZ", 2, method=method, n_shots=200, seed=0)
+    plan = hs.plan("ZZZZ", 2, method=method, n_shots=200, seed=0, out_folder=False)
     assert plan.method == method
     assert len(plan.circuits) == len(plan.shots) > 0
     assert sum(plan.shots) == 200
@@ -200,7 +200,8 @@ def test_staged_pipeline_matches_expectation_at_cut(method, xy_observable):
 
     get_backend().set_seed(11)
     plan = hs.plan(
-        xy_observable, cut_index, method=method, n_shots=2000, seed=3
+        xy_observable, cut_index, method=method, n_shots=2000, seed=3,
+        out_folder=False,
     )
     frequencies = execute_plan(QiboSimulator(), plan)
     kwargs = {"seed": 3} if method == "tnice" else {}
@@ -522,7 +523,9 @@ def test_execute_plan_rejects_a_backend_that_drops_results():
             return [circuit(nshots=nshots).frequencies() for circuit in circuits[1:]]
 
     hs = _hs(4)
-    plan = hs.plan("ZZZZ", 2, method="shadows", n_shots=20, seed=0)
+    plan = hs.plan(
+        "ZZZZ", 2, method="shadows", n_shots=20, seed=0, out_folder=False
+    )
     with pytest.raises(ValueError, match="DroppingBackend"):
         execute_plan(DroppingBackend(), plan)
 
