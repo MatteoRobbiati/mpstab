@@ -143,6 +143,16 @@ that; only more *string samples* does, and on a circuit this entangled even
 `result.truncation_l2` before reaching for a bigger shot budget -- it's
 usually the wrong knob.**
 
+`truncation_l2` only counts the strings left unsampled *of the folded MPO as
+it is*. If the tail was folded at a finite bond dimension, the MPO itself is
+already an approximation: that bias is reported apart, as
+`result.bond_truncation_l2` (the same norm-loss estimate `"shadows"` reports
+as its `truncation_l2`), and is part of `total_error`. More string samples do
+not reduce it; only a larger bond dimension, or a cut closer to the end, does.
+`result.antihermitian_l2` is a diagnostic of the same truncation: the size of
+the anti-Hermitian part it leaves in the sampled coefficients, which is
+projected out before measuring.
+
 ### EUR spent vs accuracy, all three routes
 
 *(right panel, same figure)* Fixing `"pauli"` at `n_string_samples=800` and

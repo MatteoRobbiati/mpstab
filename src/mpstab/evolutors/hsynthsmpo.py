@@ -626,13 +626,35 @@ class HSynthSMPO(HSMPO):
         tail_handling=None,
         n_string_samples=200,
     ):
-        """Sample each term's tail MPO, pool the strings, fold the residual, group."""
+        """
+        Sample each term's tail MPO, pool the strings, fold the residual, group.
+
+        Two truncations are reported, of different origin. ``truncation_l1`` /
+        ``truncation_l2`` count the Pauli strings of each folded MPO that
+        ``n_string_samples`` left out. ``bond_truncation_l2`` is the bias of
+        folding at a finite bond dimension, estimated from each folded MPO's
+        norm (see :meth:`_fold_fidelity`) as in the ``"shadows"`` route: the
+        string truncation is measured against the already truncated MPO, so it
+        cannot see it. ``antihermitian_l2`` is the size of the anti-Hermitian
+        part that truncation leaves in the pooled coefficients, projected out
+        by :func:`_assert_real_coefficients`.
+        """
+        truncated = (
+            max_bond_dimension is not None
+            if max_bond_dimension != -1
+            else self.max_bond_dimension is not None
+        )
         rng = np.random.default_rng(seed)
         ensembles, diagnostics = [], []
+        bond_truncation_l2 = 0.0
         for pauli, coefficient in terms.items():
             operator, sign = self.build_post_head_mpo(
                 pauli, cut_index, max_bond_dimension
             )
+            if truncated:
+                bond_truncation_l2 += abs(coefficient) * np.sqrt(
+                    max(0.0, 1.0 - self._fold_fidelity(operator))
+                )
             ensemble = sample_pauli_strings(
                 operator,
                 n_samples=n_string_samples,
@@ -654,20 +676,15 @@ class HSynthSMPO(HSMPO):
         return build_pauli_plan(
             resynthesis.circuit,
             self.nqubits,
-            _assert_real_coefficients(
-                pooled,
-                truncated=(
-                    max_bond_dimension is not None
-                    if max_bond_dimension != -1
-                    else self.max_bond_dimension is not None
-                ),
-            ),
+            _assert_real_coefficients(pooled, truncated=truncated),
             n_shots,
             epsilon,
             constant=constant,
             truncation_l1=truncation_l1,
             truncation_l2=truncation_l2,
             retained_weight=retained_weight,
+            bond_truncation_l2=float(bond_truncation_l2),
+            antihermitian_l2=_antihermitian_norm(pooled),
         )
 
     def _shadow_plan(
@@ -820,6 +837,16 @@ def _aggregate_truncation(diagnostics: list) -> Tuple[float, float, float]:
     return l1, l2, retained_weight
 
 
+def _antihermitian_norm(pooled: dict) -> float:
+    """
+    ``sqrt(sum_P Im(c_P)**2)`` of a pooled ``{pauli: complex coefficient}`` map:
+    the Frobenius norm, per ``2**(n/2)``, of the anti-Hermitian part of the
+    operator the map describes. It is what :func:`_assert_real_coefficients`
+    drops when the tail was truncated, restricted to the sampled strings.
+    """
+    return float(np.sqrt(sum(np.imag(c) ** 2 for c in pooled.values())))
+
+
 def _assert_real_coefficients(
     pooled: dict, tolerance: float = 1e-8, truncated: bool = False
 ) -> dict:
@@ -836,7 +863,8 @@ def _assert_real_coefficients(
     the order of the truncation error. Taking the real part of every Pauli
     coefficient is exactly the projection ``(O + O^dag) / 2`` onto the
     Hermitian part, the closest Hermitian operator, which is never farther
-    from the exact (Hermitian) observable than ``O`` itself.
+    from the exact (Hermitian) observable than ``O`` itself. The size of what
+    is dropped is reported by :func:`_antihermitian_norm`.
 
     The tail-folded, Clifford-backpropagated observable is Hermitian, so
     every pooled coefficient should be real up to floating-point noise. A
