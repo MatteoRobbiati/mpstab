@@ -200,7 +200,11 @@ def test_staged_pipeline_matches_expectation_at_cut(method, xy_observable):
 
     get_backend().set_seed(11)
     plan = hs.plan(
-        xy_observable, cut_index, method=method, n_shots=2000, seed=3,
+        xy_observable,
+        cut_index,
+        method=method,
+        n_shots=2000,
+        seed=3,
         out_folder=False,
     )
     frequencies = execute_plan(QiboSimulator(), plan)
@@ -523,9 +527,7 @@ def test_execute_plan_rejects_a_backend_that_drops_results():
             return [circuit(nshots=nshots).frequencies() for circuit in circuits[1:]]
 
     hs = _hs(4)
-    plan = hs.plan(
-        "ZZZZ", 2, method="shadows", n_shots=20, seed=0, out_folder=False
-    )
+    plan = hs.plan("ZZZZ", 2, method="shadows", n_shots=20, seed=0, out_folder=False)
     with pytest.raises(ValueError, match="DroppingBackend"):
         execute_plan(DroppingBackend(), plan)
 
@@ -571,3 +573,65 @@ def test_no_orphan_imports_of_deleted_modules():
         if token in path.read_text()
     ]
     assert not offenders, offenders
+
+
+def test_pauli_reports_the_bond_truncation():
+    # The string truncation is measured against the already truncated MPO, so
+    # it cannot see the bond truncation: that one is reported apart.
+    hs = _hs(6)  # untruncated by default
+    resynthesis = hs.resynthesize_head(0)
+
+    def plan(max_bond_dimension):
+        return hs._pauli_plan(
+            terms={"Z" * 6: 1.0},
+            constant=0.0,
+            cut_index=0,
+            resynthesis=resynthesis,
+            max_bond_dimension=max_bond_dimension,
+            n_shots=1000,
+            epsilon=None,
+            seed=0,
+            n_string_samples=5000,
+        )
+
+    exact = plan(None)
+    assert exact.bond_truncation_l2 == 0.0
+    assert exact.antihermitian_l2 == pytest.approx(0.0, abs=1e-10)
+
+    truncated = plan(2)
+    assert truncated.bond_truncation_l2 > 1e-6
+    assert truncated.antihermitian_l2 >= 0.0
+    # the same estimate the shadows route reports as its truncation_l2
+    shadows = hs._shadow_plan(
+        terms={"Z" * 6: 1.0},
+        constant=0.0,
+        cut_index=0,
+        resynthesis=resynthesis,
+        max_bond_dimension=2,
+        n_shots=10,
+        epsilon=None,
+        seed=0,
+        tail_handling="append_to_head_circuit",
+    )
+    assert truncated.bond_truncation_l2 == pytest.approx(shadows.truncation_l2)
+    assert shadows.bond_truncation_l2 is None and shadows.antihermitian_l2 is None
+
+    # it reaches the result and its total error
+    frequencies = [{"0" * 6: shots} for shots in truncated.shots]
+    result = estimate(truncated, frequencies)
+    assert result.bond_truncation_l2 == truncated.bond_truncation_l2
+    assert result.antihermitian_l2 == truncated.antihermitian_l2
+    assert result.total_error == pytest.approx(
+        np.sqrt(
+            result.stderr**2 + result.truncation_l2**2 + result.bond_truncation_l2**2
+        )
+    )
+
+
+def test_antihermitian_norm():
+    from mpstab.evolutors.hsynthsmpo import _antihermitian_norm
+
+    assert _antihermitian_norm({"XY": 0.5 - 3e-4j, "ZZ": -0.25 + 4e-4j}) == (
+        pytest.approx(5e-4)
+    )
+    assert _antihermitian_norm({}) == 0.0

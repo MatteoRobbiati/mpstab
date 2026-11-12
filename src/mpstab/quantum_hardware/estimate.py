@@ -67,6 +67,16 @@ class ExpectationResult:
             norm of the head MPS, which its truncation pushes below 1. The
             hardware methods run the head on the device, so they have no head
             truncation to report.
+        bond_truncation_l2: ``"pauli"`` only, ``None`` otherwise (there
+            ``truncation_l2`` already is the bond truncation): the bias
+            estimate of folding the tail at a finite bond dimension -- see
+            :attr:`~mpstab.quantum_hardware.plan.MeasurementPlan.bond_truncation_l2`.
+            Part of ``total_error``.
+        antihermitian_l2: ``"pauli"`` only, ``None`` otherwise: the size of the
+            anti-Hermitian part the bond truncation left in the sampled
+            coefficients, which was projected out -- see
+            :attr:`~mpstab.quantum_hardware.plan.MeasurementPlan.antihermitian_l2`.
+            A diagnostic, not part of ``total_error``.
     """
 
     value: float
@@ -77,13 +87,17 @@ class ExpectationResult:
     n_shots: int
     retained_weight: float | None = None
     state_fidelity: float | None = None
+    bond_truncation_l2: float | None = None
+    antihermitian_l2: float | None = None
 
     @property
     def total_error(self) -> float:
         """
         A practical accuracy *bound*, not a standard error itself:
-        ``sqrt(stderr**2 + truncation_l2**2)``, combining two contributions of
-        different nature in quadrature. ``stderr`` is a statistical quantity
+        ``sqrt(stderr**2 + truncation_l2**2 + bond_truncation_l2**2)``
+        (the last term for ``"pauli"`` only, where ``truncation_l2`` is the
+        Pauli-set truncation and the bond truncation is reported apart),
+        combining contributions of different nature in quadrature. ``stderr`` is a statistical quantity
         (shot noise, shrinks with more shots); ``truncation_l2`` is a
         systematic-bias estimate (bond-dimension or Pauli-coverage
         truncation, independent of shot count -- see ``truncation_l1`` and
@@ -94,7 +108,8 @@ class ExpectationResult:
         truncation bias entirely. For ``"simulation"`` it covers the tail
         truncation only; the head truncation shows in ``state_fidelity``.
         """
-        return float(np.sqrt(self.stderr**2 + self.truncation_l2**2))
+        bond = self.bond_truncation_l2 or 0.0
+        return float(np.sqrt(self.stderr**2 + self.truncation_l2**2 + bond**2))
 
     def __float__(self) -> float:
         return float(self.value)
@@ -175,6 +190,8 @@ def estimate_pauli(plan, frequencies) -> ExpectationResult:
         n_settings=len(frequencies),
         n_shots=n_shots,
         retained_weight=plan.retained_weight,
+        bond_truncation_l2=plan.bond_truncation_l2,
+        antihermitian_l2=plan.antihermitian_l2,
     )
 
 

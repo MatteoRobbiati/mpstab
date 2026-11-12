@@ -215,6 +215,20 @@ class MeasurementPlan:
             :attr:`~mpstab.quantum_hardware.pauli_expansion.PauliEnsemble.retained_weight`
             -- the fraction of the tail-folded observable's Frobenius weight
             that ``n_string_samples`` actually covered.
+        bond_truncation_l2: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
+            (whose ``truncation_l2`` already is this quantity): the bias
+            estimate of folding the tail at a finite bond dimension,
+            ``sum_terms |coefficient| * sqrt(1 - ||O'||_F**2 / 2**n)``, from the
+            norm each folded MPO lost. ``0.0`` for an untruncated fold. The
+            ``"pauli"`` route's ``truncation_l1``/``truncation_l2`` only count
+            the Pauli strings left unsampled *of the already truncated MPO*,
+            so they miss it.
+        antihermitian_l2: ``"pauli"`` only, ``None`` otherwise: the size of the
+            anti-Hermitian part the bond truncation left in the sampled
+            coefficients and that was projected out,
+            ``sqrt(sum_P Im(c_P)**2)``. A diagnostic of how hard the
+            truncation hit, not an error of the estimate: the projection never
+            moves the operator away from the exact, Hermitian one.
     """
 
     method: str
@@ -225,6 +239,8 @@ class MeasurementPlan:
     truncation_l1: float | None
     truncation_l2: float
     retained_weight: float | None = None
+    bond_truncation_l2: float | None = None
+    antihermitian_l2: float | None = None
 
 
 def build_pauli_plan(
@@ -237,6 +253,8 @@ def build_pauli_plan(
     truncation_l1: float = 0.0,
     truncation_l2: float = 0.0,
     retained_weight: float | None = None,
+    bond_truncation_l2: float = 0.0,
+    antihermitian_l2: float = 0.0,
 ) -> MeasurementPlan:
     """
     Build the ``"pauli"`` route's plan: one circuit per QWC group.
@@ -253,6 +271,8 @@ def build_pauli_plan(
             -- not a rigorous bound).
         truncation_l2: typical-case discarded-Pauli-mass estimate to report.
         retained_weight: see :attr:`MeasurementPlan.retained_weight`.
+        bond_truncation_l2: see :attr:`MeasurementPlan.bond_truncation_l2`.
+        antihermitian_l2: see :attr:`MeasurementPlan.antihermitian_l2`.
     """
     plan = build_measurement_plan(coefficients)
     if epsilon is not None:
@@ -272,6 +292,8 @@ def build_pauli_plan(
         truncation_l1=truncation_l1,
         truncation_l2=truncation_l2,
         retained_weight=retained_weight,
+        bond_truncation_l2=bond_truncation_l2,
+        antihermitian_l2=antihermitian_l2,
     )
 
 
