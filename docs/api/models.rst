@@ -28,6 +28,7 @@ Ansätze are pre-built quantum circuit patterns used as templates for quantum al
 - ``HammingWeightPreserving``: RBS-based Hamming-weight-preserving ansatz
 - ``FloquetAnsatz``: Floquet echo circuit with tunable magic
 - ``KickedIsing``: Kicked Ising chain with RX/RZ kicks and CNOT-RZ-CNOT couplings, already in HSMPO form
+- ``ParametricKickedIsing``: Kicked Ising chain at a Clifford point plus deviations; only the deviations are magic gates
 
 *Circuit library (textbook algorithms, for HSMPO/HSynthSMPO benchmarks):*
 

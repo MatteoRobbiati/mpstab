@@ -240,6 +240,90 @@ class KickedIsing(Ansatz):
 
 
 @dataclass
+class ParametricKickedIsing(Ansatz):
+    r"""
+    Build a kicked Ising circuit parametrised by its distance from a Clifford point.
+
+    It is the circuit of :class:`KickedIsing` with the angles
+
+    .. math::
+        \theta_h = \theta_h^C + \delta_h, \qquad
+        \theta_J = \theta_J^C + \delta_J, \qquad
+        \theta_z = \delta_z,
+
+    where :math:`\theta_h^C` and :math:`\theta_J^C` are multiples of
+    :math:`\pi/2`, so that at :math:`\delta = 0` the whole circuit is Clifford.
+    The defaults :math:`\theta_h^C = \pi/2`, :math:`\theta_J^C = -\pi/2` are
+    the self-dual point, where the entanglement grows at the maximal speed.
+
+    Every rotation is written as its Clifford part followed by the deviation,
+    :math:`R(\theta^C + \delta) = R(\delta)\,R(\theta^C)`, as two separate
+    gates. HSMPO then puts :math:`R(\theta^C)` in the stabilizer part and keeps
+    only the small rotation :math:`R(\delta)` as a magic gate, instead of
+    treating the whole :math:`R(\theta^C + \delta)` as magic: the deviations
+    set how much magic the circuit holds, while the Clifford skeleton, hence
+    the entanglement structure, stays the same. A deviation equal to zero adds
+    no gate.
+
+    Each of the ``n_steps`` steps applies the kicks :math:`R_X` and then
+    :math:`R_Z` on every qubit, followed by the couplings :math:`R_{ZZ}` on the
+    even bonds and then on the odd bonds, each coupling written as
+    ``CNOT · RZ · CNOT``.
+
+    Args:
+        nqubits: number of qubits in the chain.
+        n_steps: number of kick-and-couple steps.
+        delta_h: deviation of the transverse kicks :math:`R_X` from ``clifford_h``.
+        delta_j: deviation of the :math:`R_{ZZ}` couplings from ``clifford_j``.
+        delta_z: angle of the longitudinal kicks :math:`R_Z` (Clifford point: 0).
+        clifford_h: Clifford angle of the transverse kicks, a multiple of pi/2.
+        clifford_j: Clifford angle of the couplings, a multiple of pi/2.
+    """
+
+    n_steps: int = 1
+    delta_h: float = 0.1
+    delta_j: float = 0.0
+    delta_z: float = 0.0
+    clifford_h: float = 0.5 * np.pi
+    clifford_j: float = -0.5 * np.pi
+
+    def __post_init__(self):
+        super().__post_init__()
+        for name in ("clifford_h", "clifford_j"):
+            quarter_turns = getattr(self, name) / (0.5 * np.pi)
+            if not np.isclose(quarter_turns, round(quarter_turns)):
+                raise ValueError(
+                    f"{name} must be a multiple of pi/2, got {getattr(self, name)}."
+                )
+        for _ in range(self.n_steps):
+            for q in range(self.nqubits):
+                self._rotation(gates.RX, q, self.clifford_h, self.delta_h)
+                self._rotation(gates.RZ, q, 0.0, self.delta_z)
+            for start in (0, 1):
+                for q in range(start, self.nqubits - 1, 2):
+                    self.circuit.add(gates.CNOT(q, q + 1))
+                    self._rotation(gates.RZ, q + 1, self.clifford_j, self.delta_j)
+                    self.circuit.add(gates.CNOT(q, q + 1))
+
+    def _rotation(self, gate, qubit: int, clifford_angle: float, delta: float):
+        """Add ``gate(clifford_angle)`` then ``gate(delta)``, skipping zero angles."""
+        if clifford_angle != 0:
+            self.circuit.add(gate(q=qubit, theta=clifford_angle))
+        if delta != 0:
+            self.circuit.add(gate(q=qubit, theta=delta))
+
+    @property
+    def theta_h(self) -> float:
+        """Total angle of the transverse kicks."""
+        return self.clifford_h + self.delta_h
+
+    @property
+    def theta_j(self) -> float:
+        """Total angle of the couplings."""
+        return self.clifford_j + self.delta_j
+
+
+@dataclass
 class HammingWeightPreserving(Ansatz):
     """
     Hamming-weight-preserving ansatz built from decomposed RBS gates.
