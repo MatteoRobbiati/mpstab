@@ -33,7 +33,7 @@ conjugating every sampled string through the residual. The ``"shadows"`` and
 separately, e.g. to execute the circuits on a real device and post-process the
 results later: :meth:`HSynthSMPO.plan` builds the circuits and can save them as
 OpenQASM, a device backend runs them, and
-:func:`~mpstab.quantum_hardware.estimate.estimate` recombines the frequencies
+:func:`~mpstab.qpu.measurement.estimate` recombines the frequencies
 using the plan.
 
 ``expectation_at_cut(method="simulation")`` is the classical MPO-MPS
@@ -56,23 +56,25 @@ import stim
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.pauli import validate_pauli_string
-from mpstab.quantum_hardware import (
+from mpstab.qpu.execution import QiboSimulator, execute_plan, save_circuits
+from mpstab.qpu.measurement import (
     ExpectationResult,
     MeasurementPlan,
-    QiboSimulator,
-    build_cnot_ladder_head_and_residual,
-    build_head_and_residual,
     build_pauli_plan,
     build_shadow_plan,
-    count_two_qubit_gates,
     estimate,
-    execute_plan,
+)
+from mpstab.qpu.measurement.pauli_expansion import (
     fold_pool_through_tableau,
-    head_to_qibo_circuit,
     pool_pauli_terms,
     sample_pauli_strings,
-    save_circuits,
     truncation_error_estimate,
+)
+from mpstab.qpu.synthesis import (
+    build_cnot_ladder_head_and_residual,
+    build_head_and_residual,
+    count_two_qubit_gates,
+    head_to_qibo_circuit,
 )
 
 __all__ = ["HSynthSMPO", "ExpectationResult", "ResynthesizedHead", "TailTruncation"]
@@ -172,7 +174,7 @@ class HSynthSMPO(HSMPO):
           use it as the classical reference;
         - the ``"pauli"`` route passes no ``residual``. It samples Pauli strings
           from the MPO and folds each sampled string through ``R`` afterwards
-          (:func:`~mpstab.quantum_hardware.pauli_expansion.fold_pool_through_tableau`),
+          (:func:`~mpstab.qpu.measurement.pauli_expansion.fold_pool_through_tableau`),
           which is cheaper and unaffected by truncation;
         - the ``"shadows"`` and ``"tnice"`` routes pass ``residual`` under
           ``tail_handling="fold"``, because their estimators contract the whole
@@ -428,8 +430,8 @@ class HSynthSMPO(HSMPO):
         """
         Resynthesise the head, build the measurement circuits, run them and
         recombine the results, in one call: :meth:`plan`, then
-        :func:`~mpstab.quantum_hardware.backend.execute_plan` on ``backend``,
-        then :func:`~mpstab.quantum_hardware.estimate.estimate`. To run the
+        :func:`~mpstab.qpu.execution.simulator.execute_plan` on ``backend``,
+        then :func:`~mpstab.qpu.measurement.estimate`. To run the
         circuits on a device and post-process later, call those three stages
         separately.
 
@@ -454,7 +456,7 @@ class HSynthSMPO(HSMPO):
                 circuits, bases and shots as ``"shadows"`` -- see
                 :meth:`_shadow_plan` -- and only replaces the fixed
                 canonical-dual post-processing with the MPS-optimized
-                estimator of :mod:`~mpstab.quantum_hardware.tnice`, so the two
+                estimator of :mod:`~mpstab.qpu.measurement.tnice`, so the two
                 can be compared on identical measurement data.
                 ``"simulation"`` is classical, see above and
                 :meth:`_simulate_at_cut`: it needs no resynthesis, backend or
@@ -466,7 +468,7 @@ class HSynthSMPO(HSMPO):
                 ``"shadows"``'s canonical-dual predictor, a conservative upper
                 bound on the (unknown ahead of fitting) optimized variance.
             backend: anything with ``execute_circuits(circuits, nshots)``.
-                Defaults to :class:`~mpstab.quantum_hardware.QiboSimulator`.
+                Defaults to :class:`~mpstab.qpu.QiboSimulator`.
             max_bond_dimension: bond cap for every tail fold; ``-1`` means
                 ``self.max_bond_dimension``. With ``"simulation"`` the head MPS
                 is capped at ``self.max_bond_dimension``.
@@ -478,14 +480,14 @@ class HSynthSMPO(HSMPO):
                 possibly much higher shadow variance.
             seed: RNG seed for Pauli sampling, random shadow bases, and (for
                 ``"tnice"``) the train/test shot split, forwarded to
-                :func:`~mpstab.quantum_hardware.estimate.estimate_tnice`.
+                :func:`~mpstab.qpu.measurement.tnice.estimate_tnice`.
             method_kwargs: ``"pauli"`` takes ``n_string_samples`` (default
                 200); ``"shadows"`` and ``"tnice"`` take ``shots_per_setting``
                 (default 1); ``"tnice"`` additionally takes
                 ``lam`` (default 0.999), ``n_sweeps`` (default 4),
                 ``bond_dimension`` (default ``None``, meaning the tail MPO's
                 own) and ``test_fraction`` (default 0.5), forwarded to
-                :func:`~mpstab.quantum_hardware.estimate.estimate_tnice`.
+                :func:`~mpstab.qpu.measurement.tnice.estimate_tnice`.
 
         Raises:
             ValueError: on an unknown ``method``, if neither or both of
@@ -545,10 +547,10 @@ class HSynthSMPO(HSMPO):
         This is the first of the three stages :meth:`expectation_at_cut` chains,
         exposed so the circuits can run anywhere, e.g. on a real device: run the
         saved circuits, then pass the counts and the returned plan to
-        :func:`~mpstab.quantum_hardware.estimate.estimate`.
+        :func:`~mpstab.qpu.measurement.estimate`.
 
         Only the circuits and shots are saved, not the returned plan, which
-        :func:`~mpstab.quantum_hardware.estimate.estimate` needs. Building it
+        :func:`~mpstab.qpu.measurement.estimate` needs. Building it
         again takes the same model, the same arguments and a fixed ``seed``.
         Even then the residual's gates can differ, so the saved circuits are
         the ones to run: never replace them with those of a rebuilt plan.
@@ -563,7 +565,7 @@ class HSynthSMPO(HSMPO):
             tail_handling: as in :meth:`expectation_at_cut`.
             seed: as in :meth:`expectation_at_cut`.
             out_folder: where to save the circuits and shots, see
-                :func:`~mpstab.quantum_hardware.storage.save_circuits`.
+                :func:`~mpstab.qpu.execution.storage.save_circuits`.
                 ``None`` (the default) saves them to a new folder
                 ``planned_runs/plan_<method>_cut<cut_index>_<timestamp>``
                 under the current directory and prints its path; ``False``
@@ -573,7 +575,7 @@ class HSynthSMPO(HSMPO):
                 (default 1).
 
         Returns:
-            A :class:`~mpstab.quantum_hardware.plan.MeasurementPlan`.
+            A :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`.
 
         Raises:
             ValueError: on an unknown ``method``, if neither or both of
@@ -831,7 +833,7 @@ def _aggregate_truncation(diagnostics: list) -> Tuple[float, float, float]:
     L1 adds by the triangle inequality, rigorous for any combination of terms;
     L2 adds in quadrature, assuming the terms' errors are independent;
     retained_weight is the ``|coeff|``-weighted average of each term's own
-    :attr:`~mpstab.quantum_hardware.pauli_expansion.PauliEnsemble.retained_weight`
+    :attr:`~mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight`
     -- a diagnostic for whether ``n_string_samples`` covered enough of the
     observable, not a rigorous combination of the per-term fractions.
     """

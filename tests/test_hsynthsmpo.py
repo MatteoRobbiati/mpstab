@@ -16,11 +16,8 @@ from mpstab.models.ansatze import (
     QFTPhaseKernel,
     TrotterIsing,
 )
-from mpstab.quantum_hardware.plan import (
-    allocate_shots_by_variance,
-    build_measurement_plan,
-)
-from mpstab.quantum_hardware.synthesis import build_cnot_ladder_head_and_residual
+from mpstab.qpu.measurement import allocate_shots_by_variance, build_measurement_plan
+from mpstab.qpu.synthesis import build_cnot_ladder_head_and_residual
 
 set_backend("numpy")
 set_rng_seed()

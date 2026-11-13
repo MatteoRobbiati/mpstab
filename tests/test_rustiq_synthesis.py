@@ -1,5 +1,5 @@
 """
-rustiq resynthesis (`mpstab.quantum_hardware.synthesis`).
+rustiq resynthesis (`mpstab.qpu.synthesis`).
 
 Covers:
   - target == residual . head at the unitary level (dense, small n);
@@ -24,7 +24,7 @@ from mpstab.engines import StimEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 from mpstab.pauli import PAULI_MATRICES as _PAULI_MATS
-from mpstab.quantum_hardware import (
+from mpstab.qpu.synthesis import (
     build_head_and_residual,
     head_counts_only,
     head_to_qibo_circuit,

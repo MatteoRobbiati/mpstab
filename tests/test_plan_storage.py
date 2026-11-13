@@ -1,8 +1,8 @@
 """
-Device-facing helpers of `mpstab.quantum_hardware`: the OpenQASM export of a
+Device-facing helpers of `mpstab.qpu`: the OpenQASM export of a
 plan's circuits (`circuit_to_qasm`, `plan_to_qasm`) and the output folder the
 circuits and shots are saved to (`HSynthSMPO.plan`,
-`mpstab.quantum_hardware.storage`), which is all a device run needs.
+`mpstab.qpu.execution.storage`), which is all a device run needs.
 """
 
 import json
@@ -14,12 +14,8 @@ from qibo import Circuit, gates, get_backend, set_backend
 
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import HardwareEfficient
-from mpstab.quantum_hardware import (
-    circuit_to_qasm,
-    estimate,
-    plan_to_qasm,
-)
-from mpstab.quantum_hardware.backend import QELIB1_GATES
+from mpstab.qpu import circuit_to_qasm, estimate, plan_to_qasm
+from mpstab.qpu.execution import QELIB1_GATES
 
 set_backend("numpy")
 

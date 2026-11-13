@@ -25,14 +25,10 @@ from qibo.symbols import X, Z
 
 from mpstab.evolutors.hsynthsmpo import ExpectationResult, HSynthSMPO, ResynthesizedHead
 from mpstab.models.ansatze import HardwareEfficient
-from mpstab.quantum_hardware import (
-    QiboSimulator,
-    count_two_qubit_gates,
-    estimate,
-    execute_plan,
-)
-from mpstab.quantum_hardware.synthesis import (
+from mpstab.qpu import QiboSimulator, estimate, execute_plan
+from mpstab.qpu.synthesis import (
     build_cnot_ladder_head_and_residual,
+    count_two_qubit_gates,
     head_to_qibo_circuit,
 )
 
@@ -86,7 +82,7 @@ def _resynthesis_with_trailing_residual(hs, cut_index, n_trailing=3):
     The head is no longer the full exact rotation, but head+residual together
     still are -- the same relationship a real rustiq resynthesis has with its
     Clifford residual (Eq. 8). This exists because ``rustiq`` is an optional,
-    not-on-PyPI dependency (see ``mpstab.quantum_hardware.synthesis``), and the
+    not-on-PyPI dependency (see ``mpstab.qpu.synthesis``), and the
     CNOT-ladder fallback alone always has an identity residual, so neither can
     exercise the fold on its own in an environment without rustiq installed.
     """

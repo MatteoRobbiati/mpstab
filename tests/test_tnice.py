@@ -1,5 +1,5 @@
 """
-Layered correctness checks for `mpstab.quantum_hardware.tnice`, the TN-ICE
+Layered correctness checks for `mpstab.qpu.measurement.tnice`, the TN-ICE
 post-processing that replaces the fixed canonical-dual contraction of the
 ``"tnice"`` route (sharing its circuits/shots with ``"shadows"``, see
 `HSynthSMPO._shadow_plan`) with an MPS-optimized dual estimator.
@@ -18,13 +18,13 @@ from qibo import set_backend
 
 from mpstab.engines import QuimbEngine
 from mpstab.pauli import PAULI_LABELS, PAULI_MATRICES
-from mpstab.quantum_hardware import tnice
-from mpstab.quantum_hardware.estimate import (
+from mpstab.qpu.measurement import tnice
+from mpstab.qpu.measurement.pauli_expansion import mpo_site_arrays, mpo_to_pauli_mps
+from mpstab.qpu.measurement.shadows import (
     _BASIS_INDEX,
     _SNAPSHOT_FACTORS,
     _term_setting_stats,
 )
-from mpstab.quantum_hardware.pauli_expansion import mpo_site_arrays, mpo_to_pauli_mps
 
 set_backend("numpy")
 
@@ -231,8 +231,8 @@ def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
     """
     from mpstab.evolutors.hsynthsmpo import HSynthSMPO
     from mpstab.models.ansatze import FloquetAnsatz
-    from mpstab.quantum_hardware.backend import QiboSimulator, execute_plan
-    from mpstab.quantum_hardware.estimate import estimate_shadows, estimate_tnice
+    from mpstab.qpu.execution import QiboSimulator, execute_plan
+    from mpstab.qpu.measurement import estimate_shadows, estimate_tnice
 
     ansatz = FloquetAnsatz(nqubits=4, nlayers=1, target_qubit=1, decompose_rzz=True)
     hs = HSynthSMPO.rotations_only(ansatz)

@@ -1,13 +1,10 @@
 """
-Pauli terms to circuits: qubit-wise-commuting grouping and shot allocation.
+The ``"pauli"`` method: measure the sampled Pauli strings of the tail-folded
+observable, grouped into qubit-wise-commuting settings.
 
-A :class:`MeasurementPlan` fixes every circuit and its shot count before
-anything runs, so the same plan can be replayed on a simulator or on hardware
-and :mod:`~mpstab.quantum_hardware.estimate` only ever reads back frequencies.
-
-Basis rotation is left to qibo: ``gates.M(*qubits, basis=[...])`` measures each
-qubit in the given single-qubit Pauli basis, so no basis-change circuit is built
-here.
+The point estimate comes from qibo's own
+:meth:`qibo.hamiltonians.SymbolicHamiltonian.expectation_from_samples`; only the
+standard error, which qibo does not report, is computed here.
 """
 
 from __future__ import annotations
@@ -15,12 +12,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from qibo import Circuit, gates
+from qibo import symbols
+from qibo.hamiltonians import SymbolicHamiltonian
 
 from mpstab.pauli import weight
-from mpstab.quantum_hardware.pauli_expansion import shadow_variance_from_mpo
-
-_BASIS_GATES = {"X": gates.X, "Y": gates.Y, "Z": gates.Z}
+from mpstab.qpu.measurement.abstract import (
+    ExpectationResult,
+    MeasurementPlan,
+    basis_measurement,
+)
 
 
 def _qubitwise_commuting(a: str, b: str) -> bool:
@@ -193,56 +193,6 @@ def allocate_shots_by_variance(plan: PauliMeasurementPlan, n_shots: int) -> tupl
     return tuple(int(x) + 1 for x in base)  # +1: the one shot reserved above
 
 
-@dataclass(frozen=True)
-class MeasurementPlan:
-    """
-    Circuits and their shot allocation, with whatever the estimator needs to
-    recombine the results.
-
-    ``recombination`` is route-specific:
-
-    - ``"pauli"``: ``(groups, coefficients)``, one :class:`QWCGroup` per circuit
-      in the same order, plus the ``{pauli_string: c_P}`` map the groups came
-      from.
-    - ``"shadows"``: ``(mpo_terms, bases)``, where ``mpo_terms`` holds
-      ``(label, coefficient, sign, mpo)`` per Hamiltonian term and ``bases`` has
-      one basis string per circuit.
-
-    Attributes:
-        retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
-            (which sample nothing): the |coefficient|-weighted average, over
-            Hamiltonian terms, of each term's
-            :attr:`~mpstab.quantum_hardware.pauli_expansion.PauliEnsemble.retained_weight`
-            -- the fraction of the tail-folded observable's Frobenius weight
-            that ``n_string_samples`` actually covered.
-        bond_truncation_l2: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
-            (whose ``truncation_l2`` already is this quantity): the bias
-            estimate of folding the tail at a finite bond dimension,
-            ``sum_terms |coefficient| * sqrt(1 - ||O'||_F**2 / 2**n)``, from the
-            norm each folded MPO lost. ``0.0`` for an untruncated fold. The
-            ``"pauli"`` route's ``truncation_l1``/``truncation_l2`` only count
-            the Pauli strings left unsampled *of the already truncated MPO*,
-            so they miss it.
-        antihermitian_l2: ``"pauli"`` only, ``None`` otherwise: the size of the
-            anti-Hermitian part the bond truncation left in the sampled
-            coefficients and that was projected out,
-            ``sqrt(sum_P Im(c_P)**2)``. A diagnostic of how hard the
-            truncation hit, not an error of the estimate: the projection never
-            moves the operator away from the exact, Hermitian one.
-    """
-
-    method: str
-    circuits: tuple
-    shots: tuple
-    recombination: object
-    constant: float
-    truncation_l1: float | None
-    truncation_l2: float
-    retained_weight: float | None = None
-    bond_truncation_l2: float | None = None
-    antihermitian_l2: float | None = None
-
-
 def build_pauli_plan(
     head_circuit,
     nqubits: int,
@@ -267,7 +217,7 @@ def build_pauli_plan(
         epsilon: target standard error, or ``None`` when ``n_shots`` is given.
         constant: observable offset, added back by the estimator.
         truncation_l1: heuristic discarded-Pauli-mass estimate to report (see
-            :func:`~mpstab.quantum_hardware.pauli_expansion.truncation_error_estimate`
+            :func:`~mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate`
             -- not a rigorous bound).
         truncation_l2: typical-case discarded-Pauli-mass estimate to report.
         retained_weight: see :attr:`MeasurementPlan.retained_weight`.
@@ -280,7 +230,7 @@ def build_pauli_plan(
     shots = allocate_shots_by_variance(plan, n_shots)
 
     circuits = tuple(
-        head_circuit + _basis_measurement(group.setting, nqubits)
+        head_circuit + basis_measurement(group.setting, nqubits)
         for group in plan.groups
     )
     return MeasurementPlan(
@@ -297,70 +247,75 @@ def build_pauli_plan(
     )
 
 
-def build_shadow_plan(
-    head_circuit,
-    nqubits: int,
-    mpo_terms: list,
-    n_shots: int | None,
-    epsilon: float | None,
-    shots_per_setting: int = 1,
-    seed: int | None = None,
-    constant: float = 0.0,
-    truncation_l2: float = 0.0,
-) -> MeasurementPlan:
+def _variance_from_frequencies(freq: dict, weighted_supports: list) -> float:
     """
-    Build the ``"shadows"`` route's plan: one circuit per random single-qubit
-    Pauli basis.
+    Sample variance of a *single* shot's value of ``sum_i c_i parity_i(bitstring)``
+    over one measurement setting. Divide by the setting's shot count to get the
+    variance of the mean.
 
-    Args:
-        head_circuit: the resynthesised head, without measurements.
-        nqubits: circuit width.
-        mpo_terms: ``(label, coefficient, sign, mpo)`` per Hamiltonian term; a
-            single-entry list for a Pauli-string observable.
-        n_shots: fixed total shot budget, or ``None`` to size it from ``epsilon``.
-        epsilon: target standard error, sized from the exact snapshot variance of
-            :func:`~mpstab.quantum_hardware.pauli_expansion.shadow_variance_from_mpo`.
-        shots_per_setting: shots reused per random basis. Larger values cut the
-            number of distinct circuits at the price of correlated snapshots.
-        seed: RNG seed for the random bases.
-        constant: observable offset, added back by the estimator.
-        truncation_l2: MPO bond-truncation estimate to report.
+    Exact rather than a sum of per-member variances, since the joint frequency
+    table already carries the members' full covariance.
     """
-    predicted_variance = sum(
-        coeff**2 * shadow_variance_from_mpo(mpo) for _, coeff, _, mpo in mpo_terms
+    total = sum(freq.values())
+    if total <= 1:
+        return 0.0
+    values, weights = [], []
+    for bitstring, count in freq.items():
+        bits = [int(b) for b in bitstring]
+        values.append(
+            sum(
+                coeff * (-1) ** sum(bits[q] for q in support)
+                for support, coeff in weighted_supports
+            )
+        )
+        weights.append(count)
+    values = np.asarray(values)
+    weights = np.asarray(weights)
+    mean = float(np.sum(weights * values) / total)
+    return float(np.sum(weights * (values - mean) ** 2) / (total - 1))
+
+
+def estimate_pauli(plan, frequencies) -> ExpectationResult:
+    """Recombine a ``"pauli"`` plan's frequencies into an :class:`ExpectationResult`."""
+    groups, coefficients = plan.recombination
+    nqubits = len(next(iter(coefficients)))
+
+    value = plan.constant
+    variance = 0.0
+    n_shots = 0
+    for group, freq in zip(groups, frequencies):
+        shots = sum(freq.values())
+        n_shots += shots
+
+        weighted_supports = []
+        form = 0
+        for member in group.members:
+            coeff = float(np.real(coefficients[member]))
+            support = tuple(q for q, label in enumerate(member) if label != "I")
+            if not support:
+                value += coeff  # identity member: parity is always 1, no shot noise
+                continue
+            weighted_supports.append((support, coeff))
+            term = coeff
+            for qubit in support:
+                term *= symbols.Z(qubit)
+            form += term
+
+        if form != 0:
+            value += SymbolicHamiltonian(
+                form=form, nqubits=nqubits
+            ).expectation_from_samples(freq)
+        if shots > 1:
+            variance += _variance_from_frequencies(freq, weighted_supports) / shots
+
+    return ExpectationResult(
+        value=float(value),
+        stderr=float(np.sqrt(variance)),
+        truncation_l1=plan.truncation_l1,
+        truncation_l2=plan.truncation_l2,
+        n_settings=len(frequencies),
+        n_shots=n_shots,
+        retained_weight=plan.retained_weight,
+        bond_truncation_l2=plan.bond_truncation_l2,
+        antihermitian_l2=plan.antihermitian_l2,
     )
-    if epsilon is not None:
-        n_shots = int(np.ceil(predicted_variance / epsilon**2))
-
-    n_settings = int(np.ceil(n_shots / shots_per_setting))
-    rng = np.random.default_rng(seed)
-    basis_indices = rng.integers(0, 3, size=(n_settings, nqubits), dtype=np.uint8)
-
-    remaining = n_shots
-    circuits, bases, shots = [], [], []
-    for setting in range(n_settings):
-        basis = "".join("XYZ"[b] for b in basis_indices[setting])
-        this_shots = min(shots_per_setting, remaining)
-        remaining -= this_shots
-        circuits.append(head_circuit + _basis_measurement(basis, nqubits))
-        bases.append(basis)
-        shots.append(this_shots)
-
-    return MeasurementPlan(
-        method="shadows",
-        circuits=tuple(circuits),
-        shots=tuple(shots),
-        recombination=(tuple(mpo_terms), tuple(bases)),
-        constant=constant,
-        truncation_l1=None,
-        truncation_l2=truncation_l2,
-    )
-
-
-def _basis_measurement(basis: str, nqubits: int) -> Circuit:
-    """A single ``gates.M`` layer measuring each qubit in its given Pauli basis."""
-    circuit = Circuit(nqubits)
-    circuit.add(
-        gates.M(*range(nqubits), basis=[_BASIS_GATES[label] for label in basis])
-    )
-    return circuit
