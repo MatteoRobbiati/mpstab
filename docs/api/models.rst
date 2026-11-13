@@ -109,22 +109,22 @@ Additional Utilities
 Quick Reference
 ---------------
 
-==========================  ==================================================
-Class/Function              Purpose
-==========================  ==================================================
-HardwareEfficient           Standard VQA circuit pattern
-CircuitAnsatz               Wrap Qibo circuits as ansätze
-TranspiledAnsatz            Wrap + transpile to native gates
-QFT                         Quantum Fourier Transform
-QFTPhaseKernel              QFT + diagonal RZ phase kernel
-Grover                      Grover search
-QPE                         Quantum Phase Estimation
-QAE                         Quantum Amplitude Estimation
-TrotterIsing                Trotterized transverse-field Ising evolution
-meyer_wallach_mps           Meyer-Wallach entanglement of an HSMPO state
-stabilizer_renyi_entropy_mps Sampled stabilizer Renyi entropy of an HSMPO
-                            state
-==========================  ==================================================
+============================  ==================================================
+Class/Function                Purpose
+============================  ==================================================
+HardwareEfficient             Standard VQA circuit pattern
+CircuitAnsatz                 Wrap Qibo circuits as ansätze
+TranspiledAnsatz              Wrap + transpile to native gates
+QFT                           Quantum Fourier Transform
+QFTPhaseKernel                QFT + diagonal RZ phase kernel
+Grover                        Grover search
+QPE                           Quantum Phase Estimation
+QAE                           Quantum Amplitude Estimation
+TrotterIsing                  Trotterized transverse-field Ising evolution
+meyer_wallach_mps             Meyer-Wallach entanglement of an HSMPO state
+stabilizer_renyi_entropy_mps  Sampled stabilizer Renyi entropy of an HSMPO
+                              state
+============================  ==================================================
 
 Related Documentation
 -----------------------

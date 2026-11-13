@@ -40,7 +40,7 @@ class MeasurementPlan:
 
     Attributes:
         retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
-            (which sample nothing): the |coefficient|-weighted average, over
+            (which sample nothing): the ``|coefficient|``-weighted average, over
             Hamiltonian terms, of each term's
             :attr:`~mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight`
             -- the fraction of the tail-folded observable's Frobenius weight

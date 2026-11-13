@@ -221,6 +221,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 - **Matteo Robbiati** - Core development
 - **Giulio Crognaletti** - Core development
 - **Mattia Robbiano** - Core development
+- **Roberto Di Lauro** - Core development
 
 ## Support & Feedback
 
