@@ -61,6 +61,7 @@ from mpstab.quantum_hardware import (
     MeasurementPlan,
     QiboSimulator,
     build_cnot_ladder_head_and_residual,
+    build_extraction_head_and_residual,
     build_head_and_residual,
     build_pauli_plan,
     build_shadow_plan,
@@ -78,6 +79,10 @@ from mpstab.quantum_hardware import (
 __all__ = ["HSynthSMPO", "ExpectationResult", "ResynthesizedHead", "TailTruncation"]
 
 
+#: The head synthesis methods of :meth:`HSynthSMPO.resynthesize_head`.
+HEAD_SYNTHESIS_METHODS = ("rustiq", "extraction", "cnot_ladder")
+
+
 @dataclass(frozen=True)
 class ResynthesizedHead:
     """
@@ -93,7 +98,7 @@ class ResynthesizedHead:
         n_gates: gates in the head.
         n_two_qubit_gates: two-qubit gates in the head.
         cut_index: the split point the head came from.
-        method: ``"rustiq"`` or ``"cnot_ladder"``.
+        method: ``"rustiq"``, ``"extraction"`` or ``"cnot_ladder"``.
     """
 
     circuit: object
@@ -137,7 +142,53 @@ class HSynthSMPO(HSMPO):
 
     Requires :class:`~mpstab.engines.QuimbEngine` for the tail, the only engine
     that can conjugate an operator.
+
+    Args:
+        head_synthesis: how the head is resynthesised, see
+            :meth:`resynthesize_head`: ``"rustiq"`` (default), ``"extraction"``
+            or ``"cnot_ladder"``.
+        head_connectivity: the device connectivity the ``"extraction"``
+            synthesis keeps its CNOTs local on: ``None`` (all-to-all),
+            ``"line"`` or a list of edges.
+        light_cone: drop the rotations the observable cannot see, from the
+            head the device runs and from the tail that is folded, see
+            :meth:`relevant_rotations`. Exact, and off by default.
     """
+
+    head_synthesis: str = "rustiq"
+    head_connectivity: object = None
+    light_cone: bool = False
+
+    def relevant_rotations(self, observable: Observable) -> Tuple[int, ...]:
+        """
+        Indices of the dressed rotations inside the light cone of ``observable``.
+
+        Going backwards from the observable (a Pauli string in the dressed
+        frame, per term), a rotation matters only if its string anticommutes
+        with the observable or with a later rotation that matters. Any other
+        rotation commutes with everything between itself and its own inverse
+        in ``<psi| U^dag O U |psi>``, and cancels: removing it changes nothing.
+        For an observable with several terms the union is returned, which is
+        what a head shared by all the terms has to keep.
+
+        Cheap (commutation of Pauli strings only) and exact. With a truncated
+        tail it stays consistent with the truncation: the rotations removed
+        are those that commute with the exact folded observable.
+        """
+        _, terms = pauli_terms(observable, self.nqubits)
+        relevant = set()
+        for pauli in terms:
+            relevant |= self._relevant_for_pauli(pauli)
+        return tuple(sorted(relevant))
+
+    def _relevant_for_pauli(self, pauli: str) -> frozenset:
+        """:meth:`relevant_rotations` of one Pauli string, cached on the rotations."""
+        rotations = self._dressed_rotations()
+        generators = tuple(generator for generator, _ in rotations)
+        backpropagated, _ = self.stab_engine.backpropagate(
+            observable=pauli, clifford_circuit=self.clifford_circuit
+        )
+        return _light_cone(generators, backpropagated)
 
     def build_post_head_mpo(
         self,
@@ -198,6 +249,13 @@ class HSynthSMPO(HSMPO):
             max_bond_dimension = self.max_bond_dimension
 
         tail = self._dressed_rotations()[cut_index:]
+        if self.light_cone:  # the rotations this string cannot see fold to nothing
+            relevant = self._relevant_for_pauli(observable)
+            tail = [
+                rotation
+                for index, rotation in enumerate(tail, start=cut_index)
+                if index in relevant
+            ]
         backpropagated, sign = self.stab_engine.backpropagate(
             observable=observable, clifford_circuit=self.clifford_circuit
         )
@@ -379,16 +437,28 @@ class HSynthSMPO(HSMPO):
         return float(np.real(operator.norm())) ** 2 / 2**self.nqubits
 
     def resynthesize_head(
-        self, cut_index: int, metric_name: str = "count", preserve_order: bool = True
+        self,
+        cut_index: int,
+        metric_name: str = "count",
+        preserve_order: bool = True,
+        method: Union[str, None] = None,
+        connectivity=None,
+        observable: Union[Observable, None] = None,
     ) -> ResynthesizedHead:
         """
         Resynthesise the head rotations ``[0:cut_index)`` into a runnable circuit
         plus a pure-Clifford residual.
 
-        Prefers rustiq's Pauli-network synthesis. If ``rustiq`` is not installed it
-        warns and falls back to the dependency-free CNOT-ladder decomposition,
-        which gives no gate-count saving but keeps the hardware path working
-        without the optional dependency.
+        Three methods, chosen by ``method`` (default: the instance's
+        ``head_synthesis``):
+
+        - ``"rustiq"``: rustiq's Pauli-network synthesis. If ``rustiq`` is not
+          installed it warns and falls back to ``"cnot_ladder"``.
+        - ``"extraction"``: the dependency-free Clifford-extraction synthesis of
+          :func:`~mpstab.quantum_hardware.synthesis.build_extraction_head_and_residual`,
+          which can keep its CNOTs local on a device ``connectivity``.
+        - ``"cnot_ladder"``: the textbook decomposition, with no gate-count
+          saving and an identity residual.
 
         Cached on the head's dressed rotations (see :func:`_resynthesize`), so
         repeated calls at the same cut, e.g. from :meth:`expectation_at_cut` for
@@ -400,16 +470,39 @@ class HSynthSMPO(HSMPO):
         Args:
             cut_index: the split point.
             metric_name: rustiq metric, ``"count"`` or ``"depth"``.
-            preserve_order: keep the (non-commuting) rotation order.
+            preserve_order: rustiq only: keep the (non-commuting) rotation order.
+            method: ``"rustiq"``, ``"extraction"`` or ``"cnot_ladder"``.
+            connectivity: ``"extraction"`` only: ``None`` (all-to-all),
+                ``"line"`` or a list of edges (default: the instance's
+                ``head_connectivity``).
+            observable: keep only the head rotations inside the light cone of
+                this observable (:meth:`relevant_rotations`). The head is then
+                valid for this observable only. ``None`` keeps them all.
         """
+        method = self.head_synthesis if method is None else method
+        if method not in HEAD_SYNTHESIS_METHODS:
+            raise ValueError(
+                f"Unknown head synthesis {method!r}, expected one of "
+                f"{HEAD_SYNTHESIS_METHODS}."
+            )
+        connectivity = self.head_connectivity if connectivity is None else connectivity
+        if connectivity is not None and not isinstance(connectivity, str):
+            connectivity = tuple(tuple(edge) for edge in connectivity)  # hashable
         # float() so the key hashes by value whatever the backend returns as an
         # angle (a framework tensor would hash by identity, or not at all).
-        rotations = tuple(
-            (generator, float(angle))
-            for generator, angle in self._dressed_rotations()[:cut_index]
-        )
+        dressed = self._dressed_rotations()[:cut_index]
+        if observable is not None:
+            relevant = self.relevant_rotations(observable)
+            dressed = [dressed[index] for index in relevant if index < cut_index]
+        rotations = tuple((generator, float(angle)) for generator, angle in dressed)
         return _resynthesize(
-            rotations, self.nqubits, cut_index, metric_name, preserve_order
+            rotations,
+            self.nqubits,
+            cut_index,
+            metric_name,
+            preserve_order,
+            method,
+            connectivity,
         )
 
     def expectation_at_cut(
@@ -598,7 +691,10 @@ class HSynthSMPO(HSMPO):
             max_bond_dimension = self.max_bond_dimension
 
         constant, terms = pauli_terms(observable, self.nqubits)
-        resynthesis = self.resynthesize_head(cut_index)
+        if self.light_cone:
+            resynthesis = self.resynthesize_head(cut_index, observable=observable)
+        else:
+            resynthesis = self.resynthesize_head(cut_index)
 
         build_plan = self._pauli_plan if method == "pauli" else self._shadow_plan
         plan = build_plan(
@@ -773,6 +869,32 @@ class HSynthSMPO(HSMPO):
         )
 
 
+@lru_cache(maxsize=256)
+def _light_cone(generators: Tuple[str, ...], observable: str) -> frozenset:
+    """
+    Indices of the Pauli rotations ``generators`` (in circuit order) that a
+    Pauli ``observable`` measured after them depends on: those anticommuting
+    with the observable or with a later rotation that is itself kept.
+    """
+
+    def masks(pauli):
+        x = sum(1 << q for q, label in enumerate(pauli) if label in "XY")
+        z = sum(1 << q for q, label in enumerate(pauli) if label in "ZY")
+        return x, z
+
+    kept = [masks(observable)]
+    relevant = set()
+    for index in range(len(generators) - 1, -1, -1):
+        x, z = masks(generators[index])
+        if any(
+            ((x & other_z).bit_count() + (z & other_x).bit_count()) & 1
+            for other_x, other_z in kept
+        ):
+            kept.append((x, z))
+            relevant.add(index)
+    return frozenset(relevant)
+
+
 @lru_cache(maxsize=32)
 def _resynthesize(
     rotations: Tuple[Tuple[str, float], ...],
@@ -780,34 +902,42 @@ def _resynthesize(
     cut_index: int,
     metric_name: str,
     preserve_order: bool,
+    method: str = "rustiq",
+    connectivity=None,
 ) -> ResynthesizedHead:
     """
     The body of :meth:`HSynthSMPO.resynthesize_head`, cached on its arguments.
 
     The key holds the head's dressed rotations rather than the evolutor, so a
     repeated call with the same rotations returns the same
-    :class:`ResynthesizedHead` object without running rustiq again, and changing
+    :class:`ResynthesizedHead` object without synthesising again, and changing
     the circuit's parameters changes the angles, hence the key: the cache never
     serves a stale head and needs no invalidation.
     """
     paulis = [pauli for pauli, _ in rotations]
     angles = [angle for _, angle in rotations]
-    try:
-        head, residual_tableau, residual_gates = build_head_and_residual(
-            paulis, angles, metric_name=metric_name, preserve_order=preserve_order
+    if method == "rustiq":
+        try:
+            head, residual_tableau, residual_gates = build_head_and_residual(
+                paulis, angles, metric_name=metric_name, preserve_order=preserve_order
+            )
+        except ImportError:
+            warnings.warn(
+                "rustiq is not installed; falling back to the CNOT-ladder "
+                "resynthesis (no gate-count saving). Install it with pip install "
+                '"mpstab[rustiq]" for the optimized head, or use '
+                'head_synthesis="extraction", which needs no extra dependency.',
+                stacklevel=3,
+            )
+            method = "cnot_ladder"
+    if method == "extraction":
+        head, residual_tableau, residual_gates = build_extraction_head_and_residual(
+            paulis, angles, connectivity=connectivity
         )
-        method = "rustiq"
-    except ImportError:
-        warnings.warn(
-            "rustiq is not installed; falling back to the CNOT-ladder "
-            "resynthesis (no gate-count saving). Install it with pip install "
-            '"mpstab[rustiq]" for the optimized head.',
-            stacklevel=3,
-        )
+    elif method == "cnot_ladder":
         head, residual_tableau, residual_gates = build_cnot_ladder_head_and_residual(
             paulis, angles
         )
-        method = "cnot_ladder"
 
     if len(residual_tableau) != nqubits:  # degenerate cut_index == 0 case
         residual_tableau = stim.Tableau(nqubits)

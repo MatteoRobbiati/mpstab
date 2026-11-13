@@ -58,6 +58,7 @@ from mpstab.quantum_hardware.plan import (
 from mpstab.quantum_hardware.storage import save_circuits
 from mpstab.quantum_hardware.synthesis import (
     build_cnot_ladder_head_and_residual,
+    build_extraction_head_and_residual,
     build_head_and_residual,
     count_two_qubit_gates,
     head_counts_only,
@@ -86,6 +87,7 @@ __all__ = [
     "QWCGroup",
     "QiboSimulator",
     "allocate_shots_by_variance",
+    "build_extraction_head_and_residual",
     "build_head_and_residual",
     "build_measurement_plan",
     "build_cnot_ladder_head_and_residual",
