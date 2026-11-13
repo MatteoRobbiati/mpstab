@@ -8,6 +8,7 @@ expectation values measured from an extraction head must agree with the
 classical contraction of the same split, as they do for the other syntheses.
 """
 
+import networkx as nx
 import numpy as np
 import pytest
 import stim
@@ -21,6 +22,7 @@ from mpstab.qpu.synthesis import (
     build_cnot_ladder_head_and_residual,
     build_extraction_head_and_residual,
     connectivity_distances,
+    connectivity_edges,
     count_two_qubit_gates,
     head_to_qibo_circuit,
 )
@@ -49,7 +51,15 @@ def _overlap_with_rotations(paulis, angles, head, residual_gates):
 
 @pytest.mark.parametrize("seed", range(4))
 @pytest.mark.parametrize(
-    "connectivity", [None, "line", [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (2, 5)]]
+    "connectivity",
+    [
+        None,
+        "line",
+        [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (2, 5)],
+        nx.star_graph(5),
+        nx.convert_node_labels_to_integers(nx.grid_2d_graph(2, 3)),
+        {0: [1, 2], 1: [3], 2: [4], 4: [5]},
+    ],
 )
 def test_head_and_residual_are_the_rotations(seed, connectivity):
     paulis, angles = _random_rotations(6, 14, seed)
@@ -114,6 +124,38 @@ def _routed_cost(circuit):
         for g in circuit.queue
         if len(g.qubits) == 2
     )
+
+
+def test_connectivity_as_a_graph():
+    edges = [(0, 1), (1, 2), (2, 3), (3, 0), (1, 4)]
+    reference = connectivity_distances(edges, 5)
+    adjacency = {0: [1, 3], 1: [0, 2, 4], 2: [1, 3], 3: [2, 0], 4: [1]}
+    for graph in (nx.Graph(edges), nx.DiGraph(edges), adjacency):
+        assert connectivity_distances(graph, 5) == reference
+        # one topology, one synthesiser: they share the resynthesis cache
+        assert ExtractionSynthesis(connectivity=graph) == ExtractionSynthesis(
+            connectivity=edges
+        )
+    assert hash(ExtractionSynthesis(connectivity=nx.Graph(edges))) == hash(
+        ExtractionSynthesis(connectivity=edges)
+    )
+    assert connectivity_edges([(1, 0), (0, 1), (2, 2), [2, 1]]) == ((0, 1), (1, 2))
+
+
+def test_connectivity_of_a_larger_device():
+    # the circuit sits on qubits 0 and 1, joined only through qubit 2
+    assert connectivity_distances([(0, 2), (2, 1)], 2) == [[0, 2], [2, 0]]
+    ring = nx.cycle_graph(6)
+    assert connectivity_distances(ring, 4)[0] == [0, 1, 2, 3]
+
+
+def test_connectivity_with_invalid_nodes():
+    with pytest.raises(TypeError, match="not a qubit index"):
+        connectivity_distances(nx.grid_2d_graph(2, 2), 4)
+    with pytest.raises(TypeError, match="not a qubit index"):
+        connectivity_distances([("a", "b")], 2)
+    with pytest.raises(ValueError, match="pair of qubits"):
+        connectivity_distances([(0, 1, 2)], 3)
 
 
 def test_line_connectivity_never_costs_more_on_the_line():

@@ -36,6 +36,7 @@ from mpstab.qpu.synthesis.extraction import (
     ExtractionSynthesis,
     build_extraction_head_and_residual,
     connectivity_distances,
+    connectivity_edges,
 )
 from mpstab.qpu.synthesis.rustiq import (
     RustiqSynthesis,
@@ -88,6 +89,7 @@ __all__ = [
     "build_extraction_head_and_residual",
     "build_head_and_residual",
     "connectivity_distances",
+    "connectivity_edges",
     "count_two_qubit_gates",
     "head_counts_only",
     "head_to_qibo_circuit",
