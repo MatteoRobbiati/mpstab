@@ -67,7 +67,6 @@ Complete Tutorial Notebook
 Below is an interactive notebook demonstrating DMRG optimization on the Heisenberg model for systems up to 12 qubits:
 
 .. nbinput:: python
-   :linenos:
 
    import numpy as np
    import matplotlib.pyplot as plt

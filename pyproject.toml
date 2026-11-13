@@ -10,6 +10,7 @@ authors = [
     {name = "Matteo Robbiati"},
     {name = "Giulio Crognaletti"},
     {name = "Mattia Robbiano"},
+    {name = "Roberto Di Lauro"},
     {name = "Michele Grossi"},
 ]
 readme = "README.md"
@@ -68,9 +69,9 @@ test = "pytest"
 bench = "pytest benchmarks/ --benchmark-warmup=on --benchmark-warmup-iterations=100000 --benchmark-disable-gc --benchmark-histogram=bench-hists/bench"
 lint = "pylint src/**/*.py -E"
 lint-warnings = "pylint src/**/*.py --exit-zero"
-docs = "make -C doc html"
-docs-clean = "make -C doc clean"
-test-docs = "make -C doc doctest"
+docs = "make -C docs html"
+docs-clean = "make -C docs clean"
+test-docs = "make -C docs doctest"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
