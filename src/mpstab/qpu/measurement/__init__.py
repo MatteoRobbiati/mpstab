@@ -1,26 +1,32 @@
 """
 Step 2 of the QPU pipeline: measuring the tail-folded observable.
 
-Each method lives in one module, holding both halves of it: building the
+A method is a :class:`~mpstab.qpu.measurement.abstract.MeasurementMethod`
+holding its own options, with both halves of the job: building the
 :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan` (circuits and shots,
 fixed before anything runs) and estimating an
 :class:`~mpstab.qpu.measurement.abstract.ExpectationResult` from the measured
-frequencies.
+frequencies. One module each:
 
-- :mod:`~mpstab.qpu.measurement.pauli`: sampled Pauli strings, grouped into
-  qubit-wise-commuting settings.
-- :mod:`~mpstab.qpu.measurement.shadows`: classical shadows, contracted with the
-  observable MPO.
-- :mod:`~mpstab.qpu.measurement.tnice`: the same data as ``"shadows"``,
-  estimated with the MPS-optimised dual of TN-ICE.
+- :class:`~mpstab.qpu.measurement.pauli.PauliSampling` (``"pauli"``): sampled
+  Pauli strings, grouped into qubit-wise-commuting settings.
+- :class:`~mpstab.qpu.measurement.shadows.ClassicalShadows` (``"shadows"``):
+  random Pauli bases, contracted with the observable MPO.
+- :class:`~mpstab.qpu.measurement.tnice.TNICE` (``"tnice"``): the same data as
+  ``"shadows"``, estimated with the MPS-optimised dual of TN-ICE.
 
 :mod:`~mpstab.qpu.measurement.pauli_expansion` turns the observable MPO into
 Pauli strings and variances, for the methods above.
 """
 
-from mpstab.qpu.measurement.abstract import ExpectationResult, MeasurementPlan
+from mpstab.qpu.measurement.abstract import (
+    ExpectationResult,
+    MeasurementMethod,
+    MeasurementPlan,
+)
 from mpstab.qpu.measurement.pauli import (
     PauliMeasurementPlan,
+    PauliSampling,
     QWCGroup,
     allocate_shots_by_variance,
     build_measurement_plan,
@@ -28,34 +34,67 @@ from mpstab.qpu.measurement.pauli import (
     estimate_pauli,
     group_qwc,
 )
-from mpstab.qpu.measurement.shadows import build_shadow_plan, estimate_shadows
-from mpstab.qpu.measurement.tnice import estimate_tnice
+from mpstab.qpu.measurement.shadows import (
+    ClassicalShadows,
+    build_shadow_plan,
+    estimate_shadows,
+)
+from mpstab.qpu.measurement.tnice import TNICE, estimate_tnice
+
+#: The methods by name, for the string shorthand of :func:`resolve_method`.
+METHODS = {cls.name: cls for cls in (PauliSampling, ClassicalShadows, TNICE)}
 
 
-def estimate(plan, frequencies, **kwargs) -> ExpectationResult:
+def resolve_method(method, **options) -> MeasurementMethod:
     """
-    Dispatch to :func:`~mpstab.qpu.measurement.pauli.estimate_pauli`,
-    :func:`~mpstab.qpu.measurement.shadows.estimate_shadows` or
-    :func:`~mpstab.qpu.measurement.tnice.estimate_tnice` by ``plan.method``.
-    ``kwargs`` are forwarded only to ``estimate_tnice``, the only one of the
-    three that takes any.
+    A :class:`~mpstab.qpu.measurement.abstract.MeasurementMethod` from either an
+    instance, returned as is, or its name, built with ``options``.
+
+    Raises:
+        ValueError: on an unknown name.
+        TypeError: if ``options`` come with an instance, which already holds
+            its own, or are not options of the named method.
     """
-    if plan.method == "pauli":
-        return estimate_pauli(plan, frequencies)
-    if plan.method == "shadows":
-        return estimate_shadows(plan, frequencies)
-    if plan.method == "tnice":
-        return estimate_tnice(plan, frequencies, **kwargs)
-    raise ValueError(
-        f"Unknown plan method {plan.method!r}, expected 'pauli', 'shadows' or 'tnice'."
-    )
+    if isinstance(method, MeasurementMethod):
+        if options:
+            raise TypeError(
+                f"{type(method).__name__} already holds its options; got "
+                f"{sorted(options)} as well."
+            )
+        return method
+    if method not in METHODS:
+        raise ValueError(
+            f"Unknown method {method!r}, expected a MeasurementMethod or one of "
+            f"{tuple(METHODS)}."
+        )
+    return METHODS[method](**options)
+
+
+def estimate(plan, frequencies, seed=None, **options) -> ExpectationResult:
+    """
+    Recombine a plan's frequencies with the method that built it, chosen by
+    ``plan.method``: the entry point for counts measured offline.
+
+    Args:
+        plan: a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`.
+        frequencies: one ``{bitstring: count}`` dict per circuit, in
+            ``plan.circuits`` order.
+        seed: ``"tnice"`` only: RNG seed for the train/test split.
+        options: options of the method, e.g. ``n_sweeps`` for ``"tnice"``.
+    """
+    return resolve_method(plan.method, **options).estimate(plan, frequencies, seed=seed)
 
 
 __all__ = [
+    "ClassicalShadows",
     "ExpectationResult",
+    "METHODS",
+    "MeasurementMethod",
     "MeasurementPlan",
     "PauliMeasurementPlan",
+    "PauliSampling",
     "QWCGroup",
+    "TNICE",
     "allocate_shots_by_variance",
     "build_measurement_plan",
     "build_pauli_plan",
@@ -65,4 +104,5 @@ __all__ = [
     "estimate_shadows",
     "estimate_tnice",
     "group_qwc",
+    "resolve_method",
 ]

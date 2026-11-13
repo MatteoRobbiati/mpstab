@@ -42,10 +42,15 @@ uses for Pauli-string sampling.
 
 from __future__ import annotations
 
+import dataclasses
+from dataclasses import dataclass
+from typing import ClassVar
+
 import numpy as np
 
-from mpstab.qpu.measurement.abstract import ExpectationResult
+from mpstab.qpu.measurement.abstract import ExpectationResult, MeasurementPlan
 from mpstab.qpu.measurement.pauli_expansion import mpo_to_pauli_mps
+from mpstab.qpu.measurement.shadows import ClassicalShadows
 
 #: outcome index 0..5 -> (basis label, bit), Eq. (24)/(32) of the paper.
 _BASIS_TO_OUTCOME_PAIR = {"Z": (0, 1), "X": (2, 3), "Y": (4, 5)}
@@ -576,3 +581,51 @@ def estimate_tnice(
         n_shots=int(counts.sum()),
         retained_weight=None,
     )
+
+
+@dataclass(frozen=True)
+class TNICE(ClassicalShadows):
+    """
+    The ``"tnice"`` method: the same circuits, bases and shots as
+    :class:`~mpstab.qpu.measurement.shadows.ClassicalShadows`, estimated with
+    the MPS-optimized dual of :func:`fit_omega_mps` instead of the fixed
+    canonical dual, so the two can be compared on identical measurement data.
+
+    With an ``epsilon`` target the shot budget is sized by the
+    canonical-dual predictor of ``"shadows"``, a conservative upper bound on
+    the (unknown ahead of fitting) optimized variance.
+
+    Args:
+        shots_per_setting: as in ``ClassicalShadows``.
+        tail_handling: as in ``ClassicalShadows``.
+        lam: forwarded to :func:`fit_omega_mps`.
+        n_sweeps: forwarded to :func:`fit_omega_mps`.
+        bond_dimension: forwarded to :func:`fit_omega_mps`; ``None`` keeps
+            the tail MPO's own.
+        test_fraction: fraction of each circuit's shots held out for the final
+            estimate; the rest trains ``omega``.
+    """
+
+    lam: float = 0.999
+    n_sweeps: int = 4
+    bond_dimension: int | None = None
+    test_fraction: float = 0.5
+
+    name: ClassVar[str] = "tnice"
+
+    def build_plan(self, *args, **kwargs) -> MeasurementPlan:
+        """The ``"shadows"`` plan, labelled ``"tnice"``."""
+        plan = super().build_plan(*args, **kwargs)
+        return dataclasses.replace(plan, method=self.name)
+
+    def estimate(self, plan, frequencies, seed=None) -> ExpectationResult:
+        """:func:`estimate_tnice`, with ``seed`` driving the train/test split."""
+        return estimate_tnice(
+            plan,
+            frequencies,
+            lam=self.lam,
+            n_sweeps=self.n_sweeps,
+            bond_dimension=self.bond_dimension,
+            test_fraction=self.test_fraction,
+            seed=seed,
+        )

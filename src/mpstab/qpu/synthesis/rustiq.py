@@ -8,8 +8,12 @@ with ``pip install "mpstab[rustiq]"``.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import ClassVar
+
 import stim
 
+from mpstab.qpu.synthesis.abstract import HeadSynthesis
 from mpstab.qpu.synthesis.utils import CLIFFORD_TABLEAUS, place_rotations
 
 
@@ -98,3 +102,24 @@ def head_counts_only(
     )
     two_qubit = sum(1 for gate in skeleton if len(gate[1]) == 2)
     return len(skeleton) + len(paulis), two_qubit
+
+
+@dataclass(frozen=True)
+class RustiqSynthesis(HeadSynthesis):
+    """
+    rustiq's Pauli-network synthesis, which cancels gates across rotations.
+
+    Args:
+        metric: what rustiq minimises, ``"count"`` or ``"depth"``.
+        preserve_order: keep the (non-commuting) rotation order.
+    """
+
+    metric: str = "count"
+    preserve_order: bool = True
+
+    name: ClassVar[str] = "rustiq"
+
+    def synthesize(self, paulis, angles):
+        return build_head_and_residual(
+            paulis, angles, metric_name=self.metric, preserve_order=self.preserve_order
+        )

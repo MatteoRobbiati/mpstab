@@ -13,7 +13,9 @@ here.
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 from qibo import Circuit, gates
@@ -155,3 +157,59 @@ def basis_measurement(basis: str, nqubits: int) -> Circuit:
         gates.M(*range(nqubits), basis=[_BASIS_GATES[label] for label in basis])
     )
     return circuit
+
+
+class MeasurementMethod(ABC):
+    """
+    How the tail-folded observable is measured: which circuits to run with how
+    many shots (:meth:`build_plan`), and how their counts become an
+    expectation value (:meth:`estimate`).
+
+    Subclasses are frozen dataclasses holding their own options, passed as
+    ``method`` to :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.plan` and
+    :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut`.
+    """
+
+    #: Short name, stored as :attr:`MeasurementPlan.method`.
+    name: ClassVar[str]
+
+    @abstractmethod
+    def build_plan(
+        self,
+        model,
+        terms: dict,
+        constant: float,
+        cut_index: int,
+        resynthesis,
+        max_bond_dimension,
+        n_shots,
+        epsilon,
+        seed,
+    ) -> MeasurementPlan:
+        """
+        Fold the tail of every term and fix the circuits and shots.
+
+        Args:
+            model: the :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO` whose
+                tail is folded.
+            terms: the observable's ``{pauli_string: coefficient}``.
+            constant: the observable's identity offset, added back on
+                estimation.
+            cut_index: the split point.
+            resynthesis: the head, a
+                :class:`~mpstab.evolutors.hsynthsmpo.ResynthesizedHead`.
+            max_bond_dimension: bond cap for every tail fold, ``None`` for an
+                exact fold.
+            n_shots: a fixed shot budget, or ``None`` to size it from
+                ``epsilon``.
+            epsilon: a target standard error, or ``None`` when ``n_shots`` is
+                given.
+            seed: RNG seed.
+        """
+
+    @abstractmethod
+    def estimate(self, plan: MeasurementPlan, frequencies, seed=None):
+        """
+        Recombine one frequency dict per circuit, in ``plan.circuits`` order,
+        into an :class:`ExpectationResult`.
+        """

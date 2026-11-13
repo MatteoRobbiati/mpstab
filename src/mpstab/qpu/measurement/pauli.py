@@ -10,16 +10,26 @@ standard error, which qibo does not report, is computed here.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
+import stim
 from qibo import symbols
 from qibo.hamiltonians import SymbolicHamiltonian
 
 from mpstab.pauli import weight
 from mpstab.qpu.measurement.abstract import (
     ExpectationResult,
+    MeasurementMethod,
     MeasurementPlan,
     basis_measurement,
+)
+from mpstab.qpu.measurement.pauli_expansion import (
+    fold_fidelity,
+    fold_pool_through_tableau,
+    pool_pauli_terms,
+    sample_pauli_strings,
+    truncation_error_estimate,
 )
 
 
@@ -319,3 +329,179 @@ def estimate_pauli(plan, frequencies) -> ExpectationResult:
         bond_truncation_l2=plan.bond_truncation_l2,
         antihermitian_l2=plan.antihermitian_l2,
     )
+
+
+@dataclass(frozen=True)
+class PauliSampling(MeasurementMethod):
+    """
+    The ``"pauli"`` method: sample Pauli strings from each term's tail MPO,
+    pool them, fold the Clifford residual into them, and measure them grouped
+    into qubit-wise-commuting settings.
+
+    Args:
+        n_string_samples: Pauli strings sampled per Hamiltonian term.
+    """
+
+    n_string_samples: int = 200
+
+    name: ClassVar[str] = "pauli"
+
+    def build_plan(
+        self,
+        model,
+        terms,
+        constant,
+        cut_index,
+        resynthesis,
+        max_bond_dimension,
+        n_shots,
+        epsilon,
+        seed,
+    ) -> MeasurementPlan:
+        """
+        Sample each term's tail MPO, pool the strings, fold the residual, group.
+
+        Two truncations are reported, of different origin. ``truncation_l1`` /
+        ``truncation_l2`` count the Pauli strings of each folded MPO that
+        ``n_string_samples`` left out. ``bond_truncation_l2`` is the bias of
+        folding at a finite bond dimension, estimated from each folded MPO's
+        norm (see
+        :func:`~mpstab.qpu.measurement.pauli_expansion.fold_fidelity`) as in the
+        ``"shadows"`` method: the string truncation is measured against the
+        already truncated MPO, so it cannot see it. ``antihermitian_l2`` is the
+        size of the anti-Hermitian part that truncation leaves in the pooled
+        coefficients, projected out by :func:`_assert_real_coefficients`.
+        """
+        truncated = (
+            max_bond_dimension is not None
+            if max_bond_dimension != -1
+            else model.max_bond_dimension is not None
+        )
+        rng = np.random.default_rng(seed)
+        ensembles, diagnostics = [], []
+        bond_truncation_l2 = 0.0
+        for pauli, coefficient in terms.items():
+            operator, sign = model.build_post_head_mpo(
+                pauli, cut_index, max_bond_dimension
+            )
+            if truncated:
+                bond_truncation_l2 += abs(coefficient) * np.sqrt(
+                    max(0.0, 1.0 - fold_fidelity(operator, model.nqubits))
+                )
+            ensemble = sample_pauli_strings(
+                operator,
+                n_samples=self.n_string_samples,
+                seed=int(rng.integers(0, 2**32 - 1)),
+            )
+            ensembles.append((coefficient * sign, ensemble))
+            l1, l2 = truncation_error_estimate(ensemble)
+            diagnostics.append((abs(coefficient), l1, l2, ensemble.retained_weight))
+
+        pooled = pool_pauli_terms(ensembles)
+        if resynthesis.residual_tableau != stim.Tableau(model.nqubits):
+            pooled = fold_pool_through_tableau(
+                pooled, resynthesis.residual_tableau, model.stab_engine
+            )
+
+        truncation_l1, truncation_l2, retained_weight = _aggregate_truncation(
+            diagnostics
+        )
+        return build_pauli_plan(
+            resynthesis.circuit,
+            model.nqubits,
+            _assert_real_coefficients(pooled, truncated=truncated),
+            n_shots,
+            epsilon,
+            constant=constant,
+            truncation_l1=truncation_l1,
+            truncation_l2=truncation_l2,
+            retained_weight=retained_weight,
+            bond_truncation_l2=float(bond_truncation_l2),
+            antihermitian_l2=_antihermitian_norm(pooled),
+        )
+
+    def estimate(self, plan, frequencies, seed=None) -> ExpectationResult:
+        """:func:`estimate_pauli`; ``seed`` is unused, nothing is random."""
+        return estimate_pauli(plan, frequencies)
+
+
+def _aggregate_truncation(diagnostics: list) -> tuple:
+    """
+    Combine per-term ``(|coeff|, l1, l2, retained_weight)`` truncation
+    diagnostics.
+
+    L1 adds by the triangle inequality, rigorous for any combination of terms;
+    L2 adds in quadrature, assuming the terms' errors are independent;
+    retained_weight is the ``|coeff|``-weighted average of each term's own
+    :attr:`~mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight`
+    -- a diagnostic for whether ``n_string_samples`` covered enough of the
+    observable, not a rigorous combination of the per-term fractions.
+    """
+    if not diagnostics:
+        return 0.0, 0.0, 1.0
+    total_weight = sum(weight for weight, _, _, _ in diagnostics)
+    l1 = sum(weight * term_l1 for weight, term_l1, _, _ in diagnostics)
+    l2 = float(
+        np.sqrt(sum((weight * term_l2) ** 2 for weight, _, term_l2, _ in diagnostics))
+    )
+    retained_weight = (
+        sum(weight * retained for weight, _, _, retained in diagnostics) / total_weight
+        if total_weight > 0
+        else 1.0
+    )
+    return l1, l2, retained_weight
+
+
+def _antihermitian_norm(pooled: dict) -> float:
+    """
+    ``sqrt(sum_P Im(c_P)**2)`` of a pooled ``{pauli: complex coefficient}`` map:
+    the Frobenius norm, per ``2**(n/2)``, of the anti-Hermitian part of the
+    operator the map describes. It is what :func:`_assert_real_coefficients`
+    drops when the tail was truncated, restricted to the sampled strings.
+    """
+    return float(np.sqrt(sum(np.imag(c) ** 2 for c in pooled.values())))
+
+
+def _assert_real_coefficients(
+    pooled: dict, tolerance: float = 1e-8, truncated: bool = False
+) -> dict:
+    """
+    Coerce a pooled ``{pauli: complex coefficient}`` map to real, raising
+    instead of silently truncating if any imaginary part isn't negligible.
+
+    With ``truncated=True`` (the tail MPO was compressed to a finite bond
+    dimension) the imaginary parts are dropped without raising: the bond
+    truncation in ``conjugate_operator`` does not preserve Hermiticity (the
+    intermediate ``R^dag O`` is not Hermitian, and Pauli-structured operators
+    have degenerate singular values, so even a single compression picks an
+    arbitrary subspace), so a truncated MPO carries an anti-Hermitian part of
+    the order of the truncation error. Taking the real part of every Pauli
+    coefficient is exactly the projection ``(O + O^dag) / 2`` onto the
+    Hermitian part, the closest Hermitian operator, which is never farther
+    from the exact (Hermitian) observable than ``O`` itself. The size of what
+    is dropped is reported by :func:`_antihermitian_norm`.
+
+    The tail-folded, Clifford-backpropagated observable is Hermitian, so
+    every pooled coefficient should be real up to floating-point noise. A
+    non-negligible imaginary part means backpropagation, tableau folding, or
+    the input observable itself went wrong somewhere upstream -- silently
+    dropping it (``float(np.real(c))``) would hide that bug behind a
+    plausible-looking float instead of surfacing it.
+
+    Raises:
+        ValueError: if any coefficient's imaginary part exceeds ``tolerance``
+            relative to its magnitude.
+    """
+    real_coefficients = {}
+    for pauli, coefficient in pooled.items():
+        magnitude = max(abs(coefficient), 1.0)
+        if not truncated and abs(np.imag(coefficient)) > tolerance * magnitude:
+            raise ValueError(
+                f"Pooled coefficient for {pauli!r} is not real within "
+                f"tolerance ({coefficient!r}); the tail-folded observable "
+                "should be Hermitian, so this points to a bug upstream "
+                "(backpropagation, tableau folding, or a non-Hermitian "
+                "input observable) rather than ordinary floating-point noise."
+            )
+        real_coefficients[pauli] = float(np.real(coefficient))
+    return real_coefficients

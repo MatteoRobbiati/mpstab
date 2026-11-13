@@ -62,6 +62,15 @@ def mpo_to_pauli_mps(mpo) -> list:
     ]
 
 
+def fold_fidelity(mpo, nqubits: int) -> float:
+    """
+    ``||O||_F**2 / 2**n`` of a folded tail MPO: 1 for an exact fold of a Pauli
+    string, since conjugation by a unitary preserves the norm, and lower by the
+    weight the truncation discarded.
+    """
+    return float(np.real(mpo.norm())) ** 2 / 2**nqubits
+
+
 def shadow_variance_from_mpo(mpo) -> float:
     """
     Exact single-snapshot classical-shadow variance of ``mpo``,

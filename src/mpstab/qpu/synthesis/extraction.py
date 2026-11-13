@@ -8,8 +8,12 @@ can be told the device connectivity, so that the CNOTs it chooses stay local.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from typing import ClassVar
+
 import stim
 
+from mpstab.qpu.synthesis.abstract import HeadSynthesis
 from mpstab.qpu.synthesis.utils import CLIFFORD_TABLEAUS, place_rotations
 
 #: The inverse of each Clifford gate an extraction skeleton is made of.
@@ -265,3 +269,34 @@ def build_extraction_head_and_residual(
     for name, qubits in residual:
         residual_tableau.append(CLIFFORD_TABLEAUS[name], qubits)
     return head, residual_tableau, residual
+
+
+@dataclass(frozen=True)
+class ExtractionSynthesis(HeadSynthesis):
+    """
+    Clifford-extraction synthesis, see :func:`build_extraction_head_and_residual`.
+
+    Args:
+        connectivity: ``None`` (all-to-all), ``"line"``, or the edges
+            ``[(q0, q1), ...]`` of the device coupling graph, in the qubit
+            numbering of the strings. The CNOTs chosen stay local on it.
+        strategies: the settings to try, keeping the cheapest head, see
+            :data:`EXTRACTION_STRATEGIES`.
+    """
+
+    connectivity: object = None
+    strategies: tuple = field(default=EXTRACTION_STRATEGIES, hash=False, repr=False)
+
+    name: ClassVar[str] = "extraction"
+
+    def __post_init__(self):
+        connectivity = self.connectivity
+        if connectivity is not None and not isinstance(connectivity, str):
+            # hashable, so the instance can key the resynthesis cache
+            connectivity = tuple(tuple(edge) for edge in connectivity)
+            object.__setattr__(self, "connectivity", connectivity)
+
+    def synthesize(self, paulis, angles):
+        return build_extraction_head_and_residual(
+            paulis, angles, connectivity=self.connectivity, strategies=self.strategies
+        )

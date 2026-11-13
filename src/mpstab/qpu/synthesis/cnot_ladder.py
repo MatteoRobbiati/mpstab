@@ -5,7 +5,12 @@ Head synthesis by the textbook CNOT-ladder decomposition: no extra dependency,
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import ClassVar
+
 import stim
+
+from mpstab.qpu.synthesis.abstract import HeadSynthesis
 
 
 def build_cnot_ladder_head_and_residual(paulis: list[str], angles: list[float]):
@@ -56,3 +61,16 @@ def build_cnot_ladder_head_and_residual(paulis: list[str], angles: list[float]):
                 head.append(("S", [qubit]))
 
     return head, stim.Tableau(nqubits), []
+
+
+@dataclass(frozen=True)
+class CnotLadderSynthesis(HeadSynthesis):
+    """
+    The textbook CNOT-ladder decomposition: no extra dependency, no gate-count
+    saving, an identity residual.
+    """
+
+    name: ClassVar[str] = "cnot_ladder"
+
+    def synthesize(self, paulis, angles):
+        return build_cnot_ladder_head_and_residual(paulis, angles)

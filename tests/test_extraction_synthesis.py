@@ -17,6 +17,7 @@ from mpstab.models.ansatze import HardwareEfficient, ParametricKickedIsing
 from mpstab.qpu.synthesis import (
     CLIFFORD_TABLEAUS,
     EXTRACTION_STRATEGIES,
+    ExtractionSynthesis,
     build_cnot_ladder_head_and_residual,
     build_extraction_head_and_residual,
     connectivity_distances,
@@ -121,8 +122,10 @@ def test_line_connectivity_never_costs_more_on_the_line():
         ParametricKickedIsing(nqubits=8, n_steps=4, delta_h=0.3)
     )
     cut_index = len(hs.magic_gates)
-    local = hs.resynthesize_head(cut_index, method="extraction", connectivity="line")
-    free = hs.resynthesize_head(cut_index, method="extraction")
+    local = hs.resynthesize_head(
+        cut_index, synthesis=ExtractionSynthesis(connectivity="line")
+    )
+    free = hs.resynthesize_head(cut_index, synthesis="extraction")
     assert local.method == "extraction"
     assert _routed_cost(local.circuit) <= _routed_cost(free.circuit)
 
@@ -134,10 +137,12 @@ def test_resynthesize_head_method_selection():
     )
     cut_index = len(hs.magic_gates)
     assert hs.resynthesize_head(cut_index).method == "extraction"
-    assert hs.resynthesize_head(cut_index, method="cnot_ladder").method == "cnot_ladder"
+    assert (
+        hs.resynthesize_head(cut_index, synthesis="cnot_ladder").method == "cnot_ladder"
+    )
     assert hs.resynthesize_head(cut_index) is hs.resynthesize_head(cut_index)  # cached
     with pytest.raises(ValueError, match="Unknown head synthesis"):
-        hs.resynthesize_head(cut_index, method="magic")
+        hs.resynthesize_head(cut_index, synthesis="magic")
 
 
 # ---------------------------------------------------------------------------
@@ -158,8 +163,7 @@ def test_folded_observable_on_the_head_is_exact(connectivity, cut_fraction, obse
     np.random.seed(0)
     hs = HSynthSMPO(
         ansatz=HardwareEfficient(nqubits=4, nlayers=3),
-        head_synthesis="extraction",
-        head_connectivity=connectivity,
+        head_synthesis=ExtractionSynthesis(connectivity=connectivity),
     )
     cut_index = int(round(cut_fraction * len(hs.magic_gates)))
     head = hs.resynthesize_head(cut_index)
@@ -176,8 +180,7 @@ def test_folded_observable_is_exact_on_a_floquet_circuit(delta_h):
         ansatz=ParametricKickedIsing(
             nqubits=5, n_steps=3, delta_h=delta_h, delta_z=0.3
         ),
-        head_synthesis="extraction",
-        head_connectivity="line",
+        head_synthesis=ExtractionSynthesis(connectivity="line"),
     )
     cut_index = len(hs.magic_gates) // 2
     head = hs.resynthesize_head(cut_index)
@@ -196,8 +199,7 @@ def test_measured_expectation_matches_simulation(cut_fraction):
     np.random.seed(0)
     hs = HSynthSMPO(
         ansatz=HardwareEfficient(nqubits=4, nlayers=2),
-        head_synthesis="extraction",
-        head_connectivity="line",
+        head_synthesis=ExtractionSynthesis(connectivity="line"),
     )
     cut_index = int(round(cut_fraction * len(hs.magic_gates)))
     exact = hs.expectation_at_cut("XZIZ", cut_index, method="simulation").value
@@ -226,8 +228,7 @@ def _floquet(light_cone, nqubits=8, n_steps=2, **options):
         ansatz=ParametricKickedIsing(
             nqubits=nqubits, n_steps=n_steps, delta_h=0.2, delta_z=0.3
         ),
-        head_synthesis="extraction",
-        head_connectivity="line",
+        head_synthesis=ExtractionSynthesis(connectivity="line"),
         light_cone=light_cone,
         **options,
     )

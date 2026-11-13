@@ -15,8 +15,17 @@ Turns a head's dressed rotations into a runnable circuit plus a pure-Clifford
 residual.
 
 .. automodule:: mpstab.qpu.synthesis
+   :members: resolve_synthesis
+
+.. automodule:: mpstab.qpu.synthesis.abstract
+   :members:
+   :show-inheritance:
 
 .. automodule:: mpstab.qpu.synthesis.rustiq
+   :members:
+   :show-inheritance:
+
+.. automodule:: mpstab.qpu.synthesis.extraction
    :members:
    :show-inheritance:
 
@@ -36,7 +45,7 @@ recombines the measured frequencies into an expectation value with its error
 bars. One module per method.
 
 .. automodule:: mpstab.qpu.measurement
-   :members: estimate
+   :members: estimate, resolve_method
 
 .. automodule:: mpstab.qpu.measurement.abstract
    :members:

@@ -2,7 +2,7 @@
 Layered correctness checks for `mpstab.qpu.measurement.tnice`, the TN-ICE
 post-processing that replaces the fixed canonical-dual contraction of the
 ``"tnice"`` route (sharing its circuits/shots with ``"shadows"``, see
-`HSynthSMPO._shadow_plan`) with an MPS-optimized dual estimator.
+`ClassicalShadows.build_plan`) with an MPS-optimized dual estimator.
 
 Each test targets one layer in isolation, mirroring `test_pauli_sampling.py`:
 the fixed effect/dual maps against a brute-force dense reconstruction, then
@@ -232,7 +232,11 @@ def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
     from mpstab.evolutors.hsynthsmpo import HSynthSMPO
     from mpstab.models.ansatze import FloquetAnsatz
     from mpstab.qpu.execution import QiboSimulator, execute_plan
-    from mpstab.qpu.measurement import estimate_shadows, estimate_tnice
+    from mpstab.qpu.measurement import (
+        ClassicalShadows,
+        estimate_shadows,
+        estimate_tnice,
+    )
 
     ansatz = FloquetAnsatz(nqubits=4, nlayers=1, target_qubit=1, decompose_rzz=True)
     hs = HSynthSMPO.rotations_only(ansatz)
@@ -245,7 +249,8 @@ def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
         max(np.abs(site.imag).max() for site in mpo_to_pauli_mps(tail)) > 1e-3
     ), "this cut no longer exercises a complex gauge; pick another one"
 
-    plan = hs._shadow_plan(
+    plan = ClassicalShadows(tail_handling="append_to_head_circuit").build_plan(
+        hs,
         terms={observable: 1.0},
         constant=0.0,
         cut_index=cut,
@@ -254,7 +259,6 @@ def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
         n_shots=300,
         epsilon=None,
         seed=3,
-        tail_handling="append_to_head_circuit",
     )
     frequencies = execute_plan(QiboSimulator(), plan)
 

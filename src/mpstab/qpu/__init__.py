@@ -14,6 +14,15 @@ one subpackage each:
 3. :mod:`~mpstab.qpu.execution` runs those circuits on a backend, or exports
    them as OpenQASM to run on a device.
 
+Synthesisers and measurement methods are objects holding their own options,
+passed to :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`::
+
+    from mpstab import HSynthSMPO
+    from mpstab.qpu import ClassicalShadows, ExtractionSynthesis
+
+    model = HSynthSMPO(ansatz, head_synthesis=ExtractionSynthesis(connectivity="line"))
+    result = model.expectation_at_cut(H, cut_index, method=ClassicalShadows(), n_shots=10_000)
+
 Importing this package never requires the optional ``rustiq`` dependency, which
 :mod:`~mpstab.qpu.synthesis.rustiq` imports lazily.
 """
@@ -26,32 +35,36 @@ from mpstab.qpu.execution import (
     save_circuits,
 )
 from mpstab.qpu.measurement import (
+    TNICE,
+    ClassicalShadows,
     ExpectationResult,
+    MeasurementMethod,
     MeasurementPlan,
-    build_pauli_plan,
-    build_shadow_plan,
+    PauliSampling,
     estimate,
 )
 from mpstab.qpu.synthesis import (
-    build_cnot_ladder_head_and_residual,
-    build_extraction_head_and_residual,
-    build_head_and_residual,
-    head_to_qibo_circuit,
+    CnotLadderSynthesis,
+    ExtractionSynthesis,
+    HeadSynthesis,
+    RustiqSynthesis,
 )
 
 __all__ = [
+    "ClassicalShadows",
+    "CnotLadderSynthesis",
     "ExpectationResult",
+    "ExtractionSynthesis",
+    "HeadSynthesis",
+    "MeasurementMethod",
     "MeasurementPlan",
+    "PauliSampling",
     "QiboSimulator",
-    "build_cnot_ladder_head_and_residual",
-    "build_extraction_head_and_residual",
-    "build_head_and_residual",
-    "build_pauli_plan",
-    "build_shadow_plan",
+    "RustiqSynthesis",
+    "TNICE",
     "circuit_to_qasm",
     "estimate",
     "execute_plan",
-    "head_to_qibo_circuit",
     "plan_to_qasm",
     "save_circuits",
 ]
