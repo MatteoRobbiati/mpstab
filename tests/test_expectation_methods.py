@@ -25,14 +25,16 @@ from qibo.symbols import X, Z
 
 from mpstab.evolutors.hsynthsmpo import ExpectationResult, HSynthSMPO, ResynthesizedHead
 from mpstab.models.ansatze import HardwareEfficient
-from mpstab.quantum_hardware import (
+from mpstab.qpu import (
+    ClassicalShadows,
+    PauliSampling,
     QiboSimulator,
-    count_two_qubit_gates,
     estimate,
     execute_plan,
 )
-from mpstab.quantum_hardware.synthesis import (
+from mpstab.qpu.synthesis import (
     build_cnot_ladder_head_and_residual,
+    count_two_qubit_gates,
     head_to_qibo_circuit,
 )
 
@@ -86,7 +88,7 @@ def _resynthesis_with_trailing_residual(hs, cut_index, n_trailing=3):
     The head is no longer the full exact rotation, but head+residual together
     still are -- the same relationship a real rustiq resynthesis has with its
     Clifford residual (Eq. 8). This exists because ``rustiq`` is an optional,
-    not-on-PyPI dependency (see ``mpstab.quantum_hardware.synthesis``), and the
+    not-on-PyPI dependency (see ``mpstab.qpu.synthesis``), and the
     CNOT-ladder fallback alone always has an identity residual, so neither can
     exercise the fold on its own in an environment without rustiq installed.
     """
@@ -125,7 +127,7 @@ class _TrailingResidualHSynthSMPO(HSynthSMPO):
 
     drop_residual = False
 
-    def resynthesize_head(self, cut_index, metric_name="count", preserve_order=True):
+    def resynthesize_head(self, cut_index, synthesis=None, observable=None):
         resynthesis = _resynthesis_with_trailing_residual(self, cut_index)
         if self.drop_residual:
             resynthesis = dataclasses.replace(
@@ -277,7 +279,7 @@ def test_both_routes_match_hsmpo_for_symbolic_hamiltonian(cut_fraction):
 def test_tnice_matches_simulation_for_pauli_string(cut_fraction, xy_observable):
     """
     ``"tnice"`` shares its circuits and shots with ``"shadows"`` (same seed,
-    same call shape) -- see ``HSynthSMPO._shadow_plan`` -- and only replaces
+    same call shape) -- see ``ClassicalShadows.build_plan`` -- and only replaces
     the fixed canonical-dual post-processing with the MPS-optimized
     estimator, so the two routes are compared here on identical measurement
     data.
@@ -439,7 +441,8 @@ def test_fold_tail_handling_matches_simulation(xy_observable, method):
 
     # Same seed, same bases: "fold" measures exactly the residual's gates fewer.
     def first_circuit(tail_handling):
-        plan = hs._shadow_plan(
+        plan = ClassicalShadows(tail_handling=tail_handling).build_plan(
+            hs,
             terms={xy_observable: 1.0},
             constant=0.0,
             cut_index=cut_index,
@@ -448,7 +451,6 @@ def test_fold_tail_handling_matches_simulation(xy_observable, method):
             n_shots=10,
             epsilon=None,
             seed=0,
-            tail_handling=tail_handling,
         )
         return plan.circuits[0]
 
@@ -486,17 +488,21 @@ def test_shadow_truncation_l2_uses_requested_bond():
     resynthesis = hs.resynthesize_head(0)
 
     def truncation_l2(max_bond_dimension):
-        return hs._shadow_plan(
-            terms={"Z" * 6: 1.0},
-            constant=0.0,
-            cut_index=0,
-            resynthesis=resynthesis,
-            max_bond_dimension=max_bond_dimension,
-            n_shots=10,
-            epsilon=None,
-            seed=0,
-            tail_handling="append_to_head_circuit",
-        ).truncation_l2
+        return (
+            ClassicalShadows(tail_handling="append_to_head_circuit")
+            .build_plan(
+                hs,
+                terms={"Z" * 6: 1.0},
+                constant=0.0,
+                cut_index=0,
+                resynthesis=resynthesis,
+                max_bond_dimension=max_bond_dimension,
+                n_shots=10,
+                epsilon=None,
+                seed=0,
+            )
+            .truncation_l2
+        )
 
     assert truncation_l2(None) == 0.0
     assert truncation_l2(1) > 1e-6
@@ -582,7 +588,8 @@ def test_pauli_reports_the_bond_truncation():
     resynthesis = hs.resynthesize_head(0)
 
     def plan(max_bond_dimension):
-        return hs._pauli_plan(
+        return PauliSampling(n_string_samples=5000).build_plan(
+            hs,
             terms={"Z" * 6: 1.0},
             constant=0.0,
             cut_index=0,
@@ -591,7 +598,6 @@ def test_pauli_reports_the_bond_truncation():
             n_shots=1000,
             epsilon=None,
             seed=0,
-            n_string_samples=5000,
         )
 
     exact = plan(None)
@@ -602,7 +608,8 @@ def test_pauli_reports_the_bond_truncation():
     assert truncated.bond_truncation_l2 > 1e-6
     assert truncated.antihermitian_l2 >= 0.0
     # the same estimate the shadows route reports as its truncation_l2
-    shadows = hs._shadow_plan(
+    shadows = ClassicalShadows(tail_handling="append_to_head_circuit").build_plan(
+        hs,
         terms={"Z" * 6: 1.0},
         constant=0.0,
         cut_index=0,
@@ -611,7 +618,6 @@ def test_pauli_reports_the_bond_truncation():
         n_shots=10,
         epsilon=None,
         seed=0,
-        tail_handling="append_to_head_circuit",
     )
     assert truncated.bond_truncation_l2 == pytest.approx(shadows.truncation_l2)
     assert shadows.bond_truncation_l2 is None and shadows.antihermitian_l2 is None
@@ -629,7 +635,7 @@ def test_pauli_reports_the_bond_truncation():
 
 
 def test_antihermitian_norm():
-    from mpstab.evolutors.hsynthsmpo import _antihermitian_norm
+    from mpstab.qpu.measurement.pauli import _antihermitian_norm
 
     assert _antihermitian_norm({"XY": 0.5 - 3e-4j, "ZZ": -0.25 + 4e-4j}) == (
         pytest.approx(5e-4)

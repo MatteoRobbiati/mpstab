@@ -5,7 +5,7 @@ from qibo import Circuit, gates, set_backend
 from utils import expectation_with_qibo, set_rng_seed
 
 from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO, _assert_real_coefficients
+from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import (
     QAE,
     QFT,
@@ -16,11 +16,9 @@ from mpstab.models.ansatze import (
     QFTPhaseKernel,
     TrotterIsing,
 )
-from mpstab.quantum_hardware.plan import (
-    allocate_shots_by_variance,
-    build_measurement_plan,
-)
-from mpstab.quantum_hardware.synthesis import build_cnot_ladder_head_and_residual
+from mpstab.qpu.measurement import allocate_shots_by_variance, build_measurement_plan
+from mpstab.qpu.measurement.pauli import _assert_real_coefficients
+from mpstab.qpu.synthesis import build_cnot_ladder_head_and_residual
 
 set_backend("numpy")
 set_rng_seed()
@@ -363,7 +361,7 @@ def test_expectation_at_cut_pauli_respects_shot_budget():
 
 
 # ---------------------------------------------------------------------------
-# _assert_real_coefficients (hsynthsmpo._pauli_plan's Hermiticity guard)
+# _assert_real_coefficients (PauliSampling.build_plan's Hermiticity guard)
 # ---------------------------------------------------------------------------
 
 

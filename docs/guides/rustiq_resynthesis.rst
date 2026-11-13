@@ -73,7 +73,9 @@ A partial cut leaves a pure-Clifford residual (``resynth.residual_tableau``): th
 ``"pauli"`` route of :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut`
 folds it into the sampled Pauli terms automatically before grouping (see the
 module docstring of :mod:`mpstab.evolutors.hsynthsmpo`); the ``"shadows"``
-and ``"tnice"`` routes take a ``tail_handling``:
+and ``"tnice"`` routes take a ``tail_handling`` option
+(``ClassicalShadows(tail_handling="fold")``, or ``tail_handling="fold"`` next to
+``method="shadows"``):
 ``"append_to_head_circuit"`` (default) runs the residual as extra gates, while
 ``"fold"`` conjugates the Clifford-backpropagated observable and every tail
 generator through it, so the

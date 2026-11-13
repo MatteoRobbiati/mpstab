@@ -1,4 +1,4 @@
-# Quantum Hardware: running a head/tail split on a device
+# QPU: running a head/tail split on a device
 
 This package answers one question: **given a circuit that `HSynthSMPO` has
 split into a "head" and a "tail" at some cut point, how do we actually get an
@@ -23,32 +23,34 @@ complexity (cost of turning it into something measurable). This package is
 the second half of that trade: **turning `O'` into circuits, shots, and
 finally a number, however global or entangled `O'` turned out to be.**
 
-## The pipeline, one module each
+## The pipeline, one subpackage each
 
 ```
-synthesis.py        head's rotations  ->  a runnable circuit
-                                           (+ a small Clifford leftover)
+synthesis/      head's rotations   ->  a runnable circuit
+                                        (+ a small Clifford leftover)
+                rustiq.py, cnot_ladder.py; utils.py holds the gate-list format
 
-pauli_expansion.py   O' (as an MPO)   ->  its Pauli-string decomposition
-      or                                  (exact coefficients, or sampled)
-tnice.py              (for "tnice")
+measurement/    O' (as an MPO)     ->  which circuits to run, how many shots
+                                        each (fixed BEFORE anything runs, so
+                                        it can be replayed on a simulator or
+                                        on real hardware)
+                measured           ->  a value + its error bar
+                frequencies
+                one module per method: pauli.py, shadows.py, tnice.py;
+                pauli_expansion.py turns O' into Pauli strings for them
 
-plan.py              decomposition    ->  which circuits to run, how many
-                                           shots each (fixed BEFORE anything
-                                           runs, so it can be replayed on a
-                                           simulator or on real hardware)
-
-estimate.py           measured        ->  a value + its error bar
-                       frequencies
+execution/      a plan's circuits  ->  frequencies (simulator.py), or
+                                        OpenQASM files for a device
+                                        (qasm.py, storage.py)
 ```
 
 `HSynthSMPO.expectation_at_cut` (in `mpstab.evolutors.hsynthsmpo`) is the one
-function that runs all four steps and hands back the result. Everything
+function that runs all three steps and hands back the result. Everything
 below explains what happens *inside* it.
 
 On a real device the steps happen at different times, so they can also be run
 one by one: `HSynthSMPO.plan` builds the plan and, given an `out_folder`, saves
-its circuits as OpenQASM with their shots (`storage.py`). A device backend runs
+its circuits as OpenQASM with their shots (`execution/storage.py`). A device backend runs
 those files, and `estimate(plan, frequencies)` recombines the counts.
 
 ## Three ways to turn O' into a number
@@ -87,7 +89,7 @@ recipe, it fits a second small tensor network (an MPS of "reconstruction
 coefficients") to the measured data, chosen to minimize the statistical
 variance while still reproducing `O'` on average. This is the
 Mangini & Cavalcanti TN-ICE method (arXiv:2407.02923) -- see
-`tnice.py`'s module docstring for the equations. Because it reuses
+`measurement/tnice.py`'s module docstring for the equations. Because it reuses
 `"shadows"`'s measurement data unchanged, it's directly comparable: same
 "quantum" cost (shots and circuits), usually a smaller error bar, at the
 price of some extra *classical* compute to do the fit.

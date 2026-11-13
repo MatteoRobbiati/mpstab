@@ -36,6 +36,7 @@ Among our core features:
    guides/using_ansatze
    guides/fidelity_and_approximation
    guides/rustiq_resynthesis
+   guides/clifford_extraction_synthesis
 
 .. toctree::
    :maxdepth: 2
@@ -43,7 +44,7 @@ Among our core features:
 
    api/evolutors
    api/engines
-   api/quantum_hardware
+   api/qpu
    api/pauli
    api/models
 

@@ -9,7 +9,7 @@ optimized to minimize an empirical-variance-plus-reconstruction-penalty cost
 (their Eq. 16-20) against the very data classical shadows would otherwise
 contract with the fixed canonical dual. This module implements that fit for
 the measurement primitive already used by
-:func:`~mpstab.quantum_hardware.plan.build_shadow_plan` -- random local
+:func:`~mpstab.qpu.measurement.shadows.build_shadow_plan` -- random local
 Pauli-basis measurements -- which is exactly the six-effect-per-qubit OC-POVM
 of the paper's Eq. (24)/(32):
 
@@ -18,7 +18,7 @@ of the paper's Eq. (24)/(32):
 indexed here as ``k = 0..5`` in that same order (``outcome_index`` below).
 
 Every object lives in the *plain Pauli-coefficient* convention already used by
-:func:`~mpstab.quantum_hardware.pauli_expansion.mpo_to_pauli_mps`: an operator
+:func:`~mpstab.qpu.measurement.pauli_expansion.mpo_to_pauli_mps`: an operator
 ``O`` is represented by the MPS of its exact expansion coefficients in
 ``O = sum_P c_P P`` (:data:`~mpstab.pauli.PAULI_LABELS` order, ``I, X, Y, Z``
 per site). Because ``Pi_k = sum_p E[k, p] P_p`` for a *fixed*, site-independent
@@ -30,19 +30,27 @@ Eq. 38/41/44): applying it to ``O``'s own Pauli-coefficient MPS gives the
 *exact* canonical-dual reconstruction coefficients at zero cost and at ``O``'s
 own bond dimension -- which is also, by construction, this module's optimizer
 seed and the "zero sweeps" baseline that reproduces
-:func:`~mpstab.quantum_hardware.estimate.estimate_shadows`'s value.
+:func:`~mpstab.qpu.measurement.shadows.estimate_shadows`'s value.
 
 :func:`fit_omega_mps` then runs a one-site DMRG-like sweep, solving the exact
 local quadratic problem of Eq. (19)-(20) at each site from environment
 tensors accumulated over the (training) measured shots, alternating with a
 left-environment update -- the same left-to-right batched-environment pattern
-:func:`~mpstab.quantum_hardware.pauli_expansion._draw_many_strings` already
+:func:`~mpstab.qpu.measurement.pauli_expansion._draw_many_strings` already
 uses for Pauli-string sampling.
 """
 
 from __future__ import annotations
 
+import dataclasses
+from dataclasses import dataclass
+from typing import ClassVar
+
 import numpy as np
+
+from mpstab.qpu.measurement.abstract import ExpectationResult, MeasurementPlan
+from mpstab.qpu.measurement.pauli_expansion import mpo_to_pauli_mps
+from mpstab.qpu.measurement.shadows import ClassicalShadows
 
 #: outcome index 0..5 -> (basis label, bit), Eq. (24)/(32) of the paper.
 _BASIS_TO_OUTCOME_PAIR = {"Z": (0, 1), "X": (2, 3), "Y": (4, 5)}
@@ -89,7 +97,7 @@ def real_pauli_mps(pauli_mps: list) -> list:
     An exactly equivalent, real-valued copy of a Pauli-coefficient MPS.
 
     A Hermitian operator's Pauli coefficients are real, but the MPS
-    :func:`~mpstab.quantum_hardware.pauli_expansion.mpo_to_pauli_mps` returns
+    :func:`~mpstab.qpu.measurement.pauli_expansion.mpo_to_pauli_mps` returns
     can still carry complex gauge phases on its bonds -- and the real part of a
     product is not the product of the real parts, so taking ``site.real`` site
     by site would describe a *different* operator. Instead every site
@@ -156,7 +164,7 @@ def canonical_omega_seed(pauli_mps: list) -> list:
 
     Applies :data:`LOCAL_CANONICAL_DUAL_MAP` to every site of ``pauli_mps``
     (an operator's exact Pauli-coefficient MPS, as
-    :func:`~mpstab.quantum_hardware.pauli_expansion.mpo_to_pauli_mps`
+    :func:`~mpstab.qpu.measurement.pauli_expansion.mpo_to_pauli_mps`
     returns it -- site tensors shaped ``(4, left, right)``, made real by
     :func:`real_pauli_mps` first), giving the ``omega``-MPS (site tensors
     shaped ``(6, left, right)``) that reproduces the classical-shadow
@@ -206,7 +214,7 @@ def shots_to_outcomes(bases: tuple, frequencies: list) -> tuple:
 
     Args:
         bases: one basis string per circuit, as
-            :attr:`~mpstab.quantum_hardware.plan.MeasurementPlan.recombination`
+            :attr:`~mpstab.qpu.measurement.abstract.MeasurementPlan.recombination`
             carries it for the ``"shadows"`` route.
         frequencies: one ``{bitstring: count}`` dict per circuit, in the same
             order.
@@ -264,7 +272,7 @@ def evaluate_omega(omega_mps: list, outcomes: np.ndarray) -> np.ndarray:
     operator is needed at estimation time, only during :func:`fit_omega_mps`.
     Cost ``O(n_shots * n * chi**2)``, the same batched-left-environment
     pattern
-    :func:`~mpstab.quantum_hardware.pauli_expansion._draw_many_strings` uses.
+    :func:`~mpstab.qpu.measurement.pauli_expansion._draw_many_strings` uses.
     """
     n_rows = outcomes.shape[0]
     left = np.ones((n_rows, 1))
@@ -422,7 +430,7 @@ def fit_omega_mps(
 
     Args:
         pauli_mps: the target observable's Pauli-coefficient MPS, from
-            :func:`~mpstab.quantum_hardware.pauli_expansion.mpo_to_pauli_mps`.
+            :func:`~mpstab.qpu.measurement.pauli_expansion.mpo_to_pauli_mps`.
         train_outcomes: ``(M, n)`` int array of per-qubit outcome indices,
             from the *training* half of :func:`split_train_test`.
         train_weights: ``(M,)`` float array, that half's shot counts.
@@ -505,3 +513,119 @@ def fit_omega_mps(
             )
 
     return omega
+
+
+def estimate_tnice(
+    plan,
+    frequencies,
+    lam: float = 0.999,
+    n_sweeps: int = 4,
+    bond_dimension: int | None = None,
+    test_fraction: float = 0.5,
+    seed: int | None = None,
+) -> ExpectationResult:
+    """
+    Recombine a ``"tnice"`` plan's frequencies -- built identically to a
+    ``"shadows"`` plan, see
+    :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO._shadow_plan` -- with the
+    TN-ICE estimator of
+    :mod:`~mpstab.qpu.measurement.tnice` instead of the fixed canonical-dual
+    contraction :func:`~mpstab.qpu.measurement.shadows.estimate_shadows` uses, so the two can be compared on
+    identical measurement data.
+
+    Splits the shots into a training half, which fits ``omega`` per term via
+    :func:`fit_omega_mps`, and a held-out test
+    half the final value and standard error come from -- avoiding the
+    overfitting the paper's Sec. 7.3 warns an in-sample estimate would show.
+
+    Args:
+        plan, frequencies: as :func:`~mpstab.qpu.measurement.shadows.estimate_shadows`.
+        lam, n_sweeps, bond_dimension: forwarded to
+            :func:`fit_omega_mps`.
+        test_fraction: fraction of each circuit's shots held out for the
+            final estimate; the rest trains ``omega``.
+        seed: RNG seed for the train/test split.
+    """
+    mpo_terms, bases = plan.recombination
+    outcomes, counts = shots_to_outcomes(bases, frequencies)
+    (train_outcomes, train_weights), (test_outcomes, test_weights) = split_train_test(
+        outcomes, counts, test_fraction, seed
+    )
+    n_test = float(test_weights.sum())
+
+    value = plan.constant
+    variance = 0.0
+    for _, coeff, sign, mpo in mpo_terms:
+        pauli_mps = mpo_to_pauli_mps(mpo)
+        omega = fit_omega_mps(
+            pauli_mps,
+            train_outcomes,
+            train_weights,
+            lam=lam,
+            n_sweeps=n_sweeps,
+            bond_dimension=bond_dimension,
+            seed=seed,
+        )
+        term_values = evaluate_omega(omega, test_outcomes)
+        mean, per_shot_variance = weighted_mean_and_variance(term_values, test_weights)
+        if n_test > 1:
+            variance += coeff**2 * per_shot_variance / n_test
+        value += coeff * sign * mean
+
+    return ExpectationResult(
+        value=float(value),
+        stderr=float(np.sqrt(variance)),
+        truncation_l1=None,
+        truncation_l2=plan.truncation_l2,
+        n_settings=len(frequencies),
+        n_shots=int(counts.sum()),
+        retained_weight=None,
+    )
+
+
+@dataclass(frozen=True)
+class TNICE(ClassicalShadows):
+    """
+    The ``"tnice"`` method: the same circuits, bases and shots as
+    :class:`~mpstab.qpu.measurement.shadows.ClassicalShadows`, estimated with
+    the MPS-optimized dual of :func:`fit_omega_mps` instead of the fixed
+    canonical dual, so the two can be compared on identical measurement data.
+
+    With an ``epsilon`` target the shot budget is sized by the
+    canonical-dual predictor of ``"shadows"``, a conservative upper bound on
+    the (unknown ahead of fitting) optimized variance.
+
+    Args:
+        shots_per_setting: as in ``ClassicalShadows``.
+        tail_handling: as in ``ClassicalShadows``.
+        lam: forwarded to :func:`fit_omega_mps`.
+        n_sweeps: forwarded to :func:`fit_omega_mps`.
+        bond_dimension: forwarded to :func:`fit_omega_mps`; ``None`` keeps
+            the tail MPO's own.
+        test_fraction: fraction of each circuit's shots held out for the final
+            estimate; the rest trains ``omega``.
+    """
+
+    lam: float = 0.999
+    n_sweeps: int = 4
+    bond_dimension: int | None = None
+    test_fraction: float = 0.5
+
+    name: ClassVar[str] = "tnice"
+
+    def build_plan(self, *args, **kwargs) -> MeasurementPlan:
+        """The ``"shadows"`` plan, labelled ``"tnice"``."""
+        plan = super().build_plan(*args, **kwargs)
+        return dataclasses.replace(plan, method=self.name)
+
+    def estimate(self, plan, frequencies, seed=None) -> ExpectationResult:
+        """:func:`estimate_tnice`, with ``seed`` driving the train/test split."""
+        return estimate_tnice(
+            plan,
+            frequencies,
+            lam=self.lam,
+            n_sweeps=self.n_sweeps,
+            bond_dimension=self.bond_dimension,
+            test_fraction=self.test_fraction,
+            seed=seed,
+        )

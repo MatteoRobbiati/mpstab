@@ -4,19 +4,26 @@ The head/tail split of an HSMPO's dressed rotations, measured with finite shots.
 The dressed-rotation chain is cut at ``cut_index``. The head is resynthesised
 into a circuit a device can run; the tail is folded into the observable, leaving
 an MPO. :meth:`HSynthSMPO.expectation_at_cut` then measures the head against that
-observable with a shot budget, by one of the routes below:
+observable with a shot budget, by one of the measurement methods of
+:mod:`mpstab.qpu.measurement`, passed as an object or by name:
 
-- ``"pauli"`` samples Pauli strings from the tail MPO and groups them into
-  qubit-wise-commuting measurement settings.
-- ``"shadows"`` measures random single-qubit Pauli bases and contracts each
-  snapshot against the tail MPO directly; ``"tnice"`` runs on the same
-  measurements and only replaces this estimator with the MPS-optimized one.
+- :class:`~mpstab.qpu.measurement.pauli.PauliSampling` (``"pauli"``) samples
+  Pauli strings from the tail MPO and groups them into qubit-wise-commuting
+  measurement settings.
+- :class:`~mpstab.qpu.measurement.shadows.ClassicalShadows` (``"shadows"``)
+  measures random single-qubit Pauli bases and contracts each snapshot against
+  the tail MPO directly; :class:`~mpstab.qpu.measurement.tnice.TNICE`
+  (``"tnice"``) runs on the same measurements and only replaces this estimator
+  with the MPS-optimized one.
+
+The head is resynthesised by one of the synthesisers of
+:mod:`mpstab.qpu.synthesis`, set as ``head_synthesis``.
 
 Resynthesising the head leaves a Clifford residual, so a device prepares
 ``U(residual) U(head)|psi_0>`` rather than the exact head state the tail
 coefficients were derived against. The ``"pauli"`` route corrects for this by
 conjugating every sampled string through the residual. The ``"shadows"`` and
-``"tnice"`` routes take a ``tail_handling``:
+``"tnice"`` routes take a ``tail_handling`` option:
 
 - ``"append_to_head_circuit"`` (default) runs the residual as extra gates after
   the head: exact, with the shadow variance of the unfolded tail;
@@ -32,9 +39,9 @@ conjugating every sampled string through the residual. The ``"shadows"`` and
 :meth:`HSynthSMPO.expectation_at_cut` chains three stages that can also be run
 separately, e.g. to execute the circuits on a real device and post-process the
 results later: :meth:`HSynthSMPO.plan` builds the circuits and can save them as
-OpenQASM, a device backend runs them, and
-:func:`~mpstab.quantum_hardware.estimate.estimate` recombines the frequencies
-using the plan.
+OpenQASM, a device backend runs them, and the method's ``estimate`` (or
+:func:`~mpstab.qpu.measurement.estimate`) recombines the frequencies using the
+plan.
 
 ``expectation_at_cut(method="simulation")`` is the classical MPO-MPS
 contraction of the same split, with the head as a truncated MPS. It is a
@@ -43,7 +50,6 @@ class is meant for hardware, and the hardware methods are the recommended way
 to use it.
 """
 
-import dataclasses
 import warnings
 from dataclasses import dataclass
 from datetime import datetime
@@ -56,23 +62,21 @@ import stim
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.pauli import validate_pauli_string
-from mpstab.quantum_hardware import (
+from mpstab.qpu.execution import QiboSimulator, execute_plan, save_circuits
+from mpstab.qpu.measurement import (
     ExpectationResult,
+    MeasurementMethod,
     MeasurementPlan,
-    QiboSimulator,
-    build_cnot_ladder_head_and_residual,
-    build_head_and_residual,
-    build_pauli_plan,
-    build_shadow_plan,
+    resolve_method,
+)
+from mpstab.qpu.measurement.pauli_expansion import fold_fidelity
+from mpstab.qpu.synthesis import (
+    CnotLadderSynthesis,
+    HeadSynthesis,
+    RustiqSynthesis,
     count_two_qubit_gates,
-    estimate,
-    execute_plan,
-    fold_pool_through_tableau,
     head_to_qibo_circuit,
-    pool_pauli_terms,
-    sample_pauli_strings,
-    save_circuits,
-    truncation_error_estimate,
+    resolve_synthesis,
 )
 
 __all__ = ["HSynthSMPO", "ExpectationResult", "ResynthesizedHead", "TailTruncation"]
@@ -93,7 +97,9 @@ class ResynthesizedHead:
         n_gates: gates in the head.
         n_two_qubit_gates: two-qubit gates in the head.
         cut_index: the split point the head came from.
-        method: ``"rustiq"`` or ``"cnot_ladder"``.
+        method: the name of the synthesis that produced it, e.g.
+            ``"extraction"``; ``"cnot_ladder"`` when rustiq was asked for but
+            is not installed.
     """
 
     circuit: object
@@ -137,7 +143,51 @@ class HSynthSMPO(HSMPO):
 
     Requires :class:`~mpstab.engines.QuimbEngine` for the tail, the only engine
     that can conjugate an operator.
+
+    Args:
+        head_synthesis: how the head is resynthesised, a
+            :class:`~mpstab.qpu.synthesis.abstract.HeadSynthesis` such as
+            ``ExtractionSynthesis(connectivity="line")``, or the name of one
+            with its default options: ``"rustiq"`` (default), ``"extraction"``
+            or ``"cnot_ladder"``.
+        light_cone: drop the rotations the observable cannot see, from the
+            head the device runs and from the tail that is folded, see
+            :meth:`relevant_rotations`. Exact, and off by default.
     """
+
+    head_synthesis: Union[str, HeadSynthesis] = "rustiq"
+    light_cone: bool = False
+
+    def relevant_rotations(self, observable: Observable) -> Tuple[int, ...]:
+        """
+        Indices of the dressed rotations inside the light cone of ``observable``.
+
+        Going backwards from the observable (a Pauli string in the dressed
+        frame, per term), a rotation matters only if its string anticommutes
+        with the observable or with a later rotation that matters. Any other
+        rotation commutes with everything between itself and its own inverse
+        in ``<psi| U^dag O U |psi>``, and cancels: removing it changes nothing.
+        For an observable with several terms the union is returned, which is
+        what a head shared by all the terms has to keep.
+
+        Cheap (commutation of Pauli strings only) and exact. With a truncated
+        tail it stays consistent with the truncation: the rotations removed
+        are those that commute with the exact folded observable.
+        """
+        _, terms = pauli_terms(observable, self.nqubits)
+        relevant = set()
+        for pauli in terms:
+            relevant |= self._relevant_for_pauli(pauli)
+        return tuple(sorted(relevant))
+
+    def _relevant_for_pauli(self, pauli: str) -> frozenset:
+        """:meth:`relevant_rotations` of one Pauli string, cached on the rotations."""
+        rotations = self._dressed_rotations()
+        generators = tuple(generator for generator, _ in rotations)
+        backpropagated, _ = self.stab_engine.backpropagate(
+            observable=pauli, clifford_circuit=self.clifford_circuit
+        )
+        return _light_cone(generators, backpropagated)
 
     def build_post_head_mpo(
         self,
@@ -172,7 +222,7 @@ class HSynthSMPO(HSMPO):
           use it as the classical reference;
         - the ``"pauli"`` route passes no ``residual``. It samples Pauli strings
           from the MPO and folds each sampled string through ``R`` afterwards
-          (:func:`~mpstab.quantum_hardware.pauli_expansion.fold_pool_through_tableau`),
+          (:func:`~mpstab.qpu.measurement.pauli_expansion.fold_pool_through_tableau`),
           which is cheaper and unaffected by truncation;
         - the ``"shadows"`` and ``"tnice"`` routes pass ``residual`` under
           ``tail_handling="fold"``, because their estimators contract the whole
@@ -198,6 +248,13 @@ class HSynthSMPO(HSMPO):
             max_bond_dimension = self.max_bond_dimension
 
         tail = self._dressed_rotations()[cut_index:]
+        if self.light_cone:  # the rotations this string cannot see fold to nothing
+            relevant = self._relevant_for_pauli(observable)
+            tail = [
+                rotation
+                for index, rotation in enumerate(tail, start=cut_index)
+                if index in relevant
+            ]
         backpropagated, sign = self.stab_engine.backpropagate(
             observable=observable, clifford_circuit=self.clifford_circuit
         )
@@ -376,66 +433,74 @@ class HSynthSMPO(HSMPO):
         Pauli string, since conjugation by a unitary preserves the norm, and
         lower by the weight the truncation discarded.
         """
-        return float(np.real(operator.norm())) ** 2 / 2**self.nqubits
+        return fold_fidelity(operator, self.nqubits)
 
     def resynthesize_head(
-        self, cut_index: int, metric_name: str = "count", preserve_order: bool = True
+        self,
+        cut_index: int,
+        synthesis: Union[str, HeadSynthesis, None] = None,
+        observable: Union[Observable, None] = None,
     ) -> ResynthesizedHead:
         """
         Resynthesise the head rotations ``[0:cut_index)`` into a runnable circuit
         plus a pure-Clifford residual.
 
-        Prefers rustiq's Pauli-network synthesis. If ``rustiq`` is not installed it
-        warns and falls back to the dependency-free CNOT-ladder decomposition,
-        which gives no gate-count saving but keeps the hardware path working
-        without the optional dependency.
+        If rustiq is asked for but not installed, this warns and falls back to
+        :class:`~mpstab.qpu.synthesis.cnot_ladder.CnotLadderSynthesis`.
 
-        Cached on the head's dressed rotations (see :func:`_resynthesize`), so
-        repeated calls at the same cut, e.g. from :meth:`expectation_at_cut` for
-        several observables or methods, resynthesise once, while new parameters
-        give new rotations and hence a fresh resynthesis. The returned head is
-        shared between those calls: don't modify its ``circuit`` or
-        ``residual_tableau`` in place.
+        Cached on the head's dressed rotations and the synthesis (see
+        :func:`_resynthesize`), so repeated calls at the same cut, e.g. from
+        :meth:`expectation_at_cut` for several observables or methods,
+        resynthesise once, while new parameters give new rotations and hence a
+        fresh resynthesis. The returned head is shared between those calls:
+        don't modify its ``circuit`` or ``residual_tableau`` in place.
 
         Args:
             cut_index: the split point.
-            metric_name: rustiq metric, ``"count"`` or ``"depth"``.
-            preserve_order: keep the (non-commuting) rotation order.
+            synthesis: a :class:`~mpstab.qpu.synthesis.abstract.HeadSynthesis`
+                or the name of one (default: the instance's
+                ``head_synthesis``).
+            observable: keep only the head rotations inside the light cone of
+                this observable (:meth:`relevant_rotations`). The head is then
+                valid for this observable only. ``None`` keeps them all.
+
+        Raises:
+            ValueError: on an unknown synthesis name.
         """
+        synthesis = resolve_synthesis(
+            self.head_synthesis if synthesis is None else synthesis
+        )
         # float() so the key hashes by value whatever the backend returns as an
         # angle (a framework tensor would hash by identity, or not at all).
-        rotations = tuple(
-            (generator, float(angle))
-            for generator, angle in self._dressed_rotations()[:cut_index]
-        )
-        return _resynthesize(
-            rotations, self.nqubits, cut_index, metric_name, preserve_order
-        )
+        dressed = self._dressed_rotations()[:cut_index]
+        if observable is not None:
+            relevant = self.relevant_rotations(observable)
+            dressed = [dressed[index] for index in relevant if index < cut_index]
+        rotations = tuple((generator, float(angle)) for generator, angle in dressed)
+        return _resynthesize(rotations, self.nqubits, cut_index, synthesis)
 
     def expectation_at_cut(
         self,
         observable: Observable,
         cut_index: int,
-        method: str = "pauli",
+        method: Union[str, MeasurementMethod] = "pauli",
         n_shots: Union[int, None] = None,
         epsilon: Union[float, None] = None,
         backend=None,
         max_bond_dimension: Union[int, None] = -1,
-        tail_handling: str = "append_to_head_circuit",
         seed: Union[int, None] = None,
-        **method_kwargs,
+        **method_options,
     ) -> ExpectationResult:
         """
         Resynthesise the head, build the measurement circuits, run them and
         recombine the results, in one call: :meth:`plan`, then
-        :func:`~mpstab.quantum_hardware.backend.execute_plan` on ``backend``,
-        then :func:`~mpstab.quantum_hardware.estimate.estimate`. To run the
-        circuits on a device and post-process later, call those three stages
-        separately.
+        :func:`~mpstab.qpu.execution.simulator.execute_plan` on ``backend``,
+        then the method's ``estimate``. To run the circuits on a device and
+        post-process later, call those three stages separately.
 
-        This class is meant for hardware: use ``"pauli"``, ``"shadows"`` or
-        ``"tnice"``, which run the head exactly on a device (or simulator) and
-        keep only the tail classical. ``"simulation"`` instead contracts the
+        This class is meant for hardware: use a measurement method, which runs
+        the head exactly on a device (or simulator) and keeps only the tail
+        classical. ``"simulation"`` instead contracts the
         head, as a truncated MPS, against the tail MPO, entirely classically. It
         is a reference for validating the hardware methods, or for comparing a
         device run against the classical split; it is not a measurement route,
@@ -449,16 +514,17 @@ class HSynthSMPO(HSMPO):
                 on the observable, and pools Pauli strings shared between terms so
                 each is measured once with the summed coefficient.
             cut_index: the split point.
-            method: ``"pauli"``, ``"shadows"``, ``"tnice"`` or
-                ``"simulation"``. ``"tnice"`` runs on exactly the same
-                circuits, bases and shots as ``"shadows"`` -- see
-                :meth:`_shadow_plan` -- and only replaces the fixed
-                canonical-dual post-processing with the MPS-optimized
-                estimator of :mod:`~mpstab.quantum_hardware.tnice`, so the two
-                can be compared on identical measurement data.
+            method: a :class:`~mpstab.qpu.measurement.abstract.MeasurementMethod`,
+                e.g. ``ClassicalShadows(tail_handling="fold")``; or the name of
+                one, ``"pauli"``, ``"shadows"`` or ``"tnice"``, built with
+                ``method_options``; or ``"simulation"``. ``"tnice"`` runs on
+                exactly the same circuits, bases and shots as ``"shadows"`` and
+                only replaces the fixed canonical-dual post-processing with the
+                MPS-optimized estimator of :mod:`~mpstab.qpu.measurement.tnice`,
+                so the two can be compared on identical measurement data.
                 ``"simulation"`` is classical, see above and
                 :meth:`_simulate_at_cut`: it needs no resynthesis, backend or
-                shots, and ignores ``tail_handling`` and ``seed``.
+                shots, and ignores ``seed``.
             n_shots: a fixed shot budget. Exactly one of this and ``epsilon``
                 for the hardware methods; neither for ``"simulation"``.
             epsilon: a target standard error, which sizes the shot budget from the
@@ -466,49 +532,39 @@ class HSynthSMPO(HSMPO):
                 ``"shadows"``'s canonical-dual predictor, a conservative upper
                 bound on the (unknown ahead of fitting) optimized variance.
             backend: anything with ``execute_circuits(circuits, nshots)``.
-                Defaults to :class:`~mpstab.quantum_hardware.QiboSimulator`.
+                Defaults to :class:`~mpstab.qpu.QiboSimulator`.
             max_bond_dimension: bond cap for every tail fold; ``-1`` means
                 ``self.max_bond_dimension``. With ``"simulation"`` the head MPS
                 is capped at ``self.max_bond_dimension``.
-            tail_handling: ``"shadows"`` and ``"tnice"`` only, what to do with a
-                non-trivial Clifford residual left by the resynthesis.
-                ``"append_to_head_circuit"`` (default) runs it as extra gates
-                after the head; ``"fold"`` reabsorbs it into the tail MPO (see
-                :meth:`build_post_head_mpo`), so the device runs the head alone at a
-                possibly much higher shadow variance.
             seed: RNG seed for Pauli sampling, random shadow bases, and (for
                 ``"tnice"``) the train/test shot split, forwarded to
-                :func:`~mpstab.quantum_hardware.estimate.estimate_tnice`.
-            method_kwargs: ``"pauli"`` takes ``n_string_samples`` (default
-                200); ``"shadows"`` and ``"tnice"`` take ``shots_per_setting``
-                (default 1); ``"tnice"`` additionally takes
-                ``lam`` (default 0.999), ``n_sweeps`` (default 4),
-                ``bond_dimension`` (default ``None``, meaning the tail MPO's
-                own) and ``test_fraction`` (default 0.5), forwarded to
-                :func:`~mpstab.quantum_hardware.estimate.estimate_tnice`.
+                :func:`~mpstab.qpu.measurement.tnice.estimate_tnice`.
+            method_options: options of a method given by name, e.g.
+                ``n_string_samples`` for ``"pauli"`` or ``tail_handling`` for
+                ``"shadows"``; see each method's class.
 
         Raises:
             ValueError: on an unknown ``method``, if neither or both of
                 ``n_shots`` and ``epsilon`` are given for a hardware method, or
                 if either is given with ``method="simulation"``.
+            TypeError: on ``method_options`` the method does not take.
         """
         if method == "simulation":
             if n_shots is not None or epsilon is not None:
                 raise ValueError(
                     "method='simulation' spends no shots; drop n_shots and epsilon."
                 )
+            if method_options:
+                raise TypeError(
+                    "method='simulation' takes no options; got "
+                    f"{sorted(method_options)}."
+                )
             if max_bond_dimension == -1:
                 max_bond_dimension = self.max_bond_dimension
             constant, terms = pauli_terms(observable, self.nqubits)
             return self._simulate_at_cut(terms, constant, cut_index, max_bond_dimension)
 
-        estimator_kwargs = {}
-        if method == "tnice":
-            for key in ("lam", "n_sweeps", "bond_dimension", "test_fraction"):
-                if key in method_kwargs:
-                    estimator_kwargs[key] = method_kwargs.pop(key)
-            estimator_kwargs["seed"] = seed
-
+        method = resolve_method(method, **method_options)
         plan = self.plan(
             observable,
             cut_index,
@@ -516,26 +572,23 @@ class HSynthSMPO(HSMPO):
             n_shots=n_shots,
             epsilon=epsilon,
             max_bond_dimension=max_bond_dimension,
-            tail_handling=tail_handling,
             seed=seed,
             out_folder=False,
-            **method_kwargs,
         )
         frequencies = execute_plan(backend or QiboSimulator(), plan)
-        return estimate(plan, frequencies, **estimator_kwargs)
+        return method.estimate(plan, frequencies, seed=seed)
 
     def plan(
         self,
         observable: Observable,
         cut_index: int,
-        method: str = "pauli",
+        method: Union[str, MeasurementMethod] = "pauli",
         n_shots: Union[int, None] = None,
         epsilon: Union[float, None] = None,
         max_bond_dimension: Union[int, None] = -1,
-        tail_handling: str = "append_to_head_circuit",
         seed: Union[int, None] = None,
         out_folder=None,
-        **plan_kwargs,
+        **method_options,
     ) -> MeasurementPlan:
         """
         Build the measurement circuits for ``observable`` at ``cut_index``,
@@ -544,11 +597,11 @@ class HSynthSMPO(HSMPO):
 
         This is the first of the three stages :meth:`expectation_at_cut` chains,
         exposed so the circuits can run anywhere, e.g. on a real device: run the
-        saved circuits, then pass the counts and the returned plan to
-        :func:`~mpstab.quantum_hardware.estimate.estimate`.
+        saved circuits, then pass the counts and the returned plan to the
+        method's ``estimate`` (or :func:`~mpstab.qpu.measurement.estimate`).
 
         Only the circuits and shots are saved, not the returned plan, which
-        :func:`~mpstab.quantum_hardware.estimate.estimate` needs. Building it
+        estimation needs. Building it
         again takes the same model, the same arguments and a fixed ``seed``.
         Even then the residual's gates can differ, so the saved circuits are
         the ones to run: never replace them with those of a rebuilt plan.
@@ -556,24 +609,23 @@ class HSynthSMPO(HSMPO):
         Args:
             observable: as in :meth:`expectation_at_cut`.
             cut_index: as in :meth:`expectation_at_cut`.
-            method: ``"pauli"``, ``"shadows"`` or ``"tnice"``.
+            method: a :class:`~mpstab.qpu.measurement.abstract.MeasurementMethod`
+                or the name of one, as in :meth:`expectation_at_cut` (but not
+                ``"simulation"``).
             n_shots: as in :meth:`expectation_at_cut`.
             epsilon: as in :meth:`expectation_at_cut`.
             max_bond_dimension: as in :meth:`expectation_at_cut`.
-            tail_handling: as in :meth:`expectation_at_cut`.
             seed: as in :meth:`expectation_at_cut`.
             out_folder: where to save the circuits and shots, see
-                :func:`~mpstab.quantum_hardware.storage.save_circuits`.
+                :func:`~mpstab.qpu.execution.storage.save_circuits`.
                 ``None`` (the default) saves them to a new folder
                 ``planned_runs/plan_<method>_cut<cut_index>_<timestamp>``
                 under the current directory and prints its path; ``False``
                 saves nothing.
-            plan_kwargs: ``"pauli"`` takes ``n_string_samples`` (default 200);
-                ``"shadows"`` and ``"tnice"`` take ``shots_per_setting``
-                (default 1).
+            method_options: as in :meth:`expectation_at_cut`.
 
         Returns:
-            A :class:`~mpstab.quantum_hardware.plan.MeasurementPlan`.
+            A :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`.
 
         Raises:
             ValueError: on an unknown ``method``, if neither or both of
@@ -581,11 +633,11 @@ class HSynthSMPO(HSMPO):
                 saved (``out_folder`` is not ``False``) without a ``seed``.
 
         """
-        if method not in ("pauli", "shadows", "tnice"):
+        if method == "simulation":
             raise ValueError(
-                f"Unknown method {method!r}, expected 'pauli', 'shadows', "
-                "'tnice' or, in expectation_at_cut only, 'simulation'."
+                "method='simulation' builds no circuits; use expectation_at_cut."
             )
+        method = resolve_method(method, **method_options)
         if (n_shots is None) == (epsilon is None):
             raise ValueError("Exactly one of n_shots or epsilon must be given.")
         if out_folder is not False and seed is None:
@@ -598,10 +650,13 @@ class HSynthSMPO(HSMPO):
             max_bond_dimension = self.max_bond_dimension
 
         constant, terms = pauli_terms(observable, self.nqubits)
-        resynthesis = self.resynthesize_head(cut_index)
+        if self.light_cone:
+            resynthesis = self.resynthesize_head(cut_index, observable=observable)
+        else:
+            resynthesis = self.resynthesize_head(cut_index)
 
-        build_plan = self._pauli_plan if method == "pauli" else self._shadow_plan
-        plan = build_plan(
+        plan = method.build_plan(
+            self,
             terms=terms,
             constant=constant,
             cut_index=cut_index,
@@ -610,167 +665,43 @@ class HSynthSMPO(HSMPO):
             n_shots=n_shots,
             epsilon=epsilon,
             seed=seed,
-            tail_handling=tail_handling,
-            **plan_kwargs,
         )
-        if method == "tnice":
-            plan = dataclasses.replace(plan, method="tnice")
         if out_folder is None:
             # Local time with its UTC offset; microseconds, so plans built in
             # a loop do not collide.
             timestamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S-%f%z")
-            out_folder = f"planned_runs/plan_{method}_cut{cut_index}_{timestamp}"
+            out_folder = f"planned_runs/plan_{method.name}_cut{cut_index}_{timestamp}"
             save_circuits(plan, out_folder)
             print(f"Circuits saved to {out_folder}")
         elif out_folder is not False:
             save_circuits(plan, out_folder)
         return plan
 
-    def _pauli_plan(
-        self,
-        terms,
-        constant,
-        cut_index,
-        resynthesis,
-        max_bond_dimension,
-        n_shots,
-        epsilon,
-        seed,
-        tail_handling=None,
-        n_string_samples=200,
-    ):
-        """
-        Sample each term's tail MPO, pool the strings, fold the residual, group.
 
-        Two truncations are reported, of different origin. ``truncation_l1`` /
-        ``truncation_l2`` count the Pauli strings of each folded MPO that
-        ``n_string_samples`` left out. ``bond_truncation_l2`` is the bias of
-        folding at a finite bond dimension, estimated from each folded MPO's
-        norm (see :meth:`_fold_fidelity`) as in the ``"shadows"`` route: the
-        string truncation is measured against the already truncated MPO, so it
-        cannot see it. ``antihermitian_l2`` is the size of the anti-Hermitian
-        part that truncation leaves in the pooled coefficients, projected out
-        by :func:`_assert_real_coefficients`.
-        """
-        truncated = (
-            max_bond_dimension is not None
-            if max_bond_dimension != -1
-            else self.max_bond_dimension is not None
-        )
-        rng = np.random.default_rng(seed)
-        ensembles, diagnostics = [], []
-        bond_truncation_l2 = 0.0
-        for pauli, coefficient in terms.items():
-            operator, sign = self.build_post_head_mpo(
-                pauli, cut_index, max_bond_dimension
-            )
-            if truncated:
-                bond_truncation_l2 += abs(coefficient) * np.sqrt(
-                    max(0.0, 1.0 - self._fold_fidelity(operator))
-                )
-            ensemble = sample_pauli_strings(
-                operator,
-                n_samples=n_string_samples,
-                seed=int(rng.integers(0, 2**32 - 1)),
-            )
-            ensembles.append((coefficient * sign, ensemble))
-            l1, l2 = truncation_error_estimate(ensemble)
-            diagnostics.append((abs(coefficient), l1, l2, ensemble.retained_weight))
+@lru_cache(maxsize=256)
+def _light_cone(generators: Tuple[str, ...], observable: str) -> frozenset:
+    """
+    Indices of the Pauli rotations ``generators`` (in circuit order) that a
+    Pauli ``observable`` measured after them depends on: those anticommuting
+    with the observable or with a later rotation that is itself kept.
+    """
 
-        pooled = pool_pauli_terms(ensembles)
-        if resynthesis.residual_tableau != stim.Tableau(self.nqubits):
-            pooled = fold_pool_through_tableau(
-                pooled, resynthesis.residual_tableau, self.stab_engine
-            )
+    def masks(pauli):
+        x = sum(1 << q for q, label in enumerate(pauli) if label in "XY")
+        z = sum(1 << q for q, label in enumerate(pauli) if label in "ZY")
+        return x, z
 
-        truncation_l1, truncation_l2, retained_weight = _aggregate_truncation(
-            diagnostics
-        )
-        return build_pauli_plan(
-            resynthesis.circuit,
-            self.nqubits,
-            _assert_real_coefficients(pooled, truncated=truncated),
-            n_shots,
-            epsilon,
-            constant=constant,
-            truncation_l1=truncation_l1,
-            truncation_l2=truncation_l2,
-            retained_weight=retained_weight,
-            bond_truncation_l2=float(bond_truncation_l2),
-            antihermitian_l2=_antihermitian_norm(pooled),
-        )
-
-    def _shadow_plan(
-        self,
-        terms,
-        constant,
-        cut_index,
-        resynthesis,
-        max_bond_dimension,
-        n_shots,
-        epsilon,
-        seed,
-        tail_handling,
-        shots_per_setting=1,
-    ):
-        """
-        Fold each term's tail MPO and pick random measurement bases.
-
-        ``truncation_l2`` is estimated from each folded MPO's norm (see
-        :meth:`_fold_fidelity`), so no reference fold and no head state are
-        built.
-        """
-        circuit = self._shadow_circuit(resynthesis, tail_handling)
-        residual = None
-        if tail_handling == "fold" and resynthesis.residual_tableau != stim.Tableau(
-            self.nqubits
+    kept = [masks(observable)]
+    relevant = set()
+    for index in range(len(generators) - 1, -1, -1):
+        x, z = masks(generators[index])
+        if any(
+            ((x & other_z).bit_count() + (z & other_x).bit_count()) & 1
+            for other_x, other_z in kept
         ):
-            residual = resynthesis.residual_tableau
-
-        mpo_terms = []
-        truncation_l2 = 0.0
-        for pauli, coefficient in terms.items():
-            operator, sign = self.build_post_head_mpo(
-                pauli, cut_index, max_bond_dimension, residual=residual
-            )
-            mpo_terms.append((pauli, coefficient, sign, operator))
-            if max_bond_dimension is not None:
-                truncation_l2 += abs(coefficient) * np.sqrt(
-                    max(0.0, 1.0 - self._fold_fidelity(operator))
-                )
-
-        return build_shadow_plan(
-            circuit,
-            self.nqubits,
-            mpo_terms,
-            n_shots,
-            epsilon,
-            shots_per_setting=shots_per_setting,
-            seed=seed,
-            constant=constant,
-            truncation_l2=float(truncation_l2),
-        )
-
-    def _shadow_circuit(self, resynthesis, tail_handling):
-        """
-        The circuit the shadows route measures, handling a non-trivial residual.
-
-        Raises:
-            ValueError: on an unknown ``tail_handling``.
-        """
-        if tail_handling not in ("append_to_head_circuit", "fold"):
-            raise ValueError(
-                f"Unknown tail_handling {tail_handling!r}, expected "
-                "'append_to_head_circuit' or 'fold'."
-            )
-        if (
-            resynthesis.residual_tableau == stim.Tableau(self.nqubits)
-            or tail_handling == "fold"
-        ):
-            return resynthesis.circuit
-        return resynthesis.circuit + head_to_qibo_circuit(
-            list(resynthesis.residual_gates), self.nqubits
-        )
+            kept.append((x, z))
+            relevant.add(index)
+    return frozenset(relevant)
 
 
 @lru_cache(maxsize=32)
@@ -778,36 +709,33 @@ def _resynthesize(
     rotations: Tuple[Tuple[str, float], ...],
     nqubits: int,
     cut_index: int,
-    metric_name: str,
-    preserve_order: bool,
+    synthesis: HeadSynthesis,
 ) -> ResynthesizedHead:
     """
     The body of :meth:`HSynthSMPO.resynthesize_head`, cached on its arguments.
 
-    The key holds the head's dressed rotations rather than the evolutor, so a
-    repeated call with the same rotations returns the same
-    :class:`ResynthesizedHead` object without running rustiq again, and changing
-    the circuit's parameters changes the angles, hence the key: the cache never
-    serves a stale head and needs no invalidation.
+    The key holds the head's dressed rotations and the (hashable) synthesis
+    rather than the evolutor, so a repeated call with the same rotations returns
+    the same :class:`ResynthesizedHead` object without synthesising again, and
+    changing the circuit's parameters changes the angles, hence the key: the
+    cache never serves a stale head and needs no invalidation.
     """
     paulis = [pauli for pauli, _ in rotations]
     angles = [angle for _, angle in rotations]
     try:
-        head, residual_tableau, residual_gates = build_head_and_residual(
-            paulis, angles, metric_name=metric_name, preserve_order=preserve_order
-        )
-        method = "rustiq"
+        head, residual_tableau, residual_gates = synthesis.synthesize(paulis, angles)
     except ImportError:
+        if not isinstance(synthesis, RustiqSynthesis):
+            raise
         warnings.warn(
             "rustiq is not installed; falling back to the CNOT-ladder "
             "resynthesis (no gate-count saving). Install it with pip install "
-            '"mpstab[rustiq]" for the optimized head.',
+            '"mpstab[rustiq]" for the optimized head, or use '
+            'head_synthesis="extraction", which needs no extra dependency.',
             stacklevel=3,
         )
-        head, residual_tableau, residual_gates = build_cnot_ladder_head_and_residual(
-            paulis, angles
-        )
-        method = "cnot_ladder"
+        synthesis = CnotLadderSynthesis()
+        head, residual_tableau, residual_gates = synthesis.synthesize(paulis, angles)
 
     if len(residual_tableau) != nqubits:  # degenerate cut_index == 0 case
         residual_tableau = stim.Tableau(nqubits)
@@ -819,87 +747,5 @@ def _resynthesize(
         n_gates=len(head),
         n_two_qubit_gates=count_two_qubit_gates(head),
         cut_index=cut_index,
-        method=method,
+        method=synthesis.name,
     )
-
-
-def _aggregate_truncation(diagnostics: list) -> Tuple[float, float, float]:
-    """
-    Combine per-term ``(|coeff|, l1, l2, retained_weight)`` truncation
-    diagnostics.
-
-    L1 adds by the triangle inequality, rigorous for any combination of terms;
-    L2 adds in quadrature, assuming the terms' errors are independent;
-    retained_weight is the ``|coeff|``-weighted average of each term's own
-    :attr:`~mpstab.quantum_hardware.pauli_expansion.PauliEnsemble.retained_weight`
-    -- a diagnostic for whether ``n_string_samples`` covered enough of the
-    observable, not a rigorous combination of the per-term fractions.
-    """
-    if not diagnostics:
-        return 0.0, 0.0, 1.0
-    total_weight = sum(weight for weight, _, _, _ in diagnostics)
-    l1 = sum(weight * term_l1 for weight, term_l1, _, _ in diagnostics)
-    l2 = float(
-        np.sqrt(sum((weight * term_l2) ** 2 for weight, _, term_l2, _ in diagnostics))
-    )
-    retained_weight = (
-        sum(weight * retained for weight, _, _, retained in diagnostics) / total_weight
-        if total_weight > 0
-        else 1.0
-    )
-    return l1, l2, retained_weight
-
-
-def _antihermitian_norm(pooled: dict) -> float:
-    """
-    ``sqrt(sum_P Im(c_P)**2)`` of a pooled ``{pauli: complex coefficient}`` map:
-    the Frobenius norm, per ``2**(n/2)``, of the anti-Hermitian part of the
-    operator the map describes. It is what :func:`_assert_real_coefficients`
-    drops when the tail was truncated, restricted to the sampled strings.
-    """
-    return float(np.sqrt(sum(np.imag(c) ** 2 for c in pooled.values())))
-
-
-def _assert_real_coefficients(
-    pooled: dict, tolerance: float = 1e-8, truncated: bool = False
-) -> dict:
-    """
-    Coerce a pooled ``{pauli: complex coefficient}`` map to real, raising
-    instead of silently truncating if any imaginary part isn't negligible.
-
-    With ``truncated=True`` (the tail MPO was compressed to a finite bond
-    dimension) the imaginary parts are dropped without raising: the bond
-    truncation in ``conjugate_operator`` does not preserve Hermiticity (the
-    intermediate ``R^dag O`` is not Hermitian, and Pauli-structured operators
-    have degenerate singular values, so even a single compression picks an
-    arbitrary subspace), so a truncated MPO carries an anti-Hermitian part of
-    the order of the truncation error. Taking the real part of every Pauli
-    coefficient is exactly the projection ``(O + O^dag) / 2`` onto the
-    Hermitian part, the closest Hermitian operator, which is never farther
-    from the exact (Hermitian) observable than ``O`` itself. The size of what
-    is dropped is reported by :func:`_antihermitian_norm`.
-
-    The tail-folded, Clifford-backpropagated observable is Hermitian, so
-    every pooled coefficient should be real up to floating-point noise. A
-    non-negligible imaginary part means backpropagation, tableau folding, or
-    the input observable itself went wrong somewhere upstream -- silently
-    dropping it (``float(np.real(c))``) would hide that bug behind a
-    plausible-looking float instead of surfacing it.
-
-    Raises:
-        ValueError: if any coefficient's imaginary part exceeds ``tolerance``
-            relative to its magnitude.
-    """
-    real_coefficients = {}
-    for pauli, coefficient in pooled.items():
-        magnitude = max(abs(coefficient), 1.0)
-        if not truncated and abs(np.imag(coefficient)) > tolerance * magnitude:
-            raise ValueError(
-                f"Pooled coefficient for {pauli!r} is not real within "
-                f"tolerance ({coefficient!r}); the tail-folded observable "
-                "should be Hermitian, so this points to a bug upstream "
-                "(backpropagation, tableau folding, or a non-Hermitian "
-                "input observable) rather than ordinary floating-point noise."
-            )
-        real_coefficients[pauli] = float(np.real(coefficient))
-    return real_coefficients

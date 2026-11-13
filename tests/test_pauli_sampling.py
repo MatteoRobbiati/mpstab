@@ -1,5 +1,5 @@
 """
-Layered correctness checks for `mpstab.quantum_hardware.pauli_expansion`, the
+Layered correctness checks for `mpstab.qpu.measurement.pauli_expansion`, the
 Pauli-sampling half of the head/tail measurement split (the `"pauli"` route of
 `HSynthSMPO.expectation_at_cut`).
 
@@ -20,7 +20,8 @@ from qibo import set_backend
 from mpstab.engines import QuimbEngine
 from mpstab.pauli import PAULI_ARRAY as PAULIS
 from mpstab.pauli import PAULI_LABELS as LABELS
-from mpstab.quantum_hardware.pauli_expansion import (
+from mpstab.qpu.measurement import build_measurement_plan, group_qwc
+from mpstab.qpu.measurement.pauli_expansion import (
     PauliEnsemble,
     _draw_one_string,
     _right_environments,
@@ -31,7 +32,6 @@ from mpstab.quantum_hardware.pauli_expansion import (
     top_k_pauli_strings,
     truncation_error_estimate,
 )
-from mpstab.quantum_hardware.plan import build_measurement_plan, group_qwc
 
 set_backend("numpy")
 

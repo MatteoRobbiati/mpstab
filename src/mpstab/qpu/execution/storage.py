@@ -19,8 +19,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from mpstab.quantum_hardware.backend import plan_to_qasm
-from mpstab.quantum_hardware.plan import MeasurementPlan
+from mpstab.qpu.execution.qasm import plan_to_qasm
+from mpstab.qpu.measurement.abstract import MeasurementPlan
 
 CIRCUITS_FOLDER = "planned_circuits"
 SHOTS_FILE = "shots.json"
@@ -32,7 +32,7 @@ def save_circuits(plan: MeasurementPlan, out_folder) -> None:
     needed.
 
     File names are zero-padded, so sorting them gives the plan order, which is
-    the order :func:`~mpstab.quantum_hardware.estimate.estimate` expects the
+    the order :func:`~mpstab.qpu.measurement.estimate` expects the
     counts in.
 
     Args:
