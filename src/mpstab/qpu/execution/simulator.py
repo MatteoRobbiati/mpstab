@@ -31,7 +31,7 @@ class QiboSimulator:
 
 def execute_plan(backend, plan) -> list:
     """
-    Run every circuit in a :class:`~mpstab.quantum_hardware.plan.MeasurementPlan`
+    Run every circuit in a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`
     with its own shot count, batching circuits that share a shot count into a
     single ``backend.execute_circuits`` call instead of one call per circuit.
 
@@ -47,7 +47,7 @@ def execute_plan(backend, plan) -> list:
 
     Returns:
         One frequency dict per circuit, in ``plan.circuits`` order and
-        qubit-0-leftmost -- what :mod:`~mpstab.quantum_hardware.estimate`
+        qubit-0-leftmost -- what :mod:`~mpstab.qpu.measurement`
         assumes.
 
     Raises:

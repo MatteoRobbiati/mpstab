@@ -25,7 +25,7 @@ def build_cnot_ladder_head_and_residual(paulis: list[str], angles: list[float]):
 
     Returns:
         ``(head, residual_tableau, residual_gates)``, the same shape as
-        :func:`build_head_and_residual`, with an identity tableau and an empty
+        :func:`~mpstab.qpu.synthesis.rustiq.build_head_and_residual`, with an identity tableau and an empty
         residual gate list.
     """
     if not paulis:

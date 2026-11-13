@@ -36,6 +36,7 @@ Among our core features:
    guides/using_ansatze
    guides/fidelity_and_approximation
    guides/rustiq_resynthesis
+   guides/clifford_extraction_synthesis
 
 .. toctree::
    :maxdepth: 2

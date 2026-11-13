@@ -525,18 +525,18 @@ def estimate_tnice(
     :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO._shadow_plan` -- with the
     TN-ICE estimator of
     :mod:`~mpstab.qpu.measurement.tnice` instead of the fixed canonical-dual
-    contraction :func:`estimate_shadows` uses, so the two can be compared on
+    contraction :func:`~mpstab.qpu.measurement.shadows.estimate_shadows` uses, so the two can be compared on
     identical measurement data.
 
     Splits the shots into a training half, which fits ``omega`` per term via
-    :func:`~mpstab.qpu.fit_omega_mps`, and a held-out test
+    :func:`fit_omega_mps`, and a held-out test
     half the final value and standard error come from -- avoiding the
     overfitting the paper's Sec. 7.3 warns an in-sample estimate would show.
 
     Args:
-        plan, frequencies: as :func:`estimate_shadows`.
+        plan, frequencies: as :func:`~mpstab.qpu.measurement.shadows.estimate_shadows`.
         lam, n_sweeps, bond_dimension: forwarded to
-            :func:`~mpstab.qpu.fit_omega_mps`.
+            :func:`fit_omega_mps`.
         test_fraction: fraction of each circuit's shots held out for the
             final estimate; the rest trains ``omega``.
         seed: RNG seed for the train/test split.

@@ -34,6 +34,7 @@ from mpstab.qpu.measurement import (
 )
 from mpstab.qpu.synthesis import (
     build_cnot_ladder_head_and_residual,
+    build_extraction_head_and_residual,
     build_head_and_residual,
     head_to_qibo_circuit,
 )
@@ -43,6 +44,7 @@ __all__ = [
     "MeasurementPlan",
     "QiboSimulator",
     "build_cnot_ladder_head_and_residual",
+    "build_extraction_head_and_residual",
     "build_head_and_residual",
     "build_pauli_plan",
     "build_shadow_plan",

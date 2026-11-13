@@ -29,7 +29,7 @@ class MeasurementPlan:
 
     ``recombination`` is route-specific:
 
-    - ``"pauli"``: ``(groups, coefficients)``, one :class:`QWCGroup` per circuit
+    - ``"pauli"``: ``(groups, coefficients)``, one :class:`~mpstab.qpu.measurement.pauli.QWCGroup` per circuit
       in the same order, plus the ``{pauli_string: c_P}`` map the groups came
       from.
     - ``"shadows"``: ``(mpo_terms, bases)``, where ``mpo_terms`` holds
@@ -40,7 +40,7 @@ class MeasurementPlan:
         retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
             (which sample nothing): the |coefficient|-weighted average, over
             Hamiltonian terms, of each term's
-            :attr:`~mpstab.quantum_hardware.pauli_expansion.PauliEnsemble.retained_weight`
+            :attr:`~mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight`
             -- the fraction of the tail-folded observable's Frobenius weight
             that ``n_string_samples`` actually covered.
         bond_truncation_l2: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
@@ -80,7 +80,7 @@ class ExpectationResult:
         value: the (real) expectation value.
         stderr: standard error from shot noise alone.
         truncation_l1: heuristic discarded-Pauli-mass estimate (see
-            :func:`~mpstab.quantum_hardware.pauli_expansion.truncation_error_estimate`
+            :func:`~mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate`
             -- an extrapolation, not a rigorous bound); ``None`` for the
             ``"shadows"``/``"tnice"`` routes, whose bond truncation has no
             L1/L2 split.
@@ -89,7 +89,7 @@ class ExpectationResult:
         n_settings: number of distinct circuits the shots came from.
         n_shots: total shots used.
         retained_weight: ``"pauli"`` only, ``None`` otherwise -- see
-            :attr:`~mpstab.quantum_hardware.plan.MeasurementPlan.retained_weight`.
+            :attr:`~mpstab.qpu.measurement.abstract.MeasurementPlan.retained_weight`.
         state_fidelity: ``"simulation"`` only, ``None`` otherwise: the squared
             norm of the head MPS, which its truncation pushes below 1. The
             hardware methods run the head on the device, so they have no head
@@ -97,12 +97,12 @@ class ExpectationResult:
         bond_truncation_l2: ``"pauli"`` only, ``None`` otherwise (there
             ``truncation_l2`` already is the bond truncation): the bias
             estimate of folding the tail at a finite bond dimension -- see
-            :attr:`~mpstab.quantum_hardware.plan.MeasurementPlan.bond_truncation_l2`.
+            :attr:`~mpstab.qpu.measurement.abstract.MeasurementPlan.bond_truncation_l2`.
             Part of ``total_error``.
         antihermitian_l2: ``"pauli"`` only, ``None`` otherwise: the size of the
             anti-Hermitian part the bond truncation left in the sampled
             coefficients, which was projected out -- see
-            :attr:`~mpstab.quantum_hardware.plan.MeasurementPlan.antihermitian_l2`.
+            :attr:`~mpstab.qpu.measurement.abstract.MeasurementPlan.antihermitian_l2`.
             A diagnostic, not part of ``total_error``.
     """
 
