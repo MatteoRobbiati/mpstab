@@ -142,6 +142,45 @@ def test_flip_vectors_by_hand():
     )
 
 
+def test_restricted_to_by_hand():
+    events = [
+        PauliChannel(0, (0,), {"X": 0.1}),  # dressed ZI
+        PauliChannel(2, (1,), {"Z": 0.2}),  # dressed XZ
+        PauliChannel(-1, (0, 1), {"ZZ": 0.3}),  # undressed ZZ
+    ]
+    compiled = compile_noise(HSMPO(_hand_circuit()), events)
+
+    # IZ: IX anticommutes with it and stays; XI commutes with IZ and IX and
+    # drops out. ZI then flips nothing, so its location goes.
+    restricted = compiled.restricted_to(["IZ"])
+    assert restricted.generators == ["IX"]
+    assert restricted.fault_paulis == ["ZZ", "XZ"]
+    np.testing.assert_allclose(restricted.location_probs, [0.3, 0.2])
+    np.testing.assert_array_equal(restricted.fault_location, [0, 1])
+    np.testing.assert_array_equal(restricted.flips, [[True], [True]])
+
+    # XI: neither rotation reaches it, and only ZZ and ZI flip its sign.
+    restricted = compiled.restricted_to(["XI"])
+    assert restricted.generators == []
+    assert restricted.fault_paulis == ["ZZ", "ZI"]
+    assert restricted.flips.shape == (2, 0)
+    assert compiled.generators == ["XI", "IX"]  # the original is untouched
+
+
+@pytest.mark.parametrize("make_ansatz", ANSATZE)
+def test_light_cone_matches_unrestricted(make_ansatz):
+    """Coherent noise is deterministic, so the two computations must agree."""
+    circuit = make_ansatz().circuit
+    events = _coherent(circuit, np.random.default_rng(7))
+    hsmpo = HSMPO(circuit)
+    hsmpo.set_engines(tn_engine=QuimbEngine(svd_cutoff=0.0))
+    compiled = compile_noise(hsmpo, events)
+    for observable in (OBSERVABLE, "IIIIZ", "XIIII"):
+        full = noisy_expectation(compiled, observable, n_samples=0, light_cone=False)
+        cut = noisy_expectation(compiled, observable, n_samples=0)
+        assert cut.mean == pytest.approx(full.mean, abs=1e-12)
+
+
 def test_flips_match_prefix_backpropagation():
     """The single tableau pass agrees with dressing every fault through its own prefix."""
     circuit = _kicked_ising().circuit
@@ -194,7 +233,10 @@ def test_zero_noise_reproduces_expectation(make_ansatz):
     compiled = compile_noise(hsmpo, events)
 
     result = noisy_expectation(compiled, "ZZIII", n_samples=100, seed=0)
-    assert result.mean == hsmpo.expectation("ZZIII")
+    # Bit-exact without the light cone; with it, fewer rotations round differently.
+    unrestricted = noisy_expectation(compiled, "ZZIII", n_samples=0, light_cone=False)
+    assert unrestricted.mean == hsmpo.expectation("ZZIII")
+    assert result.mean == pytest.approx(hsmpo.expectation("ZZIII"), abs=1e-14)
     assert result.stratum_weights == (1.0, 0.0, 0.0)
     assert result.n_patterns == 1
 

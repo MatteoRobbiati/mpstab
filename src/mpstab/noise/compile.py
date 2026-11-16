@@ -12,7 +12,7 @@ dressed exactly like a magic gate and joins the chain.
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Sequence
 
 import numpy as np
@@ -24,7 +24,7 @@ from mpstab.engines.stabilizers.stim import gate_instruction
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.noise.events import CoherentRotation, NoiseEvent, PauliChannel
-from mpstab.pauli import anticommutation, conjugate, validate_pauli_string
+from mpstab.pauli import anticommutation, conjugate, light_cone, validate_pauli_string
 
 
 @dataclass
@@ -108,6 +108,47 @@ class CompiledNoise:
             Boolean ``(F, len(dressed_paulis))`` matrix.
         """
         return anticommutation(self.fault_paulis, list(dressed_paulis), self.nqubits)
+
+    def restricted_to(self, dressed_paulis: Sequence[str]) -> CompiledNoise:
+        """
+        The same noisy circuit, reduced to what can affect an observable.
+
+        Rotations outside the observable's light cone
+        (:func:`~mpstab.pauli.light_cone`) are dropped. A fault that then flips
+        neither a remaining rotation nor an observable term leaves every
+        expectation value unchanged, so it is folded into its location's
+        no-fault probability, and locations left with no fault are dropped.
+        Both steps are exact for this observable.
+
+        Parameters
+        ----------
+        dressed_paulis : sequence of str
+            Dressed observable terms, from :meth:`dress_observable`.
+
+        Returns
+        -------
+        CompiledNoise
+            A new instance; this one is left untouched.
+        """
+        dressed_paulis = list(dressed_paulis)
+        kept = light_cone(self.generators, dressed_paulis, self.nqubits)
+        flips = self.flips[:, kept]
+        relevant = flips.any(axis=1) | self.observable_flips(dressed_paulis).any(axis=1)
+        _, location = np.unique(self.fault_location[relevant], return_inverse=True)
+        location = location.reshape(-1)
+        probs = self.fault_probs[relevant]
+        return replace(
+            self,
+            generators=[self.generators[j] for j in kept],
+            angles=self.angles[kept],
+            fault_paulis=[p for p, r in zip(self.fault_paulis, relevant) if r],
+            fault_probs=probs,
+            fault_location=location,
+            location_probs=np.bincount(
+                location, weights=probs, minlength=location.max(initial=-1) + 1
+            ),
+            flips=flips[relevant],
+        )
 
 
 def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:

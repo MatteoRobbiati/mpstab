@@ -9,14 +9,16 @@ some angles negated. The average is stratified by the number of faults ``k``:
 - ``k >= 2`` is sampled exactly from its conditional distribution, and its mean
   is weighted by ``Pr(k >= 2)``.
 
-Patterns are deduplicated, then evaluated in lexicographic order, each one
-restarting from the MPS checkpoint before its first rotation that differs from
-the previous pattern.
+Before any of this, the circuit is restricted to the observable's light cone
+(:meth:`~mpstab.noise.CompiledNoise.restricted_to`): rotations that cannot
+affect it are dropped, and so are faults that then flip nothing. Patterns are
+deduplicated, then evaluated in lexicographic order, each one restarting from
+the MPS checkpoint before its first rotation that differs from the previous
+pattern.
 """
 
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass
 
 import numpy as np
@@ -43,7 +45,8 @@ class NoisyExpectation:
         Truncation fidelity of the MPS of each evaluated pattern, shape
         ``(n_patterns,)``; ``nan`` for an engine that does not expose a norm.
     stratum_weights : tuple of float
-        ``(Pr(k = 0), Pr(k = 1), Pr(k >= 2))``.
+        ``(Pr(k = 0), Pr(k = 1), Pr(k >= 2))``, counting only the faults
+        that can affect the observable.
     n_samples : int
         Fault configurations sampled for the ``k >= 2`` stratum.
     """
@@ -61,6 +64,7 @@ def noisy_expectation(
     observable: Observable,
     n_samples: int = 1000,
     seed: int | None = None,
+    light_cone: bool = True,
 ) -> NoisyExpectation:
     """
     Expectation value of ``observable`` on the noisy circuit.
@@ -78,6 +82,11 @@ def noisy_expectation(
         ``stratum_weights[2]`` times the sum of the absolute coefficients.
     seed : int, optional
         Seed of the sampler.
+    light_cone : bool, optional
+        Restrict the circuit to the observable's light cone first. This is
+        exact, and it leaves fewer rotations per pattern and fewer faults, so
+        a smaller ``Pr(k >= 2)`` and a smaller standard error. Turn it off only
+        to compare against the unrestricted computation.
 
     Returns
     -------
@@ -102,9 +111,10 @@ def noisy_expectation(
         result = noisy_expectation(compiled, "ZZ", n_samples=200, seed=0)
         print(f"{result.mean:.4f} +- {result.stderr:.4f}")
     """
-    hsmpo = compiled.hsmpo
     constant, terms = pauli_terms(observable, compiled.nqubits)
     dressed = [compiled.dress_observable(pauli) for pauli in terms]
+    if light_cone:
+        compiled = compiled.restricted_to([pauli for pauli, _ in dressed])
     observable_flips = compiled.observable_flips([pauli for pauli, _ in dressed])
 
     fault_free = 1.0 - compiled.location_probs
@@ -251,7 +261,8 @@ def _pattern_values(compiled, patterns, dressed):
             )
         return operators[j, flipped]
 
-    observables = [(engine.pauli_mpo(pauli), sign) for pauli, sign in dressed]
+    paulis = [pauli for pauli, _ in dressed]
+    signs = np.array([sign for _, sign in dressed], dtype=float)
     unique_values = np.zeros((len(unique), len(dressed)))
     fidelities = np.zeros(len(unique))
 
@@ -261,7 +272,7 @@ def _pattern_values(compiled, patterns, dressed):
         start = 0 if previous is None else int(np.argmax(pattern != previous))
         del checkpoints[start + 1 :]
         for j in range(start, n_rotations):
-            state = copy.deepcopy(checkpoints[-1])
+            state = engine.copy_state(checkpoints[-1])
             engine.apply_rotation(
                 state, rotation(j, bool(pattern[j])), hsmpo.max_bond_dimension
             )
@@ -269,10 +280,9 @@ def _pattern_values(compiled, patterns, dressed):
         previous = pattern
 
         state = checkpoints[-1]
-        for i, (mpo, sign) in enumerate(observables):
-            unique_values[row, i] = (
-                np.real(engine.expval(state_circuit=state, operator=mpo)) * sign
-            )
+        if paulis:
+            values = engine.pauli_expvals(state, paulis)
+            unique_values[row] = np.real(np.asarray(values, dtype=complex)) * signs
         fidelities[row] = (
             np.real(state.norm(squared=True)) if hasattr(state, "norm") else np.nan
         )
