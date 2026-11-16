@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -73,6 +74,16 @@ class TensorNetworkEngine(ABC):
         """
         generator, angle = rotation
         self.pauli_rot(state_circuit, generator, angle, max_bond_dimension)
+
+    def copy_state(self, state_circuit: Any):
+        """
+        An independent copy of a state: evolving either one in place leaves
+        the other untouched.
+
+        The default is a deep copy; engines whose operations never write into
+        existing arrays override it with a cheaper one that shares them.
+        """
+        return copy.deepcopy(state_circuit)
 
     @abstractmethod
     def conjugate_operator(

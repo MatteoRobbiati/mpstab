@@ -1,6 +1,5 @@
 """The hybrid stabilizer-MPO surrogate of a quantum circuit."""
 
-import copy
 from dataclasses import dataclass
 from typing import List, Tuple, Union
 
@@ -272,7 +271,7 @@ class HSMPO:
         values do not re-partition the circuit.
         """
         self._init_tn(self.max_bond_dimension)
-        evolved_mps = copy.deepcopy(self.mps)
+        evolved_mps = self.tn_engine.copy_state(self.mps)
 
         (self.magic_gates, self.clifford_circuit), _ = self.ansatz.partitionate_circuit(
             replacement_probability=0.0, replacement_method="closest"

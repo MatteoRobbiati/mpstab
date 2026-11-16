@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from typing import Any
 
 import cotengra as ctg
@@ -457,6 +458,24 @@ class QuimbEngine(TensorNetworkEngine):
         state_circuit.gate_with_mpo(
             rotation, inplace=True, max_bond=max_bond_dimension, **options
         )
+
+    def copy_state(self, state_circuit: MatrixProductState):
+        """
+        An independent copy of the state.
+
+        On the numpy backend the copy has its own tensors but shares their
+        arrays: the windowed kernels, like quimb's own operations, replace a
+        tensor's array rather than write into it, so neither state can change
+        the other. The cached canonical form is carried over, so the copy
+        needs no re-canonicalization. Other backends get a deep copy.
+        """
+        if not self._fast:
+            return copy.deepcopy(state_circuit)
+        state = state_circuit.copy()
+        gauge = getattr(state_circuit, _GAUGE_ATTR, None)
+        if gauge is not None:
+            setattr(state, _GAUGE_ATTR, gauge)
+        return state
 
     def conjugate_operator(
         self,
