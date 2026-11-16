@@ -122,8 +122,25 @@ class HSMPO:
         self.original_circuit_mps = self._precompute_original_mps()
 
     def _init_tn(self, max_bond_dimension: int | None = None):
+        """Reset ``self.mps`` to the product state ``initial_state`` prepares."""
+        self.mps = self._product_state_mps(max_bond_dimension)
+
+    def initial_mps(self):
         """
-        Reset ``self.mps`` to the product state ``initial_state`` prepares.
+        A fresh MPS in the product state ``initial_state`` prepares, capped at
+        ``max_bond_dimension``.
+
+        Unlike the cached ``mps`` and ``original_circuit_mps``, the returned
+        state belongs to the caller: evolving it leaves this instance untouched.
+
+        Raises:
+            ValueError: if ``initial_state`` entangles any pair of qubits.
+        """
+        return self._product_state_mps(self.max_bond_dimension)
+
+    def _product_state_mps(self, max_bond_dimension: int | None):
+        """
+        Build the product-state MPS ``initial_state`` prepares.
 
         Both forms are handed to the engine, which takes whichever it prefers:
         the per-qubit amplitudes for the native engine, the circuit itself for
@@ -142,7 +159,7 @@ class HSMPO:
                 )
             amplitudes.append(light_circuit().state())
 
-        self.mps = self.tn_engine.build_circuit_mps(
+        return self.tn_engine.build_circuit_mps(
             n=self.nqubits,
             initial_state_amplitudes=np.array(amplitudes),
             initial_state_circuit=self.initial_state,
