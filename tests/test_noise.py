@@ -393,10 +393,11 @@ def _docstring_examples():
     import textwrap
 
     import mpstab.noise as noise
+    from mpstab import pauli
 
     blocks = []
     objects = [getattr(noise, name) for name in noise.__all__]
-    objects += [noise.compile.anticommutation]
+    objects += [pauli.anticommutation, pauli.light_cone]
     for obj in objects:
         lines = (inspect.getdoc(obj) or "").splitlines()
         for i, line in enumerate(lines):

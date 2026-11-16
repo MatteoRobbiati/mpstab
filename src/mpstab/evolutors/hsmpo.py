@@ -21,7 +21,9 @@ from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 from mpstab.models.metrics import stabilizer_renyi_entropy_mps
-from mpstab.pauli import conjugate, validate_pauli_string
+from mpstab.pauli import conjugate
+from mpstab.pauli import light_cone as pauli_light_cone
+from mpstab.pauli import validate_pauli_string
 
 
 @dataclass
@@ -314,16 +316,24 @@ class HSMPO:
         Both steps go through the engines' batched methods, so the Clifford
         tableau is built once and the MPS is swept once for all the terms.
         """
+        backpropagated = self.stab_engine.backpropagate_many(terms, clifford_circuit)
+        return self._evaluate_terms(terms, backpropagated, state_mps)
+
+    def _evaluate_terms(self, terms: dict, backpropagated: list, state_mps) -> float:
+        """
+        ``sum_P c_P <P>`` for ``terms = {P: c_P}``, given each term
+        backpropagated as ``(pauli, sign)``, in one sweep of ``state_mps``.
+        """
         if not terms:
             return 0.0
-        paulis = list(terms)
-        backpropagated = self.stab_engine.backpropagate_many(paulis, clifford_circuit)
         values = self.tn_engine.pauli_expvals(
             state_mps, [pauli for pauli, _ in backpropagated]
         )
         return sum(
-            terms[pauli] * np.real(value) * sign
-            for pauli, (_, sign), value in zip(paulis, backpropagated, values)
+            coefficient * np.real(value) * sign
+            for coefficient, (_, sign), value in zip(
+                terms.values(), backpropagated, values
+            )
         )
 
     def expectation_from_partition(
@@ -332,6 +342,7 @@ class HSMPO:
         replacement_probability: float,
         replacement_method: str = "closest",
         return_partitions: bool = False,
+        light_cone: bool = True,
     ):
         """
         Expectation value on a lower-magic circuit sampled from the ansatz.
@@ -344,6 +355,10 @@ class HSMPO:
             replacement_method: ``"closest"`` or ``"random"`` Clifford angle.
             return_partitions: also return the magic gates, the Clifford-only
                 circuit and the sampled full circuit.
+            light_cone: skip the dressed rotations that cannot affect the
+                observable (:func:`~mpstab.pauli.light_cone`). This is exact,
+                and with a bond-dimension cap it also spares those rotations'
+                truncation error.
 
         Returns:
             ``(expval, partitions)``, with ``partitions`` ``None`` unless
@@ -356,10 +371,18 @@ class HSMPO:
                 replacement_method=replacement_method,
             )
         )
-        self._evolve_magic_gates(self.mps, magic_gates, clifford_circuit)
-
         constant, terms = pauli_terms(observable, self.nqubits)
-        expval = constant + self._terms_expectation(terms, self.mps, clifford_circuit)
+        backpropagated = self.stab_engine.backpropagate_many(terms, clifford_circuit)
+        rotations = self._dress(magic_gates, clifford_circuit)
+        if light_cone:
+            kept = pauli_light_cone(
+                [generator for generator, _ in rotations],
+                [pauli for pauli, _ in backpropagated],
+                self.nqubits,
+            )
+            rotations = [rotations[k] for k in kept]
+        self._apply_rotations(self.mps, rotations)
+        expval = constant + self._evaluate_terms(terms, backpropagated, self.mps)
 
         partitions = (
             {
@@ -377,7 +400,11 @@ class HSMPO:
         Apply each magic gate to ``state_mps`` as a dressed Pauli rotation,
         dressing it with the Clifford prefix that precedes it.
         """
-        for generator, angle in self._dress(magic_gates, clifford_circuit):
+        self._apply_rotations(state_mps, self._dress(magic_gates, clifford_circuit))
+
+    def _apply_rotations(self, state_mps, rotations):
+        """Apply ``(generator, angle)`` rotations to ``state_mps``, in order."""
+        for generator, angle in rotations:
             self.tn_engine.pauli_rot(
                 state_circuit=state_mps,
                 generator=generator,

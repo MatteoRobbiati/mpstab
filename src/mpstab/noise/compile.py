@@ -24,7 +24,7 @@ from mpstab.engines.stabilizers.stim import gate_instruction
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.noise.events import CoherentRotation, NoiseEvent, PauliChannel
-from mpstab.pauli import conjugate, validate_pauli_string
+from mpstab.pauli import anticommutation, conjugate, validate_pauli_string
 
 
 @dataclass
@@ -255,43 +255,3 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
         location_probs=np.array(location_probs, dtype=float),
         flips=flips,
     )
-
-
-def anticommutation(left: Sequence[str], right: Sequence[str], nqubits: int):
-    """
-    Which pairs of Pauli strings anticommute.
-
-    Parameters
-    ----------
-    left, right : sequence of str
-        Full-width Pauli strings.
-    nqubits : int
-        Their width, needed when either sequence is empty.
-
-    Returns
-    -------
-    numpy.ndarray
-        Boolean ``(len(left), len(right))`` matrix, ``True`` where the strings
-        anticommute.
-
-    Examples
-    --------
-    ::
-
-        from mpstab.noise.compile import anticommutation
-
-        print(anticommutation(["XI", "ZZ"], ["ZI", "XX"], 2))
-        # [[ True False]
-        #  [False False]]
-    """
-    x_left, z_left = _symplectic(left, nqubits)
-    x_right, z_right = _symplectic(right, nqubits)
-    return ((x_left @ z_right.T + z_left @ x_right.T) % 2).astype(bool)
-
-
-def _symplectic(paulis: Sequence[str], nqubits: int):
-    """The ``(x, z)`` bit matrices of some Pauli strings, as integers."""
-    labels = np.array([list(p) for p in paulis], dtype="<U1").reshape(-1, nqubits)
-    x = np.isin(labels, ("X", "Y")).astype(np.int64)
-    z = np.isin(labels, ("Z", "Y")).astype(np.int64)
-    return x, z

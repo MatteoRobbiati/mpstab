@@ -45,11 +45,7 @@ def test_expectation_matches_qibo(observable):
 
 def _all_pauli_strings(n):
     """All non-identity Pauli strings of length n."""
-    return [
-        "".join(p)
-        for p in itertools.product("IXYZ", repeat=n)
-        if set(p) != {"I"}
-    ]
+    return ["".join(p) for p in itertools.product("IXYZ", repeat=n) if set(p) != {"I"}]
 
 
 def test_expectation_matches_qibo_full_pauli_sweep():
@@ -77,9 +73,9 @@ def test_expectation_matches_qibo_full_pauli_sweep():
         exp_qibo = expectation_with_qibo(
             mpstab_ansatz=ansatz, observable_str=observable
         )
-        assert np.allclose(exp_hybrid, exp_qibo, atol=1e-6), (
-            f"[{observable}] hybrid={exp_hybrid:+.6f} qibo={exp_qibo:+.6f}"
-        )
+        assert np.allclose(
+            exp_hybrid, exp_qibo, atol=1e-6
+        ), f"[{observable}] hybrid={exp_hybrid:+.6f} qibo={exp_qibo:+.6f}"
 
 
 def test_expectation_from_partition_with_qubit_scaling():
@@ -133,3 +129,20 @@ def test_symbolic_hamiltonian_expectation(rng_seed, nqubits):
     exp_qibo = h.expectation_from_state(circuit().state())
 
     assert np.allclose(exp_mpstab, exp_qibo, atol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "observable", ["ZIIIII", "IIXYII", {"ZZIIII": 0.5, "IIIIXX": -1.2, "IYIZII": 0.3}]
+)
+def test_expectation_from_partition_light_cone_is_exact(observable):
+    """With nothing replaced, the light-cone path matches the full evolution and qibo."""
+    ans = HardwareEfficient(nqubits=6, nlayers=3)
+    hs = HSMPO(ansatz=ans)
+    cut, _ = hs.expectation_from_partition(observable, replacement_probability=0.0)
+    full, _ = hs.expectation_from_partition(
+        observable, replacement_probability=0.0, light_cone=False
+    )
+    terms = observable if isinstance(observable, dict) else {observable: 1.0}
+    exact = sum(c * expectation_with_qibo(ans, p) for p, c in terms.items())
+    assert cut == pytest.approx(full, abs=1e-12)
+    assert cut == pytest.approx(exact, abs=1e-10)
