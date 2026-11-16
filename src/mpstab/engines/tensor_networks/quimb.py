@@ -230,7 +230,21 @@ class QuimbEngine(TensorNetworkEngine):
         max_bond_dimension: int,
     ):
         """Apply ``exp(-i angle/2 generator)`` to the state in place, then compress."""
-        rotation = self._to_backend(self.PauliExp(generator, angle))
+        self.apply_rotation(
+            state_circuit, self.rotation_operator(generator, angle), max_bond_dimension
+        )
+
+    def rotation_operator(self, generator: str, angle: float) -> MatrixProductOperator:
+        """The backend MPO for ``exp(-i angle/2 generator)``, ready to reuse."""
+        return self._to_backend(self.PauliExp(generator, angle))
+
+    def apply_rotation(
+        self,
+        state_circuit: MatrixProductState,
+        rotation: MatrixProductOperator,
+        max_bond_dimension: int | None,
+    ):
+        """Apply a :meth:`rotation_operator` MPO to the state in place, then compress."""
         state_circuit.gate_with_mpo(rotation, inplace=True, max_bond=max_bond_dimension)
 
     def conjugate_operator(

@@ -46,6 +46,26 @@ class TensorNetworkEngine(ABC):
     ):
         """Apply ``exp(-i angle/2 generator)`` to the state, in place."""
 
+    def rotation_operator(self, generator: str, angle: float):
+        """
+        Build ``exp(-i angle/2 generator)`` once, in a form
+        :meth:`apply_rotation` accepts, so a rotation applied many times is
+        not rebuilt on every call.
+
+        The default just stores the arguments; engines with a costly operator
+        construction override both methods.
+        """
+        return generator, angle
+
+    def apply_rotation(self, state_circuit: Any, rotation: Any, max_bond_dimension):
+        """
+        Apply a rotation built by :meth:`rotation_operator` to the state, in
+        place. Must give the same state as :meth:`pauli_rot` with the same
+        generator and angle.
+        """
+        generator, angle = rotation
+        self.pauli_rot(state_circuit, generator, angle, max_bond_dimension)
+
     @abstractmethod
     def conjugate_operator(
         self, operator: Any, generator: str, angle: float, max_bond_dimension: int
