@@ -2,8 +2,17 @@
 
 import numpy as np
 
-#: The Pauli each supported magic gate rotates about.
-GATE_GENERATORS = {"rx": "X", "ry": "Y", "rz": "Z", "t": "Z"}
+#: The Pauli each supported magic gate rotates about, on every qubit it targets:
+#: ``RZZ(theta) = exp(-i theta/2 Z Z)`` has generator ``"ZZ"`` on its two qubits.
+GATE_GENERATORS = {
+    "rx": "X",
+    "ry": "Y",
+    "rz": "Z",
+    "t": "Z",
+    "rxx": "X",
+    "ryy": "Y",
+    "rzz": "Z",
+}
 
 #: Rotation angles of magic gates that carry no parameter.
 FIXED_ANGLES = {"t": np.pi / 4}

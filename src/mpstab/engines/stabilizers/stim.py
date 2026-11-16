@@ -94,30 +94,42 @@ class StimEngine(StabilizersEngine):
                 continue
             elif name == "gpi2":
                 stim_circuit.append(_gpi2_instruction(gate), gate.qubits)
-            elif name in ("rx", "ry", "rz"):
-                instruction = _rotation_instruction(gate, axis=name[1].upper())
+            elif name in _ROTATION_GATES:
+                instruction = _rotation_instruction(gate, axis=name[-1].upper())
                 if instruction is not None:  # a zero-angle rotation is a no-op
                     stim_circuit.append(instruction, gate.qubits)
             else:
                 raise ValueError(
                     f"Gate {name!r} has no stim equivalent. The Clifford part of "
                     "the circuit must use gates this engine supports: "
-                    f"{sorted(_DIRECT_GATES)}, gpi2, rx, ry, rz."
+                    f"{sorted(_DIRECT_GATES)}, gpi2, {', '.join(_ROTATION_GATES)}."
                 )
         return stim_circuit
 
 
+#: Pauli rotations ``exp(-i theta/2 P...P)``, Clifford at multiples of pi/2.
+_ROTATION_GATES = ("rx", "ry", "rz", "rxx", "ryy", "rzz")
+
+
 def _rotation_instruction(gate, axis: str):
-    """The stim instruction for an ``R{axis}`` gate, or ``None`` if it is a no-op."""
+    """
+    The stim instruction for an ``R{axis}`` or ``R{axis}{axis}`` gate, or
+    ``None`` if it is a no-op.
+
+    At ``pi`` the rotation is the Pauli ``axis`` on every target qubit, up to a
+    phase, so the single-qubit instruction is broadcast over them. At ``pi/2``
+    it is stim's ``SQRT_{axis}`` or ``SQRT_{axis}{axis}``, again up to a phase.
+    """
     theta = gate.parameters[0]
+    sqrt = "SQRT_" + axis * len(gate.qubits)
     if _is_multiple_of(theta, 0):
         return None
     if _is_multiple_of(theta, np.pi):
         return axis
     if _is_multiple_of(theta, np.pi / 2):
-        return f"SQRT_{axis}"
+        return sqrt
     if _is_multiple_of(theta, -np.pi / 2):
-        return f"SQRT_{axis}_DAG"
+        return f"{sqrt}_DAG"
     raise ValueError(f"Gate {gate} is not Clifford.")
 
 

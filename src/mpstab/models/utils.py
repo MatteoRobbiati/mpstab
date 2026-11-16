@@ -44,9 +44,9 @@ def get_closest_angle(old_angle, candidates):
 
 
 def replace_non_clifford_gate(gate, replacement_method, candidates=None):
-    """Replace non‐Clifford RX/RY/RZ or GPI2 gate with a Clifford one."""
-    # RX/RY/RZ branch
-    if gate.name in ("rx", "ry", "rz"):
+    """Replace a non-Clifford RX/RY/RZ, RXX/RYY/RZZ or GPI2 gate with a Clifford one."""
+    # Pauli-rotation branch: Clifford exactly at multiples of pi/2.
+    if gate.name in ("rx", "ry", "rz", "rxx", "ryy", "rzz"):
         if candidates is None:
             candidates = np.arange(-2, 3) * np.pi / 2.0
         old_angle = gate.parameters[0]
