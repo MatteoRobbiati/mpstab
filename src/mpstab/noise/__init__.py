@@ -7,6 +7,7 @@ expectation values with :func:`noisy_expectation`.
 """
 
 from mpstab.noise.compile import CompiledNoise, compile_noise
+from mpstab.noise.estimator import NoisyExpectation, noisy_expectation
 from mpstab.noise.events import (
     CoherentRotation,
     NoiseEvent,
@@ -18,7 +19,9 @@ __all__ = [
     "CoherentRotation",
     "CompiledNoise",
     "NoiseEvent",
+    "NoisyExpectation",
     "PauliChannel",
     "compile_noise",
     "from_qibo_noise_model",
+    "noisy_expectation",
 ]
