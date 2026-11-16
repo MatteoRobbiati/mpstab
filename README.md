@@ -106,13 +106,13 @@ from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
 
 # Create a quantum circuit ansatz
-ansatz = HardwareEfficient(nqubits=5, nlayers=3)
+ansatz = HardwareEfficient(nqubits=8, nlayers=3)
 
 # Initialize the hybrid stabilizer MPO simulator
-surrogate = HSMPO(ansatz=ansatz, max_bond_dimension=64)
+surrogate = HSMPO(ansatz=ansatz, max_bond_dimension=16)
 
 # Compute expectation value of a Pauli observable
-observable = "ZIZ"
+observable = "ZIZXIIIZ"
 expectation_value = surrogate.expectation(observable)
 print(f"<{observable}> = {expectation_value}")
 
