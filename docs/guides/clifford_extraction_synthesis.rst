@@ -83,7 +83,7 @@ Usage
 
     hs = HSynthSMPO(
         ansatz=ParametricKickedIsing(nqubits=6, n_steps=3, delta_h=0.2),
-        # connectivity: None (all-to-all) | "line" | [(q0, q1), ...]
+        # connectivity: None (all-to-all) | "line" | a graph | [(q0, q1), ...]
         head_synthesis=ExtractionSynthesis(connectivity="line"),
     )
     cut_index = len(hs.magic_gates) // 2
@@ -93,6 +93,23 @@ Usage
 
     # every hardware route uses that head and folds its residual
     result = hs.expectation_at_cut("ZZIIII", cut_index, method=PauliSampling(), n_shots=20000, seed=0)
+
+Any device topology can be given, as a graph whose nodes are the qubit indices
+of the circuit: a ``networkx.Graph``, an adjacency mapping or a list of edges.
+The device may have more qubits than the circuit, which then sits on the nodes
+``0 .. nqubits - 1``.
+
+.. code-block:: python
+
+    import networkx as nx
+
+    # a 2 x 3 grid, its nodes relabelled 0 .. 5
+    grid = nx.convert_node_labels_to_integers(nx.grid_2d_graph(2, 3))
+    ExtractionSynthesis(connectivity=grid)
+
+    # a tree, as edges or as an adjacency mapping
+    ExtractionSynthesis(connectivity=[(0, 1), (1, 2), (2, 3), (1, 4)])
+    ExtractionSynthesis(connectivity={0: [1], 1: [2, 4], 2: [3]})
     exact = hs.expectation_at_cut("ZZIIII", cut_index, method="simulation").value
     assert abs(result.value - exact) <= 5 * result.total_error + 1e-6
 
