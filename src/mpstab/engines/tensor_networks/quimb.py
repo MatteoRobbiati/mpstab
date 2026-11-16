@@ -103,6 +103,7 @@ class QuimbEngine(TensorNetworkEngine):
         backend: str = "numpy",
         cache: bool = False,
         cache_directory: str | None = "contractions_cache",
+        svd_cutoff: float | None = None,
     ):
         """
         Args:
@@ -111,7 +112,13 @@ class QuimbEngine(TensorNetworkEngine):
                 hyper-optimizer instead of contracting greedily.
             cache_directory: where cotengra persists those paths. Created if
                 missing.
+            svd_cutoff: singular-value cutoff when compressing the MPS after a
+                rotation. ``None`` keeps quimb's default (``1e-10``, relative),
+                and ``0.0`` truncates only through ``max_bond_dimension``. Many
+                small-angle rotations leave Schmidt values below the default,
+                so exact comparisons need ``0.0``.
         """
+        self.svd_cutoff = svd_cutoff
         if backend == "numpy":
             import numpy
 
@@ -245,7 +252,10 @@ class QuimbEngine(TensorNetworkEngine):
         max_bond_dimension: int | None,
     ):
         """Apply a :meth:`rotation_operator` MPO to the state in place, then compress."""
-        state_circuit.gate_with_mpo(rotation, inplace=True, max_bond=max_bond_dimension)
+        options = {} if self.svd_cutoff is None else {"cutoff": self.svd_cutoff}
+        state_circuit.gate_with_mpo(
+            rotation, inplace=True, max_bond=max_bond_dimension, **options
+        )
 
     def conjugate_operator(
         self,
