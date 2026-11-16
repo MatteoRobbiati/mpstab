@@ -6,6 +6,7 @@ compile it once against a surrogate with :func:`compile_noise`, then estimate
 expectation values with :func:`noisy_expectation`.
 """
 
+from mpstab.noise.compile import CompiledNoise, compile_noise
 from mpstab.noise.events import (
     CoherentRotation,
     NoiseEvent,
@@ -15,7 +16,9 @@ from mpstab.noise.events import (
 
 __all__ = [
     "CoherentRotation",
+    "CompiledNoise",
     "NoiseEvent",
     "PauliChannel",
+    "compile_noise",
     "from_qibo_noise_model",
 ]
