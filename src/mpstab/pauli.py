@@ -177,4 +177,8 @@ def _symplectic(paulis: Sequence[str], nqubits: int):
 
 def _anticommuting(left_x, left_z, right_x, right_z) -> np.ndarray:
     """Anticommutation matrix from symplectic bit matrices."""
-    return ((left_x @ right_z.T + left_z @ right_x.T) % 2).astype(bool)
+    # Some BLAS builds (Apple Accelerate) raise spurious floating-point flags
+    # on these 0/1 products; the integer-valued results are exact regardless.
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        products = left_x @ right_z.T + left_z @ right_x.T
+    return (products % 2).astype(bool)
