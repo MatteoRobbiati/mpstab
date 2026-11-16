@@ -66,11 +66,16 @@ def build_shadow_plan(
 
     remaining = n_shots
     circuits, bases, shots = [], [], []
+    # At most 3^n distinct bases: settings that draw the same one share its
+    # circuit object instead of each building a copy of the head.
+    basis_circuits: dict = {}
     for setting in range(n_settings):
         basis = "".join("XYZ"[b] for b in basis_indices[setting])
         this_shots = min(shots_per_setting, remaining)
         remaining -= this_shots
-        circuits.append(head_circuit + basis_measurement(basis, nqubits))
+        if basis not in basis_circuits:
+            basis_circuits[basis] = head_circuit + basis_measurement(basis, nqubits)
+        circuits.append(basis_circuits[basis])
         bases.append(basis)
         shots.append(this_shots)
 
@@ -111,9 +116,9 @@ def _snapshot_factors() -> np.ndarray:
 _SNAPSHOT_FACTORS = _snapshot_factors()
 
 
-def _term_setting_stats(mpo_arrays, basis: str, freq: dict):
-    """``(sum_v, sum_v2, n)`` of ``Tr[sigma_hat . mpo]`` over one setting's shots."""
-    site_blocks = [
+def _site_blocks(mpo_arrays, basis: str) -> list:
+    """Each site's MPO tensor contracted with its snapshot factors, ``[outcome]``."""
+    return [
         np.einsum(
             "lrkb,obk->olr",
             array,
@@ -122,13 +127,29 @@ def _term_setting_stats(mpo_arrays, basis: str, freq: dict):
         )
         for array, label in zip(mpo_arrays, basis)
     ]
+
+
+def _term_setting_stats(mpo_arrays, basis: str, freq: dict, cache=None):
+    """
+    ``(sum_v, sum_v2, n)`` of ``Tr[sigma_hat . mpo]`` over one setting's shots.
+
+    ``cache``, a dict reused across calls for the same ``mpo_arrays``, keeps
+    each basis's site blocks and each ``(basis, bitstring)`` snapshot value, so
+    repeated bases and outcomes are contracted once.
+    """
+    cache = {} if cache is None else cache
     sum_v = sum_v2 = 0.0
     n = 0
     for bitstring, count in freq.items():
-        acc = site_blocks[0][int(bitstring[0])]
-        for site in range(1, len(bitstring)):
-            acc = acc @ site_blocks[site][int(bitstring[site])]
-        v = float(acc[0, 0].real)
+        v = cache.get((basis, bitstring))
+        if v is None:
+            site_blocks = cache.get(basis)
+            if site_blocks is None:
+                site_blocks = cache[basis] = _site_blocks(mpo_arrays, basis)
+            acc = site_blocks[0][int(bitstring[0])]
+            for site in range(1, len(bitstring)):
+                acc = acc @ site_blocks[site][int(bitstring[site])]
+            v = cache[basis, bitstring] = float(acc[0, 0].real)
         sum_v += v * count
         sum_v2 += v * v * count
         n += count
@@ -147,10 +168,13 @@ def estimate_shadows(plan, frequencies) -> ExpectationResult:
     variance = 0.0
     for _, coeff, sign, mpo in mpo_terms:
         arrays = mpo_site_arrays(mpo)
+        cache: dict = {}
         sum_v = sum_v2 = 0.0
         n = 0
         for basis, freq in zip(bases, frequencies):
-            setting_v, setting_v2, setting_n = _term_setting_stats(arrays, basis, freq)
+            setting_v, setting_v2, setting_n = _term_setting_stats(
+                arrays, basis, freq, cache
+            )
             sum_v += setting_v
             sum_v2 += setting_v2
             n += setting_n

@@ -37,8 +37,12 @@ class QiboSimulator:
                 f"{nqubits} qubits: exact simulation is impractical above ~30."
             )
         groups: dict = defaultdict(list)
+        keys: dict = {}  # plans often repeat the same circuit object
         for index, circuit in enumerate(circuits):
-            groups[_circuit_key(circuit)].append(index)
+            key = keys.get(id(circuit))
+            if key is None:
+                key = keys[id(circuit)] = _circuit_key(circuit)
+            groups[key].append(index)
 
         frequencies: list = [None] * len(circuits)
         for indices in groups.values():
