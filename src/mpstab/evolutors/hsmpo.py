@@ -42,11 +42,15 @@ class HSMPO:
         max_bond_dimension: MPS truncation cap, or ``None`` for no cap.
         initial_state: single-qubit-gates-only circuit preparing the initial
             state. Defaults to ``|0...0>``.
+        progress: show a progress bar while the MPS is evolved through the
+            dressed rotations. It only appears once the evolution has taken
+            longer than about a second, so quick builds stay silent.
     """
 
     ansatz: Union[Ansatz, Circuit]
     max_bond_dimension: int = None
     initial_state: Circuit = None
+    progress: bool = True
 
     def __post_init__(self):
         if isinstance(self.ansatz, Circuit):
@@ -87,6 +91,7 @@ class HSMPO:
         self.ansatz = ansatz
         self.max_bond_dimension = None
         self.initial_state = Circuit(ansatz.nqubits)
+        self.progress = True
         self.stab_engine = _validated_stab_engine(stab_engine)
         self.tn_engine = _validated_tn_engine(tn_engine)
         (self.magic_gates, self.clifford_circuit), _ = ansatz.partitionate_circuit(
@@ -279,13 +284,9 @@ class HSMPO:
             replacement_probability=0.0, replacement_method="closest"
         )
 
-        for generator, angle in self._dressed_rotations():
-            self.tn_engine.pauli_rot(
-                state_circuit=evolved_mps,
-                generator=generator,
-                angle=angle,
-                max_bond_dimension=self.max_bond_dimension,
-            )
+        self._apply_rotations(
+            evolved_mps, self._dressed_rotations(), description="building MPS"
+        )
         return evolved_mps
 
     def expectation(self, observable: Observable, return_fidelity: bool = False):
@@ -402,9 +403,17 @@ class HSMPO:
         """
         self._apply_rotations(state_mps, self._dress(magic_gates, clifford_circuit))
 
-    def _apply_rotations(self, state_mps, rotations):
-        """Apply ``(generator, angle)`` rotations to ``state_mps``, in order."""
-        for generator, angle in rotations:
+    def _apply_rotations(self, state_mps, rotations, description="evolving MPS"):
+        """
+        Apply ``(generator, angle)`` rotations to ``state_mps``, in order.
+
+        With :attr:`progress`, a progress bar shows the rotations applied and
+        the current bond dimension, once the evolution has taken longer than
+        :data:`_PROGRESS_DELAY` seconds.
+        """
+        for generator, angle in _progress_bar(
+            rotations, state_mps, description, enabled=self.progress
+        ):
             self.tn_engine.pauli_rot(
                 state_circuit=state_mps,
                 generator=generator,
@@ -547,3 +556,38 @@ def _validated_tn_engine(tn_engine) -> TensorNetworkEngine:
             "NativeTensorNetworkEngine()."
         )
     return tn_engine
+
+
+#: Seconds an evolution must run before its progress bar appears.
+_PROGRESS_DELAY = 1.0
+
+
+def _progress_bar(rotations, state_mps, description: str, enabled: bool = True):
+    """
+    Iterate over ``rotations``, drawing a progress bar with the bond dimension
+    of ``state_mps`` once the loop has run for :data:`_PROGRESS_DELAY` seconds.
+    """
+    rotations = list(rotations)
+    if not enabled or not rotations:
+        yield from rotations
+        return
+    from tqdm.auto import tqdm
+
+    bond = getattr(state_mps, "max_bond", None)
+    every = max(1, len(rotations) // 200)  # refresh chi ~200 times at most
+    with tqdm(
+        total=len(rotations),
+        desc=description,
+        unit="rot",
+        delay=_PROGRESS_DELAY,
+        ascii=" ━",
+        colour="green",
+        bar_format="{desc} {bar} {n_fmt}/{total_fmt} rotations "
+        "{rate_fmt} eta {remaining}{postfix}",
+        leave=True,
+    ) as bar:
+        for step, rotation in enumerate(rotations, 1):
+            yield rotation
+            if bond is not None and (step % every == 0 or step == len(rotations)):
+                bar.set_postfix_str(f"chi={bond()}", refresh=False)
+            bar.update()
