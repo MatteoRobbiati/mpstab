@@ -20,6 +20,7 @@ import stim
 from qibo import Circuit, gates
 
 from mpstab.engines import StimEngine
+from mpstab.engines.stabilizers.stim import gate_instruction
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.noise.events import CoherentRotation, NoiseEvent, PauliChannel
@@ -225,9 +226,9 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
                 simulator.current_inverse_tableau(),
             )
         else:
-            one_gate = Circuit(nqubits)
-            one_gate.add(gate)
-            simulator.do(hsmpo.stab_engine.to_stim(one_gate))
+            instruction = gate_instruction(gate)
+            if instruction is not None:
+                simulator.do(stim.Circuit(instruction))
         add_events(index)
 
     expected = [gate for _, gate in hsmpo.magic_gates]

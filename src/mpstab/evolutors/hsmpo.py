@@ -217,33 +217,51 @@ class HSMPO:
                 "set_engines(stab_engine=StimEngine()) to enable it."
             )
 
+        return self._dress(self.magic_gates, self.clifford_circuit)
+
+    def _dress(self, magic_gates, clifford_circuit) -> List[Tuple[str, float]]:
+        """
+        Dressed ``(generator, signed_angle)`` of each ``(breakpoint, gate)`` in
+        ``magic_gates``, conjugated by the first ``breakpoint`` gates of
+        ``clifford_circuit``.
+
+        With a :class:`~mpstab.engines.StimEngine` the Clifford circuit is
+        simulated once, a segment at a time, so dressing every gate costs one
+        pass over the circuit. Other engines backpropagate each generator
+        through its own prefix, which is quadratic in the circuit length.
+        """
+        if not isinstance(self.stab_engine, StimEngine):
+            rotations = []
+            for breakpoint_index, gate in magic_gates:
+                prefix = self._clifford_subcircuit(clifford_circuit, breakpoint_index)
+                generator, sign = self.stab_engine.backpropagate(
+                    gate_generator(gate, self.nqubits), prefix
+                )
+                rotations.append((generator, sign * gate_angle(gate)))
+            return rotations
+
+        instructions = self.stab_engine.instructions(clifford_circuit)
         simulator = stim.TableauSimulator()
         simulator.do(stim.Circuit(f"I {self.nqubits - 1}"))
 
         rotations: List[Tuple[str, float]] = []
-        pending = iter(self.magic_gates)
-        next_gate = next(pending, None)
-
-        def dress_gates_at(breakpoint_index: int):
-            nonlocal next_gate
-            while next_gate is not None and next_gate[0] == breakpoint_index:
-                gate = next_gate[1]
+        simulated = 0
+        inverse = None
+        for breakpoint_index, gate in magic_gates:
+            if breakpoint_index < simulated:
+                raise ValueError("Magic gates must be listed in circuit order.")
+            if breakpoint_index > simulated or inverse is None:
+                # Every Clifford gate up to this magic gate, in one stim call.
+                segment = filter(None, instructions[simulated:breakpoint_index])
+                simulator.do(stim.Circuit("\n".join(segment)))
+                simulated = breakpoint_index
                 # current_inverse_tableau() is U^dag for the Clifford prefix U.
-                rotations.append(
-                    self._conjugate_rotation(
-                        (gate_generator(gate, self.nqubits), gate_angle(gate)),
-                        simulator.current_inverse_tableau(),
-                    )
+                inverse = simulator.current_inverse_tableau()
+            rotations.append(
+                self._conjugate_rotation(
+                    (gate_generator(gate, self.nqubits), gate_angle(gate)), inverse
                 )
-                next_gate = next(pending, None)
-
-        dress_gates_at(0)
-        for breakpoint_index, gate in enumerate(self.clifford_circuit.queue, start=1):
-            one_gate = Circuit(self.nqubits)
-            one_gate.add(gate)
-            simulator.do(self.stab_engine.to_stim(one_gate))
-            dress_gates_at(breakpoint_index)
-
+            )
         return rotations
 
     def _precompute_original_mps(self):
@@ -281,26 +299,32 @@ class HSMPO:
                 pushes below 1.
         """
         constant, terms = pauli_terms(observable, self.nqubits)
-        expval = constant + sum(
-            coefficient * self._term_expectation(pauli, self.original_circuit_mps)
-            for pauli, coefficient in terms.items()
+        expval = constant + self._terms_expectation(
+            terms, self.original_circuit_mps, self.clifford_circuit
         )
 
         if return_fidelity:
             return expval, self.original_circuit_mps.norm(squared=True)
         return expval
 
-    def _term_expectation(self, pauli: str, state_mps) -> float:
+    def _terms_expectation(self, terms: dict, state_mps, clifford_circuit) -> float:
         """
-        Expectation value of one Pauli string, backpropagated through the cached
-        Clifford circuit before being contracted against ``state_mps``.
+        ``sum_P c_P <P>`` for ``terms = {P: c_P}``, every ``P`` backpropagated
+        through ``clifford_circuit`` before being evaluated on ``state_mps``.
+
+        Both steps go through the engines' batched methods, so the Clifford
+        tableau is built once and the MPS is swept once for all the terms.
         """
-        backpropagated, sign = self.stab_engine.backpropagate(
-            observable=pauli, clifford_circuit=self.clifford_circuit
+        if not terms:
+            return 0.0
+        paulis = list(terms)
+        backpropagated = self.stab_engine.backpropagate_many(paulis, clifford_circuit)
+        values = self.tn_engine.pauli_expvals(
+            state_mps, [pauli for pauli, _ in backpropagated]
         )
-        mpo = self.tn_engine.pauli_mpo(backpropagated)
-        return (
-            np.real(self.tn_engine.expval(state_circuit=state_mps, operator=mpo)) * sign
+        return sum(
+            terms[pauli] * np.real(value) * sign
+            for pauli, (_, sign), value in zip(paulis, backpropagated, values)
         )
 
     def expectation_from_partition(
@@ -336,17 +360,7 @@ class HSMPO:
         self._evolve_magic_gates(self.mps, magic_gates, clifford_circuit)
 
         constant, terms = pauli_terms(observable, self.nqubits)
-        expval = constant
-        for pauli, coefficient in terms.items():
-            backpropagated, sign = self.stab_engine.backpropagate(
-                observable=pauli, clifford_circuit=clifford_circuit
-            )
-            mpo = self.tn_engine.pauli_mpo(backpropagated)
-            expval += (
-                coefficient
-                * self.tn_engine.expval(state_circuit=self.mps, operator=mpo)
-                * sign
-            )
+        expval = constant + self._terms_expectation(terms, self.mps, clifford_circuit)
 
         partitions = (
             {
@@ -364,15 +378,11 @@ class HSMPO:
         Apply each magic gate to ``state_mps`` as a dressed Pauli rotation,
         dressing it with the Clifford prefix that precedes it.
         """
-        for breakpoint_index, magic_gate in magic_gates:
-            prefix = self._clifford_subcircuit(clifford_circuit, breakpoint_index)
-            generator, sign = self.stab_engine.backpropagate(
-                gate_generator(magic_gate, self.nqubits), prefix
-            )
+        for generator, angle in self._dress(magic_gates, clifford_circuit):
             self.tn_engine.pauli_rot(
                 state_circuit=state_mps,
                 generator=generator,
-                angle=gate_angle(magic_gate) * sign,
+                angle=angle,
                 max_bond_dimension=self.max_bond_dimension,
             )
 
