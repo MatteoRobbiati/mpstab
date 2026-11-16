@@ -12,7 +12,7 @@ simulator (:meth:`~mpstab.engines.StimEngine.fold_pauli_through_tableau`), never
 with dense matrices.
 
 A synthesiser is a :class:`~mpstab.qpu.synthesis.abstract.HeadSynthesis`
-holding its own options. Three are available, one module each:
+holding its own options. These are available, one module each:
 
 - :class:`~mpstab.qpu.synthesis.rustiq.RustiqSynthesis`: rustiq's Pauli-network
   synthesis (optional dependency, imported lazily).
@@ -20,6 +20,11 @@ holding its own options. Three are available, one module each:
   extraction, dependency-free and connectivity-aware.
 - :class:`~mpstab.qpu.synthesis.cnot_ladder.CnotLadderSynthesis`: the textbook
   decomposition, with an identity residual.
+- :class:`~mpstab.qpu.synthesis.steiner.SteinerSynthesis`: one rotation at a
+  time along Steiner trees of the coupling graph; every CNOT on a coupler.
+- :class:`~mpstab.qpu.synthesis.edge_greedy.EdgeGreedySynthesis`: one coupler
+  gate at a time, judged on every rotation that can go next; every CNOT on a
+  coupler.
 
 Each module also exposes its synthesiser as a plain function returning
 ``(head, residual_tableau, residual_gates)``, with ``head`` in the gate-list
@@ -37,6 +42,11 @@ from mpstab.qpu.synthesis.extraction import (
     build_extraction_head_and_residual,
     connectivity_distances,
 )
+from mpstab.qpu.synthesis.edge_greedy import (
+    EdgeGreedySynthesis,
+    build_edge_greedy_head_and_residual,
+)
+from mpstab.qpu.synthesis.steiner import SteinerSynthesis, build_steiner_head_and_residual
 from mpstab.qpu.synthesis.rustiq import (
     RustiqSynthesis,
     build_head_and_residual,
@@ -52,7 +62,14 @@ from mpstab.qpu.synthesis.utils import (
 
 #: The synthesisers by name, for the string shorthand of :func:`resolve_synthesis`.
 SYNTHESES = {
-    cls.name: cls for cls in (RustiqSynthesis, ExtractionSynthesis, CnotLadderSynthesis)
+    cls.name: cls
+    for cls in (
+        RustiqSynthesis,
+        ExtractionSynthesis,
+        CnotLadderSynthesis,
+        SteinerSynthesis,
+        EdgeGreedySynthesis,
+    )
 }
 
 
@@ -79,14 +96,18 @@ __all__ = [
     "CLIFFORD_TABLEAUS",
     "CnotLadderSynthesis",
     "EXTRACTION_STRATEGIES",
+    "EdgeGreedySynthesis",
     "ExtractionSynthesis",
     "HeadSynthesis",
     "ROTATION_GATES",
     "RustiqSynthesis",
     "SYNTHESES",
+    "SteinerSynthesis",
     "build_cnot_ladder_head_and_residual",
+    "build_edge_greedy_head_and_residual",
     "build_extraction_head_and_residual",
     "build_head_and_residual",
+    "build_steiner_head_and_residual",
     "connectivity_distances",
     "count_two_qubit_gates",
     "head_counts_only",

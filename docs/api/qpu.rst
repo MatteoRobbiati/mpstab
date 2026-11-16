@@ -33,6 +33,18 @@ residual.
    :members:
    :show-inheritance:
 
+.. automodule:: mpstab.qpu.synthesis.steiner
+   :members:
+   :show-inheritance:
+
+.. automodule:: mpstab.qpu.synthesis.edge_greedy
+   :members:
+   :show-inheritance:
+
+.. automodule:: mpstab.qpu.synthesis.coupling
+   :members:
+   :show-inheritance:
+
 .. automodule:: mpstab.qpu.synthesis.utils
    :members:
    :show-inheritance:

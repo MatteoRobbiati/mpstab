@@ -45,14 +45,17 @@ from mpstab.qpu.measurement import (
 )
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
+    EdgeGreedySynthesis,
     ExtractionSynthesis,
     HeadSynthesis,
     RustiqSynthesis,
+    SteinerSynthesis,
 )
 
 __all__ = [
     "ClassicalShadows",
     "CnotLadderSynthesis",
+    "EdgeGreedySynthesis",
     "ExpectationResult",
     "ExtractionSynthesis",
     "HeadSynthesis",
@@ -61,6 +64,7 @@ __all__ = [
     "PauliSampling",
     "QiboSimulator",
     "RustiqSynthesis",
+    "SteinerSynthesis",
     "TNICE",
     "circuit_to_qasm",
     "estimate",
