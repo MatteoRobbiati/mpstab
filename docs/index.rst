@@ -45,6 +45,7 @@ Among our core features:
    api/evolutors
    api/engines
    api/qpu
+   api/noise
    api/pauli
    api/models
 
