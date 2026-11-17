@@ -31,7 +31,7 @@ jobs:
         run: uv sync --group test --extra pytorch --extra jax
 
       - name: Run Pytest
-        run: uv run pytest --cov-report=xml -v --tb=short
+        run: uv run pytest --cov=mpstab --cov-report=xml -v --tb=short
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
