@@ -1,3 +1,4 @@
+import contextlib
 import traceback
 
 import jax
@@ -25,11 +26,16 @@ def test_backend_support(backend):
     hs = HSMPO(ansatz)
     reference = hs.expectation(observable)
 
-    hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine(backend=backend))
-    expectation = float(np.real(np.asarray(hs.expectation(observable))))
+    # jax defaults to single precision, whose error varies across platforms
+    # (1e-6 to 2e-5 here); in double precision it matches numpy to ~1e-14.
+    # torch stays in single precision, so it gets a single-precision tolerance.
+    precision = jax.enable_x64(True) if backend == "jax" else contextlib.nullcontext()
+    tolerance = 1e-10 if backend == "jax" else 1e-4
+    with precision:
+        hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine(backend=backend))
+        expectation = float(np.real(np.asarray(hs.expectation(observable))))
 
-    # jax and torch default to single precision
-    assert expectation == pytest.approx(reference, abs=1e-5)
+    assert expectation == pytest.approx(reference, abs=tolerance)
     assert abs(reference) > 1e-3  # a vanishing value would make this vacuous
 
 
