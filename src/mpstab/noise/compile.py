@@ -12,7 +12,7 @@ dressed exactly like a magic gate and joins the chain.
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Sequence
 
 import numpy as np
@@ -20,10 +20,11 @@ import stim
 from qibo import Circuit, gates
 
 from mpstab.engines import StimEngine
+from mpstab.engines.stabilizers.stim import gate_instruction
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.noise.events import CoherentRotation, NoiseEvent, PauliChannel
-from mpstab.pauli import conjugate, validate_pauli_string
+from mpstab.pauli import anticommutation, conjugate, light_cone, validate_pauli_string
 
 
 @dataclass
@@ -108,6 +109,47 @@ class CompiledNoise:
         """
         return anticommutation(self.fault_paulis, list(dressed_paulis), self.nqubits)
 
+    def restricted_to(self, dressed_paulis: Sequence[str]) -> CompiledNoise:
+        """
+        The same noisy circuit, reduced to what can affect an observable.
+
+        Rotations outside the observable's light cone
+        (:func:`~mpstab.pauli.light_cone`) are dropped. A fault that then flips
+        neither a remaining rotation nor an observable term leaves every
+        expectation value unchanged, so it is folded into its location's
+        no-fault probability, and locations left with no fault are dropped.
+        Both steps are exact for this observable.
+
+        Parameters
+        ----------
+        dressed_paulis : sequence of str
+            Dressed observable terms, from :meth:`dress_observable`.
+
+        Returns
+        -------
+        CompiledNoise
+            A new instance; this one is left untouched.
+        """
+        dressed_paulis = list(dressed_paulis)
+        kept = light_cone(self.generators, dressed_paulis, self.nqubits)
+        flips = self.flips[:, kept]
+        relevant = flips.any(axis=1) | self.observable_flips(dressed_paulis).any(axis=1)
+        _, location = np.unique(self.fault_location[relevant], return_inverse=True)
+        location = location.reshape(-1)
+        probs = self.fault_probs[relevant]
+        return replace(
+            self,
+            generators=[self.generators[j] for j in kept],
+            angles=self.angles[kept],
+            fault_paulis=[p for p, r in zip(self.fault_paulis, relevant) if r],
+            fault_probs=probs,
+            fault_location=location,
+            location_probs=np.bincount(
+                location, weights=probs, minlength=location.max(initial=-1) + 1
+            ),
+            flips=flips[relevant],
+        )
+
 
 def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
     """
@@ -146,7 +188,8 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
 
         from qibo import Circuit, gates
         from mpstab import HSMPO
-        from mpstab.noise import PauliChannel, compile_noise
+        from mpstab.noise.compile import compile_noise
+        from mpstab.noise.events import PauliChannel
 
         circuit = Circuit(2)
         circuit.add(gates.H(0))
@@ -225,9 +268,9 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
                 simulator.current_inverse_tableau(),
             )
         else:
-            one_gate = Circuit(nqubits)
-            one_gate.add(gate)
-            simulator.do(hsmpo.stab_engine.to_stim(one_gate))
+            instruction = gate_instruction(gate)
+            if instruction is not None:
+                simulator.do(stim.Circuit(instruction))
         add_events(index)
 
     expected = [gate for _, gate in hsmpo.magic_gates]
@@ -254,43 +297,3 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
         location_probs=np.array(location_probs, dtype=float),
         flips=flips,
     )
-
-
-def anticommutation(left: Sequence[str], right: Sequence[str], nqubits: int):
-    """
-    Which pairs of Pauli strings anticommute.
-
-    Parameters
-    ----------
-    left, right : sequence of str
-        Full-width Pauli strings.
-    nqubits : int
-        Their width, needed when either sequence is empty.
-
-    Returns
-    -------
-    numpy.ndarray
-        Boolean ``(len(left), len(right))`` matrix, ``True`` where the strings
-        anticommute.
-
-    Examples
-    --------
-    ::
-
-        from mpstab.noise.compile import anticommutation
-
-        print(anticommutation(["XI", "ZZ"], ["ZI", "XX"], 2))
-        # [[ True False]
-        #  [False False]]
-    """
-    x_left, z_left = _symplectic(left, nqubits)
-    x_right, z_right = _symplectic(right, nqubits)
-    return ((x_left @ z_right.T + z_left @ x_right.T) % 2).astype(bool)
-
-
-def _symplectic(paulis: Sequence[str], nqubits: int):
-    """The ``(x, z)`` bit matrices of some Pauli strings, as integers."""
-    labels = np.array([list(p) for p in paulis], dtype="<U1").reshape(-1, nqubits)
-    x = np.isin(labels, ("X", "Y")).astype(np.int64)
-    z = np.isin(labels, ("Z", "Y")).astype(np.int64)
-    return x, z

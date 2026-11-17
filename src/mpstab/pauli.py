@@ -7,6 +7,8 @@ as a separate ``+1``/``-1`` factor, so callers always handle them explicitly.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import numpy as np
 import stim
 
@@ -82,3 +84,101 @@ def conjugate(
     image = tableau(stim.PauliString(padded))
     label, image_sign = from_stim(image)
     return label, sign * image_sign
+
+
+def anticommutation(left: Sequence[str], right: Sequence[str], nqubits: int):
+    """
+    Which pairs of Pauli strings anticommute, via the symplectic product.
+
+    Args:
+        left, right: full-width Pauli strings.
+        nqubits: their width, needed when either sequence is empty.
+
+    Returns:
+        Boolean ``(len(left), len(right))`` matrix, ``True`` where the strings
+        anticommute.
+
+    Example::
+
+        from mpstab.pauli import anticommutation
+
+        print(anticommutation(["XI", "ZZ"], ["ZI", "XX"], 2))
+        # [[ True False]
+        #  [False False]]
+    """
+    return _anticommuting(*_symplectic(left, nqubits), *_symplectic(right, nqubits))
+
+
+#: Rows of rotations :func:`light_cone` handles at once, bounding its memory.
+_LIGHT_CONE_BLOCK = 1024
+
+
+def light_cone(
+    generators: Sequence[str], observables: Sequence[str], nqubits: int
+) -> np.ndarray:
+    """
+    The rotations in a chain that can affect the expectation of any of
+    ``observables``.
+
+    For ``<psi| R_1^dag ... R_n^dag  O  R_n ... R_1 |psi>`` with Pauli
+    rotations ``R_j = exp(-i theta_j/2 G_j)``, a rotation whose generator
+    commutes with ``O`` and with every later rotation still present commutes
+    through to ``R_j^dag R_j = 1``. Walking the chain backwards and dropping
+    such rotations is exact, whatever the angles, and the result holds
+    term by term for an observable that is a sum of the given strings.
+
+    Args:
+        generators: generator of each rotation, in the order they are applied.
+        observables: Pauli strings of the observable's terms.
+        nqubits: width of every string.
+
+    Returns:
+        Increasing indices of the rotations to keep.
+
+    Example::
+
+        from mpstab.pauli import light_cone
+
+        # IX commutes with everything after it and drops out; ZI commutes
+        # with the observable but not with the kept XI, so it stays.
+        print(light_cone(["ZI", "IX", "XI"], ["ZI"], 2))
+        # [0 2]
+    """
+    x, z = _symplectic(generators, nqubits)
+    observable_x, observable_z = _symplectic(observables, nqubits)
+    kept = np.zeros(len(x), dtype=bool)
+    for stop in range(len(x), 0, -_LIGHT_CONE_BLOCK):
+        start = max(0, stop - _LIGHT_CONE_BLOCK)
+        block_x, block_z = x[start:stop], z[start:stop]
+        # Whether each rotation in the block reaches past it on its own...
+        reaches = _anticommuting(block_x, block_z, observable_x, observable_z).any(1)
+        later = np.flatnonzero(kept[stop:]) + stop
+        if later.size:
+            reaches |= _anticommuting(block_x, block_z, x[later], z[later]).any(1)
+        # ...or through a kept rotation later in the same block.
+        inner = _anticommuting(block_x, block_z, block_x, block_z)
+        for i in reversed(range(stop - start)):
+            kept[start + i] = (
+                reaches[i] or (inner[i, i + 1 :] & kept[start + i + 1 : stop]).any()
+            )
+    return np.flatnonzero(kept)
+
+
+def _symplectic(paulis: Sequence[str], nqubits: int):
+    """
+    The ``(x, z)`` bit matrices of some Pauli strings, as floats so their
+    products run through BLAS; counts up to ``2**53`` are exact.
+    """
+    labels = np.array([list(p) for p in paulis], dtype="<U1").reshape(-1, nqubits)
+    x = np.isin(labels, ("X", "Y")).astype(np.float64)
+    z = np.isin(labels, ("Z", "Y")).astype(np.float64)
+    return x, z
+
+
+def _anticommuting(left_x, left_z, right_x, right_z) -> np.ndarray:
+    """Anticommutation matrix from symplectic bit matrices."""
+    # Some BLAS builds (Apple Accelerate) raise spurious floating-point flags
+    # on these 0/1 products; the integer-valued results are exact regardless.
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        products = left_x @ right_z.T + left_z @ right_x.T
+    return (products % 2).astype(bool)

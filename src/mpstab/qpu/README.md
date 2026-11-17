@@ -13,7 +13,7 @@ exact, absorbed however they fall relative to the cut. The head is
 resynthesised and run on the device; the tail is folded into the observable
 classically, with no shot spent on it at all:
 
-![Head/tail split: a circuit's magic gates become a chain of rotations, cut into a head that runs on the device and a tail folded classically into the observable, then measured with finite shots into an expectation value with noise and truncation.](../../../examples/hsynthsmpo_head_tail_split_concept_en.png)
+![Head/tail split: a circuit's magic gates become a chain of rotations, cut into a head that runs on the device and a tail folded classically into the observable, then measured with finite shots into an expectation value with noise and truncation.](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_head_tail_split_concept_en.png)
 
 So instead of running the *whole* circuit and measuring `O`, we run only the
 *head* on the device and measure a *different* operator `O'` -- the
@@ -59,7 +59,7 @@ All three share the *same* first step (resynthesising the head into a
 circuit) and differ only in what they measure and how they turn the results
 back into a number:
 
-![Three measurement routes from the same head on chip: pauli samples and groups Pauli strings then drops the weak ones; shadows measures a random basis per shot then contracts with the MPO, noisier per shot; tnice reuses the same shots and bases as shadows but fits an estimator on half the data and evaluates on the rest.](../../../examples/hsynthsmpo_three_measurement_routes_en.png)
+![Three measurement routes from the same head on chip: pauli samples and groups Pauli strings then drops the weak ones; shadows measures a random basis per shot then contracts with the MPO, noisier per shot; tnice reuses the same shots and bases as shadows but fits an estimator on half the data and evaluates on the rest.](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_three_measurement_routes_en.png)
 
 ### `"pauli"` -- sample and group
 
@@ -109,21 +109,14 @@ way:
   the tail is long and `"shadows"`'s variance problem is worst, cheap when
   the tail is short and there was nothing to gain in the first place.
 
-`examples/hsynthsmpo_cut_sweep_comparison.py` and
-`examples/hsynthsmpo_qite_cut_sweep.py` measure both directly (circuits
-executed and `estimate()` wall-clock time) alongside the usual
-value/error-bar comparison.
-
 ## How much does accuracy actually cost?
 
-The numbers below are from `examples/hsynthsmpo_qite_cost_analysis.py`, on a
-circuit that has nothing to do with quantum hardware design: a few steps of
+The numbers below come from a circuit that has nothing to do with quantum
+hardware design: a few steps of
 Double-Bracket Quantum Imaginary-Time Evolution (`qrisp.algorithms.qite`,
 arXiv:2412.04554) approximating the ground state of a 6-site Heisenberg
 chain (8 physical qubits once `qrisp`'s own ancilla qubits are counted, 77
-magic gates after `HSynthSMPO`'s Clifford/magic split -- see
-`examples/hsynthsmpo_qite_cut_sweep.py`'s module docstring for how a `qrisp`
-circuit gets translated into something `HSynthSMPO` can use at all). One
+magic gates after `HSynthSMPO`'s Clifford/magic split). One
 fixed cut, one fixed observable (a spin-spin correlator), pricing every shot
 at 1 EUR:
 
@@ -133,7 +126,7 @@ at 1 EUR:
 decomposition) is chosen *before* any shot is spent -- raising it costs
 exactly 0 EUR, only classical compute:
 
-![pauli error vs n_string_samples, free](../../../examples/hsynthsmpo_qite_cost_analysis.png)
+![pauli error vs n_string_samples, free](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_qite_cost_analysis.png)
 
 *(left panel)* At a fixed 4000-shot budget, `total_error` barely moves from
 `n_string_samples=20` to `800` (0.53 -> 0.44) -- it's dominated almost
@@ -193,10 +186,8 @@ shot-noise-limited yet.
 - `tests/test_expectation_methods.py`, `tests/test_pauli_sampling.py`,
   `tests/test_tnice.py` -- one route/module per test file, each checked
   against the exact (uncut) reference.
-- `examples/hsynthsmpo_*.py` -- runnable comparisons with plots: a
-  shot-budget convergence sweep (`hsynthsmpo_shot_convergence.py`), the
-  EUR-per-shot cost analysis this README's numbers come from
-  (`hsynthsmpo_cost_analysis.py` on a generic ansatz,
-  `hsynthsmpo_qite_cost_analysis.py` on the `qrisp` DB-QITE circuit), and a
-  physically-motivated circuit from `qrisp` on its own
-  (`hsynthsmpo_qite_cut_sweep.py`).
+- `examples/scripts/quantum_hardware/` -- runnable examples: how folding
+  the tail into the observable MPO introduces error
+  (`hsynthsmpo_mpo_approximation.py`), and a fully resynthesized head
+  measured with finite shots through the `"pauli"` route
+  (`hsynthsmpo_rustiq_fold.py`).

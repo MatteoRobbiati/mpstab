@@ -15,19 +15,22 @@ from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
 @pytest.mark.parametrize("backend", ["jax", "torch"])
 def test_backend_support(backend):
-
-    nqubits = 10
+    """Each backend reproduces the numpy engine's value, not just runs."""
+    nqubits = 6
     nlayers = 3
     observable = "ZX" * int(nqubits / 2)
 
+    np.random.seed(0)
     ansatz = HardwareEfficient(nqubits=nqubits, nlayers=nlayers)
     hs = HSMPO(ansatz)
+    reference = hs.expectation(observable)
 
     hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine(backend=backend))
+    expectation = float(np.real(np.asarray(hs.expectation(observable))))
 
-    expectation = hs.expectation(observable)
-
-    assert expectation is not None
+    # jax and torch default to single precision
+    assert expectation == pytest.approx(reference, abs=1e-5)
+    assert abs(reference) > 1e-3  # a vanishing value would make this vacuous
 
 
 def _non_clifford_circuit(nqubits, nlayers, rng):

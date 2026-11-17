@@ -80,6 +80,6 @@ print(
     "as a truncated tensor-network operator) into the tail MPO by the "
     "'pauli'/'shadows' routes exactly as an un-resynthesized cut would be. "
     "For a look at that approximation on its own, see "
-    "examples/hsynthsmpo_mpo_approximation.py, which uses "
+    "examples/scripts/quantum_hardware/hsynthsmpo_mpo_approximation.py, which uses "
     "HSynthSMPO.tail_truncation."
 )
