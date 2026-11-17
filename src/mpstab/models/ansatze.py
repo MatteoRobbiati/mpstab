@@ -399,47 +399,6 @@ class HammingWeightPreserving(Ansatz):
         return circ
 
 
-@dataclass(kw_only=True)
-class TranspiledAnsatz(Ansatz):
-    """
-    Any ansatz which is also transpiled into native gates of a given quantum device
-    presenting a given connectivity.
-
-    Args:
-        original_circuit: The circuit to be transpiled.
-        native_gates: Optional[List]: list of native gates of the used device.
-            Default is [gates.GPI2, gates.RZ, gates.Z, gates.CZ].
-        connectivity: Optional[nx.Graph]: graph representing the topology of the
-            used device. Default is None and in this case the transpilation
-            does not take into account any connectivity constraint.
-    """
-
-    original_circuit: Circuit
-    native_gates: Optional[List] = field(
-        default_factory=lambda: [gates.GPI2, gates.RZ, gates.Z, gates.CZ]
-    )
-    connectivity: Optional[nx.Graph] = None
-    # Override nqubits so it is not passed in __init__
-    nqubits: int = field(init=False)
-
-    def __post_init__(self):
-        # Set nqubits from the provided circuit.
-        self.nqubits = self.original_circuit.nqubits
-        # Now call the parent's __post_init__ to initialize _circuit and other attributes.
-        super().__post_init__()
-        # Overwrite the circuit with the original one.
-        self._circuit = hardware_compatible_circuit(self.original_circuit)
-
-        # Freeze the GPI2 gates
-        for g in self._circuit.parametrized_gates:
-            if isinstance(g, gates.GPI2) and g.clifford:
-                g.trainable = False
-
-    @property
-    def circuit(self):
-        return self._circuit
-
-
 @dataclass
 class FloquetAnsatz(Ansatz):
     """
@@ -720,6 +679,30 @@ class _CompiledAnsatz(Ansatz):
     @property
     def circuit(self):
         return self._circuit
+
+
+@dataclass(kw_only=True)
+class TranspiledAnsatz(_CompiledAnsatz):
+    """
+    An existing circuit transpiled to the native gates and connectivity of a
+    device.
+
+    Args:
+        original_circuit: the circuit to transpile.
+        native_gates: native gates of the device. Defaults to
+            ``[GPI2, RZ, Z, CZ]``.
+        connectivity: device topology. ``None`` ignores connectivity constraints.
+    """
+
+    original_circuit: Circuit
+    nqubits: int = field(init=False)
+
+    def __post_init__(self):
+        self.nqubits = self.original_circuit.nqubits
+        super().__post_init__()
+
+    def _build_circuit(self) -> Circuit:
+        return self.original_circuit
 
 
 @dataclass(kw_only=True)

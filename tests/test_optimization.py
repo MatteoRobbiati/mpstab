@@ -120,6 +120,24 @@ class TestDMRGOptimization:
         assert result["energy"] < -1.0, "Energy should be negative and below -1.0"
         assert result["num_sweeps"] <= 10, "Should converge within max sweeps"
 
+    @pytest.mark.parametrize(
+        "hamiltonian",
+        [
+            {"ZZII": 1.0, "IIXX": 0.5, "IIII": 2.0},
+            SymbolicHamiltonian(nqubits=4, form=Z(0) * Z(1) + 0.5 * X(2) * X(3) + 2.0),
+        ],
+        ids=["dict-identity-term", "symbolic-constant"],
+    )
+    def test_energy_includes_constant_offset(self, hamiltonian):
+        """The identity term / constant shifts the reported energy, not the state."""
+        hsmpo = HSMPO(ansatz=HardwareEfficient(nqubits=4, nlayers=2))
+        result = hsmpo.minimize_expectation(
+            observables=hamiltonian, bond_dims=[8], max_sweeps=10, verbosity=0
+        )
+        # Ground state of ZZ + 0.5 XX on disjoint pairs is -1.5; the offset is +2.
+        assert result["energy"] == pytest.approx(0.5, abs=1e-6)
+        assert result["energy_history"][-1] == pytest.approx(result["energy"])
+
     def test_list_hamiltonian_optimization(self):
         """Test optimization with list Hamiltonian format (equal weights)."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
@@ -295,45 +313,6 @@ class TestHamiltonianConversion:
         constant, terms = pauli_terms(H, nqubits=2)
         assert constant == pytest.approx(3.0)
         assert terms == {"ZZ": pytest.approx(1.0)}
-
-
-class TestEngineSupportValidation:
-    """Test that unsupported engines raise appropriate errors."""
-
-    def test_native_tensor_network_engine_raises_not_implemented(self):
-        """Test that NativeTensorNetworkEngine raises NotImplementedError during initialization."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-
-        with pytest.raises(
-            NotImplementedError,
-            match="NativeTensorNetworkEngine is not supported by HSMPO",
-        ):
-            hsmpo = HSMPO(ansatz=ansatz)
-            hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
-
-    def test_native_tensor_network_engine_error_during_post_init(self):
-        """Test that NativeTensorNetworkEngine raises error at HSMPO creation if set as default."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-
-        # Verify that using NativeTensorNetworkEngine later also raises error
-        with pytest.raises(
-            NotImplementedError,
-            match="NativeTensorNetworkEngine is not supported by HSMPO",
-        ):
-            hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
-
-    def test_quimb_engine_works(self):
-        """Test that QuimbEngine works correctly (should pass without error)."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-
-        # This should not raise any error
-        hsmpo.set_engines(tn_engine=QuimbEngine())
-
-        # Verify it still works
-        result = hsmpo.expectation("ZZZZ")
-        assert isinstance(result, (float, np.floating))
 
 
 class TestEngineSupportValidation:
