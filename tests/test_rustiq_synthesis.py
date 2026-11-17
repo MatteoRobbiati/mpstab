@@ -5,7 +5,6 @@ Covers:
   - target == residual . head at the unitary level (dense, small n);
   - residual tableaus are reproducible across repeated calls, while gate lists
     need not be (rustiq's fix_clifford=True draws randomly);
-  - head_counts_only agrees with the (expensive) exact head;
   - resynthesizing the whole chain and folding the residual into the observable
     reproduces direct qibo simulation.
 """
@@ -28,11 +27,7 @@ pytest.importorskip("rustiq")
 from mpstab.engines import StimEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
-from mpstab.qpu.synthesis import (
-    build_head_and_residual,
-    head_counts_only,
-    head_to_qibo_circuit,
-)
+from mpstab.qpu.synthesis import build_head_and_residual, head_to_qibo_circuit
 
 
 def _target_unitary(paulis, angles):
@@ -92,18 +87,6 @@ def test_residual_tableau_reproducible_across_calls_gate_list_not_necessarily():
 
     # The Clifford OPERATOR is unique -- compare tableaus, not gate lists.
     assert residual_tableau_1 == residual_tableau_2
-
-
-def test_head_counts_only_matches_exact_head():
-    _, paulis, angles = _dressed_paulis_and_angles(4)
-
-    head, _, _ = build_head_and_residual(paulis, angles)
-    exact_total, exact_two_q = len(head), sum(1 for g in head if len(g[1]) == 2)
-
-    cheap_total, cheap_two_q = head_counts_only(paulis)
-
-    assert cheap_total == exact_total
-    assert cheap_two_q == exact_two_q
 
 
 def test_build_head_and_residual_empty_input():

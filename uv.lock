@@ -1305,7 +1305,6 @@ name = "mpstab"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
-    { name = "cotengra" },
     { name = "numpy" },
     { name = "qibo" },
     { name = "quimb" },
@@ -1351,7 +1350,6 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cotengra" },
     { name = "jax", marker = "extra == 'jax'" },
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "qibo", specifier = ">=0.3.6" },

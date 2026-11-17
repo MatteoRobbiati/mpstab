@@ -79,31 +79,6 @@ def build_head_and_residual(
     return head, residual_tableau, residual
 
 
-def head_counts_only(
-    paulis: list[str], metric_name: str = "count", preserve_order: bool = True
-):
-    """
-    Gate counts of the rustiq head without placing the rotations.
-
-    The head is the rustiq Clifford skeleton with one single-qubit rotation
-    interleaved per Pauli, so the total is ``len(skeleton) + len(paulis)`` and
-    the two-qubit count is the skeleton's. One rustiq call, much cheaper than
-    :func:`build_head_and_residual` and exact for counting.
-
-    Returns:
-        ``(total_gates, two_qubit_gates)``.
-    """
-    Metric, pauli_network_synthesis = _import_rustiq()
-
-    if not paulis:
-        return 0, 0
-    skeleton = pauli_network_synthesis(
-        paulis, Metric(metric_name), preserve_order, fix_clifford=False
-    )
-    two_qubit = sum(1 for gate in skeleton if len(gate[1]) == 2)
-    return len(skeleton) + len(paulis), two_qubit
-
-
 @dataclass(frozen=True)
 class RustiqSynthesis(HeadSynthesis):
     """

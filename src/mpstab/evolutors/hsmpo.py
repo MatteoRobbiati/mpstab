@@ -6,7 +6,6 @@ from typing import List, Tuple, Union
 import numpy as np
 import stim
 from qibo import Circuit
-from qibo.hamiltonians import SymbolicHamiltonian
 
 from mpstab.engines import (
     NativeTensorNetworkEngine,
@@ -20,10 +19,8 @@ from mpstab.evolutors.optimization import minimize_expectation_dmrg
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
-from mpstab.models.metrics import stabilizer_renyi_entropy_mps
 from mpstab.pauli import conjugate
 from mpstab.pauli import light_cone as pauli_light_cone
-from mpstab.pauli import validate_pauli_string
 
 
 @dataclass

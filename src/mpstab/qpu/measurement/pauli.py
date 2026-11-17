@@ -372,11 +372,7 @@ class PauliSampling(MeasurementMethod):
         size of the anti-Hermitian part that truncation leaves in the pooled
         coefficients, projected out by :func:`_assert_real_coefficients`.
         """
-        truncated = (
-            max_bond_dimension is not None
-            if max_bond_dimension != -1
-            else model.max_bond_dimension is not None
-        )
+        truncated = max_bond_dimension is not None
         rng = np.random.default_rng(seed)
         ensembles, diagnostics = [], []
         bond_truncation_l2 = 0.0

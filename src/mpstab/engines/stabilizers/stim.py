@@ -113,17 +113,6 @@ class StimEngine(StabilizersEngine):
         """
         return conjugate(pauli_str, tableau.inverse(), sign)
 
-    def to_stim(self, circuit: Circuit) -> stim.Circuit:
-        """
-        Convert a Clifford qibo circuit into a stim circuit.
-
-        Raises:
-            ValueError: on a non-Clifford rotation angle, or a gate with no stim
-                equivalent. Unsupported gates fail loudly rather than being
-                dropped, which would silently give a wrong Pauli frame.
-        """
-        return stim.Circuit("\n".join(filter(None, self.instructions(circuit))))
-
     def instructions(self, circuit: Circuit) -> list:
         """
         One stim instruction line per gate of ``circuit``, ``None`` for gates
@@ -133,7 +122,9 @@ class StimEngine(StabilizersEngine):
         instructions one call at a time, so circuits are assembled as text.
 
         Raises:
-            ValueError: as :meth:`to_stim`.
+            ValueError: on a non-Clifford rotation angle, or a gate with no stim
+                equivalent. Unsupported gates fail loudly rather than being
+                dropped, which would silently give a wrong Pauli frame.
         """
         return [gate_instruction(gate) for gate in circuit.queue]
 

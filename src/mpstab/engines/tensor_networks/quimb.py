@@ -1,11 +1,10 @@
-"""Tensor-network engine backed by quimb, with cotengra contraction paths."""
+"""Tensor-network engine backed by quimb."""
 
 from __future__ import annotations
 
 import copy
 from typing import Any
 
-import cotengra as ctg
 import numpy as np
 from qibo.gates.abstract import ParametrizedGate
 from quimb.gates import I, X, Y, Z
@@ -255,17 +254,11 @@ class QuimbEngine(TensorNetworkEngine):
     def __init__(
         self,
         backend: str = "numpy",
-        cache: bool = False,
-        cache_directory: str | None = "contractions_cache",
         svd_cutoff: float | None = None,
     ):
         """
         Args:
             backend: array backend, ``"numpy"``, ``"jax"`` or ``"torch"``.
-            cache: reuse contraction paths across calls via cotengra's
-                hyper-optimizer instead of contracting greedily.
-            cache_directory: where cotengra persists those paths. Created if
-                missing.
             svd_cutoff: singular-value cutoff when compressing the MPS after a
                 rotation. ``None`` keeps quimb's default (``1e-10``, relative),
                 and ``0.0`` truncates only through ``max_bond_dimension``. Many
@@ -275,16 +268,6 @@ class QuimbEngine(TensorNetworkEngine):
         self.svd_cutoff = svd_cutoff
         self.np = _array_module(backend)
         self.backend = backend
-        self.optimizer = (
-            ctg.ReusableHyperOptimizer(
-                directory=cache_directory,
-                minimize="flops",
-                max_repeats=128,
-                progbar=False,
-            )
-            if cache
-            else "greedy"
-        )
 
     def __getstate__(self):
         # The array module does not pickle, which sending the engine to another
@@ -368,7 +351,7 @@ class QuimbEngine(TensorNetworkEngine):
         Expectation value of ``operator`` on ``state_circuit``, normalised.
 
         Truncation costs the state its unit norm, so the contraction is divided
-        by it; the norm is also kept on ``self.norm`` for callers that want it.
+        by it.
 
         A Pauli string from :meth:`pauli_mpo` is evaluated directly on the
         state's canonical form, over the sites between the string's support and
@@ -385,12 +368,12 @@ class QuimbEngine(TensorNetworkEngine):
         if self._fast and pauli is not None and len(pauli) == state_circuit.L:
             return self.pauli_expvals(state_circuit, [pauli])[0]
 
-        self.norm = state_circuit.norm(squared=True).real
+        norm = state_circuit.norm(squared=True).real
         ket = state_circuit.reindex({f"k{i}": f"b{i}" for i in range(state_circuit.L)})
         bra = state_circuit.H
         return (bra & operator & ket).contract(
-            backend=self.backend, optimize=self.optimizer
-        ).real / self.norm
+            backend=self.backend, optimize="greedy"
+        ).real / norm
 
     def pauli_expvals(self, state_circuit: MatrixProductState, paulis):
         """
@@ -411,7 +394,7 @@ class QuimbEngine(TensorNetworkEngine):
             return [self.expval(state_circuit, self.pauli_mpo(p)) for p in paulis]
 
         view = _CanonicalMPS(state_circuit)
-        self.norm = kernels.squared_norm(view, view.center)
+        norm = kernels.squared_norm(view, view.center)
         values = np.empty(len(paulis))
 
         windows = [kernels.bounds(pauli) for pauli in paulis]
@@ -424,7 +407,7 @@ class QuimbEngine(TensorNetworkEngine):
                 view.center = kernels.move_center(view, view.center, window[0])
             values[k] = kernels.pauli_expectation(view, view.center, paulis[k]).real
         view.commit()
-        return values / self.norm
+        return values / norm
 
     def pauli_rot(
         self,

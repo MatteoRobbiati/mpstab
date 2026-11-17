@@ -18,7 +18,6 @@ requires-python = ">=3.11,<3.14"
 dependencies = [
     "numpy>=2.0.0",
     "qibo>=0.3.6",
-    "cotengra",
     "stim>=1.15.0",
     "quimb>=1.12.1",
 ]
