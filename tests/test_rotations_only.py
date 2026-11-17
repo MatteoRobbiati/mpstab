@@ -8,26 +8,13 @@ import time
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates, set_backend
+from utils import small_entangled_circuit
 
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine, StimEngine
+from mpstab.engines import QuimbEngine, StimEngine
 from mpstab.engines.stabilizers.native import NativeStabilizersEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
-
-set_backend("numpy")
-
-
-def _small_entangled_circuit(n=4):
-    circ = Circuit(n)
-    for q in range(n):
-        circ.add(gates.H(q))
-    for q in range(n - 1):
-        circ.add(gates.CZ(q, q + 1))
-    for q in range(n):
-        circ.add(gates.RY(q, theta=float(np.random.uniform(0.1, 1.2))))
-    return circ
 
 
 def test_rotations_only_sets_expected_attributes():
@@ -62,7 +49,7 @@ def test_rotations_only_skips_mps_precompute():
 
 
 def test_rotations_only_accepts_plain_qibo_circuit():
-    circuit = _small_entangled_circuit(4)
+    circuit = small_entangled_circuit(4)
     lazy = HSynthSMPO.rotations_only(circuit)
 
     assert isinstance(lazy.ansatz, CircuitAnsatz)

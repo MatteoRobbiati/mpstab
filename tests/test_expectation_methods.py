@@ -19,7 +19,7 @@ import pathlib
 import numpy as np
 import pytest
 import stim
-from qibo import get_backend, set_backend
+from qibo import get_backend
 from qibo.hamiltonians import SymbolicHamiltonian
 from qibo.symbols import X, Z
 
@@ -37,8 +37,6 @@ from mpstab.qpu.synthesis import (
     count_two_qubit_gates,
     head_to_qibo_circuit,
 )
-
-set_backend("numpy")
 
 _STIM_1Q = {"H": "H", "S": "S", "Sd": "S_DAG"}
 _STIM_2Q = {"CNOT": "CX", "CZ": "CZ"}

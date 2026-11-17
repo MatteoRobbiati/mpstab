@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 import stim
-from qibo import Circuit, gates, set_backend
-from utils import expectation_with_qibo, set_rng_seed
+from qibo import Circuit
+from utils import expectation_with_qibo, small_entangled_circuit
 
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
+from mpstab.engines import NativeTensorNetworkEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import (
     QAE,
@@ -20,27 +20,11 @@ from mpstab.qpu.measurement import allocate_shots_by_variance, build_measurement
 from mpstab.qpu.measurement.pauli import _assert_real_coefficients
 from mpstab.qpu.synthesis import build_cnot_ladder_head_and_residual
 
-set_backend("numpy")
-set_rng_seed()
-
-
-def _small_entangled_circuit(n=4):
-    """H layer + CZ chain + RY layer: yields multi-qubit dressed rotations."""
-    set_rng_seed()
-    circ = Circuit(n)
-    for q in range(n):
-        circ.add(gates.H(q))
-    for q in range(n - 1):
-        circ.add(gates.CZ(q, q + 1))
-    for q in range(n):
-        circ.add(gates.RY(q, theta=float(np.random.uniform(0.1, 1.2))))
-    return circ
-
 
 @pytest.mark.parametrize("observable", ["ZZZZ", "XIII", "IZIX", "YYYY"])
 @pytest.mark.parametrize("cut_index", [0, 2, 4])
 def test_simulation_matches_qibo(observable, cut_index):
-    circ = _small_entangled_circuit(4)
+    circ = small_entangled_circuit(4)
     ansatz = CircuitAnsatz(qibo_circuit=circ)
     hs = HSynthSMPO(ansatz)
 
@@ -66,7 +50,7 @@ def test_simulation_matches_hsmpo_expectation(cut_index):
 
 
 def test_simulation_result_fields():
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     result = hs.expectation_at_cut("ZZZZ", 2, method="simulation")
     assert np.isreal(result.value)
@@ -88,7 +72,7 @@ def test_simulation_reports_tail_truncation():
 
 
 def test_simulation_matches_hamiltonian_sum():
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     terms = {"ZZZZ": 0.5, "XIII": -1.5}
     total = hs.expectation_at_cut(terms, 2, method="simulation").value
@@ -100,7 +84,7 @@ def test_simulation_matches_hamiltonian_sum():
 
 
 def test_simulation_rejects_shot_budget():
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     with pytest.raises(ValueError):
         hs.expectation_at_cut("ZZZZ", 2, method="simulation", n_shots=100)
@@ -109,7 +93,7 @@ def test_simulation_rejects_shot_budget():
 
 
 def test_native_engine_not_supported():
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     hs.set_engines(tn_engine=NativeTensorNetworkEngine())
     with pytest.raises(NotImplementedError):
@@ -118,7 +102,7 @@ def test_native_engine_not_supported():
 
 def test_tail_truncation_lossless_when_untruncated():
     # No bond cap => the folded tail MPO is exact => zero error.
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)  # max_bond_dimension defaults to None
     info = hs.tail_truncation("ZZZZ", cut_index=0, with_expval=True)
     assert info.relative_frobenius_error == pytest.approx(0.0, abs=1e-7)
@@ -126,7 +110,7 @@ def test_tail_truncation_lossless_when_untruncated():
 
 
 def test_tail_truncation_skips_expval_by_default():
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     info = hs.tail_truncation("ZZZZ", cut_index=0)
     assert info.relative_frobenius_error is not None
@@ -148,7 +132,7 @@ def test_tail_truncation_max_bond_dimension_overrides_default():
 
 def test_tail_truncation_empty_tail():
     # cut_index == number of dressed rotations => empty tail => exact operator.
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz, max_bond_dimension=2)
     n_dressed = len(hs.magic_gates)
     info = hs.tail_truncation("ZZZZ", cut_index=n_dressed)
@@ -183,7 +167,7 @@ def test_tail_truncation_reports_error_when_truncated():
 
 def test_resynthesize_head_is_qibo_circuit():
     pytest.importorskip("rustiq")
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
 
@@ -197,7 +181,7 @@ def test_resynthesize_head_is_qibo_circuit():
 def test_resynthesize_head_gate_counts_full_cut():
     pytest.importorskip("rustiq")
 
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
 
@@ -207,7 +191,7 @@ def test_resynthesize_head_gate_counts_full_cut():
 
 def test_resynthesize_head_is_cached():
     # Same cut, same rotations: the second call returns the cached head.
-    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)))
     first = hs.resynthesize_head(2)
     assert hs.resynthesize_head(2) is first
     assert hs.resynthesize_head(3) is not first
@@ -215,14 +199,14 @@ def test_resynthesize_head_is_cached():
 
 def test_resynthesize_head_cache_follows_parameters():
     # New parameters give new dressed angles, hence a new key: no stale head.
-    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4)))
+    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)))
     first = hs.resynthesize_head(2)
     hs.set_parameters([(theta + 0.1,) for (theta,) in hs.get_parameters()])
     assert hs.resynthesize_head(2) is not first
 
 
 def test_resynthesize_head_cnot_ladder_fallback_has_identity_tail():
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
     dressed = hs._dressed_rotations()

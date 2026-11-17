@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates, set_backend
+from qibo import Circuit, gates
 from utils import (
     DEFAULT_MAX_BD,
     DEFAULT_REPLACEMENT_PROBABILITY,
@@ -16,9 +16,6 @@ from utils import (
 from mpstab.engines import StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
-
-set_backend("numpy")
-set_rng_seed()
 
 
 @pytest.mark.parametrize("observable", ["ZIIXI", "XIXXI", "ZYXZI"])

@@ -1,13 +1,10 @@
 import pytest
 from numpy import allclose, round
-from qibo import set_backend
 from utils import DEFAULT_ATOL
 
 from mpstab.engines import QuimbEngine, StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
-
-set_backend("numpy")
 
 
 @pytest.mark.parametrize("nlayers", [2, 9, 15])

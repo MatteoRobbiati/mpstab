@@ -15,43 +15,31 @@ import builtins
 import numpy as np
 import pytest
 import stim
-from qibo import Circuit, gates, set_backend
-from utils import expectation_with_qibo, set_rng_seed
+from qibo import Circuit
+from utils import (
+    expectation_with_qibo,
+    pauli_matrix,
+    rotation_unitary,
+    small_entangled_circuit,
+)
 
 pytest.importorskip("rustiq")
 
 from mpstab.engines import StimEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
-from mpstab.pauli import PAULI_MATRICES as _PAULI_MATS
 from mpstab.qpu.synthesis import (
     build_head_and_residual,
     head_counts_only,
     head_to_qibo_circuit,
 )
 
-set_backend("numpy")
-
-
-def _pauli_matrix(pauli_str):
-    mat = _PAULI_MATS[pauli_str[0]]
-    for c in pauli_str[1:]:
-        mat = np.kron(mat, _PAULI_MATS[c])
-    return mat
-
-
-def _rotation_unitary(pauli_str, angle):
-    dim = 2 ** len(pauli_str)
-    return np.cos(angle / 2) * np.eye(dim) - 1j * np.sin(angle / 2) * _pauli_matrix(
-        pauli_str
-    )
-
 
 def _target_unitary(paulis, angles):
     dim = 2 ** len(paulis[0])
     U = np.eye(dim, dtype=complex)
     for p, a in zip(paulis, angles):
-        U = _rotation_unitary(p, a) @ U
+        U = rotation_unitary(p, a) @ U
     return U
 
 
@@ -73,20 +61,8 @@ def _equal_up_to_global_phase(A, B, atol=1e-6):
     return np.allclose(A * phase, B, atol=atol)
 
 
-def _small_entangled_circuit(n=4):
-    set_rng_seed()
-    circ = Circuit(n)
-    for q in range(n):
-        circ.add(gates.H(q))
-    for q in range(n - 1):
-        circ.add(gates.CZ(q, q + 1))
-    for q in range(n):
-        circ.add(gates.RY(q, theta=float(np.random.uniform(0.1, 1.2))))
-    return circ
-
-
 def _dressed_paulis_and_angles(n=4):
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(n))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(n))
     hs = HSynthSMPO.rotations_only(ansatz)
     dressed = hs._dressed_rotations()
     paulis = [p for p, _ in dressed]
@@ -169,13 +145,13 @@ def _expectation_via_full_resynthesis(hs, observable):
         backpropagated, resynthesis.residual_tableau, 1.0
     )
     state = resynthesis.circuit().state()
-    expval = np.real(np.conj(state) @ _pauli_matrix(folded) @ state)
+    expval = np.real(np.conj(state) @ pauli_matrix(folded) @ state)
     return clifford_sign * residual_sign * expval
 
 
 @pytest.mark.parametrize("observable", ["ZZZZ", "XIII", "IZIX", "YYYY"])
 def test_full_resynthesis_and_fold_matches_direct_simulation(observable):
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO.rotations_only(ansatz)
 
     expval = _expectation_via_full_resynthesis(hs, observable)
@@ -196,7 +172,7 @@ def test_full_resynthesis_and_fold_on_library_ansatz():
 
 
 def test_resynthesize_head_gate_counts_across_partial_cuts():
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO.rotations_only(ansatz)
     n_dressed = len(hs.magic_gates)
 

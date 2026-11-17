@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from qibo import set_backend
 from utils import (
     DEFAULT_ATOL,
     construct_test_circuit,
@@ -12,8 +11,6 @@ from mpstab.engines.stabilizers.native import NativeStabilizersEngine
 from mpstab.engines.stabilizers.stim import StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz
-
-set_backend("numpy")
 
 
 @pytest.mark.parametrize("stab_engine", [NativeStabilizersEngine, StimEngine])

@@ -1,11 +1,10 @@
 """The numpy fast path of QuimbEngine caches the MPS gauge on the state; these
 are cases where a stale cache used to give silently wrong expectations."""
 
-from functools import reduce
-
 import numpy as np
 import pytest
 import quimb.tensor as qtn
+from utils import pauli_matrix
 
 from mpstab.engines import QuimbEngine
 
@@ -16,8 +15,7 @@ G = np.array([[1, 0.8], [0, 0.3]])  # non-unitary, so it changes <PAULI>
 
 def _exact(mps):
     psi = mps.to_dense().ravel()
-    paulis = {"I": np.eye(2), "Z": np.diag([1, -1])}
-    op = reduce(np.kron, [paulis[c] for c in PAULI])
+    op = pauli_matrix(PAULI)
     return (psi.conj() @ op @ psi).real / (psi.conj() @ psi).real
 
 

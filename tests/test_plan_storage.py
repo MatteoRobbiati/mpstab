@@ -10,14 +10,12 @@ from contextlib import chdir
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates, get_backend, set_backend
+from qibo import Circuit, gates
 
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import HardwareEfficient
-from mpstab.qpu import circuit_to_qasm, estimate, plan_to_qasm
+from mpstab.qpu import circuit_to_qasm, plan_to_qasm
 from mpstab.qpu.execution import QELIB1_GATES
-
-set_backend("numpy")
 
 
 def _hs(nqubits=4, nlayers=2, seed=0):

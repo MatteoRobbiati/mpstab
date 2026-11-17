@@ -1,12 +1,11 @@
 """Tests for mpstab.noise: Pauli and coherent noise in the HSMPO frame."""
 
-from functools import reduce
-
 import numpy as np
 import pytest
 import stim
 from qibo import Circuit, gates
 from qibo.noise import AmplitudeDampingError, DepolarizingError, NoiseModel, PauliError
+from utils import pauli_matrix
 
 from mpstab import HSMPO
 from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
@@ -19,13 +18,8 @@ from mpstab.noise.events import (
     PauliChannel,
     from_qibo_noise_model,
 )
-from mpstab.pauli import PAULI_MATRICES
 
 OBSERVABLE = {"ZZIII": 0.7, "IXIXI": -0.4, "IIYZI": 0.3}
-
-
-def _matrix(pauli: str) -> np.ndarray:
-    return reduce(np.kron, [PAULI_MATRICES[label] for label in pauli])
 
 
 def _exact_expectation(circuit: Circuit, events, observable: dict) -> float:
@@ -47,7 +41,7 @@ def _exact_expectation(circuit: Circuit, events, observable: dict) -> float:
                 local = "".join(event.generator[q] for q in support)
                 unitary = np.cos(event.angle / 2) * np.eye(
                     2 ** len(support)
-                ) - 1j * np.sin(event.angle / 2) * _matrix(local)
+                ) - 1j * np.sin(event.angle / 2) * pauli_matrix(local)
                 noisy.add(gates.Unitary(unitary, *support))
 
     add_events(-1)
@@ -56,7 +50,9 @@ def _exact_expectation(circuit: Circuit, events, observable: dict) -> float:
         add_events(index)
 
     rho = noisy().state()
-    return sum(c * np.real(np.trace(rho @ _matrix(p))) for p, c in observable.items())
+    return sum(
+        c * np.real(np.trace(rho @ pauli_matrix(p))) for p, c in observable.items()
+    )
 
 
 def _hardware_efficient():
@@ -355,7 +351,9 @@ def test_from_qibo_noise_model():
     for gate in circuit.queue:
         density.add(gate)
     rho = model.apply(density)().state()
-    exact = sum(c * np.real(np.trace(rho @ _matrix(p))) for p, c in OBSERVABLE.items())
+    exact = sum(
+        c * np.real(np.trace(rho @ pauli_matrix(p))) for p, c in OBSERVABLE.items()
+    )
 
     result = noisy_expectation(
         compile_noise(HSMPO(circuit), events), OBSERVABLE, n_samples=1500, seed=8
@@ -405,7 +403,7 @@ def test_two_qubit_rotations_as_magic_gates():
     circuit = _rzz_circuit()
     state = circuit().state()
     for pauli in ("ZZI", "XIY", "IYX"):
-        exact = np.real(state.conj() @ _matrix(pauli) @ state)
+        exact = np.real(state.conj() @ pauli_matrix(pauli) @ state)
         assert HSMPO(circuit).expectation(pauli) == pytest.approx(exact, abs=1e-12)
 
 
@@ -422,7 +420,7 @@ def test_two_qubit_rotations_replaced_by_cliffords():
         )
         assert not partitions["magic_gates"]
         state = partitions["full_circuit"]().state()
-        exact = np.real(state.conj() @ _matrix("ZXY") @ state)
+        exact = np.real(state.conj() @ pauli_matrix("ZXY") @ state)
         assert expval == pytest.approx(exact, abs=1e-12)
 
 
@@ -473,11 +471,13 @@ def test_docstring_examples_run(code):
 
 def _model_expectation_exact(noise, circuit, observable):
     rho = noise.apply(circuit)().state()
-    return sum(c * np.real(np.trace(rho @ _matrix(p))) for p, c in observable.items())
+    return sum(
+        c * np.real(np.trace(rho @ pauli_matrix(p))) for p, c in observable.items()
+    )
 
 
 @pytest.mark.parametrize("make_ansatz", ANSATZE)
-def test_noise_model_matches_density_matrix(make_ansatz):
+def test_noise_model_matches_densitypauli_matrix(make_ansatz):
     from mpstab.noise import CoherentError, DepolarizingError, NoiseModel, PauliError
 
     ansatz = make_ansatz()
@@ -593,7 +593,9 @@ def test_readout_matches_bit_flips_before_measurement():
         noisy.add(gates.PauliNoiseChannel([q], [("X", 0.03)]))
     noisy.add(gates.PauliNoiseChannel([1], [("X", 0.05)]))
     rho = noisy().state()
-    exact = sum(c * np.real(np.trace(rho @ _matrix(p))) for p, c in observable.items())
+    exact = sum(
+        c * np.real(np.trace(rho @ pauli_matrix(p))) for p, c in observable.items()
+    )
 
     result = HSMPO(circuit).noisy_expectation(observable, noise, n_samples=1500, seed=2)
     assert abs(result.mean - exact) <= 4 * result.stderr + 1e-10

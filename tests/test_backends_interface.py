@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from qibo import set_backend
 from utils import expectation_with_qibo
 
 from mpstab.engines.stabilizers.native import NativeStabilizersEngine
@@ -9,8 +8,6 @@ from mpstab.engines.tensor_networks.native import NativeTensorNetworkEngine
 from mpstab.engines.tensor_networks.quimb import QuimbEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
-
-set_backend("numpy")
 
 
 @pytest.mark.parametrize("stab_engine", [NativeStabilizersEngine, StimEngine])

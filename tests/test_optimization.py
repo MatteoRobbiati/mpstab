@@ -9,7 +9,6 @@ Validates that:
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates
 from qibo.hamiltonians import SymbolicHamiltonian
 from qibo.symbols import X, Y, Z
 

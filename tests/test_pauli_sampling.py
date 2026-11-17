@@ -15,11 +15,9 @@ from itertools import product
 
 import numpy as np
 import pytest
-from qibo import set_backend
+from utils import pauli_matrix
 
 from mpstab.engines import QuimbEngine
-from mpstab.pauli import PAULI_ARRAY as PAULIS
-from mpstab.pauli import PAULI_LABELS as LABELS
 from mpstab.qpu.measurement import build_measurement_plan, group_qwc
 from mpstab.qpu.measurement.pauli_expansion import (
     PauliEnsemble,
@@ -33,34 +31,6 @@ from mpstab.qpu.measurement.pauli_expansion import (
     truncation_error_estimate,
 )
 
-set_backend("numpy")
-
-
-def _folded_mpo(base: str, generators, angles, max_bond=None):
-    """A tail-folded MPO with nontrivial bond dimension, no HSynthSMPO needed."""
-    engine = QuimbEngine()
-    mpo = engine.pauli_mpo(base)
-    for generator, angle in zip(generators, angles):
-        mpo = engine.conjugate_operator(mpo, generator, angle, max_bond)
-    return mpo
-
-
-def _dense_pauli_matrix(label: str) -> np.ndarray:
-    matrix = PAULIS[LABELS.index(label[0])]
-    for char in label[1:]:
-        matrix = np.kron(matrix, PAULIS[LABELS.index(char)])
-    return matrix
-
-
-@pytest.fixture
-def scrambled_mpo():
-    """A 4-qubit operator scrambled enough to have several sizeable Pauli terms."""
-    rng = np.random.default_rng(3)
-    generators = ["YYII", "IXZY", "ZIXY", "YZYX"]
-    angles = [rng.uniform(0.3, 1.5) for _ in generators]
-    return _folded_mpo("ZZZI", generators, angles)
-
-
 # ---------------------------------------------------------------------------
 # 1. Coefficient extraction vs brute-force dense trace
 # ---------------------------------------------------------------------------
@@ -70,7 +40,7 @@ def test_coefficients_match_dense_trace(scrambled_mpo):
     dense = scrambled_mpo.to_dense()
     nqubits = 4
     for label, coefficient in enumerate_pauli_coefficients(scrambled_mpo):
-        reference = np.trace(dense @ _dense_pauli_matrix(label)) / 2**nqubits
+        reference = np.trace(dense @ pauli_matrix(label)) / 2**nqubits
         assert (
             abs(coefficient - reference) < 1e-14
         ), f"[{label}] mps={coefficient} brute-force={reference}"
