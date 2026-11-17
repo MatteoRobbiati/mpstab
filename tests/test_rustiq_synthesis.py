@@ -13,7 +13,6 @@ import builtins
 
 import numpy as np
 import pytest
-import stim
 from qibo import Circuit
 from utils import (
     expectation_with_qibo,
@@ -24,7 +23,6 @@ from utils import (
 
 pytest.importorskip("rustiq")
 
-from mpstab.engines import StimEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 from mpstab.pauli import conjugate

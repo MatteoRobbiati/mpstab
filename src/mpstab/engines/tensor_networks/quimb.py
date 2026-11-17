@@ -246,9 +246,9 @@ class QuimbEngine(TensorNetworkEngine):
     """
     MPS evolution and MPO expectation values via quimb.
 
-    The only engine supporting operator-side conjugation, and so the only one
-    that can run :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`'s head/tail
-    split or DMRG optimization.
+    Besides evolving states, it conjugates operators, which
+    :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`'s head/tail split needs,
+    and its MPS feeds quimb's DMRG.
     """
 
     def __init__(
@@ -309,16 +309,10 @@ class QuimbEngine(TensorNetworkEngine):
     def build_circuit_mps(
         self,
         n: int,
-        initial_state_amplitudes: Any,
         initial_state_circuit: Any,
         max_bond_dimension: int | None = None,
     ):
         """Build the MPS by running ``initial_state_circuit`` through quimb."""
-        if initial_state_circuit is None:
-            raise NotImplementedError(
-                "QuimbEngine builds its MPS from a qibo circuit; pass "
-                "initial_state_circuit rather than initial_state_amplitudes."
-            )
         return _qibo_circuit_to_quimb(
             nqubits=n,
             qibo_circ=initial_state_circuit,

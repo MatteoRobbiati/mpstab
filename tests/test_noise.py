@@ -7,7 +7,7 @@ from qibo import Circuit, gates
 from utils import pauli_matrix
 
 from mpstab import HSMPO
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
+from mpstab.engines import QuimbEngine
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
 from mpstab.noise import (
     CoherentError,
@@ -315,22 +315,6 @@ def test_truncated_strata_bias_is_bounded():
     assert result.n_samples == 0
     assert abs(result.mean - exact) <= bound
     assert sum(result.stratum_weights) == pytest.approx(1.0, abs=1e-14)
-
-
-def test_native_engine_matches_quimb():
-    """The engine's default rotation hooks give the same estimate as quimb's MPO cache."""
-    circuit = _kicked_ising().circuit
-    events = _depolarizing(circuit, 0.02)
-    quimb = noisy_expectation(
-        compile_noise(HSMPO(circuit), events), OBSERVABLE, n_samples=200, seed=9
-    )
-    native = HSMPO(circuit)
-    native.set_engines(tn_engine=NativeTensorNetworkEngine())
-    result = noisy_expectation(
-        compile_noise(native, events), OBSERVABLE, n_samples=200, seed=9
-    )
-    assert result.n_patterns == quimb.n_patterns
-    assert result.mean == pytest.approx(quimb.mean, abs=1e-10)
 
 
 # -- Validation -----------------------------------------------------------------

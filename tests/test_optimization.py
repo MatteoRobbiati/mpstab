@@ -13,7 +13,7 @@ from qibo.hamiltonians import SymbolicHamiltonian
 from qibo.symbols import X, Y, Z
 
 from mpstab import HSMPO
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
+from mpstab.engines import QuimbEngine
 from mpstab.hamiltonians import pauli_terms
 from mpstab.models.ansatze import HardwareEfficient
 
@@ -326,38 +326,6 @@ class TestEngineSupportValidation:
         result = hsmpo.expectation("ZZZZ")
         assert isinstance(result, (float, np.floating))
 
-    def test_expectation_with_native_engine(self):
-        """Test expectation calculation with NativeTensorNetworkEngine."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-
-        # Switch to NativeTensorNetworkEngine
-        hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
-
-        # Should work: expectation() supports native engine via statevector
-        result = hsmpo.expectation("ZZZZ")
-        assert isinstance(result, (float, np.floating))
-
-    def test_minimize_expectation_fails_with_native_engine(self):
-        """Test that minimize_expectation raises NotImplementedError for NativeTensorNetworkEngine."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-
-        # Switch to NativeTensorNetworkEngine
-        hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
-
-        # Should raise NotImplementedError
-        with pytest.raises(
-            NotImplementedError, match="DMRG optimization requires QuimbEngine"
-        ):
-            hsmpo.minimize_expectation(
-                observables={"ZZZZ": 1.0},
-                method="dmrg",
-                bond_dims=[8],
-                max_sweeps=2,
-                verbosity=0,
-            )
-
     def test_minimize_expectation_works_with_quimb_engine(self):
         """Test that minimize_expectation works with QuimbEngine."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
@@ -377,23 +345,3 @@ class TestEngineSupportValidation:
         # Check whatever key is used for energy
         energy_key = "energy" if "energy" in result else "ground_state_energy"
         assert isinstance(result[energy_key], (float, np.floating))
-
-    def test_expectation_accuracy_native_vs_quimb(self):
-        """Verify expectation values match between native and quimb engines."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-
-        # Calculate with Quimb engine
-        hsmpo_quimb = HSMPO(ansatz=ansatz, tn_engine=QuimbEngine())
-        result_quimb = hsmpo_quimb.expectation("ZZZZ")
-
-        # Calculate with Native engine
-        hsmpo_native = HSMPO(ansatz=ansatz)
-        hsmpo_native.set_engines(tn_engine=NativeTensorNetworkEngine())
-        result_native = hsmpo_native.expectation("ZZZZ")
-
-        # Results should match (within numerical precision)
-        np.testing.assert_allclose(result_native, result_quimb, rtol=1e-5)
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

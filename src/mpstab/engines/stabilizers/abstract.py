@@ -1,12 +1,10 @@
 """The interface a stabilizers engine must implement."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
 from qibo import Circuit
 
 
-@dataclass
 class StabilizersEngine(ABC):
     """Clifford backpropagation of Pauli observables."""
 

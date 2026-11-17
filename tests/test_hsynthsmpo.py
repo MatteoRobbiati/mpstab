@@ -4,7 +4,6 @@ import stim
 from qibo import Circuit
 from utils import expectation_with_qibo, small_entangled_circuit
 
-from mpstab.engines import NativeTensorNetworkEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import (
     QAE,
@@ -93,14 +92,6 @@ def test_simulation_rejects_shot_budget():
         hs.expectation_at_cut("ZZZZ", 2, method="simulation", n_shots=100)
     with pytest.raises(ValueError):
         hs.expectation_at_cut("ZZZZ", 2, method="simulation", epsilon=0.01)
-
-
-def test_native_engine_not_supported():
-    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz)
-    hs.set_engines(tn_engine=NativeTensorNetworkEngine())
-    with pytest.raises(NotImplementedError):
-        hs.expectation_at_cut("ZZZZ", 2, method="simulation")
 
 
 def test_tail_truncation_lossless_when_untruncated():

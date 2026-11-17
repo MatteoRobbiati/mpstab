@@ -1,20 +1,24 @@
 Working with Engines
 ====================
 
-MPSTAB supports multiple computational backends (engines) for different simulation scenarios.
+MPSTAB runs on two computational backends (engines): one for the stabilizer
+part of the circuit, one for the tensor network.
 
-Once an HSMPO is defined, the engines can be customized using the ``hsmpo.set_engines`` method. By default we set Stim and Quimb respectively for stabilizers and tensor network simulations::
+By default HSMPO uses Stim for the stabilizer part and Quimb for the tensor
+network. Engines are passed at construction, or swapped later with
+``set_engines``::
 
     from mpstab import HSMPO
+    from mpstab.engines import QuimbEngine
     from qibo import Circuit, gates
 
     circuit = Circuit(3)
     circuit.add(gates.H(0))
     circuit.add(gates.CNOT(0, 1))
 
-    simulator = HSMPO(ansatz=circuit)
-    # Here we can pass the desired engines
-    simulator.set_engines()
+    simulator = HSMPO(ansatz=circuit, tn_engine=QuimbEngine(svd_cutoff=0.0))
+    # ...or later, which rebuilds the cached MPS:
+    simulator.set_engines(tn_engine=QuimbEngine())
 
 Available Engines
 -----------------
@@ -42,24 +46,6 @@ Engines that handle the Clifford (stabilizer) part of the circuit:
     simulator = HSMPO(ansatz=circuit)
     # By default we use Stim
 
-**Native Stabilizer Engine**
-  - Speed: Lightweight, fast on single thread CPU
-  - Coverage: Pure Clifford circuits only
-  - Best for: Large Clifford circuits (thousands of qubits)
-  - Implementation: In-house Clifford simulator
-
-::
-
-    from mpstab import HSMPO
-    from mpstab.engines import NativeStabilizersEngine
-    from qibo import Circuit, gates
-
-    circuit = Circuit(5)
-    circuit.add(gates.H(0))
-
-    simulator = HSMPO(ansatz=circuit)
-    simulator.set_engines(stab_engine=NativeStabilizersEngine())
-
 Tensor Network Engines
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -69,7 +55,7 @@ Engines that handle the non-Clifford effects via MPO:
   - Speed: Fast (optimized contractions)
   - Memory: Efficient for large bond dimensions
   - Best for: Large systems with moderate bond dimensions
-  - Features: Automatic contraction path optimization
+  - Backends: ``QuimbEngine(backend="jax")`` or ``"torch"`` for autodiff
   - External library: `Quimb <https://quimb.readthedocs.io/>`_
 
 ::
@@ -84,12 +70,6 @@ Engines that handle the non-Clifford effects via MPO:
     simulator = HSMPO(ansatz=circuit, max_bond_dimension=32)
     # Uses Quimb tensor network engine by default
 
-**Native Tensor Network Engine**
-  - Speed: Moderate
-  - Memory: Scales with bond dimension
-  - Best for: Small systems with fine controlled network structure
-
-
 Engine Configuration
 --------------------
 
@@ -101,14 +81,13 @@ Engine Configuration
     # Define an ansatz or a Qibo circuit
     ansatz = HardwareEfficient(nqubits=10, nlayers=3)
 
-    # Basic HSMPO with automatic engine selection
+    # Basic HSMPO with the default engines
     simulator = HSMPO(
         ansatz=ansatz,
         max_bond_dimension=32
     )
 
     # Access engine information
-    simulator.set_engines()  # Configure engines
     print(f"Stabilizer engine: {simulator.stab_engine}")
     print(f"TN engine: {simulator.tn_engine}")
 

@@ -8,7 +8,6 @@ import stim
 from qibo import Circuit
 
 from mpstab.engines import (
-    NativeTensorNetworkEngine,
     QuimbEngine,
     StabilizersEngine,
     StimEngine,
@@ -115,9 +114,7 @@ class HSMPO:
 
         Args:
             stab_engine: stabilizers engine, ``StimEngine`` if ``None``.
-            tn_engine: tensor-network engine, ``QuimbEngine`` if ``None``. The
-                native engine supports :meth:`expectation` but not
-                :meth:`minimize_expectation`.
+            tn_engine: tensor-network engine, ``QuimbEngine`` if ``None``.
         """
         self.stab_engine = _engine(stab_engine, StabilizersEngine, StimEngine)
         self.tn_engine = _engine(tn_engine, TensorNetworkEngine, QuimbEngine)
@@ -129,26 +126,17 @@ class HSMPO:
         ``max_bond_dimension``. It belongs to the caller: evolving it leaves this
         instance untouched.
 
-        Both forms of the state are handed to the engine, which takes whichever
-        it prefers: the per-qubit amplitudes for the native engine, the circuit
-        itself for quimb.
-
         Raises:
             ValueError: if ``initial_state`` entangles any pair of qubits.
         """
-        amplitudes = []
-        for qubit in range(self.nqubits):
-            light_circuit, light_cone = self.initial_state.light_cone(qubit)
-            if len(light_cone) > 1:
+        for gate in self.initial_state.queue:
+            if len(gate.qubits) > 1:
                 raise ValueError(
                     "The initial-state circuit must be made of one-qubit gates "
-                    f"only, but qubit {qubit}'s light cone covers {len(light_cone)}."
+                    f"only, but it has {gate.name} on qubits {gate.qubits}."
                 )
-            amplitudes.append(light_circuit().state())
-
         return self.tn_engine.build_circuit_mps(
             n=self.nqubits,
-            initial_state_amplitudes=np.array(amplitudes),
             initial_state_circuit=self.initial_state,
             max_bond_dimension=self.max_bond_dimension,
         )
@@ -194,24 +182,7 @@ class HSMPO:
         it (:meth:`_dress`). Computed once per partition of the circuit, i.e.
         once per :meth:`set_parameters`.
 
-        Requires a :class:`~mpstab.engines.StimEngine`, but only when there is
-        magic to dress: a Clifford-only circuit has no dressed rotations whatever
-        engine is in use.
-
-        Raises:
-            NotImplementedError: if there are magic gates and the stabilizers
-                engine is not a ``StimEngine``.
         """
-        if not self.magic_gates:
-            return ()
-
-        if not isinstance(self.stab_engine, StimEngine):
-            raise NotImplementedError(
-                "Dressed-rotation extraction requires StimEngine (this circuit has "
-                f"{len(self.magic_gates)} magic gate(s)). Call "
-                "set_engines(stab_engine=StimEngine()) to enable it."
-            )
-
         if self._dressed is None:
             self._dressed = tuple(self._dress(self.magic_gates, self.clifford_circuit))
         return self._dressed
@@ -531,12 +502,8 @@ class HSMPO:
             NotImplementedError: with a tensor-network engine other than
                 :class:`~mpstab.engines.QuimbEngine`, or an unimplemented method.
         """
-        if isinstance(self.tn_engine, NativeTensorNetworkEngine):
-            raise NotImplementedError(
-                "DMRG optimization requires QuimbEngine. Call "
-                "set_engines(tn_engine=QuimbEngine()) to enable it; expectation() "
-                "keeps working on NativeTensorNetworkEngine."
-            )
+        if not isinstance(self.tn_engine, QuimbEngine):
+            raise NotImplementedError("DMRG optimization requires QuimbEngine.")
         if method.lower() != "dmrg":
             raise ValueError(f"Unknown method {method!r}, expected 'dmrg'.")
 

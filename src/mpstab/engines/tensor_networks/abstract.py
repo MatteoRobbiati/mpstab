@@ -18,18 +18,15 @@ class TensorNetworkEngine(ABC):
     def build_circuit_mps(
         self,
         n: int,
-        initial_state_amplitudes: Any,
         initial_state_circuit: Any,
         max_bond_dimension: int | None = None,
     ):
         """
-        Build an MPS on ``n`` qubits in the given initial state.
+        Build an MPS on ``n`` qubits in the state a qibo circuit prepares.
 
         Args:
             n: number of qubits.
-            initial_state_amplitudes: array of per-site single-qubit amplitudes.
-            initial_state_circuit: the same state as a qibo circuit. Engines take
-                whichever of the two forms they prefer.
+            initial_state_circuit: the qibo circuit preparing the state.
             max_bond_dimension: truncation cap, or ``None`` for no cap.
         """
 

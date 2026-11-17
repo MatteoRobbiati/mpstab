@@ -10,7 +10,6 @@ import pytest
 from qibo import Circuit, gates
 from qibo.quantum_info import meyer_wallach_entanglement, stabilizer_renyi_entropy
 
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
 from mpstab.models.metrics import meyer_wallach_mps, stabilizer_renyi_entropy_mps
@@ -75,12 +74,9 @@ def test_meyer_wallach_mps_partial_entanglement():
     [_ghz(4), _kicked_ising(6, 3, 1.2), _hardware_efficient(5, 3, seed=1)],
     ids=["ghz", "kicked_ising", "hardware_efficient"],
 )
-@pytest.mark.parametrize(
-    "tn_engine", [QuimbEngine, NativeTensorNetworkEngine], ids=["quimb", "native"]
-)
-def test_meyer_wallach_mps_matches_dense(circuit, tn_engine):
+def test_meyer_wallach_mps_matches_dense(circuit):
     dense = meyer_wallach_entanglement(circuit.copy()().state())
-    hsmpo = HSMPO(ansatz=circuit.copy(), tn_engine=tn_engine())
+    hsmpo = HSMPO(ansatz=circuit.copy())
     assert meyer_wallach_mps(hsmpo) == pytest.approx(dense, abs=1e-10)
 
 
