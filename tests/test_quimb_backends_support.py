@@ -27,10 +27,12 @@ def test_backend_support(backend):
     reference = hs.expectation(observable)
 
     # jax defaults to single precision, whose error varies across platforms
-    # (1e-6 to 2e-5 here); in double precision it matches numpy to ~1e-14.
-    # torch stays in single precision, so it gets a single-precision tolerance.
+    # (1e-6 to 2e-5), so it runs in double precision here. Even then its
+    # safe_qr nudges degenerate factorizations by sqrt(eps) ~ 1.5e-8 to keep
+    # gradients finite, which leaves value errors up to ~1e-8 depending on the
+    # platform's linear algebra. torch stays in single precision.
     precision = jax.enable_x64(True) if backend == "jax" else contextlib.nullcontext()
-    tolerance = 1e-10 if backend == "jax" else 1e-4
+    tolerance = 1e-7 if backend == "jax" else 1e-4
     with precision:
         hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine(backend=backend))
         expectation = float(np.real(np.asarray(hs.expectation(observable))))
