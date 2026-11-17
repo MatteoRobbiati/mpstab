@@ -315,6 +315,7 @@ class HSMPO:
         noise,
         n_samples: int = 1000,
         seed: int | None = None,
+        n_workers: int = 1,
     ):
         """
         Expectation value of ``observable`` on the circuit with ``noise``.
@@ -335,6 +336,9 @@ class HSMPO:
                 ``0`` that stratum is dropped, biasing the mean by at most
                 ``stratum_weights[2]`` times the sum of the absolute coefficients.
             seed: seed of the sampler.
+            n_workers: processes evaluating the fault patterns in parallel. The
+                result does not depend on it; each extra process costs about a
+                second to start, so use it for large runs.
 
         Returns:
             :class:`~mpstab.noise.NoisyExpectation`, with the value in ``mean``
@@ -347,7 +351,9 @@ class HSMPO:
 
         constant, terms = noise.readout_observable(observable, self.nqubits)
         compiled = compile_noise(self, noise.events(self.ansatz.circuit))
-        result = noisy_expectation(compiled, terms, n_samples=n_samples, seed=seed)
+        result = noisy_expectation(
+            compiled, terms, n_samples=n_samples, seed=seed, n_workers=n_workers
+        )
         return replace(result, mean=result.mean + constant)
 
     def _terms_expectation(self, terms: dict, state_mps, clifford_circuit) -> float:

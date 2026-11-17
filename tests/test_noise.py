@@ -618,3 +618,17 @@ def test_readout_only_attenuates_terms():
 
     with pytest.raises(ValueError, match="without a gate"):
         NoiseModel().add(ReadoutError(0.1), gates.M)
+
+
+def test_parallel_patterns_match_serial():
+    from mpstab.noise import NoiseModel, PauliError
+
+    hsmpo = HSMPO(_kicked_ising(), max_bond_dimension=4)
+    noise = NoiseModel().add(PauliError({"X": 0.01, "Z": 0.02}))
+    serial = hsmpo.noisy_expectation(OBSERVABLE, noise, n_samples=200, seed=5)
+    parallel = hsmpo.noisy_expectation(
+        OBSERVABLE, noise, n_samples=200, seed=5, n_workers=3
+    )
+    assert parallel.mean == pytest.approx(serial.mean, abs=1e-12)
+    assert parallel.stderr == pytest.approx(serial.stderr, abs=1e-12)
+    np.testing.assert_allclose(parallel.fidelities, serial.fidelities, atol=1e-12)

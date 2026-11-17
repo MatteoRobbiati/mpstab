@@ -65,6 +65,7 @@ def noisy_expectation(
     n_samples: int = 1000,
     seed: int | None = None,
     light_cone: bool = True,
+    n_workers: int = 1,
 ) -> NoisyExpectation:
     """
     Expectation value of ``observable`` on the noisy circuit.
@@ -87,6 +88,11 @@ def noisy_expectation(
         exact, and it leaves fewer rotations per pattern and fewer faults, so
         a smaller ``Pr(k >= 2)`` and a smaller standard error. Turn it off only
         to compare against the unrestricted computation.
+    n_workers : int, optional
+        Processes evaluating the sign patterns. The distinct patterns are split
+        into contiguous blocks, so the result is identical for any value; each
+        extra process costs a start-up of about a second, so it pays off only
+        when there are many patterns or the MPS is large.
 
     Returns
     -------
@@ -143,7 +149,9 @@ def noisy_expectation(
         [np.zeros((1, len(terms)), dtype=bool), observable_flips, sampled_observable]
     )
 
-    values, fidelities = _pattern_values(compiled, rotation_patterns, dressed)
+    values, fidelities = _pattern_values(
+        compiled, rotation_patterns, dressed, n_workers
+    )
     total = 0
     for i, coefficient in enumerate(terms.values()):
         signs = 1.0 - 2.0 * observable_patterns[:, i]
@@ -232,19 +240,18 @@ def _sample_two_or_more(compiled, observable_flips, tails, n_samples, rng):
     return rotations, observable
 
 
-def _pattern_values(compiled, patterns, dressed):
+def _pattern_values(compiled, patterns, dressed, n_workers: int = 1):
     """
     Each observable term's dressed expectation value for each rotation sign
     pattern, as ``(values, fidelities)`` with ``values`` shaped
-    ``(len(patterns), len(dressed))``.
+    ``(len(patterns), len(dressed))``, and fidelities one per distinct pattern.
 
-    Distinct patterns are evaluated once, in lexicographic order, from a stack
-    of checkpoints: ``checkpoints[j]`` is the MPS after the first ``j``
-    rotations of the current pattern. Each rotation's MPO is built once per
-    sign and reused.
+    Distinct patterns are sorted lexicographically and split into
+    ``n_workers`` contiguous blocks, each evaluated by
+    :func:`_evaluate_patterns` in its own process (in this one if
+    ``n_workers == 1``).
     """
     hsmpo = compiled.hsmpo
-    engine = hsmpo.tn_engine
     n_rotations = len(compiled.generators)
     if n_rotations == 0:
         unique = np.zeros((1, 0), dtype=bool)
@@ -253,40 +260,68 @@ def _pattern_values(compiled, patterns, dressed):
         unique, inverse = np.unique(patterns, axis=0, return_inverse=True)
         inverse = inverse.reshape(-1)
 
+    args = (
+        hsmpo.tn_engine,
+        hsmpo.initial_mps(),
+        list(compiled.generators),
+        np.asarray(compiled.angles),
+        hsmpo.max_bond_dimension,
+        [pauli for pauli, _ in dressed],
+        np.array([sign for _, sign in dressed], dtype=float),
+    )
+    n_workers = max(1, min(int(n_workers), len(unique)))
+    if n_workers == 1:
+        values, fidelities = _evaluate_patterns(*args, unique)
+    else:
+        from concurrent.futures import ProcessPoolExecutor
+
+        blocks = np.array_split(unique, n_workers)
+        with ProcessPoolExecutor(max_workers=n_workers) as pool:
+            results = list(
+                pool.map(_evaluate_patterns, *zip(*[(*args, b) for b in blocks]))
+            )
+        values = np.concatenate([v for v, _ in results])
+        fidelities = np.concatenate([f for _, f in results])
+    return values[inverse], fidelities
+
+
+def _evaluate_patterns(
+    engine, initial_mps, generators, angles, max_bond, paulis, signs, patterns
+):
+    """
+    Evaluate sorted, distinct sign ``patterns`` from a stack of checkpoints:
+    ``checkpoints[j]`` is the MPS after the first ``j`` rotations of the
+    current pattern, so consecutive patterns share their common prefix. Each
+    rotation's MPO is built once per sign and reused.
+    """
+    n_rotations = len(generators)
     operators = {}
 
     def rotation(j: int, flipped: bool):
         if (j, flipped) not in operators:
-            angle = -compiled.angles[j] if flipped else compiled.angles[j]
-            operators[j, flipped] = engine.rotation_operator(
-                compiled.generators[j], angle
-            )
+            angle = -angles[j] if flipped else angles[j]
+            operators[j, flipped] = engine.rotation_operator(generators[j], angle)
         return operators[j, flipped]
 
-    paulis = [pauli for pauli, _ in dressed]
-    signs = np.array([sign for _, sign in dressed], dtype=float)
-    unique_values = np.zeros((len(unique), len(dressed)))
-    fidelities = np.zeros(len(unique))
+    values = np.zeros((len(patterns), len(paulis)))
+    fidelities = np.zeros(len(patterns))
 
-    checkpoints = [hsmpo.initial_mps()]
+    checkpoints = [initial_mps]
     previous = None
-    for row, pattern in enumerate(unique):
+    for row, pattern in enumerate(patterns):
         start = 0 if previous is None else int(np.argmax(pattern != previous))
         del checkpoints[start + 1 :]
         for j in range(start, n_rotations):
             state = engine.copy_state(checkpoints[-1])
-            engine.apply_rotation(
-                state, rotation(j, bool(pattern[j])), hsmpo.max_bond_dimension
-            )
+            engine.apply_rotation(state, rotation(j, bool(pattern[j])), max_bond)
             checkpoints.append(state)
         previous = pattern
 
         state = checkpoints[-1]
         if paulis:
-            values = engine.pauli_expvals(state, paulis)
-            unique_values[row] = np.real(np.asarray(values, dtype=complex)) * signs
+            expvals = engine.pauli_expvals(state, paulis)
+            values[row] = np.real(np.asarray(expvals, dtype=complex)) * signs
         fidelities[row] = (
             np.real(state.norm(squared=True)) if hasattr(state, "norm") else np.nan
         )
-
-    return unique_values[inverse], fidelities
+    return values, fidelities

@@ -219,6 +219,30 @@ def _qibo_circuit_to_quimb(nqubits: int, qibo_circ, **circuit_kwargs) -> Circuit
     return circuit
 
 
+def _array_module(backend: str):
+    """The array module of a quimb backend: numpy, ``jax.numpy`` or torch."""
+    if backend == "numpy":
+        import numpy
+
+        return numpy
+    if backend == "jax":
+        import jax.numpy
+
+        from ._jax_linalg import install
+
+        # jax's SVD derivative is nan on repeated zero singular values, which
+        # an MPS evolved from a product state hits at its first compressions.
+        install()
+        return jax.numpy
+    if backend == "torch":
+        import torch
+
+        return torch
+    raise ValueError(
+        f"Unsupported quimb backend {backend!r}, expected 'numpy', 'jax' or 'torch'."
+    )
+
+
 class QuimbEngine(TensorNetworkEngine):
     """
     MPS evolution and MPO expectation values via quimb.
@@ -249,29 +273,7 @@ class QuimbEngine(TensorNetworkEngine):
                 so exact comparisons need ``0.0``.
         """
         self.svd_cutoff = svd_cutoff
-        if backend == "numpy":
-            import numpy
-
-            self.np = numpy
-        elif backend == "jax":
-            import jax.numpy
-
-            from ._jax_linalg import install
-
-            # jax's SVD derivative is nan on repeated zero singular values, which
-            # an MPS evolved from a product state hits at its first compressions.
-            install()
-            self.np = jax.numpy
-        elif backend == "torch":
-            import torch
-
-            self.np = torch
-        else:
-            raise ValueError(
-                f"Unsupported quimb backend {backend!r}, expected 'numpy', 'jax' "
-                "or 'torch'."
-            )
-
+        self.np = _array_module(backend)
         self.backend = backend
         self.optimizer = (
             ctg.ReusableHyperOptimizer(
@@ -283,6 +285,18 @@ class QuimbEngine(TensorNetworkEngine):
             if cache
             else "greedy"
         )
+
+    def __getstate__(self):
+        # The array module does not pickle, which sending the engine to another
+        # process (noisy_expectation with n_workers) needs; the backend name
+        # is enough to restore it.
+        state = self.__dict__.copy()
+        del state["np"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.np = _array_module(self.backend)
 
     def _to_backend(self, mpo):
         """Move an MPO's arrays onto the engine's backend, when it needs it."""
