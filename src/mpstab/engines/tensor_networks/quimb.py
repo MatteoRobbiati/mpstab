@@ -85,10 +85,13 @@ class _CanonicalMPS:
     arrays in mixed canonical form, for :mod:`._mps_kernels`.
 
     The orthogonality center is cached on the MPS itself together with the
-    exact array object held by each site. Anything else that touches the MPS
-    replaces those arrays, and the next view then re-canonicalizes from
-    scratch, so a stale gauge is never trusted. ``deepcopy`` preserves the
-    array identities, so copies keep their cached gauge.
+    exact array object held by each site, and trusted only while the MPS holds
+    exactly those arrays and no other tensor. The cached arrays are read-only,
+    so anything else that changes the MPS has to replace them, and the next
+    view then re-canonicalizes from scratch. ``deepcopy`` preserves the
+    array identities, so copies keep their cached gauge, but numpy hands the
+    copies back writable: write into a deep copy's arrays and the gauge goes
+    stale.
 
     Arrays are loaded lazily, and only the ones a kernel changed are written
     back, so the cost of an operation scales with the sites it touches.
@@ -101,7 +104,9 @@ class _CanonicalMPS:
         gauge = getattr(mps, _GAUGE_ATTR, None)
         if gauge is not None:
             center, tids, arrays, inds = gauge
-            if len(tids) == self.L and all(
+            # Exactly L tensors: an extra one (``gate_(..., contract=False)``)
+            # changes the state while leaving the site arrays untouched.
+            if len(tids) == self.L == len(tensor_map) and all(
                 tid in tensor_map and tensor_map[tid].data is array
                 for tid, array in zip(tids, arrays)
             ):
@@ -165,6 +170,11 @@ class _CanonicalMPS:
             tensor = tensor_map[self.tids[i]]
             tensor.modify(data=data, inds=self.inds[i])
             self.stored[i] = tensor.data
+        # Read-only, so an in-place write raises instead of silently
+        # invalidating the cached gauge, here or on a ``copy_state`` copy
+        # sharing these arrays.
+        for array in self.stored:
+            array.flags.writeable = False
         setattr(
             self.mps,
             _GAUGE_ATTR,
