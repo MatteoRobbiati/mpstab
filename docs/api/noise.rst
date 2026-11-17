@@ -58,5 +58,5 @@ General Kraus channels, such as amplitude damping, are not supported.
 .. automodule:: mpstab.noise.estimator
    :members:
 
-See ``examples/noisy_simulation.py`` for a comparison against exact
+See ``examples/scripts/noise/noisy_simulation.py`` for a comparison against exact
 density-matrix simulation.

@@ -11,7 +11,7 @@ comparison is accuracy. The hybrid cost is set by the number of distinct sign
 patterns times the cost of a dressed rotation on the MPS, not by ``4**n``, so it
 is the method that keeps working where density matrices no longer fit.
 
-Run with ``uv run python examples/noisy_simulation.py``.
+Run with ``uv run python examples/scripts/noise/noisy_simulation.py``.
 """
 
 import time

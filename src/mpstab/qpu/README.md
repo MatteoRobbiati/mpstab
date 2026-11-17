@@ -13,7 +13,7 @@ exact, absorbed however they fall relative to the cut. The head is
 resynthesised and run on the device; the tail is folded into the observable
 classically, with no shot spent on it at all:
 
-![Head/tail split: a circuit's magic gates become a chain of rotations, cut into a head that runs on the device and a tail folded classically into the observable, then measured with finite shots into an expectation value with noise and truncation.](../../../examples/hsynthsmpo_head_tail_split_concept_en.png)
+![Head/tail split: a circuit's magic gates become a chain of rotations, cut into a head that runs on the device and a tail folded classically into the observable, then measured with finite shots into an expectation value with noise and truncation.](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_head_tail_split_concept_en.png)
 
 So instead of running the *whole* circuit and measuring `O`, we run only the
 *head* on the device and measure a *different* operator `O'` -- the
@@ -59,7 +59,7 @@ All three share the *same* first step (resynthesising the head into a
 circuit) and differ only in what they measure and how they turn the results
 back into a number:
 
-![Three measurement routes from the same head on chip: pauli samples and groups Pauli strings then drops the weak ones; shadows measures a random basis per shot then contracts with the MPO, noisier per shot; tnice reuses the same shots and bases as shadows but fits an estimator on half the data and evaluates on the rest.](../../../examples/hsynthsmpo_three_measurement_routes_en.png)
+![Three measurement routes from the same head on chip: pauli samples and groups Pauli strings then drops the weak ones; shadows measures a random basis per shot then contracts with the MPO, noisier per shot; tnice reuses the same shots and bases as shadows but fits an estimator on half the data and evaluates on the rest.](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_three_measurement_routes_en.png)
 
 ### `"pauli"` -- sample and group
 
@@ -133,7 +133,7 @@ at 1 EUR:
 decomposition) is chosen *before* any shot is spent -- raising it costs
 exactly 0 EUR, only classical compute:
 
-![pauli error vs n_string_samples, free](../../../examples/hsynthsmpo_qite_cost_analysis.png)
+![pauli error vs n_string_samples, free](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_qite_cost_analysis.png)
 
 *(left panel)* At a fixed 4000-shot budget, `total_error` barely moves from
 `n_string_samples=20` to `800` (0.53 -> 0.44) -- it's dominated almost
