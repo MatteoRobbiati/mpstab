@@ -1,7 +1,7 @@
 Models & Methods
 ================
 
-The models subpackage contains quantum circuit templates (ansätze), error mitigation techniques, and analysis tools.
+The models subpackage contains quantum circuit templates (ansätze) and analysis tools.
 
 Ansätze: Quantum Circuit Templates
 ----------------------------------
@@ -48,8 +48,6 @@ form.
 
 **Key Methods**:
 
-- ``execute(nshots, initial_state, with_noise)``: Execute the circuit
-- ``update_noise_model(noise_model)``: Add noise to simulation
 - ``partitionate_circuit(replacement_probability, replacement_method)``: Partition circuit
 - ``nparams``: Number of circuit parameters
 - ``circuit``: Access the underlying QiboCircuit
@@ -67,16 +65,6 @@ form.
     result = simulator.expectation("ZZZZZ")
 
 See :doc:`../guides/using_ansatze` for detailed examples.
-
-Error Mitigation
-----------------
-
-Techniques for reducing approximation errors and improving simulation accuracy.
-
-.. automodule:: mpstab.models.mitigation_methods
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Entanglement Metrics & Analysis
 --------------------------------

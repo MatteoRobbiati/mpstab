@@ -17,7 +17,7 @@ from typing import Sequence
 
 import numpy as np
 import stim
-from qibo import Circuit, gates
+from qibo import gates
 
 from mpstab.engines import StimEngine
 from mpstab.engines.stabilizers.stim import gate_instruction

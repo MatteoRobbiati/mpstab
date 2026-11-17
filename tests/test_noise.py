@@ -4,20 +4,21 @@ import numpy as np
 import pytest
 import stim
 from qibo import Circuit, gates
-from qibo.noise import AmplitudeDampingError, DepolarizingError, NoiseModel, PauliError
 from utils import pauli_matrix
 
 from mpstab import HSMPO
 from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
+from mpstab.noise import (
+    CoherentError,
+    DepolarizingError,
+    NoiseModel,
+    PauliError,
+    ReadoutError,
+)
 from mpstab.noise.compile import compile_noise
 from mpstab.noise.estimator import noisy_expectation
-from mpstab.noise.events import (
-    CoherentRotation,
-    NoiseEvent,
-    PauliChannel,
-    from_qibo_noise_model,
-)
+from mpstab.noise.events import CoherentRotation, NoiseEvent, PauliChannel
 
 OBSERVABLE = {"ZZIII": 0.7, "IXIXI": -0.4, "IIYZI": 0.3}
 
@@ -333,41 +334,6 @@ def test_native_engine_matches_quimb():
     assert result.mean == pytest.approx(quimb.mean, abs=1e-10)
 
 
-# -- qibo noise models ----------------------------------------------------------
-
-
-def test_from_qibo_noise_model():
-    circuit = _kicked_ising().circuit
-    model = NoiseModel()
-    model.add(PauliError([("X", 0.01), ("Z", 0.02)]), gates.RX)
-    model.add(DepolarizingError(0.03), gates.CNOT)
-    events = from_qibo_noise_model(model, circuit)
-
-    cnots = [i for i, g in enumerate(circuit.queue) if g.name == "cx"]
-    assert [e.after_gate for e in events if len(e.qubits) == 2] == cnots
-    assert all(len(e.probs) == 15 for e in events if len(e.qubits) == 2)
-
-    density = Circuit(circuit.nqubits, density_matrix=True)
-    for gate in circuit.queue:
-        density.add(gate)
-    rho = model.apply(density)().state()
-    exact = sum(
-        c * np.real(np.trace(rho @ pauli_matrix(p))) for p, c in OBSERVABLE.items()
-    )
-
-    result = noisy_expectation(
-        compile_noise(HSMPO(circuit), events), OBSERVABLE, n_samples=1500, seed=8
-    )
-    assert abs(result.mean - exact) <= 4 * result.stderr + 1e-10
-
-
-def test_unsupported_qibo_channel():
-    model = NoiseModel()
-    model.add(AmplitudeDampingError(0.01), gates.RX)
-    with pytest.raises(NotImplementedError, match="AmplitudeDampingChannel"):
-        from_qibo_noise_model(model, _kicked_ising().circuit)
-
-
 # -- Validation -----------------------------------------------------------------
 
 
@@ -442,7 +408,6 @@ def _docstring_examples():
     objects += [
         events.PauliChannel,
         events.CoherentRotation,
-        events.from_qibo_noise_model,
     ]
     objects += [pauli.anticommutation, pauli.light_cone]
     for obj in objects:
@@ -478,7 +443,6 @@ def _model_expectation_exact(noise, circuit, observable):
 
 @pytest.mark.parametrize("make_ansatz", ANSATZE)
 def test_noise_model_matches_densitypauli_matrix(make_ansatz):
-    from mpstab.noise import CoherentError, DepolarizingError, NoiseModel, PauliError
 
     ansatz = make_ansatz()
     noise = NoiseModel()
@@ -495,7 +459,6 @@ def test_noise_model_matches_densitypauli_matrix(make_ansatz):
 
 
 def test_noise_model_matches_events():
-    from mpstab.noise import NoiseModel, PauliError
 
     circuit = _kicked_ising().circuit
     p = 0.01
@@ -514,7 +477,6 @@ def test_noise_model_matches_events():
 
 
 def test_noise_model_rules():
-    from mpstab.noise import CoherentError, DepolarizingError, NoiseModel, PauliError
 
     circuit = _hand_circuit()  # H(0), RZ(0), CNOT(0,1), RX(1)
     events = NoiseModel().add(PauliError({"Z": 0.1}), gates.CNOT).events(circuit)
@@ -543,7 +505,6 @@ def test_noise_model_rules():
 
 
 def test_noise_model_scaled():
-    from mpstab.noise import CoherentError, NoiseModel, PauliError
 
     circuit = _hand_circuit()
     noise = (
@@ -558,20 +519,7 @@ def test_noise_model_scaled():
     assert noise.scaled(0.0).events(circuit)[0].probs["X"] == 0.0
 
 
-def test_noise_model_from_qibo():
-    from mpstab.noise import NoiseModel as MpstabNoiseModel
-
-    circuit = _kicked_ising().circuit
-    model = NoiseModel()
-    model.add(DepolarizingError(0.03), gates.CNOT)
-    wrapped = MpstabNoiseModel.from_qibo(model)
-    assert wrapped.events(circuit) == from_qibo_noise_model(model, circuit)
-    with pytest.raises(NotImplementedError, match="scaled"):
-        wrapped.scaled(2.0)
-
-
 def test_noisy_expectation_without_noise():
-    from mpstab.noise import NoiseModel
 
     hsmpo = HSMPO(_kicked_ising())
     result = hsmpo.noisy_expectation(OBSERVABLE, NoiseModel())
@@ -580,7 +528,6 @@ def test_noisy_expectation_without_noise():
 
 
 def test_readout_matches_bit_flips_before_measurement():
-    from mpstab.noise import NoiseModel, PauliError, ReadoutError
 
     circuit = _kicked_ising().circuit
     noise = NoiseModel().add(PauliError({"Z": 0.004, "X": 0.002}))
@@ -602,7 +549,6 @@ def test_readout_matches_bit_flips_before_measurement():
 
 
 def test_readout_only_attenuates_terms():
-    from mpstab.noise import NoiseModel, ReadoutError
 
     hsmpo = HSMPO(_hardware_efficient())
     noise = NoiseModel().add(ReadoutError(0.1), qubits=[0, 2])

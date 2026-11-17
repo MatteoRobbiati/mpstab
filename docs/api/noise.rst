@@ -52,9 +52,6 @@ General Kraus channels, such as amplitude damping, are not supported.
     # Noise-strength sweeps, e.g. for zero-noise extrapolation:
     stronger = noise.scaled(2.0)
 
-    # A qibo NoiseModel (Pauli and depolarizing errors) can be wrapped directly:
-    #     NoiseModel.from_qibo(qibo_noise_model)
-
 .. automodule:: mpstab.noise.model
    :members: NoiseModel, PauliError, DepolarizingError, CoherentError, ReadoutError
 

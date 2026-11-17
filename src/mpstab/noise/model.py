@@ -3,18 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from itertools import product
 from typing import Iterable, Sequence, Union
 
 import numpy as np
 from qibo import Circuit, gates
 
-from mpstab.noise.events import (
-    CoherentRotation,
-    NoiseEvent,
-    PauliChannel,
-    _all_paulis,
-    from_qibo_noise_model,
-)
+from mpstab.noise.events import CoherentRotation, NoiseEvent, PauliChannel
 from mpstab.pauli import PAULI_MATRICES, validate_pauli_string
 
 
@@ -93,7 +88,8 @@ class DepolarizingError:
 
     def _events(self, index: int, qubits: tuple[int, ...], nqubits: int):
         k = len(qubits)
-        probs = {label: self.lam / 4**k for label in _all_paulis(k)[1:]}
+        labels = ("".join(p) for p in product("IXYZ", repeat=k))
+        probs = {label: self.lam / 4**k for label in labels if set(label) != {"I"}}
         yield PauliChannel(index, qubits, probs)
 
 
@@ -239,7 +235,7 @@ class NoiseModel:
         print(f"{ideal:+.4f} -> {noisy.mean:+.4f} +- {noisy.stderr:.4f}")
     """
 
-    rules: list = field(default_factory=list)
+    rules: list[_Rule] = field(default_factory=list)
 
     def add(
         self,
@@ -271,8 +267,7 @@ class NoiseModel:
         ):
             raise TypeError(
                 f"{type(error).__name__} is not a mpstab error; use PauliError, "
-                "DepolarizingError, CoherentError or ReadoutError, or "
-                "NoiseModel.from_qibo."
+                "DepolarizingError, CoherentError or ReadoutError."
             )
         if isinstance(error, ReadoutError) and gate is not None:
             raise ValueError(
@@ -292,39 +287,19 @@ class NoiseModel:
         )
         return self
 
-    @classmethod
-    def from_qibo(cls, noise_model) -> NoiseModel:
-        """
-        Wrap a qibo ``NoiseModel`` (Pauli and depolarizing errors only).
-
-        qibo's own ``apply`` decides where the channels go, so placement follows
-        qibo's rules exactly.
-        """
-        model = cls()
-        model.rules.append(noise_model)
-        return model
-
     def scaled(self, factor: float) -> NoiseModel:
         """
         A copy with every probability and coherent angle multiplied by ``factor``,
         for noise-strength sweeps such as zero-noise extrapolation.
         """
-        rules = []
-        for rule in self.rules:
-            if not isinstance(rule, _Rule):
-                raise NotImplementedError(
-                    "A model from a qibo NoiseModel cannot be scaled."
-                )
-            rules.append(_Rule(rule.error.scaled(factor), rule.gate, rule.qubits))
-        return NoiseModel(rules)
+        return NoiseModel(
+            [_Rule(r.error.scaled(factor), r.gate, r.qubits) for r in self.rules]
+        )
 
     def events(self, circuit: Circuit) -> list[NoiseEvent]:
         """The model resolved on ``circuit``: one event per inserted error."""
         events = []
         for rule in self.rules:
-            if not isinstance(rule, _Rule):
-                events += from_qibo_noise_model(rule, circuit)
-                continue
             for index, gate in enumerate(circuit.queue):
                 if isinstance(gate, gates.M):
                     continue
@@ -338,7 +313,7 @@ class NoiseModel:
         """
         factors = np.ones(nqubits)
         for rule in self.rules:
-            if isinstance(rule, _Rule) and isinstance(rule.error, ReadoutError):
+            if isinstance(rule.error, ReadoutError):
                 qubits = range(nqubits) if rule.qubits is None else rule.qubits
                 for q in qubits:
                     if not 0 <= q < nqubits:
