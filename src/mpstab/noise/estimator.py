@@ -442,10 +442,12 @@ class _Chain:
     common prefix. Each rotation's operator is built once per sign.
     """
 
-    def __init__(self, engine, initial_mps, generators, angles, max_bond):
+    def __init__(
+        self, engine, initial_mps, generators, angles, max_bond, operators=None
+    ):
         self.engine, self.generators, self.angles = engine, generators, angles
         self.max_bond = max_bond
-        self.operators = {}
+        self.operators = {} if operators is None else operators
         self.checkpoints = [initial_mps]
         self.current = None
 
@@ -476,15 +478,32 @@ class _Chain:
         self.current = np.array(pattern, dtype=bool)
         return self._evolve(self.checkpoints[-1], pattern, start, record=True)
 
-    def branch(self, pattern):
+    def follow(self, pattern, other: _Chain):
         """
-        The final state of ``pattern``, branched off the current pattern's
-        checkpoint at their first difference; the current one is unchanged.
+        Like :meth:`state`, but restarting from ``other``'s checkpoints when
+        ``pattern`` shares a longer prefix with ``other``'s current pattern
+        than with this chain's own.
         """
-        if np.array_equal(pattern, self.current):
+        n = len(self.generators)
+
+        def shared(current):
+            if current is None:
+                return -1
+            if np.array_equal(pattern, current):
+                return n
+            return _first_difference(pattern, current)
+
+        own, theirs = shared(self.current), shared(other.current)
+        if own == n:
             return self.checkpoints[-1]
-        start = _first_difference(pattern, self.current)
-        return self._evolve(self.checkpoints[start], pattern, start, record=False)
+        if theirs > own:
+            self.checkpoints = other.checkpoints[: theirs + 1]
+            start = theirs
+        else:
+            del self.checkpoints[own + 1 :]
+            start = own
+        self.current = np.array(pattern, dtype=bool)
+        return self._evolve(self.checkpoints[-1], pattern, start, record=True)
 
 
 def _first_difference(a, b) -> int:
@@ -518,8 +537,10 @@ def _transition_values(compiled, jobs, dressed, coefficients, constant):
     the Paulis in circuit order and ``O`` the dressed observable, its
     constant included.
 
-    Jobs are visited in lexicographic order of their ket patterns along one
-    :class:`_Chain`, each bra branching off its ket.
+    Jobs are visited in lexicographic order of their ket patterns, then of
+    their bra patterns, the kets along one :class:`_Chain` and the bras along
+    another, which restarts from whichever of the previous bra and the
+    current ket shares the longer prefix.
     """
     values = np.zeros(len(jobs), dtype=complex)
     if not jobs:
@@ -531,19 +552,25 @@ def _transition_values(compiled, jobs, dressed, coefficients, constant):
     observables.append(stim.PauliString(n))
     weights = np.append(coefficients, constant).astype(complex)
 
-    chain = _Chain(
+    args = (
         engine,
         hsmpo.initial_mps(),
         list(compiled.generators),
         np.asarray(compiled.angles),
         hsmpo.max_bond_dimension,
     )
+    ket_chain = _Chain(*args)
+    bra_chain = _Chain(*args, operators=ket_chain.operators)
     kets = np.array([job[0] for job in jobs], dtype=bool).reshape(len(jobs), -1)
-    order = np.lexsort(kets.T[::-1]) if kets.shape[1] else np.arange(len(jobs))
+    bras = np.array([job[1] for job in jobs], dtype=bool).reshape(len(jobs), -1)
+    if kets.shape[1]:
+        order = np.lexsort(np.vstack([bras.T[::-1], kets.T[::-1]]))
+    else:
+        order = np.arange(len(jobs))
     for k in order:
         ket_pattern, bra_pattern, ket_paulis, bra_paulis = jobs[k]
-        ket_state = chain.state(ket_pattern)
-        bra_state = chain.branch(bra_pattern)
+        ket_state = ket_chain.state(ket_pattern)
+        bra_state = bra_chain.follow(bra_pattern, ket_chain)
 
         a, b = stim.PauliString(n), stim.PauliString(n)
         for pauli in ket_paulis:
@@ -556,7 +583,7 @@ def _transition_values(compiled, jobs, dressed, coefficients, constant):
         labels, phases = [], []
         for observable in observables:
             product = b_dagger * observable * a
-            labels.append("".join("IXYZ"[p] for p in product))
+            labels.append(str(product).lstrip("+-i").replace("_", "I"))
             phases.append(product.sign)
         amplitudes = np.asarray(
             engine.pauli_transitions(bra_state, ket_state, labels), dtype=complex
