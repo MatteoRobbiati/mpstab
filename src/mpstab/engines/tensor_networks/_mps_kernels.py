@@ -20,13 +20,7 @@ from __future__ import annotations
 import numpy as np
 import scipy.linalg
 
-#: Single-qubit Paulis acting on the physical index.
-_PAULI_2x2 = {
-    "I": np.eye(2, dtype=complex),
-    "X": np.array([[0, 1], [1, 0]], dtype=complex),
-    "Y": np.array([[0, -1j], [1j, 0]], dtype=complex),
-    "Z": np.array([[1, 0], [0, -1]], dtype=complex),
-}
+from mpstab.pauli import PAULI_MATRICES as _PAULI_2x2
 
 
 def bounds(pauli: str) -> tuple[int, int] | None:

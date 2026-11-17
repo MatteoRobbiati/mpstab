@@ -48,13 +48,14 @@ class PauliError:
 
     @property
     def width(self) -> int:
+        """Qubits each label acts on: 1 per qubit of the gate, or the whole gate."""
         return len(next(iter(self.probs), "X"))
 
     def scaled(self, factor: float) -> PauliError:
         return PauliError({label: factor * p for label, p in self.probs.items()})
 
     def _events(self, index: int, qubits: tuple[int, ...], nqubits: int):
-        for support in _supports(self.width, qubits, "PauliError"):
+        for support in _supports(self, qubits):
             yield PauliChannel(index, support, dict(self.probs))
 
 
@@ -82,6 +83,9 @@ class DepolarizingError:
     def __post_init__(self):
         if not 0 <= self.lam <= 4 / 3:
             raise ValueError(f"DepolarizingError lam={self.lam} outside [0, 4/3].")
+
+    #: Always acts on the whole gate.
+    width = None
 
     def scaled(self, factor: float) -> DepolarizingError:
         return DepolarizingError(factor * self.lam)
@@ -117,11 +121,16 @@ class CoherentError:
     def __post_init__(self):
         validate_pauli_string(self.generator)
 
+    @property
+    def width(self) -> int:
+        """Qubits the generator acts on: 1 per qubit of the gate, or the whole gate."""
+        return len(self.generator)
+
     def scaled(self, factor: float) -> CoherentError:
         return CoherentError(self.generator, factor * self.angle)
 
     def _events(self, index: int, qubits: tuple[int, ...], nqubits: int):
-        for support in _supports(len(self.generator), qubits, "CoherentError"):
+        for support in _supports(self, qubits):
             labels = ["I"] * nqubits
             for q, p in zip(support, self.generator):
                 labels[q] = p
@@ -163,14 +172,16 @@ class ReadoutError:
 Error = Union[PauliError, DepolarizingError, CoherentError, ReadoutError]
 
 
-def _supports(width: int, qubits: tuple[int, ...], name: str):
-    if width == 1:
+def _supports(error, qubits: tuple[int, ...]):
+    """The qubit tuples ``error`` acts on after a gate on ``qubits``."""
+    if error.width == 1:
         return [(q,) for q in qubits]
-    if width == len(qubits):
+    if error.width == len(qubits):
         return [qubits]
     raise ValueError(
-        f"{name} of width {width} cannot act on a {len(qubits)}-qubit gate: use "
-        "single-qubit labels or labels as wide as the gate."
+        f"{type(error).__name__} of width {error.width} cannot act on a "
+        f"{len(qubits)}-qubit gate: use single-qubit labels or labels as wide as "
+        "the gate."
     )
 
 
@@ -187,7 +198,7 @@ class _Rule:
             return ()
         qubits = tuple(gate.qubits)
         if self.qubits is not None:
-            if _acts_jointly(self.error):
+            if self.error.width != 1:  # spans the whole gate
                 if not set(qubits) <= self.qubits:
                     return ()
             else:
@@ -195,14 +206,6 @@ class _Rule:
         if not qubits:
             return ()
         return self.error._events(index, qubits, nqubits)
-
-
-def _acts_jointly(error: Error) -> bool:
-    """Whether ``error`` spans the whole gate rather than each qubit separately."""
-    if isinstance(error, DepolarizingError):
-        return True
-    width = error.width if isinstance(error, PauliError) else len(error.generator)
-    return width > 1
 
 
 @dataclass

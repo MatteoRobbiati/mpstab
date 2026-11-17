@@ -7,7 +7,6 @@ from typing import Any
 
 import numpy as np
 from qibo.gates.abstract import ParametrizedGate
-from quimb.gates import I, X, Y, Z
 from quimb.tensor import (
     CircuitMPS,
     MatrixProductOperator,
@@ -18,6 +17,7 @@ from quimb.tensor import (
 
 from mpstab.engines.tensor_networks import _mps_kernels as kernels
 from mpstab.engines.tensor_networks.abstract import TensorNetworkEngine
+from mpstab.pauli import PAULI_MATRICES
 
 #: qibo gate names mapped to their quimb equivalents.
 GATE_MAP = {
@@ -50,8 +50,6 @@ GATE_MAP = {
     "measure": "measure",
 }
 
-#: Pauli labels mapped to quimb's own single-qubit Pauli arrays.
-PAULI_GATES = {"I": I, "X": X, "Y": Y, "Z": Z}
 
 #: quimb's default singular-value cutoff (``"rsum2"`` mode) when compressing.
 _QUIMB_DEFAULT_CUTOFF = 1e-10
@@ -65,17 +63,11 @@ _PAULI_ATTR = "_mpstab_pauli"
 _GAUGE_ATTR = "_mpstab_gauge"
 
 
-class PauliRotation(tuple):
-    """
-    ``(generator, angle)`` for ``exp(-i angle/2 generator)``, as handed out by
-    :meth:`QuimbEngine.rotation_operator` on the numpy backend, where rotations
-    are applied by the windowed kernel rather than as an MPO.
-    """
-
-    __slots__ = ()
-
-    def __new__(cls, generator: str, angle: float):
-        return super().__new__(cls, (generator, angle))
+def _pauli_product_mpo(pauli_string: str):
+    """The bond-dimension-1 MPO of a Pauli string."""
+    return MPO_product_operator(
+        [PAULI_MATRICES[label.upper()] for label in pauli_string]
+    )
 
 
 class _CanonicalMPS:
@@ -287,19 +279,14 @@ class QuimbEngine(TensorNetworkEngine):
             mpo.apply_to_arrays(self.np.as_tensor)
         return mpo
 
-    def PauliExp(self, pauli_string: str, theta: float):
+    def _pauli_exp(self, pauli_string: str, theta: float):
         """
-        The MPO for ``exp(-i theta/2 P)``, from Euler's formula
+        The backend MPO for ``exp(-i theta/2 P)``, from Euler's formula
         ``cos(theta/2) I - i sin(theta/2) P``.
         """
-        identity = MPO_identity(len(pauli_string), phys_dim=2)
-        pauli = MPO_product_operator(
-            [PAULI_GATES[label.upper()] for label in pauli_string]
-        )
-
+        identity = self._to_backend(MPO_identity(len(pauli_string), phys_dim=2))
+        pauli = self._to_backend(_pauli_product_mpo(pauli_string))
         if self.backend == "torch":
-            self._to_backend(pauli)
-            self._to_backend(identity)
             theta = self.np.as_tensor(theta)
 
         return (self.np.cos(theta / 2) * identity).add_MPO(
@@ -331,9 +318,7 @@ class QuimbEngine(TensorNetworkEngine):
 
     def pauli_mpo(self, pauli_string: str | object):
         """Build the MPO for a Pauli string."""
-        mpo = MPO_product_operator(
-            [PAULI_GATES[label.upper()] for label in pauli_string]
-        )
+        mpo = _pauli_product_mpo(pauli_string)
         mpo.add_tag("MPO")
         setattr(mpo, _PAULI_ATTR, "".join(pauli_string).upper())
         return self._to_backend(mpo)
@@ -418,12 +403,12 @@ class QuimbEngine(TensorNetworkEngine):
     def rotation_operator(self, generator: str, angle: float):
         """
         ``exp(-i angle/2 generator)`` in a form :meth:`apply_rotation` accepts:
-        a :class:`PauliRotation` on the numpy backend, applied by the windowed
-        kernel, and the backend MPO otherwise.
+        a ``(generator, angle)`` tuple on the numpy backend, applied by the
+        windowed kernel, and the backend MPO otherwise.
         """
         if self._fast:
-            return PauliRotation(generator.upper(), float(angle))
-        return self._to_backend(self.PauliExp(generator, angle))
+            return generator.upper(), float(angle)
+        return self._pauli_exp(generator, angle)
 
     def apply_rotation(
         self,
@@ -435,13 +420,13 @@ class QuimbEngine(TensorNetworkEngine):
         Apply a :meth:`rotation_operator` result to the state in place, then
         compress.
 
-        A :class:`PauliRotation` only touches the sites between the first and
+        A ``(generator, angle)`` tuple only touches the sites between the first and
         last non-identity letter of its generator, recompressing that window
         alone; an MPO goes through quimb's ``gate_with_mpo``, which recompresses
         the whole chain. Both truncate with the same rule.
         """
         cutoff = _QUIMB_DEFAULT_CUTOFF if self.svd_cutoff is None else self.svd_cutoff
-        if isinstance(rotation, PauliRotation):
+        if isinstance(rotation, tuple):
             generator, angle = rotation
             view = _CanonicalMPS(state_circuit)
             view.center = kernels.pauli_rotation(
@@ -501,8 +486,8 @@ class QuimbEngine(TensorNetworkEngine):
         :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.tail_truncation` to
         quantify it.
         """
-        rotation = self._to_backend(self.PauliExp(generator, angle))
-        rotation_dag = self._to_backend(self.PauliExp(generator, -angle))
+        rotation = self._pauli_exp(generator, angle)
+        rotation_dag = self._pauli_exp(generator, -angle)
 
         operator = rotation_dag.apply(
             operator, compress=True, max_bond=max_bond_dimension
