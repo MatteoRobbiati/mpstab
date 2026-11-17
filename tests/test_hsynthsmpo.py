@@ -16,9 +16,12 @@ from mpstab.models.ansatze import (
     QFTPhaseKernel,
     TrotterIsing,
 )
-from mpstab.qpu.measurement import allocate_shots_by_variance, build_measurement_plan
-from mpstab.qpu.measurement.pauli import _assert_real_coefficients
-from mpstab.qpu.synthesis import build_cnot_ladder_head_and_residual
+from mpstab.qpu.measurement.pauli import (
+    _real_coefficients,
+    allocate_shots_by_variance,
+    build_measurement_plan,
+)
+from mpstab.qpu.synthesis import CnotLadderSynthesis
 
 
 @pytest.mark.parametrize("observable", ["ZZZZ", "XIII", "IZIX", "YYYY"])
@@ -211,7 +214,7 @@ def test_resynthesize_head_cnot_ladder_fallback_has_identity_tail():
     n_dressed = len(hs.magic_gates)
     dressed = hs._dressed_rotations()
 
-    head, residual_tableau, residual_gates = build_cnot_ladder_head_and_residual(
+    head, residual_tableau, residual_gates = CnotLadderSynthesis().synthesize(
         [p for p, _ in dressed], [a for _, a in dressed]
     )
     assert residual_gates == []
@@ -345,24 +348,24 @@ def test_expectation_at_cut_pauli_respects_shot_budget():
 
 
 # ---------------------------------------------------------------------------
-# _assert_real_coefficients (PauliSampling.build_plan's Hermiticity guard)
+# _real_coefficients (PauliSampling.build_plan's Hermiticity guard)
 # ---------------------------------------------------------------------------
 
 
-def test_assert_real_coefficients_passes_through_real_values():
+def test_real_coefficients_passes_through_real_values():
     pooled = {"XI": 1.5, "ZZ": -0.25 + 1e-12j}  # negligible float noise
-    real = _assert_real_coefficients(pooled)
+    real = _real_coefficients(pooled)
     assert real == pytest.approx({"XI": 1.5, "ZZ": -0.25})
     assert all(isinstance(v, float) for v in real.values())
 
 
-def test_assert_real_coefficients_raises_on_non_negligible_imaginary_part():
+def test_real_coefficients_raises_on_non_negligible_imaginary_part():
     pooled = {"XI": 1.0, "ZZ": 0.5 + 0.3j}
     with pytest.raises(ValueError, match="ZZ"):
-        _assert_real_coefficients(pooled)
+        _real_coefficients(pooled)
 
 
-def test_assert_real_coefficients_projects_when_truncated():
+def test_real_coefficients_projects_when_truncated():
     pooled = {"XY": 0.5 - 2e-4j, "ZZ": -0.25 + 0j}
-    real = _assert_real_coefficients(pooled, truncated=True)
+    real = _real_coefficients(pooled, check=False)
     assert real == {"XY": 0.5, "ZZ": -0.25}

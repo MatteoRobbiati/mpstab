@@ -93,26 +93,6 @@ class StimEngine(StabilizersEngine):
             self._tableaus.popitem(last=False)
         return tableau
 
-    def fold_pauli_through_tableau(
-        self, pauli_str: str, tableau: stim.Tableau, sign: float = 1.0
-    ):
-        """
-        Reabsorb a Clifford ``tableau`` applied *after* the state into an observable.
-
-        Since ``<psi| U^dag . P . U |psi> = <psi| M |psi>`` with
-        ``M = U^dag . P . U``, folding the Clifford residual of a resynthesis into
-        the observable is exact and involves no tensor-network truncation.
-
-        Args:
-            pauli_str: Pauli string (qubit-0-leftmost), e.g. ``"XZIZ"``.
-            tableau: the Clifford to reabsorb.
-            sign: prefactor carried on the input Pauli.
-
-        Returns:
-            ``(pauli_string, sign)`` for the folded observable.
-        """
-        return conjugate(pauli_str, tableau.inverse(), sign)
-
     def instructions(self, circuit: Circuit) -> list:
         """
         One stim instruction line per gate of ``circuit``, ``None`` for gates

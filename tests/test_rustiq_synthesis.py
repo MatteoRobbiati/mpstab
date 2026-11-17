@@ -27,7 +27,8 @@ pytest.importorskip("rustiq")
 from mpstab.engines import StimEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
-from mpstab.qpu.synthesis import build_head_and_residual, head_to_qibo_circuit
+from mpstab.pauli import conjugate
+from mpstab.qpu.synthesis import RustiqSynthesis, head_to_qibo_circuit
 
 
 def _target_unitary(paulis, angles):
@@ -70,7 +71,9 @@ def test_target_equals_tail_times_head_dense():
     _, paulis, angles = _dressed_paulis_and_angles(n)
     assert len(paulis) > 3  # non-trivial rotation chain
 
-    head, residual_tableau, residual_gates = build_head_and_residual(paulis, angles)
+    head, residual_tableau, residual_gates = RustiqSynthesis().synthesize(
+        paulis, angles
+    )
 
     U_target = _target_unitary(paulis, angles)
     U_head = _unitary_from_gate_list(head, n)
@@ -82,31 +85,22 @@ def test_target_equals_tail_times_head_dense():
 def test_residual_tableau_reproducible_across_calls_gate_list_not_necessarily():
     _, paulis, angles = _dressed_paulis_and_angles(4)
 
-    _, residual_tableau_1, residual_gates_1 = build_head_and_residual(paulis, angles)
-    _, residual_tableau_2, residual_gates_2 = build_head_and_residual(paulis, angles)
+    _, residual_tableau_1, residual_gates_1 = RustiqSynthesis().synthesize(
+        paulis, angles
+    )
+    _, residual_tableau_2, residual_gates_2 = RustiqSynthesis().synthesize(
+        paulis, angles
+    )
 
     # The Clifford OPERATOR is unique -- compare tableaus, not gate lists.
     assert residual_tableau_1 == residual_tableau_2
 
 
 def test_build_head_and_residual_empty_input():
-    head, residual_tableau, residual_gates = build_head_and_residual([], [])
+    head, residual_tableau, residual_gates = RustiqSynthesis().synthesize([], [])
     assert head == []
     assert residual_gates == []
     assert len(residual_tableau) == 0
-
-
-def test_folding_an_identity_residual_leaves_the_observable_alone():
-    identity = stim.Tableau(3)
-    engine = StimEngine()
-
-    folded, sign = engine.fold_pauli_through_tableau("XYZ", identity, sign=1.0)
-    assert folded == "XYZ"
-    assert sign == 1.0
-
-    folded, sign = engine.fold_pauli_through_tableau("XYZ", identity, sign=-1.0)
-    assert folded == "XYZ"
-    assert sign == -1.0
 
 
 def _expectation_via_full_resynthesis(hs, observable):
@@ -124,8 +118,8 @@ def _expectation_via_full_resynthesis(hs, observable):
         observable=observable, clifford_circuit=hs.clifford_circuit
     )
     resynthesis = hs.resynthesize_head(cut_index=len(hs.magic_gates))
-    folded, residual_sign = hs.stab_engine.fold_pauli_through_tableau(
-        backpropagated, resynthesis.residual_tableau, 1.0
+    folded, residual_sign = conjugate(
+        backpropagated, resynthesis.residual_tableau.inverse()
     )
     state = resynthesis.circuit().state()
     expval = np.real(np.conj(state) @ pauli_matrix(folded) @ state)
@@ -181,4 +175,4 @@ def test_rustiq_import_error_has_install_hint(monkeypatch):
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
     with pytest.raises(ImportError, match="mpstab\\[rustiq\\]"):
-        build_head_and_residual(["X"], [0.1])
+        RustiqSynthesis().synthesize(["X"], [0.1])

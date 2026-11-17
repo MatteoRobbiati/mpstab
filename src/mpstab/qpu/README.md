@@ -28,7 +28,8 @@ finally a number, however global or entangled `O'` turned out to be.**
 ```
 synthesis/      head's rotations   ->  a runnable circuit
                                         (+ a small Clifford leftover)
-                rustiq.py, cnot_ladder.py; utils.py holds the gate-list format
+                rustiq.py, extraction.py, cnot_ladder.py; utils.py holds the
+                gate-list format
 
 measurement/    O' (as an MPO)     ->  which circuits to run, how many shots
                                         each (fixed BEFORE anything runs, so

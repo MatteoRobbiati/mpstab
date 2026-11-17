@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from mpstab.pauli import PAULI_ARRAY, PAULI_LABELS
+from mpstab.pauli import PAULI_ARRAY, PAULI_LABELS, conjugate
 
 
 def mpo_site_arrays(mpo) -> list:
@@ -68,6 +68,16 @@ def fold_fidelity(mpo, nqubits: int) -> float:
     weight the truncation discarded.
     """
     return float(np.real(mpo.norm())) ** 2 / 2**nqubits
+
+
+def fold_truncation_l2(coefficient, mpo, nqubits: int) -> float:
+    """
+    ``|c| sqrt(1 - fold_fidelity)``: a term's share of the bias of folding its
+    tail at a finite bond dimension, from the norm the fold lost.
+    """
+    return abs(coefficient) * float(
+        np.sqrt(max(0.0, 1.0 - fold_fidelity(mpo, nqubits)))
+    )
 
 
 def shadow_variance_from_mpo(mpo) -> float:
@@ -277,7 +287,7 @@ def pool_pauli_terms(terms) -> dict:
     return pooled
 
 
-def fold_pool_through_tableau(pool: dict, residual_tableau, stab_engine) -> dict:
+def fold_pool_through_tableau(pool: dict, residual_tableau) -> dict:
     """
     Conjugate every pooled ``{pauli: coefficient}`` entry through ``residual_tableau``.
 
@@ -291,13 +301,12 @@ def fold_pool_through_tableau(pool: dict, residual_tableau, stab_engine) -> dict
 
     Args:
         pool: ``{pauli: coefficient}``, already pooled across Hamiltonian terms.
-        residual_tableau: the Clifford residual, a ``stim.Tableau``.
-        stab_engine: a :class:`~mpstab.engines.StimEngine`.
+        residual_tableau: the Clifford residual ``R``, a ``stim.Tableau``;
+            every string ``P`` becomes ``R^dag P R``.
     """
+    inverse = residual_tableau.inverse()
     folded: dict = {}
     for label, coefficient in pool.items():
-        folded_label, sign = stab_engine.fold_pauli_through_tableau(
-            label, residual_tableau, 1.0
-        )
+        folded_label, sign = conjugate(label, inverse)
         folded[folded_label] = folded.get(folded_label, 0.0) + coefficient * sign
     return folded

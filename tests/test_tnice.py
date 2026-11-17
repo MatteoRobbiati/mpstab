@@ -6,7 +6,7 @@ post-processing that replaces the fixed canonical-dual contraction of the
 
 Each test targets one layer in isolation, mirroring `test_pauli_sampling.py`:
 the fixed effect/dual maps against a brute-force dense reconstruction, then
-the canonical seed against `estimate.py`'s own per-shot snapshot factors (the
+the canonical seed against a dense per-shot shadow reference (the
 "zero sweeps reproduces shadows" sanity check), then the DMRG-like fit against
 its own optimization objective. `test_expectation_methods.py` covers the next
 layer up (the `HSynthSMPO` integration and cross-route agreement).
@@ -16,13 +16,26 @@ import numpy as np
 import pytest
 
 from mpstab.pauli import PAULI_LABELS, PAULI_MATRICES
-from mpstab.qpu.measurement import tnice
+from mpstab.qpu.measurement import shadows, tnice
 from mpstab.qpu.measurement.pauli_expansion import mpo_site_arrays, mpo_to_pauli_mps
-from mpstab.qpu.measurement.shadows import (
-    _BASIS_INDEX,
-    _SNAPSHOT_FACTORS,
-    _term_setting_stats,
-)
+
+
+def _snapshot_factor(basis: str, bit: int) -> np.ndarray:
+    """The classical-shadow inverse channel ``3 |b><b| - I``, ``|b>`` the
+    eigenvector of ``basis`` with eigenvalue ``(-1)**bit``, built densely."""
+    eigenvalues, eigenvectors = np.linalg.eigh(PAULI_MATRICES[basis])
+    ket = eigenvectors[:, [np.argmin(np.abs(eigenvalues - (-1) ** bit))]]
+    return 3 * ket @ ket.conj().T - np.eye(2)
+
+
+def _shadow_value(mpo, basis: str, bitstring: str) -> float:
+    """One shot's classical-shadow estimate ``Tr[sigma_hat O]``, site by site."""
+    acc = np.ones((1, 1))
+    for array, label, bit in zip(mpo_site_arrays(mpo), basis, bitstring):
+        factor = _snapshot_factor(label, int(bit))
+        acc = acc @ np.einsum("lrkb,bk->lr", array, factor)
+    return float(acc[0, 0].real)
+
 
 # ---------------------------------------------------------------------------
 # 1. The fixed effect/dual maps
@@ -32,12 +45,12 @@ from mpstab.qpu.measurement.shadows import (
 def test_local_effect_map_matches_the_povm_effects():
     for basis in "XYZ":
         for bit in (0, 1):
-            k = tnice.outcome_index(basis, bit)
-            coeffs = tnice.LOCAL_EFFECT_MAP[k]
+            k = shadows.outcome_index(basis, bit)
+            coeffs = shadows.LOCAL_EFFECT_MAP[k]
             operator = sum(
                 c * PAULI_MATRICES[label] for c, label in zip(coeffs, PAULI_LABELS)
             )
-            state = _SNAPSHOT_FACTORS[_BASIS_INDEX[basis], bit]
+            state = _snapshot_factor(basis, bit)
             # The POVM effect Pi_k = (I + 3-scaled dual)/9, recovered from the
             # dual's own known form D_k = 9 Pi_k - I (Eq. 38/41).
             expected_pi = (np.eye(2) + state) / 9
@@ -46,19 +59,19 @@ def test_local_effect_map_matches_the_povm_effects():
 
 def test_local_canonical_dual_map_matches_shadows_snapshot_factors():
     """
-    `LOCAL_CANONICAL_DUAL_MAP`, applied to a single qubit, must equal
-    `estimate.py`'s own `_SNAPSHOT_FACTORS` -- both are the classical-shadow
-    inverse-channel operator `3 u^dag |b><b| u - I` for that (basis, outcome).
+    `LOCAL_CANONICAL_DUAL_MAP`, applied to a single qubit, must be the
+    classical-shadow inverse-channel operator `3 |b><b| - I` for that
+    (basis, outcome).
     """
     for basis in "XYZ":
         for bit in (0, 1):
-            k = tnice.outcome_index(basis, bit)
+            k = shadows.outcome_index(basis, bit)
             # divide the multi-site *2 factor back out for a single qubit
-            coeffs = tnice.LOCAL_CANONICAL_DUAL_MAP[k] / 2
+            coeffs = shadows.LOCAL_CANONICAL_DUAL_MAP[k] / 2
             operator = sum(
                 c * PAULI_MATRICES[label] for c, label in zip(coeffs, PAULI_LABELS)
             )
-            reference = _SNAPSHOT_FACTORS[_BASIS_INDEX[basis], bit]
+            reference = _snapshot_factor(basis, bit)
             assert np.allclose(operator, reference)
 
 
@@ -69,8 +82,7 @@ def test_local_canonical_dual_map_matches_shadows_snapshot_factors():
 
 def test_canonical_seed_reproduces_shadows_per_shot_value(scrambled_mpo):
     pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
-    omega = tnice.canonical_omega_seed(pauli_mps)
-    arrays = mpo_site_arrays(scrambled_mpo)
+    omega = shadows.canonical_omega_seed(pauli_mps)
 
     rng = np.random.default_rng(0)
     basis = "".join(rng.choice(list("XYZ"), size=4))
@@ -78,19 +90,17 @@ def test_canonical_seed_reproduces_shadows_per_shot_value(scrambled_mpo):
     bitstring = "".join(str(b) for b in bits)
 
     outcome_row = np.array(
-        [[tnice.outcome_index(b, bit) for b, bit in zip(basis, bits)]]
+        [[shadows.outcome_index(b, bit) for b, bit in zip(basis, bits)]]
     )
-    value_tnice = tnice.evaluate_omega(omega, outcome_row)[0]
-
-    sum_v, sum_v2, n = _term_setting_stats(arrays, basis, {bitstring: 1})
-    value_shadows = sum_v / n
+    value_tnice = shadows.evaluate_omega(omega, outcome_row)[0]
+    value_shadows = _shadow_value(scrambled_mpo, basis, bitstring)
 
     assert value_tnice == pytest.approx(value_shadows, abs=1e-8)
 
 
 def test_reconstruction_error_is_near_zero_at_the_seed(scrambled_mpo):
     pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
-    omega = tnice.canonical_omega_seed(pauli_mps)
+    omega = shadows.canonical_omega_seed(pauli_mps)
     assert tnice.reconstruction_error(pauli_mps, omega) < 1e-6
 
 
@@ -124,14 +134,14 @@ def test_seed_and_reconstruction_do_not_depend_on_the_bond_gauge(
     pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
     gauged = _phase_gauged(pauli_mps, gauge_seed)
 
-    omega = tnice.canonical_omega_seed(gauged)
+    omega = shadows.canonical_omega_seed(gauged)
     assert tnice.reconstruction_error(gauged, omega) < 1e-6
 
     rng = np.random.default_rng(0)
     outcomes = rng.integers(0, 6, size=(50, 4))
     np.testing.assert_allclose(
-        tnice.evaluate_omega(omega, outcomes),
-        tnice.evaluate_omega(tnice.canonical_omega_seed(pauli_mps), outcomes),
+        shadows.evaluate_omega(omega, outcomes),
+        shadows.evaluate_omega(shadows.canonical_omega_seed(pauli_mps), outcomes),
         atol=1e-8,
     )
 
@@ -171,13 +181,13 @@ def test_real_pauli_mps_is_exact_under_a_complex_gauge(scrambled_mpo):
     naive = _dense_coefficients([site.real for site in gauged])
     assert not np.allclose(naive, expected, atol=1e-3)
     # ...while the real rewrite is exact.
-    assert np.allclose(_dense_coefficients(tnice.real_pauli_mps(gauged)), expected)
+    assert np.allclose(_dense_coefficients(shadows.real_pauli_mps(gauged)), expected)
 
 
 def test_real_pauli_mps_does_not_grow_the_bond_dimension(scrambled_mpo):
     pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
     gauged = _with_complex_gauge(pauli_mps, seed=2)
-    real_mps = tnice.real_pauli_mps(gauged)
+    real_mps = shadows.real_pauli_mps(gauged)
 
     assert all(np.isrealobj(site) for site in real_mps)
     for original, rewritten in zip(gauged, real_mps):
@@ -190,11 +200,13 @@ def test_canonical_seed_does_not_depend_on_the_gauge(scrambled_mpo):
     gauged = _with_complex_gauge(pauli_mps, seed=1)
     outcomes, _ = _random_outcomes(4, 200, seed=7)
 
-    plain = tnice.evaluate_omega(tnice.canonical_omega_seed(pauli_mps), outcomes)
-    rotated = tnice.evaluate_omega(tnice.canonical_omega_seed(gauged), outcomes)
+    plain = shadows.evaluate_omega(shadows.canonical_omega_seed(pauli_mps), outcomes)
+    rotated = shadows.evaluate_omega(shadows.canonical_omega_seed(gauged), outcomes)
 
     assert np.allclose(plain, rotated)
-    assert tnice.reconstruction_error(gauged, tnice.canonical_omega_seed(gauged)) < 1e-6
+    assert (
+        tnice.reconstruction_error(gauged, shadows.canonical_omega_seed(gauged)) < 1e-6
+    )
 
 
 def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
@@ -207,11 +219,7 @@ def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
     from mpstab.evolutors.hsynthsmpo import HSynthSMPO
     from mpstab.models.ansatze import FloquetAnsatz
     from mpstab.qpu.execution import QiboSimulator, execute_plan
-    from mpstab.qpu.measurement import (
-        ClassicalShadows,
-        estimate_shadows,
-        estimate_tnice,
-    )
+    from mpstab.qpu.measurement import TNICE, ClassicalShadows
 
     ansatz = FloquetAnsatz(nqubits=4, nlayers=1, target_qubit=1, decompose_rzz=True)
     hs = HSynthSMPO.rotations_only(ansatz)
@@ -224,7 +232,8 @@ def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
         max(np.abs(site.imag).max() for site in mpo_to_pauli_mps(tail)) > 1e-3
     ), "this cut no longer exercises a complex gauge; pick another one"
 
-    plan = ClassicalShadows(tail_handling="append_to_head_circuit").build_plan(
+    method = ClassicalShadows(tail_handling="append_to_head_circuit")
+    plan = method.build_plan(
         hs,
         terms={observable: 1.0},
         constant=0.0,
@@ -237,9 +246,19 @@ def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
     )
     frequencies = execute_plan(QiboSimulator(), plan)
 
-    shadows = estimate_shadows(plan, frequencies)
-    canonical = estimate_tnice(plan, frequencies, n_sweeps=0, test_fraction=1.0)
-    assert canonical.value == pytest.approx(shadows.value, abs=1e-10)
+    shadows_estimate = method.estimate(plan, frequencies)
+    canonical = TNICE(n_sweeps=0, test_fraction=1.0).estimate(plan, frequencies)
+    assert canonical.value == pytest.approx(shadows_estimate.value, abs=1e-10)
+
+    # ...and both are the plain per-shot shadow average.
+    _, bases = plan.recombination
+    shots = [
+        (_shadow_value(tail, basis, bitstring), count)
+        for basis, freq in zip(bases, frequencies)
+        for bitstring, count in freq.items()
+    ]
+    expected = sum(v * c for v, c in shots) / sum(c for _, c in shots)
+    assert shadows_estimate.value == pytest.approx(expected, abs=1e-8)
 
 
 # ---------------------------------------------------------------------------
@@ -268,16 +287,16 @@ def test_fit_lowers_the_second_moment_below_the_canonical_seed(scrambled_mpo):
     pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
     outcomes, weights = _random_outcomes(4, 2000, seed=2)
 
-    seed_omega = tnice.canonical_omega_seed(pauli_mps)
+    seed_omega = shadows.canonical_omega_seed(pauli_mps)
     seed_second_moment = np.average(
-        tnice.evaluate_omega(seed_omega, outcomes) ** 2, weights=weights
+        shadows.evaluate_omega(seed_omega, outcomes) ** 2, weights=weights
     )
 
     fitted = tnice.fit_omega_mps(
         pauli_mps, outcomes, weights, lam=0.99, n_sweeps=4, seed=2
     )
     fitted_second_moment = np.average(
-        tnice.evaluate_omega(fitted, outcomes) ** 2, weights=weights
+        shadows.evaluate_omega(fitted, outcomes) ** 2, weights=weights
     )
 
     assert fitted_second_moment < seed_second_moment
@@ -287,7 +306,7 @@ def test_fit_with_zero_sweeps_is_the_canonical_seed(scrambled_mpo):
     pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
     outcomes, weights = _random_outcomes(4, 50, seed=3)
 
-    seed_omega = tnice.canonical_omega_seed(pauli_mps)
+    seed_omega = shadows.canonical_omega_seed(pauli_mps)
     fitted = tnice.fit_omega_mps(pauli_mps, outcomes, weights, n_sweeps=0)
 
     for seed_site, fitted_site in zip(seed_omega, fitted):

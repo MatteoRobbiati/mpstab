@@ -7,174 +7,39 @@ arXiv:2407.02923), replace the fixed *canonical-dual* post-processing of
 classical shadows with a second MPS ``omega`` of reconstruction coefficients,
 optimized to minimize an empirical-variance-plus-reconstruction-penalty cost
 (their Eq. 16-20) against the very data classical shadows would otherwise
-contract with the fixed canonical dual. This module implements that fit for
-the measurement primitive already used by
-:func:`~mpstab.qpu.measurement.shadows.build_shadow_plan` -- random local
-Pauli-basis measurements -- which is exactly the six-effect-per-qubit OC-POVM
-of the paper's Eq. (24)/(32):
+contract with the fixed canonical dual. The measurement is the shadows one,
+random local Pauli bases, which is exactly the six-effect OC-POVM of the
+paper's Eq. (24)/(32); the effect map, the canonical dual and the batched
+evaluation of ``omega`` live in :mod:`~mpstab.qpu.measurement.shadows`.
 
-``Pi_k in {|0><0|/3, |1><1|/3, |+><+|/3, |-><-|/3, |+i><+i|/3, |-i><-i|/3}``
-
-indexed here as ``k = 0..5`` in that same order (``outcome_index`` below).
-
-Every object lives in the *plain Pauli-coefficient* convention already used by
-:func:`~mpstab.qpu.measurement.pauli_expansion.mpo_to_pauli_mps`: an operator
-``O`` is represented by the MPS of its exact expansion coefficients in
-``O = sum_P c_P P`` (:data:`~mpstab.pauli.PAULI_LABELS` order, ``I, X, Y, Z``
-per site). Because ``Pi_k = sum_p E[k, p] P_p`` for a *fixed*, site-independent
-``(6, 4)`` matrix ``E`` (:data:`LOCAL_EFFECT_MAP`), the reconstruction map
-``Pi`` of the paper's Eq. (12a) is a purely local (bond-dimension-1) map
-applied site-by-site -- it never changes anyone's bond dimension. The same is
-true of the canonical-dual seed (:data:`LOCAL_CANONICAL_DUAL_MAP`, from
-Eq. 38/41/44): applying it to ``O``'s own Pauli-coefficient MPS gives the
-*exact* canonical-dual reconstruction coefficients at zero cost and at ``O``'s
-own bond dimension -- which is also, by construction, this module's optimizer
-seed and the "zero sweeps" baseline that reproduces
-:func:`~mpstab.qpu.measurement.shadows.estimate_shadows`'s value.
-
-:func:`fit_omega_mps` then runs a one-site DMRG-like sweep, solving the exact
-local quadratic problem of Eq. (19)-(20) at each site from environment
-tensors accumulated over the (training) measured shots, alternating with a
-left-environment update -- the same left-to-right batched-environment pattern
-:func:`~mpstab.qpu.measurement.pauli_expansion._draw_many_strings` already
-uses for Pauli-string sampling.
+:func:`fit_omega_mps` starts from the canonical dual
+(:func:`~mpstab.qpu.measurement.shadows.canonical_omega_seed`), so zero sweeps
+reproduce the ``"shadows"`` estimate, and runs one-site DMRG-like sweeps,
+solving the exact local quadratic problem of Eq. (19)-(20) at each site from
+environment tensors accumulated over the (training) measured shots.
 """
 
 from __future__ import annotations
 
-import dataclasses
 from dataclasses import dataclass
 from typing import ClassVar
 
 import numpy as np
 
-from mpstab.qpu.measurement.abstract import ExpectationResult, MeasurementPlan
-from mpstab.qpu.measurement.pauli_expansion import mpo_to_pauli_mps
-from mpstab.qpu.measurement.shadows import ClassicalShadows
-
-#: outcome index 0..5 -> (basis label, bit), Eq. (24)/(32) of the paper.
-_BASIS_TO_OUTCOME_PAIR = {"Z": (0, 1), "X": (2, 3), "Y": (4, 5)}
-
-
-def outcome_index(basis: str, bit: int) -> int:
-    """The outcome index ``0..5`` for measuring ``basis`` and getting ``bit``."""
-    return _BASIS_TO_OUTCOME_PAIR[basis][bit]
-
-
-def _local_effect_map() -> np.ndarray:
-    """
-    ``(6, 4)`` real matrix ``E`` with ``Pi_k = sum_p E[k, p] P_p``, the six
-    sub-normalised Pauli-eigenstate POVM effects of Eq. (24), expanded in the
-    ``(I, X, Y, Z)`` basis. Every row is ``Pi_k = (I +- P_axis) / 6``.
-    """
-    axis_column = {"X": 1, "Y": 2, "Z": 3}
-    effect_map = np.zeros((6, 4))
-    effect_map[:, 0] = 1 / 6
-    for row, (axis, sign) in enumerate(
-        [("Z", 1), ("Z", -1), ("X", 1), ("X", -1), ("Y", 1), ("Y", -1)]
-    ):
-        effect_map[row, axis_column[axis]] = sign / 6
-    return effect_map
-
-
-#: ``(6, 4)``: ``Pi_k = sum_p LOCAL_EFFECT_MAP[k, p] P_p`` (Eq. 24/32).
-LOCAL_EFFECT_MAP = _local_effect_map()
-
-#: ``(6, 4)``: the canonical dual ``D_k = 9 Pi_k - I`` (Eq. 38/41), scaled so
-#: that applying it site-wise to a Pauli-coefficient MPS gives the exact
-#: canonical-dual reconstruction-coefficient MPS in this module's convention
-#: -- see :func:`canonical_omega_seed`.
-LOCAL_CANONICAL_DUAL_MAP = 6 * LOCAL_EFFECT_MAP @ np.diag([1.0, 3.0, 3.0, 3.0])
+from mpstab.qpu.measurement.abstract import ExpectationResult
+from mpstab.qpu.measurement.shadows import (
+    LOCAL_EFFECT_MAP,
+    ClassicalShadows,
+    canonical_omega_seed,
+    estimate_with_omega,
+    real_pauli_mps,
+    shots_to_outcomes,
+)
 
 #: ``(6, 6)``: the local physical-index Gram matrix ``E @ E.T`` of the effect
 #: map, the "local operator" the reconstruction penalty's quadratic term
 #: sandwiches between two copies of ``omega`` at every untouched site.
 _LOCAL_GRAM = LOCAL_EFFECT_MAP @ LOCAL_EFFECT_MAP.T
-
-
-def real_pauli_mps(pauli_mps: list) -> list:
-    """
-    An exactly equivalent, real-valued copy of a Pauli-coefficient MPS.
-
-    A Hermitian operator's Pauli coefficients are real, but the MPS
-    :func:`~mpstab.qpu.measurement.pauli_expansion.mpo_to_pauli_mps` returns
-    can still carry complex gauge phases on its bonds -- and the real part of a
-    product is not the product of the real parts, so taking ``site.real`` site
-    by site would describe a *different* operator. Instead every site
-    ``A = R + iI`` becomes the real block ``[[R, -I], [I, R]]`` (the 2x2 real
-    representation of a complex number, bond dimension doubled), and the
-    boundary sites keep only the row/column that selects the real part of the
-    full contraction. The doubled train is then recompressed exactly by
-    :func:`_compress_real_mps`: the coefficients being real, the rank of every
-    unfolding is the same over the reals as over the complexes, so the bond
-    dimension comes back to at most the original one. Sites that are already
-    real are returned as they are, at their own bond dimension.
-    """
-    if all(
-        np.abs(np.imag(site)).max() <= 1e-12 * max(1.0, np.abs(site).max())
-        for site in pauli_mps
-    ):
-        return [np.real(site) for site in pauli_mps]
-
-    n = len(pauli_mps)
-    real_mps = []
-    for index, site in enumerate(pauli_mps):
-        re, im = np.real(site), np.imag(site)
-        block = np.concatenate(
-            [np.concatenate([re, -im], axis=2), np.concatenate([im, re], axis=2)],
-            axis=1,
-        )
-        if index == 0:
-            block = block[:, :1, :]
-        if index == n - 1:
-            block = block[:, :, :1]
-        real_mps.append(block)
-    return _compress_real_mps(real_mps)
-
-
-def _compress_real_mps(mps: list, rtol: float = 1e-12) -> list:
-    """
-    Exact recompression of a real MPS (site tensors ``(p, left, right)``).
-
-    A left-to-right QR sweep puts the train in left-canonical form; a
-    right-to-left SVD sweep then drops only the singular values below
-    ``rtol`` times the largest one on each bond, so the represented tensor is
-    unchanged and every bond shrinks to the rank of its unfolding.
-    """
-    mps = [site.copy() for site in mps]
-    for k in range(len(mps) - 1):
-        p, left, right = mps[k].shape
-        q, r = np.linalg.qr(mps[k].transpose(1, 0, 2).reshape(left * p, right))
-        mps[k] = q.reshape(left, p, -1).transpose(1, 0, 2)
-        mps[k + 1] = np.einsum("ab,pbc->pac", r, mps[k + 1])
-    for k in range(len(mps) - 1, 0, -1):
-        p, left, right = mps[k].shape
-        u, s, vt = np.linalg.svd(
-            mps[k].transpose(1, 0, 2).reshape(left, p * right), full_matrices=False
-        )
-        keep = max(1, int((s > rtol * s[0]).sum()))
-        mps[k] = vt[:keep].reshape(keep, p, right).transpose(1, 0, 2)
-        mps[k - 1] = np.einsum("pab,bc->pac", mps[k - 1], u[:, :keep] * s[:keep])
-    return mps
-
-
-def canonical_omega_seed(pauli_mps: list) -> list:
-    """
-    The canonical-dual reconstruction-coefficient MPS for ``pauli_mps``.
-
-    Applies :data:`LOCAL_CANONICAL_DUAL_MAP` to every site of ``pauli_mps``
-    (an operator's exact Pauli-coefficient MPS, as
-    :func:`~mpstab.qpu.measurement.pauli_expansion.mpo_to_pauli_mps`
-    returns it -- site tensors shaped ``(4, left, right)``, made real by
-    :func:`real_pauli_mps` first), giving the ``omega``-MPS (site tensors
-    shaped ``(6, left, right)``) that reproduces the classical-shadow
-    canonical-dual estimator exactly, at zero optimization cost. The default
-    and recommended seed for :func:`fit_omega_mps`.
-    """
-    return [
-        np.einsum("kp,plr->klr", LOCAL_CANONICAL_DUAL_MAP, site)
-        for site in real_pauli_mps(pauli_mps)
-    ]
 
 
 def _resize_bond_dimension(omega_mps: list, bond_dimension: int, seed=None) -> list:
@@ -206,36 +71,6 @@ def _resize_bond_dimension(omega_mps: list, bond_dimension: int, seed=None) -> l
     return resized
 
 
-def shots_to_outcomes(bases: tuple, frequencies: list) -> tuple:
-    """
-    Flatten a ``"shadows"``-shaped plan's ``(bases, frequencies)`` into
-    ``(outcomes, counts)``: one row of per-qubit outcome indices per distinct
-    ``(circuit, bitstring)`` pair, and its measured shot count.
-
-    Args:
-        bases: one basis string per circuit, as
-            :attr:`~mpstab.qpu.measurement.abstract.MeasurementPlan.recombination`
-            carries it for the ``"shadows"`` route.
-        frequencies: one ``{bitstring: count}`` dict per circuit, in the same
-            order.
-
-    Returns:
-        ``(outcomes, counts)``: ``outcomes`` is an ``(M, n)`` int array,
-        ``counts`` an ``(M,)`` float array.
-    """
-    nqubits = len(bases[0])
-    outcomes, counts = [], []
-    for basis, freq in zip(bases, frequencies):
-        pairs = [_BASIS_TO_OUTCOME_PAIR[label] for label in basis]
-        for bitstring, count in freq.items():
-            outcomes.append([pairs[q][int(bitstring[q])] for q in range(nqubits)])
-            counts.append(count)
-    return (
-        np.asarray(outcomes, dtype=np.int64).reshape(-1, nqubits),
-        np.asarray(counts, dtype=np.float64),
-    )
-
-
 def split_train_test(
     outcomes: np.ndarray, counts: np.ndarray, test_fraction: float, seed=None
 ) -> tuple:
@@ -264,36 +99,6 @@ def split_train_test(
     )
 
 
-def evaluate_omega(omega_mps: list, outcomes: np.ndarray) -> np.ndarray:
-    """
-    ``omega[k_1, ..., k_n]`` at every row of ``outcomes``, batched.
-
-    A chained bond-matrix lookup -- no re-contraction against the target
-    operator is needed at estimation time, only during :func:`fit_omega_mps`.
-    Cost ``O(n_shots * n * chi**2)``, the same batched-left-environment
-    pattern
-    :func:`~mpstab.qpu.measurement.pauli_expansion._draw_many_strings` uses.
-    """
-    n_rows = outcomes.shape[0]
-    left = np.ones((n_rows, 1))
-    for site, tensor in enumerate(omega_mps):
-        blocks = tensor[outcomes[:, site]]  # (n_rows, left, right)
-        left = np.einsum("ml,mlr->mr", left, blocks)
-    return left[:, 0]
-
-
-def weighted_mean_and_variance(values: np.ndarray, weights: np.ndarray) -> tuple:
-    """``(weighted mean, sample variance of a single unit-weight draw)``."""
-    total = float(weights.sum())
-    if total == 0:
-        return 0.0, 0.0
-    mean = float(np.sum(weights * values) / total)
-    if total <= 1:
-        return mean, 0.0
-    variance = float(np.sum(weights * (values - mean) ** 2) / (total - 1))
-    return mean, variance
-
-
 def reconstruction_error(pauli_mps: list, omega_mps: list) -> float:
     """``||O - Pi(omega)||``, the penalty term of Eq. (17), exactly."""
     pauli_mps = real_pauli_mps(pauli_mps)
@@ -312,7 +117,7 @@ def _mps_overlap(a_mps: list, b_mps: list) -> float:
     return float(env[0, 0])
 
 
-def _right_environments(
+def _fit_right_environments(
     pauli_mps: list, omega_mps: list, outcomes: np.ndarray
 ) -> tuple:
     """
@@ -474,7 +279,7 @@ def fit_omega_mps(
         return omega
 
     for _ in range(n_sweeps):
-        right_env_data, right_env_recon, right_env_self = _right_environments(
+        right_env_data, right_env_recon, right_env_self = _fit_right_environments(
             pauli_mps, omega, train_outcomes
         )
         left_env_data = np.ones((train_outcomes.shape[0], 1))
@@ -515,74 +320,6 @@ def fit_omega_mps(
     return omega
 
 
-def estimate_tnice(
-    plan,
-    frequencies,
-    lam: float = 0.999,
-    n_sweeps: int = 4,
-    bond_dimension: int | None = None,
-    test_fraction: float = 0.5,
-    seed: int | None = None,
-) -> ExpectationResult:
-    """
-    Recombine a ``"tnice"`` plan's frequencies -- built identically to a
-    ``"shadows"`` plan, see
-    :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO._shadow_plan` -- with the
-    TN-ICE estimator of
-    :mod:`~mpstab.qpu.measurement.tnice` instead of the fixed canonical-dual
-    contraction :func:`~mpstab.qpu.measurement.shadows.estimate_shadows` uses, so the two can be compared on
-    identical measurement data.
-
-    Splits the shots into a training half, which fits ``omega`` per term via
-    :func:`fit_omega_mps`, and a held-out test
-    half the final value and standard error come from -- avoiding the
-    overfitting the paper's Sec. 7.3 warns an in-sample estimate would show.
-
-    Args:
-        plan, frequencies: as :func:`~mpstab.qpu.measurement.shadows.estimate_shadows`.
-        lam, n_sweeps, bond_dimension: forwarded to
-            :func:`fit_omega_mps`.
-        test_fraction: fraction of each circuit's shots held out for the
-            final estimate; the rest trains ``omega``.
-        seed: RNG seed for the train/test split.
-    """
-    mpo_terms, bases = plan.recombination
-    outcomes, counts = shots_to_outcomes(bases, frequencies)
-    (train_outcomes, train_weights), (test_outcomes, test_weights) = split_train_test(
-        outcomes, counts, test_fraction, seed
-    )
-    n_test = float(test_weights.sum())
-
-    value = plan.constant
-    variance = 0.0
-    for _, coeff, sign, mpo in mpo_terms:
-        pauli_mps = mpo_to_pauli_mps(mpo)
-        omega = fit_omega_mps(
-            pauli_mps,
-            train_outcomes,
-            train_weights,
-            lam=lam,
-            n_sweeps=n_sweeps,
-            bond_dimension=bond_dimension,
-            seed=seed,
-        )
-        term_values = evaluate_omega(omega, test_outcomes)
-        mean, per_shot_variance = weighted_mean_and_variance(term_values, test_weights)
-        if n_test > 1:
-            variance += coeff**2 * per_shot_variance / n_test
-        value += coeff * sign * mean
-
-    return ExpectationResult(
-        value=float(value),
-        stderr=float(np.sqrt(variance)),
-        truncation_l1=None,
-        truncation_l2=plan.truncation_l2,
-        n_settings=len(frequencies),
-        n_shots=int(counts.sum()),
-        retained_weight=None,
-    )
-
-
 @dataclass(frozen=True)
 class TNICE(ClassicalShadows):
     """
@@ -613,19 +350,33 @@ class TNICE(ClassicalShadows):
 
     name: ClassVar[str] = "tnice"
 
-    def build_plan(self, *args, **kwargs) -> MeasurementPlan:
-        """The ``"shadows"`` plan, labelled ``"tnice"``."""
-        plan = super().build_plan(*args, **kwargs)
-        return dataclasses.replace(plan, method=self.name)
-
     def estimate(self, plan, frequencies, seed=None) -> ExpectationResult:
-        """:func:`estimate_tnice`, with ``seed`` driving the train/test split."""
-        return estimate_tnice(
-            plan,
-            frequencies,
-            lam=self.lam,
-            n_sweeps=self.n_sweeps,
-            bond_dimension=self.bond_dimension,
-            test_fraction=self.test_fraction,
-            seed=seed,
+        """
+        Fit ``omega`` per term on a training share of the shots and report the
+        estimate on the held-out rest, avoiding the overfitting the paper's
+        Sec. 7.3 warns an in-sample estimate would show.
+
+        Args:
+            plan, frequencies: a shadows-shaped plan and its frequencies.
+            seed: RNG seed for the train/test split.
+        """
+        _, bases = plan.recombination
+        outcomes, counts = shots_to_outcomes(bases, frequencies)
+        (train, train_weights), (test, test_weights) = split_train_test(
+            outcomes, counts, self.test_fraction, seed
+        )
+
+        def fitted_omega(pauli_mps):
+            return fit_omega_mps(
+                pauli_mps,
+                train,
+                train_weights,
+                lam=self.lam,
+                n_sweeps=self.n_sweeps,
+                bond_dimension=self.bond_dimension,
+                seed=seed,
+            )
+
+        return estimate_with_omega(
+            plan, frequencies, test, test_weights, fitted_omega, counts.sum()
         )

@@ -71,7 +71,7 @@ from mpstab.qpu.measurement import (
     MeasurementPlan,
     resolve_method,
 )
-from mpstab.qpu.measurement.pauli_expansion import fold_fidelity
+from mpstab.qpu.measurement.pauli_expansion import fold_fidelity, fold_truncation_l2
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
     HeadSynthesis,
@@ -314,9 +314,7 @@ class HSynthSMPO(HSMPO):
                 )
             )
             if max_bond_dimension is not None:
-                truncation_l2 += abs(coefficient) * np.sqrt(
-                    max(0.0, 1.0 - fold_fidelity(operator, self.nqubits))
-                )
+                truncation_l2 += fold_truncation_l2(coefficient, operator, self.nqubits)
 
         return ExpectationResult(
             value=float(np.real(value)),
@@ -522,7 +520,7 @@ class HSynthSMPO(HSMPO):
                 is capped at ``self.max_bond_dimension``.
             seed: RNG seed for Pauli sampling, random shadow bases, and (for
                 ``"tnice"``) the train/test shot split, forwarded to
-                :func:`~mpstab.qpu.measurement.tnice.estimate_tnice`.
+                :meth:`~mpstab.qpu.measurement.tnice.TNICE.estimate`.
             method_options: options of a method given by name, e.g.
                 ``n_string_samples`` for ``"pauli"`` or ``tail_handling`` for
                 ``"shadows"``; see each method's class.
@@ -677,7 +675,9 @@ def _resynthesize(
     paulis = [pauli for pauli, _ in rotations]
     angles = [angle for _, angle in rotations]
     try:
-        head, residual_tableau, residual_gates = synthesis.synthesize(paulis, angles)
+        head, residual_tableau, residual_gates = synthesis.synthesize(
+            paulis, angles, nqubits
+        )
     except ImportError:
         if not isinstance(synthesis, RustiqSynthesis):
             raise
@@ -689,10 +689,9 @@ def _resynthesize(
             stacklevel=3,
         )
         synthesis = CnotLadderSynthesis()
-        head, residual_tableau, residual_gates = synthesis.synthesize(paulis, angles)
-
-    if len(residual_tableau) != nqubits:  # degenerate cut_index == 0 case
-        residual_tableau = stim.Tableau(nqubits)
+        head, residual_tableau, residual_gates = synthesis.synthesize(
+            paulis, angles, nqubits
+        )
 
     return ResynthesizedHead(
         circuit=head_to_qibo_circuit(head, nqubits),

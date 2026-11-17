@@ -19,7 +19,7 @@ from utils import pauli_matrix
 
 from mpstab.engines import QuimbEngine
 from mpstab.pauli import PAULI_LABELS
-from mpstab.qpu.measurement import build_measurement_plan, group_qwc
+from mpstab.qpu.measurement.pauli import build_measurement_plan, group_qwc
 from mpstab.qpu.measurement.pauli_expansion import (
     PauliEnsemble,
     _pauli_string_coefficient,
@@ -230,18 +230,12 @@ def test_measurement_plan_diagnostics(scrambled_mpo):
     coefficients = dict(zip(ensemble.strings, ensemble.coefficients))
     plan = build_measurement_plan(coefficients)
 
-    assert plan.n_settings == len(plan.groups)
-    assert plan.l1_norm == pytest.approx(sum(abs(c) for c in coefficients.values()))
-    assert plan.max_weight == max(sum(l != "I" for l in s) for s in coefficients)
-
-    # shots_upper_bound keeps the old (worst-case, perfectly-correlated) scaling.
-    assert plan.shots_upper_bound(1e-2) == pytest.approx(plan.l1_norm**2 / 1e-2**2)
-
-    # shots_for_precision now uses the Neyman-optimal, per-group-variance
-    # scaling instead, which is never larger than the worst case.
+    # Neyman-optimal, per-group-variance scaling, never above the ungrouped
+    # worst case ||c||_1**2 / epsilon**2.
     expected = sum(np.sqrt(v) for v in plan.group_variances) ** 2 / 1e-2**2
     assert plan.shots_for_precision(1e-2) == pytest.approx(expected)
-    assert plan.shots_for_precision(1e-2) <= plan.shots_upper_bound(1e-2) + 1e-6
+    l1_norm = sum(abs(c) for c in coefficients.values())
+    assert plan.shots_for_precision(1e-2) <= l1_norm**2 / 1e-2**2 + 1e-6
 
 
 # ---------------------------------------------------------------------------
