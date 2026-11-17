@@ -169,8 +169,7 @@ def test_light_cone_matches_unrestricted(make_ansatz):
     """Coherent noise is deterministic, so the two computations must agree."""
     circuit = make_ansatz().circuit
     events = _coherent(circuit, np.random.default_rng(7))
-    hsmpo = HSMPO(circuit)
-    hsmpo.set_engines(tn_engine=QuimbEngine(svd_cutoff=0.0))
+    hsmpo = HSMPO(circuit, tn_engine=QuimbEngine(svd_cutoff=0.0))
     compiled = compile_noise(hsmpo, events)
     for observable in (OBSERVABLE, "IIIIZ", "XIIII"):
         full = noisy_expectation(compiled, observable, n_samples=0, light_cone=False)

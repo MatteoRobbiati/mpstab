@@ -80,8 +80,7 @@ def test_meyer_wallach_mps_partial_entanglement():
 )
 def test_meyer_wallach_mps_matches_dense(circuit, tn_engine):
     dense = meyer_wallach_entanglement(circuit.copy()().state())
-    hsmpo = HSMPO(ansatz=circuit.copy())
-    hsmpo.set_engines(tn_engine=tn_engine())
+    hsmpo = HSMPO(ansatz=circuit.copy(), tn_engine=tn_engine())
     assert meyer_wallach_mps(hsmpo) == pytest.approx(dense, abs=1e-10)
 
 

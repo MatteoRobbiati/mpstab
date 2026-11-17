@@ -107,13 +107,14 @@ def run_mpstab(circuit, observable, max_bond=None, light_cone=True, svd_cutoff=N
         hsmpo = HSMPO.rotations_only(circuit, tn_engine=engine)
         hsmpo.max_bond_dimension = max_bond
         hsmpo.progress = False  # a benchmark should not time (or print) the bar
-        value, _ = hsmpo.expectation_from_partition(
-            observable, replacement_probability=0.0
+        value, partitions = hsmpo.expectation_from_partition(
+            observable, replacement_probability=0.0, return_partitions=True
         )
-        state = hsmpo.mps
+        state = partitions["mps"]
     else:
-        hsmpo = HSMPO(circuit, max_bond_dimension=max_bond, progress=False)
-        hsmpo.set_engines(tn_engine=engine)
+        hsmpo = HSMPO(
+            circuit, max_bond_dimension=max_bond, progress=False, tn_engine=engine
+        )
         value = hsmpo.expectation(observable)
         state = hsmpo.original_circuit_mps
     elapsed = time.perf_counter() - t

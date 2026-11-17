@@ -75,7 +75,7 @@ def test_dressed_rotations_is_faster_than_reference():
     fast = hs._dressed_rotations()
     t_fast = time.perf_counter() - t0
 
-    assert reference == fast
+    assert reference == list(fast)
     assert t_fast < t_reference, (
         f"single-pass path ({t_fast:.3f}s) not faster than the per-gate "
         f"reference ({t_reference:.3f}s)"

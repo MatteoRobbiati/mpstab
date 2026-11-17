@@ -320,8 +320,7 @@ class TestEngineSupportValidation:
     def test_expectation_with_quimb_engine(self):
         """Test expectation calculation with QuimbEngine (default)."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-        hsmpo.set_engines(tn_engine=QuimbEngine())
+        hsmpo = HSMPO(ansatz=ansatz, tn_engine=QuimbEngine())
 
         # Should work without error
         result = hsmpo.expectation("ZZZZ")
@@ -362,8 +361,7 @@ class TestEngineSupportValidation:
     def test_minimize_expectation_works_with_quimb_engine(self):
         """Test that minimize_expectation works with QuimbEngine."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-        hsmpo.set_engines(tn_engine=QuimbEngine())
+        hsmpo = HSMPO(ansatz=ansatz, tn_engine=QuimbEngine())
 
         # Should work without error
         result = hsmpo.minimize_expectation(
@@ -385,8 +383,7 @@ class TestEngineSupportValidation:
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
 
         # Calculate with Quimb engine
-        hsmpo_quimb = HSMPO(ansatz=ansatz)
-        hsmpo_quimb.set_engines(tn_engine=QuimbEngine())
+        hsmpo_quimb = HSMPO(ansatz=ansatz, tn_engine=QuimbEngine())
         result_quimb = hsmpo_quimb.expectation("ZZZZ")
 
         # Calculate with Native engine

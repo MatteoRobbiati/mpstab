@@ -80,8 +80,11 @@ def test_gradients_jax():
     with jax.enable_x64(True):
         nqubits, nlayers, observable = 4, 2, "ZXZX"
         circuit = _non_clifford_circuit(nqubits, nlayers, np.random.default_rng(0))
-        hs = HSMPO(CircuitAnsatz(qibo_circuit=circuit))
-        hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine(backend="jax"))
+        hs = HSMPO(
+            CircuitAnsatz(qibo_circuit=circuit),
+            stab_engine=StimEngine(),
+            tn_engine=QuimbEngine(backend="jax"),
+        )
 
         def f(parameters):
             hs.set_parameters(parameters)

@@ -15,8 +15,7 @@ def _evolved(tn_engine):
     for q in range(3):
         circuit.add(gates.CNOT(q, q + 1))
         circuit.add(gates.RZ(q + 1, theta=0.7))
-    hsmpo = HSMPO(circuit)
-    hsmpo.set_engines(tn_engine=tn_engine)
+    hsmpo = HSMPO(circuit, tn_engine=tn_engine)
     return hsmpo.original_circuit_mps
 
 

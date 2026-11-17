@@ -61,6 +61,8 @@ import stim
 
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.hamiltonians import Observable, pauli_terms
+from mpstab.pauli import conjugate
+from mpstab.pauli import light_cone as pauli_light_cone
 from mpstab.pauli import validate_pauli_string
 from mpstab.qpu.execution import QiboSimulator, execute_plan, save_circuits
 from mpstab.qpu.measurement import (
@@ -175,19 +177,18 @@ class HSynthSMPO(HSMPO):
         are those that commute with the exact folded observable.
         """
         _, terms = pauli_terms(observable, self.nqubits)
-        relevant = set()
-        for pauli in terms:
-            relevant |= self._relevant_for_pauli(pauli)
-        return tuple(sorted(relevant))
-
-    def _relevant_for_pauli(self, pauli: str) -> frozenset:
-        """:meth:`relevant_rotations` of one Pauli string, cached on the rotations."""
-        rotations = self._dressed_rotations()
-        generators = tuple(generator for generator, _ in rotations)
-        backpropagated, _ = self.stab_engine.backpropagate(
-            observable=pauli, clifford_circuit=self.clifford_circuit
+        backpropagated = self.stab_engine.backpropagate_many(
+            terms, self.clifford_circuit
         )
-        return _light_cone(generators, backpropagated)
+        return self._light_cone([pauli for pauli, _ in backpropagated])
+
+    def _light_cone(self, backpropagated_paulis) -> Tuple[int, ...]:
+        """Indices of the dressed rotations these Clifford-frame Paulis can see."""
+        generators = [generator for generator, _ in self._dressed_rotations()]
+        return tuple(
+            int(k)
+            for k in pauli_light_cone(generators, backpropagated_paulis, self.nqubits)
+        )
 
     def build_post_head_mpo(
         self,
@@ -244,26 +245,22 @@ class HSynthSMPO(HSMPO):
             the Clifford backpropagation and, if given, the residual fold.
         """
         validate_pauli_string(observable, self.nqubits)
-        if max_bond_dimension == -1:
-            max_bond_dimension = self.max_bond_dimension
+        max_bond_dimension = self._bond(max_bond_dimension)
 
-        tail = self._dressed_rotations()[cut_index:]
-        if self.light_cone:  # the rotations this string cannot see fold to nothing
-            relevant = self._relevant_for_pauli(observable)
-            tail = [
-                rotation
-                for index, rotation in enumerate(tail, start=cut_index)
-                if index in relevant
-            ]
         backpropagated, sign = self.stab_engine.backpropagate(
             observable=observable, clifford_circuit=self.clifford_circuit
         )
+        tail = self._dressed_rotations()[cut_index:]
+        if self.light_cone:  # the rotations this string cannot see fold to nothing
+            tail = [
+                self._dressed_rotations()[index]
+                for index in self._light_cone([backpropagated])
+                if index >= cut_index
+            ]
         if residual is not None:
-            backpropagated, residual_sign = self.stab_engine.fold_pauli_through_tableau(
-                backpropagated, residual, 1.0
-            )
-            sign = sign * residual_sign
             residual_inverse = residual.inverse()
+            backpropagated, residual_sign = conjugate(backpropagated, residual_inverse)
+            sign = sign * residual_sign
             tail = [
                 self._conjugate_rotation(rotation, residual_inverse)
                 for rotation in tail
@@ -276,21 +273,16 @@ class HSynthSMPO(HSMPO):
             )
         return operator, sign
 
+    def _bond(self, max_bond_dimension):
+        """Resolve the ``-1`` "same as the instance" bond cap."""
+        if max_bond_dimension == -1:
+            return self.max_bond_dimension
+        return max_bond_dimension
+
     def _head_state_mps(self, head: List[Tuple[str, float]]):
-        """The exact MPS after applying the head's dressed rotations."""
-        state_mps = self.tn_engine.build_circuit_mps(
-            n=self.nqubits,
-            initial_state_amplitudes=None,
-            initial_state_circuit=self.initial_state,
-            max_bond_dimension=self.max_bond_dimension,
-        )
-        for generator, angle in head:
-            self.tn_engine.pauli_rot(
-                state_circuit=state_mps,
-                generator=generator,
-                angle=angle,
-                max_bond_dimension=self.max_bond_dimension,
-            )
+        """The MPS after applying the head's dressed rotations."""
+        state_mps = self.initial_mps()
+        self._apply_rotations(state_mps, head, "building head MPS")
         return state_mps
 
     def _simulate_at_cut(
@@ -323,7 +315,7 @@ class HSynthSMPO(HSMPO):
             )
             if max_bond_dimension is not None:
                 truncation_l2 += abs(coefficient) * np.sqrt(
-                    max(0.0, 1.0 - self._fold_fidelity(operator))
+                    max(0.0, 1.0 - fold_fidelity(operator, self.nqubits))
                 )
 
         return ExpectationResult(
@@ -396,7 +388,7 @@ class HSynthSMPO(HSMPO):
         operator_approx, sign = self.build_post_head_mpo(
             observable, cut_index, max_bond_dimension, residual=residual
         )
-        fidelity_estimate = self._fold_fidelity(operator_approx)
+        fidelity_estimate = fold_fidelity(operator_approx, self.nqubits)
         if not exact:
             return TailTruncation(fidelity_estimate, None, None)
 
@@ -426,14 +418,6 @@ class HSynthSMPO(HSMPO):
             relative_frobenius_error=relative_frobenius_error,
             expval_abs_error=abs(expval(operator_approx) - expval(operator_exact)),
         )
-
-    def _fold_fidelity(self, operator) -> float:
-        """
-        ``||O||_F**2 / 2**n`` of a folded tail MPO: 1 for an exact fold of a
-        Pauli string, since conjugation by a unitary preserves the norm, and
-        lower by the weight the truncation discarded.
-        """
-        return fold_fidelity(operator, self.nqubits)
 
     def resynthesize_head(
         self,
@@ -559,10 +543,10 @@ class HSynthSMPO(HSMPO):
                     "method='simulation' takes no options; got "
                     f"{sorted(method_options)}."
                 )
-            if max_bond_dimension == -1:
-                max_bond_dimension = self.max_bond_dimension
             constant, terms = pauli_terms(observable, self.nqubits)
-            return self._simulate_at_cut(terms, constant, cut_index, max_bond_dimension)
+            return self._simulate_at_cut(
+                terms, constant, cut_index, self._bond(max_bond_dimension)
+            )
 
         method = resolve_method(method, **method_options)
         plan = self.plan(
@@ -646,14 +630,10 @@ class HSynthSMPO(HSMPO):
                 "is not saved, and rebuilding it for estimate takes the same "
                 "seed. Pass out_folder=False to build the plan without saving."
             )
-        if max_bond_dimension == -1:
-            max_bond_dimension = self.max_bond_dimension
-
         constant, terms = pauli_terms(observable, self.nqubits)
-        if self.light_cone:
-            resynthesis = self.resynthesize_head(cut_index, observable=observable)
-        else:
-            resynthesis = self.resynthesize_head(cut_index)
+        resynthesis = self.resynthesize_head(
+            cut_index, observable=observable if self.light_cone else None
+        )
 
         plan = method.build_plan(
             self,
@@ -661,7 +641,7 @@ class HSynthSMPO(HSMPO):
             constant=constant,
             cut_index=cut_index,
             resynthesis=resynthesis,
-            max_bond_dimension=max_bond_dimension,
+            max_bond_dimension=self._bond(max_bond_dimension),
             n_shots=n_shots,
             epsilon=epsilon,
             seed=seed,
@@ -676,32 +656,6 @@ class HSynthSMPO(HSMPO):
         elif out_folder is not False:
             save_circuits(plan, out_folder)
         return plan
-
-
-@lru_cache(maxsize=256)
-def _light_cone(generators: Tuple[str, ...], observable: str) -> frozenset:
-    """
-    Indices of the Pauli rotations ``generators`` (in circuit order) that a
-    Pauli ``observable`` measured after them depends on: those anticommuting
-    with the observable or with a later rotation that is itself kept.
-    """
-
-    def masks(pauli):
-        x = sum(1 << q for q, label in enumerate(pauli) if label in "XY")
-        z = sum(1 << q for q, label in enumerate(pauli) if label in "ZY")
-        return x, z
-
-    kept = [masks(observable)]
-    relevant = set()
-    for index in range(len(generators) - 1, -1, -1):
-        x, z = masks(generators[index])
-        if any(
-            ((x & other_z).bit_count() + (z & other_x).bit_count()) & 1
-            for other_x, other_z in kept
-        ):
-            kept.append((x, z))
-            relevant.add(index)
-    return frozenset(relevant)
 
 
 @lru_cache(maxsize=32)

@@ -1,6 +1,6 @@
 """The hybrid stabilizer-MPO surrogate of a quantum circuit."""
 
-from dataclasses import dataclass
+from dataclasses import MISSING, dataclass, fields
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -30,8 +30,8 @@ class HSMPO:
 
     The circuit is split into a Clifford part, handled by a stabilizers engine,
     and the magic gates it cannot absorb, applied to an MPS as dressed Pauli
-    rotations by a tensor-network engine. Both engines are pluggable through
-    :meth:`set_engines`.
+    rotations by a tensor-network engine. Both engines are pluggable, at
+    construction or later through :meth:`set_engines`.
 
     Args:
         ansatz: the circuit to surrogate, as an :class:`~mpstab.models.ansatze.Ansatz`
@@ -42,23 +42,29 @@ class HSMPO:
         progress: show a progress bar while the MPS is evolved through the
             dressed rotations. It only appears once the evolution has taken
             longer than about a second, so quick builds stay silent.
+        stab_engine: stabilizers engine, ``StimEngine`` if ``None``.
+        tn_engine: tensor-network engine, ``QuimbEngine`` if ``None``.
     """
 
     ansatz: Union[Ansatz, Circuit]
     max_bond_dimension: int = None
     initial_state: Circuit = None
     progress: bool = True
+    stab_engine: StabilizersEngine = None
+    tn_engine: TensorNetworkEngine = None
 
     def __post_init__(self):
+        self._setup()
+        self.original_circuit_mps = self._evolve_original()
+
+    def _setup(self):
+        """Normalise the inputs and install the engines; no MPS is built."""
         if isinstance(self.ansatz, Circuit):
             self.ansatz = CircuitAnsatz(qibo_circuit=self.ansatz)
-
         if self.initial_state is None:
             self.initial_state = Circuit(self.ansatz.nqubits)
-
-        # set_engines installs the default engines, builds the MPS and evolves
-        # it once, caching magic_gates and clifford_circuit along the way.
-        self.set_engines()
+        self.stab_engine = _engine(self.stab_engine, StabilizersEngine, StimEngine)
+        self.tn_engine = _engine(self.tn_engine, TensorNetworkEngine, QuimbEngine)
 
     @classmethod
     def rotations_only(
@@ -83,17 +89,11 @@ class HSMPO:
             tn_engine: tensor-network engine, ``QuimbEngine`` if ``None``.
         """
         self = cls.__new__(cls)
-        if isinstance(ansatz, Circuit):
-            ansatz = CircuitAnsatz(qibo_circuit=ansatz)
-        self.ansatz = ansatz
-        self.max_bond_dimension = None
-        self.initial_state = Circuit(ansatz.nqubits)
-        self.progress = True
-        self.stab_engine = _validated_stab_engine(stab_engine)
-        self.tn_engine = _validated_tn_engine(tn_engine)
-        (self.magic_gates, self.clifford_circuit), _ = ansatz.partitionate_circuit(
-            replacement_probability=0.0, replacement_method="closest"
-        )
+        for f in fields(cls):
+            setattr(self, f.name, None if f.default is MISSING else f.default)
+        self.ansatz, self.stab_engine, self.tn_engine = ansatz, stab_engine, tn_engine
+        self._setup()
+        self._partition()
         return self
 
     @property
@@ -119,35 +119,19 @@ class HSMPO:
                 native engine supports :meth:`expectation` but not
                 :meth:`minimize_expectation`.
         """
-        self.stab_engine = _validated_stab_engine(stab_engine)
-        self.tn_engine = _validated_tn_engine(tn_engine)
-        self._init_tn(max_bond_dimension=self.max_bond_dimension)
-        self.original_circuit_mps = self._precompute_original_mps()
-
-    def _init_tn(self, max_bond_dimension: int | None = None):
-        """Reset ``self.mps`` to the product state ``initial_state`` prepares."""
-        self.mps = self._product_state_mps(max_bond_dimension)
+        self.stab_engine = _engine(stab_engine, StabilizersEngine, StimEngine)
+        self.tn_engine = _engine(tn_engine, TensorNetworkEngine, QuimbEngine)
+        self.original_circuit_mps = self._evolve_original()
 
     def initial_mps(self):
         """
         A fresh MPS in the product state ``initial_state`` prepares, capped at
-        ``max_bond_dimension``.
+        ``max_bond_dimension``. It belongs to the caller: evolving it leaves this
+        instance untouched.
 
-        Unlike the cached ``mps`` and ``original_circuit_mps``, the returned
-        state belongs to the caller: evolving it leaves this instance untouched.
-
-        Raises:
-            ValueError: if ``initial_state`` entangles any pair of qubits.
-        """
-        return self._product_state_mps(self.max_bond_dimension)
-
-    def _product_state_mps(self, max_bond_dimension: int | None):
-        """
-        Build the product-state MPS ``initial_state`` prepares.
-
-        Both forms are handed to the engine, which takes whichever it prefers:
-        the per-qubit amplitudes for the native engine, the circuit itself for
-        quimb.
+        Both forms of the state are handed to the engine, which takes whichever
+        it prefers: the per-qubit amplitudes for the native engine, the circuit
+        itself for quimb.
 
         Raises:
             ValueError: if ``initial_state`` entangles any pair of qubits.
@@ -166,7 +150,7 @@ class HSMPO:
             n=self.nqubits,
             initial_state_amplitudes=np.array(amplitudes),
             initial_state_circuit=self.initial_state,
-            max_bond_dimension=max_bond_dimension,
+            max_bond_dimension=self.max_bond_dimension,
         )
 
     @staticmethod
@@ -192,15 +176,23 @@ class HSMPO:
         conjugated, sign = conjugate(generator, tableau)
         return conjugated, sign * angle
 
-    def _dressed_rotations(self) -> List[Tuple[str, float]]:
+    def _partition(self):
+        """
+        Cache the circuit's magic gates and Clifford part, nothing replaced, and
+        drop the dressed rotations derived from the previous ones.
+        """
+        (self.magic_gates, self.clifford_circuit), _ = (
+            self.ansatz.partitionate_circuit()
+        )
+        self._dressed = None
+
+    def _dressed_rotations(self) -> Tuple[Tuple[str, float], ...]:
         """
         Every magic gate's dressed ``(generator, signed_angle)``, in circuit order.
 
         Each gate's rotation is conjugated by the Clifford sub-circuit preceding
-        it (:meth:`_conjugate_rotation`). The Clifford circuit is simulated once
-        into a running ``stim.TableauSimulator`` and each rotation is conjugated
-        at its own breakpoint, rather than re-simulating the prefix per magic
-        gate.
+        it (:meth:`_dress`). Computed once per partition of the circuit, i.e.
+        once per :meth:`set_parameters`.
 
         Requires a :class:`~mpstab.engines.StimEngine`, but only when there is
         magic to dress: a Clifford-only circuit has no dressed rotations whatever
@@ -211,7 +203,7 @@ class HSMPO:
                 engine is not a ``StimEngine``.
         """
         if not self.magic_gates:
-            return []
+            return ()
 
         if not isinstance(self.stab_engine, StimEngine):
             raise NotImplementedError(
@@ -220,7 +212,9 @@ class HSMPO:
                 "set_engines(stab_engine=StimEngine()) to enable it."
             )
 
-        return self._dress(self.magic_gates, self.clifford_circuit)
+        if self._dressed is None:
+            self._dressed = tuple(self._dress(self.magic_gates, self.clifford_circuit))
+        return self._dressed
 
     def _dress(self, magic_gates, clifford_circuit) -> List[Tuple[str, float]]:
         """
@@ -267,24 +261,15 @@ class HSMPO:
             )
         return rotations
 
-    def _precompute_original_mps(self):
+    def _evolve_original(self):
         """
-        Evolve the MPS through every dressed rotation of the unmodified circuit.
-
-        Also caches ``magic_gates`` and ``clifford_circuit``, so later expectation
-        values do not re-partition the circuit.
+        Partition the unmodified circuit and evolve a fresh MPS through all its
+        dressed rotations.
         """
-        self._init_tn(self.max_bond_dimension)
-        evolved_mps = self.tn_engine.copy_state(self.mps)
-
-        (self.magic_gates, self.clifford_circuit), _ = self.ansatz.partitionate_circuit(
-            replacement_probability=0.0, replacement_method="closest"
-        )
-
-        self._apply_rotations(
-            evolved_mps, self._dressed_rotations(), description="building MPS"
-        )
-        return evolved_mps
+        self._partition()
+        mps = self.initial_mps()
+        self._apply_rotations(mps, self._dressed_rotations(), "building MPS")
+        return mps
 
     def expectation(self, observable: Observable, return_fidelity: bool = False):
         """
@@ -298,8 +283,11 @@ class HSMPO:
                 pushes below 1.
         """
         constant, terms = pauli_terms(observable, self.nqubits)
-        expval = constant + self._terms_expectation(
-            terms, self.original_circuit_mps, self.clifford_circuit
+        backpropagated = self.stab_engine.backpropagate_many(
+            terms, self.clifford_circuit
+        )
+        expval = constant + self._evaluate_terms(
+            terms, backpropagated, self.original_circuit_mps
         )
 
         if return_fidelity:
@@ -353,17 +341,6 @@ class HSMPO:
         )
         return replace(result, mean=result.mean + constant)
 
-    def _terms_expectation(self, terms: dict, state_mps, clifford_circuit) -> float:
-        """
-        ``sum_P c_P <P>`` for ``terms = {P: c_P}``, every ``P`` backpropagated
-        through ``clifford_circuit`` before being evaluated on ``state_mps``.
-
-        Both steps go through the engines' batched methods, so the Clifford
-        tableau is built once and the MPS is swept once for all the terms.
-        """
-        backpropagated = self.stab_engine.backpropagate_many(terms, clifford_circuit)
-        return self._evaluate_terms(terms, backpropagated, state_mps)
-
     def _evaluate_terms(self, terms: dict, backpropagated: list, state_mps) -> float:
         """
         ``sum_P c_P <P>`` for ``terms = {P: c_P}``, given each term
@@ -399,7 +376,7 @@ class HSMPO:
                 Clifford one.
             replacement_method: ``"closest"`` or ``"random"`` Clifford angle.
             return_partitions: also return the magic gates, the Clifford-only
-                circuit and the sampled full circuit.
+                circuit, the sampled full circuit and the evolved MPS.
             light_cone: skip the dressed rotations that cannot affect the
                 observable (:func:`~mpstab.pauli.light_cone`). This is exact,
                 and with a bond-dimension cap it also spares those rotations'
@@ -409,7 +386,6 @@ class HSMPO:
             ``(expval, partitions)``, with ``partitions`` ``None`` unless
             ``return_partitions``.
         """
-        self._init_tn(self.max_bond_dimension)
         (magic_gates, clifford_circuit), full_circuit = (
             self.ansatz.partitionate_circuit(
                 replacement_probability=replacement_probability,
@@ -426,26 +402,21 @@ class HSMPO:
                 self.nqubits,
             )
             rotations = [rotations[k] for k in kept]
-        self._apply_rotations(self.mps, rotations)
-        expval = constant + self._evaluate_terms(terms, backpropagated, self.mps)
+        mps = self.initial_mps()
+        self._apply_rotations(mps, rotations)
+        expval = constant + self._evaluate_terms(terms, backpropagated, mps)
 
         partitions = (
             {
                 "magic_gates": magic_gates,
                 "only_cliffords": clifford_circuit,
                 "full_circuit": full_circuit,
+                "mps": mps,
             }
             if return_partitions
             else None
         )
         return expval, partitions
-
-    def _evolve_magic_gates(self, state_mps, magic_gates, clifford_circuit):
-        """
-        Apply each magic gate to ``state_mps`` as a dressed Pauli rotation,
-        dressing it with the Clifford prefix that precedes it.
-        """
-        self._apply_rotations(state_mps, self._dress(magic_gates, clifford_circuit))
 
     def _apply_rotations(self, state_mps, rotations, description="evolving MPS"):
         """
@@ -511,13 +482,13 @@ class HSMPO:
         :math:`|\langle\Psi_t|\Psi_t\rangle|^2`, which equals the fidelity against
         the untruncated state because :math:`\Psi` is normalised.
         """
-        self._init_tn(self.max_bond_dimension)
         (magic_gates, clifford_circuit), _ = self.ansatz.partitionate_circuit(
             replacement_probability=replacement_probability,
             replacement_method=replacement_method,
         )
-        self._evolve_magic_gates(self.mps, magic_gates, clifford_circuit)
-        return self.mps.norm(squared=True)
+        mps = self.initial_mps()
+        self._apply_rotations(mps, self._dress(magic_gates, clifford_circuit))
+        return mps.norm(squared=True)
 
     def get_parameters(self) -> np.ndarray:
         """The circuit's current parameters."""
@@ -526,7 +497,7 @@ class HSMPO:
     def set_parameters(self, parameters: np.ndarray):
         """Set the circuit's parameters and rebuild the cached MPS to match."""
         self.ansatz.circuit.set_parameters(parameters)
-        self.original_circuit_mps = self._precompute_original_mps()
+        self.original_circuit_mps = self._evolve_original()
 
     def minimize_expectation(
         self,
@@ -580,26 +551,13 @@ class HSMPO:
         )
 
 
-def _validated_stab_engine(stab_engine) -> StabilizersEngine:
-    if stab_engine is None:
-        return StimEngine()
-    if not isinstance(stab_engine, StabilizersEngine):
-        raise ValueError(
-            f"{stab_engine} is not a StabilizersEngine; pass StimEngine() or "
-            "NativeStabilizersEngine()."
-        )
-    return stab_engine
-
-
-def _validated_tn_engine(tn_engine) -> TensorNetworkEngine:
-    if tn_engine is None:
-        return QuimbEngine()
-    if not isinstance(tn_engine, TensorNetworkEngine):
-        raise ValueError(
-            f"{tn_engine} is not a TensorNetworkEngine; pass QuimbEngine() or "
-            "NativeTensorNetworkEngine()."
-        )
-    return tn_engine
+def _engine(engine, base: type, default: type):
+    """``engine``, or a ``default()`` one if ``None``; it must be a ``base``."""
+    if engine is None:
+        return default()
+    if not isinstance(engine, base):
+        raise ValueError(f"{engine} is not a {base.__name__}.")
+    return engine
 
 
 #: Seconds an evolution must run before its progress bar appears.

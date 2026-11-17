@@ -28,8 +28,7 @@ def test_expectation_matches_qibo(observable):
 
     ansatz = CircuitAnsatz(qibo_circuit=circ)
 
-    hs = HSMPO(ansatz)
-    hs.set_engines(stab_engine=StimEngine())
+    hs = HSMPO(ansatz, stab_engine=StimEngine())
     exp_hybrid = hs.expectation(observable)
 
     exp_qibo = expectation_with_qibo(
