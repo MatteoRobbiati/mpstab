@@ -1,27 +1,33 @@
 """Pauli and coherent noise on the HSMPO surrogate.
 
-Describe the noise as :class:`PauliChannel` and :class:`CoherentRotation`
-events (or convert a qibo ``NoiseModel`` with :func:`from_qibo_noise_model`),
-compile it once against a surrogate with :func:`compile_noise`, then estimate
-expectation values with :func:`noisy_expectation`.
+Build a :class:`NoiseModel` with :meth:`NoiseModel.add`, as in qibo, then call
+:meth:`~mpstab.HSMPO.noisy_expectation`::
+
+    noise = NoiseModel()
+    noise.add(DepolarizingError(1e-3))
+    noise.add(PauliError({"ZZ": 5e-4}), gates.CNOT)
+    result = hsmpo.noisy_expectation(observable, noise)
+
+The machinery underneath (noise events placed by gate index, their compilation
+into the Clifford frame, and the fault-pattern estimator) lives in
+:mod:`mpstab.noise.events`, :mod:`mpstab.noise.compile` and
+:mod:`mpstab.noise.estimator`.
 """
 
-from mpstab.noise.compile import CompiledNoise, compile_noise
-from mpstab.noise.estimator import NoisyExpectation, noisy_expectation
-from mpstab.noise.events import (
-    CoherentRotation,
-    NoiseEvent,
-    PauliChannel,
-    from_qibo_noise_model,
+from mpstab.noise.estimator import NoisyExpectation
+from mpstab.noise.model import (
+    CoherentError,
+    DepolarizingError,
+    NoiseModel,
+    PauliError,
+    ReadoutError,
 )
 
 __all__ = [
-    "CoherentRotation",
-    "CompiledNoise",
-    "NoiseEvent",
+    "CoherentError",
+    "DepolarizingError",
+    "NoiseModel",
     "NoisyExpectation",
-    "PauliChannel",
-    "compile_noise",
-    "from_qibo_noise_model",
-    "noisy_expectation",
+    "PauliError",
+    "ReadoutError",
 ]

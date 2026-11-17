@@ -26,12 +26,9 @@ from qibo.hamiltonians import SymbolicHamiltonian
 from mpstab import HSMPO
 from mpstab.engines import QuimbEngine
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
-from mpstab.noise import (
-    CoherentRotation,
-    PauliChannel,
-    compile_noise,
-    noisy_expectation,
-)
+from mpstab.noise.compile import compile_noise
+from mpstab.noise.estimator import noisy_expectation
+from mpstab.noise.events import CoherentRotation, PauliChannel
 
 # -- Circuits and noise ---------------------------------------------------------
 

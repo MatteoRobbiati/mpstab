@@ -309,6 +309,47 @@ class HSMPO:
             return expval, self.original_circuit_mps.norm(squared=True)
         return expval
 
+    def noisy_expectation(
+        self,
+        observable: Observable,
+        noise,
+        n_samples: int = 1000,
+        seed: int | None = None,
+    ):
+        """
+        Expectation value of ``observable`` on the circuit with ``noise``.
+
+        Every set of Pauli faults only flips the signs of some dressed-rotation
+        angles, so the noisy value is an average of noiseless HSMPO values:
+        patterns with zero and one fault are summed exactly, those with two or
+        more are sampled. Coherent errors join the rotation chain like magic
+        gates. Only the rotations and faults in the observable's light cone are
+        kept, which is exact. Readout errors multiply each term by ``1 - 2 p``
+        per noisy qubit it acts on.
+
+        Args:
+            observable: a Pauli string or any other format
+                :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+            noise: a :class:`~mpstab.noise.NoiseModel`.
+            n_samples: fault configurations sampled for two or more faults. With
+                ``0`` that stratum is dropped, biasing the mean by at most
+                ``stratum_weights[2]`` times the sum of the absolute coefficients.
+            seed: seed of the sampler.
+
+        Returns:
+            :class:`~mpstab.noise.NoisyExpectation`, with the value in ``mean``
+            and its standard error in ``stderr``.
+        """
+        from dataclasses import replace
+
+        from mpstab.noise.compile import compile_noise
+        from mpstab.noise.estimator import noisy_expectation
+
+        constant, terms = noise.readout_observable(observable, self.nqubits)
+        compiled = compile_noise(self, noise.events(self.ansatz.circuit))
+        result = noisy_expectation(compiled, terms, n_samples=n_samples, seed=seed)
+        return replace(result, mean=result.mean + constant)
+
     def _terms_expectation(self, terms: dict, state_mps, clifford_circuit) -> float:
         """
         ``sum_P c_P <P>`` for ``terms = {P: c_P}``, every ``P`` backpropagated

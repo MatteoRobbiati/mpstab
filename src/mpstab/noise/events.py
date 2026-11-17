@@ -58,7 +58,7 @@ class PauliChannel(NoiseEvent):
     --------
     A correlated two-qubit channel after the first gate::
 
-        from mpstab.noise import PauliChannel
+        from mpstab.noise.events import PauliChannel
 
         channel = PauliChannel(after_gate=0, qubits=(0, 1), probs={"ZZ": 0.01, "XI": 0.002})
         print(channel.no_fault_probability)
@@ -139,7 +139,7 @@ class CoherentRotation(NoiseEvent):
     --------
     ZZ crosstalk between qubits 1 and 2 of a 4-qubit circuit, after gate 3::
 
-        from mpstab.noise import CoherentRotation
+        from mpstab.noise.events import CoherentRotation
 
         crosstalk = CoherentRotation(after_gate=3, generator="IZZI", angle=0.02)
     """
@@ -193,7 +193,7 @@ def from_qibo_noise_model(
         import numpy as np
         from qibo import Circuit, gates
         from qibo.noise import DepolarizingError, NoiseModel
-        from mpstab.noise import from_qibo_noise_model
+        from mpstab.noise.events import from_qibo_noise_model
 
         circuit = Circuit(2)
         circuit.add(gates.RY(0, theta=0.3))

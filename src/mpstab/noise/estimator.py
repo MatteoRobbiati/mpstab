@@ -98,7 +98,9 @@ def noisy_expectation(
 
         from qibo import Circuit, gates
         from mpstab import HSMPO
-        from mpstab.noise import PauliChannel, compile_noise, noisy_expectation
+        from mpstab.noise.compile import compile_noise
+        from mpstab.noise.estimator import noisy_expectation
+        from mpstab.noise.events import PauliChannel
 
         circuit = Circuit(2)
         circuit.add(gates.RY(0, theta=0.4))
