@@ -109,21 +109,14 @@ way:
   the tail is long and `"shadows"`'s variance problem is worst, cheap when
   the tail is short and there was nothing to gain in the first place.
 
-`examples/hsynthsmpo_cut_sweep_comparison.py` and
-`examples/hsynthsmpo_qite_cut_sweep.py` measure both directly (circuits
-executed and `estimate()` wall-clock time) alongside the usual
-value/error-bar comparison.
-
 ## How much does accuracy actually cost?
 
-The numbers below are from `examples/hsynthsmpo_qite_cost_analysis.py`, on a
-circuit that has nothing to do with quantum hardware design: a few steps of
+The numbers below come from a circuit that has nothing to do with quantum
+hardware design: a few steps of
 Double-Bracket Quantum Imaginary-Time Evolution (`qrisp.algorithms.qite`,
 arXiv:2412.04554) approximating the ground state of a 6-site Heisenberg
 chain (8 physical qubits once `qrisp`'s own ancilla qubits are counted, 77
-magic gates after `HSynthSMPO`'s Clifford/magic split -- see
-`examples/hsynthsmpo_qite_cut_sweep.py`'s module docstring for how a `qrisp`
-circuit gets translated into something `HSynthSMPO` can use at all). One
+magic gates after `HSynthSMPO`'s Clifford/magic split). One
 fixed cut, one fixed observable (a spin-spin correlator), pricing every shot
 at 1 EUR:
 
@@ -193,10 +186,8 @@ shot-noise-limited yet.
 - `tests/test_expectation_methods.py`, `tests/test_pauli_sampling.py`,
   `tests/test_tnice.py` -- one route/module per test file, each checked
   against the exact (uncut) reference.
-- `examples/hsynthsmpo_*.py` -- runnable comparisons with plots: a
-  shot-budget convergence sweep (`hsynthsmpo_shot_convergence.py`), the
-  EUR-per-shot cost analysis this README's numbers come from
-  (`hsynthsmpo_cost_analysis.py` on a generic ansatz,
-  `hsynthsmpo_qite_cost_analysis.py` on the `qrisp` DB-QITE circuit), and a
-  physically-motivated circuit from `qrisp` on its own
-  (`hsynthsmpo_qite_cut_sweep.py`).
+- `examples/scripts/quantum_hardware/` -- runnable examples: how folding
+  the tail into the observable MPO introduces error
+  (`hsynthsmpo_mpo_approximation.py`), and a fully resynthesized head
+  measured with finite shots through the `"pauli"` route
+  (`hsynthsmpo_rustiq_fold.py`).
