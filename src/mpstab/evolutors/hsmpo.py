@@ -280,9 +280,10 @@ class HSMPO:
         angles, so the noisy value is an average of noiseless HSMPO values:
         patterns with zero and one fault are summed exactly, those with two or
         more are sampled. Coherent errors join the rotation chain like magic
-        gates. Only the rotations and faults in the observable's light cone are
-        kept, which is exact. Readout errors multiply each term by ``1 - 2 p``
-        per noisy qubit it acts on.
+        gates. A general channel, such as amplitude damping, adds transition
+        amplitudes between two sign patterns, one for the ket and one for the
+        bra. Only the rotations and faults in the light cone are kept, which is
+        exact. Readout errors are folded into the observable's terms.
 
         Args:
             observable: a Pauli string or any other format

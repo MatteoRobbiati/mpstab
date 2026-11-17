@@ -46,6 +46,17 @@ class TensorNetworkEngine(ABC):
         """
         return [self.expval(state_circuit, self.pauli_mpo(p)) for p in paulis]
 
+    def pauli_transitions(self, bra_state: Any, ket_state: Any, paulis) -> list:
+        """
+        Normalized transition amplitudes ``<bra|P|ket>`` of many Pauli
+        strings between two states, in order: each state is divided by its
+        own norm.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not compute transition amplitudes, "
+            "which non-Pauli noise channels need."
+        )
+
     @abstractmethod
     def pauli_rot(
         self, state_circuit: Any, generator: str, angle: float, max_bond_dimension: int
