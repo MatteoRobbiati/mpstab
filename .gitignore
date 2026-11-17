@@ -170,4 +170,4 @@ Thumbs.db
 planned_runs/
 
 # Unpublished examples, kept locally only
-examples/old/
+/old/
