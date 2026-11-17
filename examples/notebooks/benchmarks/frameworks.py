@@ -24,6 +24,7 @@ from qibo import Circuit, gates, symbols
 from qibo.hamiltonians import SymbolicHamiltonian
 
 from mpstab import HSMPO
+from mpstab.engines import QuimbEngine
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
 from mpstab.noise import (
     CoherentRotation,
@@ -92,25 +93,30 @@ def _by_gate(events) -> dict:
 # -- mpstab ---------------------------------------------------------------------
 
 
-def run_mpstab(circuit, observable, max_bond=None, light_cone=True):
+def run_mpstab(circuit, observable, max_bond=None, light_cone=True, svd_cutoff=None):
     """
     Noiseless HSMPO expectation value.
 
     With ``light_cone`` only the dressed rotations inside the observable's light
     cone are applied (``expectation_from_partition`` with nothing replaced);
     without it the whole circuit is evolved, as ``HSMPO.expectation`` does.
+    ``svd_cutoff`` is quimb's relative singular-value cutoff (``None``: quimb's
+    default, 1e-10, which leaves errors around 1e-7; ``0``: keep everything).
     """
+    engine = QuimbEngine(svd_cutoff=svd_cutoff)
     t = time.perf_counter()
     if light_cone:
         # rotations_only skips the full evolution HSMPO() runs at construction.
-        hsmpo = HSMPO.rotations_only(circuit)
+        hsmpo = HSMPO.rotations_only(circuit, tn_engine=engine)
         hsmpo.max_bond_dimension = max_bond
+        hsmpo.progress = False  # a benchmark should not time (or print) the bar
         value, _ = hsmpo.expectation_from_partition(
             observable, replacement_probability=0.0
         )
         state = hsmpo.mps
     else:
-        hsmpo = HSMPO(circuit, max_bond_dimension=max_bond)
+        hsmpo = HSMPO(circuit, max_bond_dimension=max_bond, progress=False)
+        hsmpo.set_engines(tn_engine=engine)
         value = hsmpo.expectation(observable)
         state = hsmpo.original_circuit_mps
     elapsed = time.perf_counter() - t
@@ -130,6 +136,7 @@ def run_mpstab_noisy(
     t = time.perf_counter()
     hsmpo = HSMPO.rotations_only(circuit)
     hsmpo.max_bond_dimension = max_bond
+    hsmpo.progress = False
     result = noisy_expectation(
         compile_noise(hsmpo, events),
         observable,
@@ -241,7 +248,7 @@ class PauliPropagation:
     not include Julia's JIT.
     """
 
-    def __init__(self):
+    def __init__(self, warmup: bool = True):
         import juliapkg
 
         juliapkg.add("PauliPropagation", PAULI_PROPAGATION_UUID)
@@ -250,8 +257,9 @@ class PauliPropagation:
 
         self.jl = jl
         jl.seval("using PauliPropagation")
-        warmup = kicked_ising(4, 1)
-        self.run(warmup, noise_events(warmup, 0.01, 0.01), local_z(4))
+        if warmup:
+            circuit = kicked_ising(4, 1)
+            self.run(circuit, noise_events(circuit, 0.01, 0.01), local_z(4))
 
     def run(
         self,
@@ -269,9 +277,21 @@ class PauliPropagation:
         time is the best of ``repeats`` identical runs, so it excludes Julia's
         compilation.
         """
-        n = circuit.nqubits
-        self.jl.seval(f"circ = [{', '.join(self._circuit(circuit, events))}]")
-        self.jl.seval(f"obs = PauliSum({n})")
+        return self.run_lines(
+            self._circuit(circuit, events),
+            circuit.nqubits,
+            observable,
+            min_abs_coeff=min_abs_coeff,
+            max_weight=max_weight,
+            repeats=repeats,
+        )
+
+    def run_lines(
+        self, lines, nqubits, observable, min_abs_coeff=1e-8, max_weight=None, repeats=2
+    ):
+        """:meth:`run` on a circuit already translated to Julia gate expressions."""
+        self.jl.seval(f"circ = [{', '.join(lines)}]")
+        self.jl.seval(f"obs = PauliSum({nqubits})")
         for pauli, c in _terms(observable).items():
             sites = [q + 1 for q, l in enumerate(pauli) if l != "I"]
             symbols = ", ".join(f":{pauli[s - 1]}" for s in sites)
@@ -301,6 +321,11 @@ class PauliPropagation:
                 lines.append(
                     f"PauliRotation(:{gate.name[1].upper()}, {q[0]}, {gate.parameters[0]!r})"
                 )
+            elif gate.name in ("rxx", "ryy", "rzz"):
+                axis = gate.name[1].upper()
+                lines.append(
+                    f"PauliRotation([:{axis}, :{axis}], {q}, {gate.parameters[0]!r})"
+                )
             elif gate.name in _CLIFFORDS:
                 lines.append(f"CliffordGate(:{_CLIFFORDS[gate.name]}, {q})")
             else:
@@ -323,6 +348,42 @@ class PauliPropagation:
         sites = [q + 1 for q, l in enumerate(event.generator) if l != "I"]
         symbols = ", ".join(f":{event.generator[s - 1]}" for s in sites)
         return f"PauliRotation([{symbols}], {sites}, {event.angle!r})"
+
+
+def _isolated_worker(lines, warmup_lines, nqubits, observable, options, queue):
+    pp = PauliPropagation(warmup=False)
+    # Compile for this width and gate set on a short prefix, untimed.
+    pp.run_lines(warmup_lines, nqubits, observable, repeats=1)
+    queue.put(pp.run_lines(lines, nqubits, observable, repeats=1, **options))
+
+
+def run_pp_isolated(circuit, events, observable, timeout, warmup_gates=None, **options):
+    """
+    :meth:`PauliPropagation.run` in a child process, abandoned after
+    ``timeout`` seconds: Julia cannot be interrupted from Python, and a
+    propagation that blows up can run for hours. Returns ``None`` on timeout.
+
+    The child compiles ``propagate`` on the first ``warmup_gates`` gates (one
+    Floquet step is enough: same width, same gate types) before timing the
+    full circuit once. Call it under ``if __name__ == "__main__":``.
+    """
+    import multiprocessing as mp
+
+    lines = PauliPropagation._circuit(circuit, events)
+    warmup_lines = lines[: warmup_gates or 4 * circuit.nqubits]
+    context = mp.get_context("spawn")
+    queue = context.Queue()
+    process = context.Process(
+        target=_isolated_worker,
+        args=(lines, warmup_lines, circuit.nqubits, observable, options, queue),
+    )
+    process.start()
+    process.join(timeout)
+    if process.is_alive():
+        process.kill()
+        process.join()
+        return None
+    return queue.get() if not queue.empty() else None
 
 
 # -- Sweeps and plots -----------------------------------------------------------
