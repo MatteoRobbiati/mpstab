@@ -18,6 +18,10 @@ extensions = [
     "sphinxcontrib.katex",  # For fast math rendering
 ]
 
+# Render Google-style "Attributes:" sections as :ivar: fields, so dataclass
+# fields are not documented twice (once by napoleon, once by :undoc-members:).
+napoleon_use_ivar = True
+
 # Furo Theme Settings
 html_theme = "furo"
 html_title = "Documentation"

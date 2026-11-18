@@ -272,13 +272,13 @@ class HammingWeightPreserving(Ansatz):
     """
     Hamming-weight-preserving ansatz built from decomposed RBS gates.
 
-    Each RBS gate rotates within the {|01⟩, |10⟩} subspace of a qubit pair,
-    leaving |00⟩ and |11⟩ unchanged:
+    Each RBS gate rotates within the ``{|01⟩, |10⟩}`` subspace of a qubit pair,
+    leaving ``|00⟩`` and ``|11⟩`` unchanged::
 
         RBS(θ)|01⟩ =  cos(θ)|01⟩ + sin(θ)|10⟩
         RBS(θ)|10⟩ = -sin(θ)|01⟩ + cos(θ)|10⟩
 
-    RBS is decomposed into gates mpstab supports natively:
+    RBS is decomposed into gates mpstab supports natively::
 
         CNOT(ctrl=q1, tgt=q0)
         RY(q1,  θ)              ← magic gate
@@ -288,7 +288,7 @@ class HammingWeightPreserving(Ansatz):
         CNOT(ctrl=q1, tgt=q0)
 
     The circuit always starts with n//2 X gates to prepare the half-filling
-    state |1…10…0⟩, giving a fixed Hamming weight of n//2.
+    state ``|1…10…0⟩``, giving a fixed Hamming weight of n//2.
 
     Within each layer the connectivity pattern mirrors `hw_preserving` from
     Qibo examples: four `connect_qubits` passes with jump sizes 1 and 2 and
@@ -627,7 +627,7 @@ class QFTPhaseKernel(_CompiledAnsatz):
 class Grover(_CompiledAnsatz):
     """Grover search: H^n then n_iterations x (oracle + diffuser).
 
-    The oracle phase-flips ``marked_state`` (default |1...1>) via a
+    The oracle phase-flips ``marked_state`` (default ``|1...1>``) via a
     multi-controlled-Z; the diffuser is the standard inversion-about-the-mean.
     See :func:`_multi_controlled_z` for the oracle-correctness caveat at
     ``nqubits > 3``.
@@ -680,7 +680,7 @@ class QPE(_CompiledAnsatz):
     """Quantum Phase Estimation for U = diag(1, e^{2 pi i phase}).
 
     Layout: ``n_counting`` counting qubits + 1 eigenstate qubit (prepared in
-    |1>). Controlled-U^{2^k} is a controlled phase (CU1); the counting register
+    ``|1>``). Controlled-U^{2^k} is a controlled phase (CU1); the counting register
     is closed with an inverse QFT. ``nqubits`` is derived as ``n_counting + 1``.
 
     Args:
