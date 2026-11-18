@@ -23,7 +23,7 @@ from utils import (
 
 pytest.importorskip("rustiq")
 
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 from mpstab.pauli import conjugate
 from mpstab.qpu.synthesis import RustiqSynthesis, head_to_qibo_circuit
@@ -57,7 +57,7 @@ def _equal_up_to_global_phase(A, B, atol=1e-6):
 
 def _dressed_paulis_and_angles(n=4):
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(n))
-    hs = HSynthSMPO.rotations_only(ansatz)
+    hs = HQSMPO.rotations_only(ansatz)
     dressed = hs._dressed_rotations()
     paulis = [p for p, _ in dressed]
     angles = [a for _, a in dressed]
@@ -127,7 +127,7 @@ def _expectation_via_full_resynthesis(hs, observable):
 @pytest.mark.parametrize("observable", ["ZZZZ", "XIII", "IZIX", "YYYY"])
 def test_full_resynthesis_and_fold_matches_direct_simulation(observable):
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO.rotations_only(ansatz)
+    hs = HQSMPO.rotations_only(ansatz)
 
     expval = _expectation_via_full_resynthesis(hs, observable)
     reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str=observable)
@@ -137,7 +137,7 @@ def test_full_resynthesis_and_fold_matches_direct_simulation(observable):
 
 def test_full_resynthesis_and_fold_on_library_ansatz():
     ansatz = HardwareEfficient(nqubits=5, nlayers=2)
-    hs = HSynthSMPO.rotations_only(ansatz)
+    hs = HQSMPO.rotations_only(ansatz)
     observable = "Z" * 5
 
     expval = _expectation_via_full_resynthesis(hs, observable)
@@ -148,7 +148,7 @@ def test_full_resynthesis_and_fold_on_library_ansatz():
 
 def test_resynthesize_head_gate_counts_across_partial_cuts():
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO.rotations_only(ansatz)
+    hs = HQSMPO.rotations_only(ansatz)
     n_dressed = len(hs.magic_gates)
 
     for cut in (0, n_dressed // 2, n_dressed):

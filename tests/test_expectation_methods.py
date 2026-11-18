@@ -1,11 +1,11 @@
 """
-`HSynthSMPO.expectation_at_cut`: the one measurement entry point, over its
+`HQSMPO.expectation_at_cut`: the one measurement entry point, over its
 shot-based routes ("pauli" and "shadows"), against the reference-only
 classical `expectation_at_cut(method="simulation")` / `expectation`.
 
 `test_pauli_sampling.py` already checks the Pauli-sampling machinery in
 isolation (coefficient extraction, the sampler, QWC grouping); these tests sit
-one layer up, at the `HSynthSMPO` integration: that both routes reproduce the
+one layer up, at the `HQSMPO` integration: that both routes reproduce the
 exact value within a few `total_error`, for a Pauli string and for a
 `SymbolicHamiltonian`; that the resynthesis Clifford-tail fold is load-bearing
 (disabling it breaks the estimate); that a bare object with only
@@ -23,7 +23,7 @@ from qibo import get_backend
 from qibo.hamiltonians import SymbolicHamiltonian
 from qibo.symbols import X, Z
 
-from mpstab.evolutors.hsynthsmpo import ExpectationResult, HSynthSMPO, ResynthesizedHead
+from mpstab.evolutors.hqsmpo import HQSMPO, ExpectationResult, ResynthesizedHead
 from mpstab.models.ansatze import HardwareEfficient
 from mpstab.qpu import (
     ClassicalShadows,
@@ -44,7 +44,7 @@ _STIM_2Q = {"CNOT": "CX", "CZ": "CZ"}
 
 def _hs(nqubits, nlayers=2, seed=0, max_bond_dimension=None):
     np.random.seed(seed)
-    return HSynthSMPO(
+    return HQSMPO(
         ansatz=HardwareEfficient(nqubits=nqubits, nlayers=nlayers),
         max_bond_dimension=max_bond_dimension,
     )
@@ -115,9 +115,9 @@ def _resynthesis_with_trailing_residual(hs, cut_index, n_trailing=3):
     )
 
 
-class _TrailingResidualHSynthSMPO(HSynthSMPO):
+class _TrailingResidualHQSMPO(HQSMPO):
     """
-    HSynthSMPO whose resynthesis is rustiq-free but leaves a non-trivial
+    HQSMPO whose resynthesis is rustiq-free but leaves a non-trivial
     residual (see :func:`_resynthesis_with_trailing_residual`). With
     ``drop_residual`` the same head is returned with an identity residual, so
     the device runs the head alone and nothing folds the residual back in.
@@ -136,7 +136,7 @@ class _TrailingResidualHSynthSMPO(HSynthSMPO):
 
 def _hs_trailing_residual(nqubits=4, nlayers=3, seed=0):
     np.random.seed(seed)
-    return _TrailingResidualHSynthSMPO(
+    return _TrailingResidualHQSMPO(
         ansatz=HardwareEfficient(nqubits=nqubits, nlayers=nlayers)
     )
 

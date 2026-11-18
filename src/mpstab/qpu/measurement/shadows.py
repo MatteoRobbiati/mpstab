@@ -240,7 +240,7 @@ class ClassicalShadows(MeasurementMethod):
             the resynthesis. ``"append_to_head_circuit"`` (default) runs it as
             extra gates after the head; ``"fold"`` reabsorbs it into the tail
             MPO (see
-            :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.build_post_head_mpo`),
+            :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.build_post_head_mpo`),
             so the device runs the head alone at a possibly much higher shadow
             variance.
 

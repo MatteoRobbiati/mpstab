@@ -488,7 +488,7 @@ class CircuitAnsatz(Ansatz):
 
 # ---------------------------------------------------------------------------
 # Circuit-library ansatze: textbook algorithms (QFT, Grover, QPE, QAE, Trotter)
-# to benchmark HSMPO and HSynthSMPO against.
+# to benchmark HSMPO and HQSMPO against.
 #
 # They are written with high-level gates (CU1, SWAP, TOFFOLI, RZZ, ...) and
 # transpiled to the native gate set on construction, which turns every

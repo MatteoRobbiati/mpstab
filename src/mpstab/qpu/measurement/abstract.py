@@ -195,8 +195,8 @@ class MeasurementMethod(ABC):
     expectation value (:meth:`estimate`).
 
     Subclasses are frozen dataclasses holding their own options, passed as
-    ``method`` to :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.plan` and
-    :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut`.
+    ``method`` to :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.plan` and
+    :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut`.
     """
 
     #: Short name, stored as :attr:`MeasurementPlan.method`.
@@ -219,14 +219,14 @@ class MeasurementMethod(ABC):
         Fold the tail of every term and fix the circuits and shots.
 
         Args:
-            model: the :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO` whose
+            model: the :class:`~mpstab.evolutors.hqsmpo.HQSMPO` whose
                 tail is folded.
             terms: the observable's ``{pauli_string: coefficient}``.
             constant: the observable's identity offset, added back on
                 estimation.
             cut_index: the split point.
             resynthesis: the head, a
-                :class:`~mpstab.evolutors.hsynthsmpo.ResynthesizedHead`.
+                :class:`~mpstab.evolutors.hqsmpo.ResynthesizedHead`.
             max_bond_dimension: bond cap for every tail fold, ``None`` for an
                 exact fold.
             n_shots: a fixed shot budget, or ``None`` to size it from

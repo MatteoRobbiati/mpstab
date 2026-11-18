@@ -138,7 +138,7 @@ def small_entangled_circuit(nqubits: int = 4) -> Circuit:
 
 
 def folded_mpo(base: str, generators, angles, max_bond=None):
-    """A Pauli MPO conjugated by Pauli rotations, as HSynthSMPO folds a tail."""
+    """A Pauli MPO conjugated by Pauli rotations, as HQSMPO folds a tail."""
     engine = QuimbEngine()
     mpo = engine.pauli_mpo(base)
     for generator, angle in zip(generators, angles):

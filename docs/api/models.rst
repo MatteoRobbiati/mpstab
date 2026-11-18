@@ -30,7 +30,7 @@ Ansätze are pre-built quantum circuit patterns used as templates for quantum al
 - ``KickedIsing``: Kicked Ising chain with RX/RZ kicks and CNOT-RZ-CNOT couplings, already in HSMPO form
 - ``ParametricKickedIsing``: Kicked Ising chain at a Clifford point plus deviations; only the deviations are magic gates
 
-*Circuit library (textbook algorithms, for HSMPO/HSynthSMPO benchmarks):*
+*Circuit library (textbook algorithms, for HSMPO/HQSMPO benchmarks):*
 
 - ``QFT``: Quantum Fourier Transform
 - ``QFTPhaseKernel``: QFT followed by a diagonal RZ phase kernel

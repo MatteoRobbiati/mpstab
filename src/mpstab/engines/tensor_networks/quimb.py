@@ -286,7 +286,7 @@ class QuimbEngine(TensorNetworkEngine):
     MPS evolution and MPO expectation values via quimb.
 
     Besides evolving states, it conjugates operators, which
-    :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`'s head/tail split needs,
+    :class:`~mpstab.evolutors.hqsmpo.HQSMPO`'s head/tail split needs,
     and its MPS feeds quimb's DMRG.
     """
 
@@ -584,7 +584,7 @@ class QuimbEngine(TensorNetworkEngine):
         and the exact operator rank of a scrambled observable grows
         exponentially, so folding a long tail accrues truncation error. Keeping
         this exact is only affordable for modest tail lengths; see
-        :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.tail_truncation` to
+        :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.tail_truncation` to
         quantify it.
         """
         if self._fast:

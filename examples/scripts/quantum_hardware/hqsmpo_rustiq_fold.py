@@ -1,4 +1,4 @@
-"""HSynthSMPO: measuring a fully-resynthesized head via the "pauli" route.
+"""HQSMPO: measuring a fully-resynthesized head via the "pauli" route.
 
 Resynthesizes every dressed Pauli rotation into hardware-native gates with the
 low-level ``rustiq.pauli_network_synthesis`` API (falling back to a
@@ -6,7 +6,7 @@ dependency-free CNOT-ladder decomposition if ``rustiq`` isn't installed), and
 measures the resulting circuit with a finite shot budget via
 ``expectation_at_cut``. The resynthesis Clifford residual (if any) is folded
 into the sampled Pauli terms automatically -- see the module docstring of
-``mpstab.evolutors.hsynthsmpo`` for why that fold has to happen before QWC
+``mpstab.evolutors.hqsmpo`` for why that fold has to happen before QWC
 grouping. ``method="simulation"`` (classical, no resynthesis, no shot noise) is
 used here only as the reference the shot-based estimate is checked against.
 
@@ -18,7 +18,7 @@ the cost of that saving (see ``resynthesize_head``'s docstring).
 import numpy as np
 import stim
 
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import HardwareEfficient
 
 np.random.seed(42)
@@ -32,7 +32,7 @@ ansatz = HardwareEfficient(nqubits=NQUBITS, nlayers=NLAYERS)
 # rotations_only skips the eager MPS precompute in __post_init__ -- only the
 # dressed rotations are needed here, so construction stays cheap regardless of
 # system size (see docs/guides/rustiq_resynthesis.rst).
-hs = HSynthSMPO.rotations_only(ansatz)
+hs = HQSMPO.rotations_only(ansatz)
 n_dressed = len(hs.magic_gates)
 print(f"qubits={NQUBITS}  layers={NLAYERS}  dressed rotations={n_dressed}")
 
@@ -78,6 +78,6 @@ print(
     "as a truncated tensor-network operator) into the tail MPO by the "
     "'pauli'/'shadows' routes exactly as an un-resynthesized cut would be. "
     "For a look at that approximation on its own, see "
-    "examples/scripts/quantum_hardware/hsynthsmpo_mpo_approximation.py, which uses "
-    "HSynthSMPO.tail_truncation."
+    "examples/scripts/quantum_hardware/hqsmpo_mpo_approximation.py, which uses "
+    "HQSMPO.tail_truncation."
 )

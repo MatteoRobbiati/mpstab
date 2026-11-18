@@ -1,19 +1,19 @@
 # QPU: running a head/tail split on a device
 
-This package answers one question: **given a circuit that `HSynthSMPO` has
+This package answers one question: **given a circuit that `HQSMPO` (Hybrid Quantum Stabilizer Matrix Product Operator) has
 split into a "head" and a "tail" at some cut point, how do we actually get an
 expectation value out of real (or simulated) quantum hardware?**
 
 ## The problem in one picture
 
-`HSynthSMPO` represents a circuit as a chain of "dressed" Pauli rotations. A
+`HQSMPO` represents a circuit as a chain of "dressed" Pauli rotations. A
 cut point `k` splits that chain in two: the magic (non-Clifford) gates become
 rotations that get cut into a head and a tail; the Clifford gates are free and
 exact, absorbed however they fall relative to the cut. The head is
 resynthesised and run on the device; the tail is folded into the observable
 classically, with no shot spent on it at all:
 
-![Head/tail split: a circuit's magic gates become a chain of rotations, cut into a head that runs on the device and a tail folded classically into the observable, then measured with finite shots into an expectation value with noise and truncation.](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_head_tail_split_concept_en.png)
+![Head/tail split: a circuit's magic gates become a chain of rotations, cut into a head that runs on the device and a tail folded classically into the observable, then measured with finite shots into an expectation value with noise and truncation.](../../../examples/scripts/quantum_hardware/figures/hqsmpo_head_tail_split_concept_en.png)
 
 So instead of running the *whole* circuit and measuring `O`, we run only the
 *head* on the device and measure a *different* operator `O'` -- the
@@ -45,12 +45,12 @@ execution/      a plan's circuits  ->  frequencies (simulator.py), or
                                         (qasm.py, storage.py)
 ```
 
-`HSynthSMPO.expectation_at_cut` (in `mpstab.evolutors.hsynthsmpo`) is the one
+`HQSMPO.expectation_at_cut` (in `mpstab.evolutors.hqsmpo`) is the one
 function that runs all three steps and hands back the result. Everything
 below explains what happens *inside* it.
 
 On a real device the steps happen at different times, so they can also be run
-one by one: `HSynthSMPO.plan` builds the plan and, given an `out_folder`, saves
+one by one: `HQSMPO.plan` builds the plan and, given an `out_folder`, saves
 its circuits as OpenQASM with their shots (`execution/storage.py`). A device backend runs
 those files, and `estimate(plan, frequencies)` recombines the counts.
 
@@ -98,7 +98,7 @@ hardware design: a few steps of
 Double-Bracket Quantum Imaginary-Time Evolution (`qrisp.algorithms.qite`,
 arXiv:2412.04554) approximating the ground state of a 6-site Heisenberg
 chain (8 physical qubits once `qrisp`'s own ancilla qubits are counted, 77
-magic gates after `HSynthSMPO`'s Clifford/magic split). One
+magic gates after `HQSMPO`'s Clifford/magic split). One
 fixed cut, one fixed observable (a spin-spin correlator), pricing every shot
 at 1 EUR:
 
@@ -108,7 +108,7 @@ at 1 EUR:
 decomposition) is chosen *before* any shot is spent -- raising it costs
 exactly 0 EUR, only classical compute:
 
-![pauli error vs n_string_samples, free](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_qite_cost_analysis.png)
+![pauli error vs n_string_samples, free](../../../examples/scripts/quantum_hardware/figures/hqsmpo_qite_cost_analysis.png)
 
 *(left panel)* At a fixed 4000-shot budget, `total_error` barely moves from
 `n_string_samples=20` to `800` (0.53 -> 0.44) -- it's dominated almost
@@ -162,13 +162,13 @@ shot-noise-limited yet.
 
 ## Where to look next
 
-- `mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut` -- the entry
+- `mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut` -- the entry
   point; its docstring lists every argument each route accepts.
 - `tests/test_expectation_methods.py`, `tests/test_pauli_sampling.py` --
   one route/module per test file, each checked
   against the exact (uncut) reference.
 - `examples/scripts/quantum_hardware/` -- runnable examples: how folding
   the tail into the observable MPO introduces error
-  (`hsynthsmpo_mpo_approximation.py`), and a fully resynthesized head
+  (`hqsmpo_mpo_approximation.py`), and a fully resynthesized head
   measured with finite shots through the `"pauli"` route
-  (`hsynthsmpo_rustiq_fold.py`).
+  (`hqsmpo_rustiq_fold.py`).

@@ -1,14 +1,14 @@
 """
 Layered correctness checks for `mpstab.qpu.measurement.pauli_expansion`, the
 Pauli-sampling half of the head/tail measurement split (the `"pauli"` route of
-`HSynthSMPO.expectation_at_cut`).
+`HQSMPO.expectation_at_cut`).
 
 Each test targets one layer in isolation so a failure localizes: coefficient
 extraction first (no randomness at all), then the perfect sampler against
 that same extraction, then QWC grouping as pure combinatorics, then the
 retained-weight bias bound that ties truncation back to the reported
 diagnostic. `test_expectation_methods.py` covers the next layer up (the
-`HSynthSMPO` integration and cross-method agreement).
+`HQSMPO` integration and cross-method agreement).
 """
 
 from itertools import product

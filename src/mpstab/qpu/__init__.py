@@ -1,7 +1,7 @@
 """
 Running part of an expectation value on a QPU.
 
-:class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO` splits a circuit's dressed
+:class:`~mpstab.evolutors.hqsmpo.HQSMPO` splits a circuit's dressed
 rotations into a head, run on the device, and a tail, folded classically into
 the observable. Getting from that split to a number is a three-step pipeline,
 one subpackage each:
@@ -15,12 +15,12 @@ one subpackage each:
    them as OpenQASM to run on a device.
 
 Synthesisers and measurement methods are objects holding their own options,
-passed to :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`::
+passed to :class:`~mpstab.evolutors.hqsmpo.HQSMPO`::
 
-    from mpstab import HSynthSMPO
+    from mpstab import HQSMPO
     from mpstab.qpu import ClassicalShadows, ExtractionSynthesis
 
-    model = HSynthSMPO(ansatz, head_synthesis=ExtractionSynthesis(connectivity="line"))
+    model = HQSMPO(ansatz, head_synthesis=ExtractionSynthesis(connectivity="line"))
     result = model.expectation_at_cut(H, cut_index, method=ClassicalShadows(), n_shots=10_000)
 
 Importing this package never requires the optional ``rustiq`` dependency, which
