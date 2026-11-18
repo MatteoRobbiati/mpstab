@@ -52,6 +52,17 @@ def apply_pauli(tensor: np.ndarray, label: str) -> np.ndarray:
 #: Largest ``|Q^H Q - I|`` entry a Cholesky QR may leave before it is rejected.
 _ORTHOGONALITY_TOL = 1e-12
 
+# Raw complex LAPACK routines: scipy.linalg's wrappers validate and copy their
+# inputs, which costs more than the factorization itself on the small matrices
+# of a low bond dimension.
+_POTRF, _TRTRS, _HEEVR, _HEEVR_LWORK = scipy.linalg.lapack.get_lapack_funcs(
+    ("potrf", "trtrs", "heevr", "heevr_lwork"), dtype=np.complex128
+)
+
+#: Optimal ``heevr`` workspace sizes per matrix order: its default is the
+#: minimum, which runs unblocked and is markedly slower on large matrices.
+_HEEVR_WORKSPACE: dict = {}
+
 
 def _svd(matrix: np.ndarray):
     """Thin SVD, falling back to the slower but sturdier ``gesvd`` driver."""
@@ -76,17 +87,17 @@ def _cholesky_qr(matrix: np.ndarray):
     if rows < cols:
         return None
     identity = np.eye(cols)
-    q, r = matrix, None
+    q, r = np.asarray(matrix, dtype=np.complex128), None
     gram = q.conj().T @ q
     for _ in range(2):
-        try:
-            step = scipy.linalg.cholesky(gram, lower=False, check_finite=False)
-        except np.linalg.LinAlgError:
+        step, info = _POTRF(gram, lower=0, clean=1)
+        if info != 0:
             return None
         # Q = M R^-1, from R^T Q^T = M^T.
-        q = scipy.linalg.solve_triangular(
-            step, q.T, trans="T", lower=False, check_finite=False
-        ).T
+        solution, info = _TRTRS(step, q.T, lower=0, trans=1)
+        if info != 0:
+            return None
+        q = solution.T
         r = step if r is None else step @ r
         gram = q.conj().T @ q
         if np.abs(gram - identity).max() < _ORTHOGONALITY_TOL:
@@ -118,9 +129,23 @@ def n_kept(s: np.ndarray, cutoff: float, max_bond: int | None) -> int:
 
 
 def _eigh(hermitian: np.ndarray):
-    """Eigendecomposition of a Hermitian matrix, ascending, by LAPACK's MRRR
-    driver (``heevr``), the fastest of the ones scipy exposes at these sizes."""
-    return scipy.linalg.eigh(hermitian, driver="evr", check_finite=False)
+    """
+    Eigendecomposition of a Hermitian matrix, ascending, by LAPACK's MRRR
+    driver (``heevr``), the fastest of the ones scipy exposes at these sizes.
+    """
+    order = hermitian.shape[0]
+    workspace = _HEEVR_WORKSPACE.get(order)
+    if workspace is None:
+        lwork, lrwork, liwork, _ = _HEEVR_LWORK(order)
+        workspace = _HEEVR_WORKSPACE[order] = dict(
+            lwork=int(lwork.real), lrwork=int(lrwork), liwork=int(liwork)
+        )
+    values, vectors, _, _, info = _HEEVR(
+        np.asarray(hermitian, dtype=np.complex128), compute_v=1, lower=0, **workspace
+    )
+    if info != 0:
+        raise np.linalg.LinAlgError(f"heevr failed with info={info}")
+    return values, vectors
 
 
 def _split_left_isometry(matrix: np.ndarray, cutoff: float, max_bond: int | None):
