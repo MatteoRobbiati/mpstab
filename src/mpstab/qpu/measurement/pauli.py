@@ -26,14 +26,8 @@ from mpstab.qpu.measurement.pauli_expansion import (
     truncation_error_estimate,
 )
 
-
-def _qubitwise_commuting(a: str, b: str) -> bool:
-    """Whether ``a`` and ``b`` agree at every qubit where neither is ``I``."""
-    return all(x == "I" or y == "I" or x == y for x, y in zip(a, b))
-
-
-def _merge_setting(setting: str, string: str) -> str:
-    return "".join(a if a != "I" else b for a, b in zip(setting, string))
+#: ``"I"`` as a byte, in the byte arrays :func:`group_qwc` compares.
+_IDENTITY = ord("I")
 
 
 @dataclass(frozen=True)
@@ -63,28 +57,43 @@ def group_qwc(strings, weights=None) -> tuple:
         resolved to ``Z``.
     """
     strings = list(strings)
+    if not strings:
+        return ()
     order = (
         range(len(strings))
         if weights is None
         else sorted(range(len(strings)), key=lambda i: -abs(weights[i]))
     )
 
-    settings: list = []
+    # Greedy first fit: each string joins the first setting it qubit-wise
+    # commutes with (they agree wherever neither is I), filling in that
+    # setting's I's, else opens a new one. Every open setting is tested at
+    # once, on byte arrays.
+    letters = np.frombuffer("".join(strings).encode("ascii"), dtype=np.uint8)
+    letters = letters.reshape(len(strings), -1)
+    settings = np.empty_like(letters)  # at most one setting per string
     members: list = []
     for i in order:
-        string = strings[i]
-        for group, setting in enumerate(settings):
-            if _qubitwise_commuting(setting, string):
-                settings[group] = _merge_setting(setting, string)
-                members[group].append(string)
-                break
+        row = letters[i]
+        support = row != _IDENTITY
+        open_settings = settings[: len(members), support]
+        fits = np.all(
+            (open_settings == _IDENTITY) | (open_settings == row[support]), axis=1
+        )
+        group = int(np.argmax(fits)) if members else 0
+        if members and fits[group]:
+            settings[group, support] = row[support]
+            members[group].append(strings[i])
         else:
-            settings.append(string)
-            members.append([string])
+            settings[len(members)] = row
+            members.append([strings[i]])
 
     return tuple(
-        QWCGroup(setting=setting.replace("I", "Z"), members=tuple(group_members))
-        for setting, group_members in zip(settings, members)
+        QWCGroup(
+            setting=settings[g].tobytes().decode("ascii").replace("I", "Z"),
+            members=tuple(group_members),
+        )
+        for g, group_members in enumerate(members)
     )
 
 
