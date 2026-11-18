@@ -112,7 +112,7 @@ def test_circuit_to_qasm_rejects_a_non_qelib1_two_qubit_gate(gate):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("method", ["pauli", "shadows", "tnice"])
+@pytest.mark.parametrize("method", ["pauli", "shadows"])
 def test_plan_writes_the_output_folder(tmp_path, method):
     hs = _hs()
     plan = hs.plan("XZIZ", 3, method=method, n_shots=200, seed=0, out_folder=tmp_path)

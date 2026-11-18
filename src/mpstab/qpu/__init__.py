@@ -35,7 +35,6 @@ from mpstab.qpu.execution import (
     save_circuits,
 )
 from mpstab.qpu.measurement import (
-    TNICE,
     ClassicalShadows,
     ExpectationResult,
     MeasurementMethod,
@@ -61,7 +60,6 @@ __all__ = [
     "PauliSampling",
     "QiboSimulator",
     "RustiqSynthesis",
-    "TNICE",
     "circuit_to_qasm",
     "estimate",
     "execute_plan",

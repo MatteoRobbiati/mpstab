@@ -9,10 +9,8 @@ into the observable as an MPO.
 .. image:: ../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_head_tail_split_concept_en.png
    :alt: The head of the rotation chain runs on hardware, the tail is folded into the observable MPO.
 
-The folded observable is then measured along one of three routes:
-
-.. image:: ../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_three_measurement_routes_en.png
-   :alt: The three measurement routes of HSynthSMPO.
+The folded observable is then measured by sampling and grouping its Pauli
+strings (``"pauli"``) or with classical shadows (``"shadows"``):
 
 .. image:: ../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_qite_cost_analysis.png
    :alt: Cost analysis of the head/tail split.

@@ -181,7 +181,7 @@ def execute_plan(backend, plan) -> list:
     with its own shot count, batching circuits that share a shot count into a
     single ``backend.execute_circuits`` call instead of one call per circuit.
 
-    A ``"shadows"``/``"tnice"`` plan's circuits mostly share
+    A ``"shadows"`` plan's circuits mostly share
     ``shots_per_setting`` shots each, so this collapses what would otherwise be
     one backend call per shot into a handful of calls -- the contract already
     supports a batch (``execute_circuits`` takes a list), the naive call site

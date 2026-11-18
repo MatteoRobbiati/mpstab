@@ -12,9 +12,7 @@ observable with a shot budget, by one of the measurement methods of
   measurement settings.
 - :class:`~mpstab.qpu.measurement.shadows.ClassicalShadows` (``"shadows"``)
   measures random single-qubit Pauli bases and contracts each snapshot against
-  the tail MPO directly; :class:`~mpstab.qpu.measurement.tnice.TNICE`
-  (``"tnice"``) runs on the same measurements and only replaces this estimator
-  with the MPS-optimized one.
+  the tail MPO directly.
 
 The head is resynthesised by one of the synthesisers of
 :mod:`mpstab.qpu.synthesis`, set as ``head_synthesis``.
@@ -22,8 +20,8 @@ The head is resynthesised by one of the synthesisers of
 Resynthesising the head leaves a Clifford residual, so a device prepares
 ``U(residual) U(head)|psi_0>`` rather than the exact head state the tail
 coefficients were derived against. The ``"pauli"`` route corrects for this by
-conjugating every sampled string through the residual. The ``"shadows"`` and
-``"tnice"`` routes take a ``tail_handling`` option:
+conjugating every sampled string through the residual. The ``"shadows"`` route
+takes a ``tail_handling`` option:
 
 - ``"append_to_head_circuit"`` (default) runs the residual as extra gates after
   the head: exact, with the shadow variance of the unfolded tail;
@@ -225,8 +223,8 @@ class HSynthSMPO(HSMPO):
           from the MPO and folds each sampled string through ``R`` afterwards
           (:func:`~mpstab.qpu.measurement.pauli_expansion.fold_pool_through_tableau`),
           which is cheaper and unaffected by truncation;
-        - the ``"shadows"`` and ``"tnice"`` routes pass ``residual`` under
-          ``tail_handling="fold"``, because their estimators contract the whole
+        - the ``"shadows"`` route passes ``residual`` under
+          ``tail_handling="fold"``, because its estimator contracts the whole
           MPO, so ``R`` has to be inside it. The price is usually more Pauli
           weight, and therefore a higher shadow variance.
 
@@ -498,29 +496,21 @@ class HSynthSMPO(HSMPO):
             cut_index: the split point.
             method: a :class:`~mpstab.qpu.measurement.abstract.MeasurementMethod`,
                 e.g. ``ClassicalShadows(tail_handling="fold")``; or the name of
-                one, ``"pauli"``, ``"shadows"`` or ``"tnice"``, built with
-                ``method_options``; or ``"simulation"``. ``"tnice"`` runs on
-                exactly the same circuits, bases and shots as ``"shadows"`` and
-                only replaces the fixed canonical-dual post-processing with the
-                MPS-optimized estimator of :mod:`~mpstab.qpu.measurement.tnice`,
-                so the two can be compared on identical measurement data.
-                ``"simulation"`` is classical, see above and
+                one, ``"pauli"`` or ``"shadows"``, built with
+                ``method_options``; or ``"simulation"``. ``"simulation"`` is
+                classical, see above and
                 :meth:`_simulate_at_cut`: it needs no resynthesis, backend or
                 shots, and ignores ``seed``.
             n_shots: a fixed shot budget. Exactly one of this and ``epsilon``
                 for the hardware methods; neither for ``"simulation"``.
             epsilon: a target standard error, which sizes the shot budget from the
-                per-route variance predictor. For ``"tnice"`` this reuses
-                ``"shadows"``'s canonical-dual predictor, a conservative upper
-                bound on the (unknown ahead of fitting) optimized variance.
+                per-route variance predictor.
             backend: anything with ``execute_circuits(circuits, nshots)``.
                 Defaults to :class:`~mpstab.qpu.QiboSimulator`.
             max_bond_dimension: bond cap for every tail fold; ``-1`` means
                 ``self.max_bond_dimension``. With ``"simulation"`` the head MPS
                 is capped at ``self.max_bond_dimension``.
-            seed: RNG seed for Pauli sampling, random shadow bases, and (for
-                ``"tnice"``) the train/test shot split, forwarded to
-                :meth:`~mpstab.qpu.measurement.tnice.TNICE.estimate`.
+            seed: RNG seed for Pauli sampling and random shadow bases.
             method_options: options of a method given by name, e.g.
                 ``n_string_samples`` for ``"pauli"`` or ``tail_handling`` for
                 ``"shadows"``; see each method's class.

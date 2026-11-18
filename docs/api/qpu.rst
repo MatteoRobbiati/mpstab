@@ -59,10 +59,6 @@ bars. One module per method.
    :members:
    :show-inheritance:
 
-.. automodule:: mpstab.qpu.measurement.tnice
-   :members:
-   :show-inheritance:
-
 .. automodule:: mpstab.qpu.measurement.pauli_expansion
    :members:
    :show-inheritance:

@@ -14,8 +14,7 @@ canonical dual is a site-local map (:data:`LOCAL_CANONICAL_DUAL_MAP`): applied
 to ``O``'s Pauli-coefficient MPS it gives, at ``O``'s own bond dimension, the
 MPS ``omega`` of per-outcome estimator values (:func:`canonical_omega_seed`).
 Estimating is then a batched lookup of ``omega`` at every measured outcome
-(:func:`evaluate_omega`). :mod:`~mpstab.qpu.measurement.tnice` fits a better
-``omega`` on the same data, starting from this one.
+(:func:`evaluate_omega`).
 """
 
 from __future__ import annotations

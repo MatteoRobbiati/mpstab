@@ -34,18 +34,18 @@ class MeasurementPlan:
     - ``"pauli"``: ``(groups, coefficients)``, one :class:`~mpstab.qpu.measurement.pauli.QWCGroup` per circuit
       in the same order, plus the ``{pauli_string: c_P}`` map the groups came
       from.
-    - ``"shadows"`` and ``"tnice"``: ``(mpo_terms, bases)``, where ``mpo_terms``
+    - ``"shadows"``: ``(mpo_terms, bases)``, where ``mpo_terms``
       holds ``(label, coefficient, sign, mpo)`` per Hamiltonian term and
       ``bases`` has one basis string per circuit.
 
     Attributes:
-        retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
+        retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``
             (which sample nothing): the ``|coefficient|``-weighted average, over
             Hamiltonian terms, of each term's
             :attr:`~mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight`
             -- the fraction of the tail-folded observable's Frobenius weight
             that ``n_string_samples`` actually covered.
-        bond_truncation_l2: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
+        bond_truncation_l2: ``"pauli"`` only, ``None`` for ``"shadows"``
             (whose ``truncation_l2`` already is this quantity): the bias
             estimate of folding the tail at a finite bond dimension,
             ``sum_terms |coefficient| * sqrt(1 - ||O'||_F**2 / 2**n)``, from the
@@ -98,10 +98,10 @@ class ExpectationResult:
         truncation_l1: heuristic discarded-Pauli-mass estimate (see
             :func:`~mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate`
             -- an extrapolation, not a rigorous bound); ``None`` for the
-            ``"shadows"``/``"tnice"`` routes, whose bond truncation has no
+            ``"shadows"`` route, whose bond truncation has no
             L1/L2 split.
         truncation_l2: typical-case truncation estimate -- Pauli-set truncation
-            for ``"pauli"``, MPO bond truncation for ``"shadows"``/``"tnice"``.
+            for ``"pauli"``, MPO bond truncation for ``"shadows"``.
         n_settings: number of distinct circuits the shots came from.
         n_shots: total shots used.
         retained_weight: ``"pauli"`` only, ``None`` otherwise -- see
