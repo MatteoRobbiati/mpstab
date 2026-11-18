@@ -10,12 +10,12 @@ Build a :class:`NoiseModel` with :meth:`NoiseModel.add`, as in qibo, then call
 
 The machinery underneath (noise events placed by gate index, their compilation
 into the Clifford frame, and the fault-pattern estimator) lives in
-:mod:`mpstab.noise.events`, :mod:`mpstab.noise.compile` and
-:mod:`mpstab.noise.estimator`.
+:mod:`mpstab.models.noise.events`, :mod:`mpstab.models.noise.compile` and
+:mod:`mpstab.models.noise.estimator`.
 """
 
-from mpstab.noise.estimator import NoisyExpectation
-from mpstab.noise.model import (
+from mpstab.models.noise.estimator import NoisyExpectation
+from mpstab.models.noise.model import (
     AmplitudeDampingError,
     CoherentError,
     DepolarizingError,

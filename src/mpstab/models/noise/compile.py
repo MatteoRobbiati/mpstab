@@ -29,7 +29,12 @@ from mpstab.engines import StimEngine
 from mpstab.engines.stabilizers.stim import gate_instruction
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
-from mpstab.noise.events import CoherentRotation, KrausChannel, NoiseEvent, PauliChannel
+from mpstab.models.noise.events import (
+    CoherentRotation,
+    KrausChannel,
+    NoiseEvent,
+    PauliChannel,
+)
 from mpstab.pauli import (
     _anticommuting,
     _symplectic,
@@ -46,8 +51,8 @@ class CompiledNoise:
     A noisy circuit in the Clifford frame of an HSMPO surrogate.
 
     Build it with :func:`compile_noise`. Each location is one
-    :class:`~mpstab.noise.PauliChannel` or
-    :class:`~mpstab.noise.events.KrausChannel`. Each fault is a non-identity
+    :class:`~mpstab.models.noise.PauliChannel` or
+    :class:`~mpstab.models.noise.events.KrausChannel`. Each fault is a non-identity
     Pauli of a location with nonzero probability: a term of the Pauli channel,
     or a diagonal entry of the Kraus channel's process matrix. Each coherence
     is a pair of distinct Paulis with a nonzero off-diagonal entry, stored
@@ -330,9 +335,9 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
         ``after_gate`` indexes. It may be built with
         :meth:`~mpstab.HSMPO.rotations_only`.
     events : sequence of NoiseEvent
-        The noise, as :class:`~mpstab.noise.events.PauliChannel`,
-        :class:`~mpstab.noise.events.CoherentRotation` and
-        :class:`~mpstab.noise.events.KrausChannel` events.
+        The noise, as :class:`~mpstab.models.noise.events.PauliChannel`,
+        :class:`~mpstab.models.noise.events.CoherentRotation` and
+        :class:`~mpstab.models.noise.events.KrausChannel` events.
 
     Returns
     -------
@@ -353,8 +358,8 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
 
         from qibo import Circuit, gates
         from mpstab import HSMPO
-        from mpstab.noise.compile import compile_noise
-        from mpstab.noise.events import PauliChannel
+        from mpstab.models.noise.compile import compile_noise
+        from mpstab.models.noise.events import PauliChannel
 
         circuit = Circuit(2)
         circuit.add(gates.H(0))

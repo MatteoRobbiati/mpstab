@@ -288,7 +288,7 @@ class HSMPO:
         Args:
             observable: a Pauli string or any other format
                 :func:`~mpstab.hamiltonians.pauli_terms` accepts.
-            noise: a :class:`~mpstab.noise.NoiseModel`.
+            noise: a :class:`~mpstab.models.noise.NoiseModel`.
             n_samples: fault configurations sampled for two or more faults. With
                 ``0`` that stratum is dropped, biasing the mean by at most
                 ``stratum_weights[2]`` times the sum of the absolute coefficients.
@@ -298,13 +298,13 @@ class HSMPO:
                 second to start, so use it for large runs.
 
         Returns:
-            :class:`~mpstab.noise.NoisyExpectation`, with the value in ``mean``
+            :class:`~mpstab.models.noise.NoisyExpectation`, with the value in ``mean``
             and its standard error in ``stderr``.
         """
         from dataclasses import replace
 
-        from mpstab.noise.compile import compile_noise
-        from mpstab.noise.estimator import noisy_expectation
+        from mpstab.models.noise.compile import compile_noise
+        from mpstab.models.noise.estimator import noisy_expectation
 
         constant, terms = noise.readout_observable(observable, self.nqubits)
         compiled = compile_noise(self, noise.events(self.ansatz.circuit))
