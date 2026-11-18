@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Iterable
 
 #: What each method takes and returns is engine-specific: an engine may
 #: represent states and operators however it likes, as long as the objects it
@@ -101,3 +101,20 @@ class TensorNetworkEngine(ABC):
         Heisenberg-conjugate ``operator`` by ``R = exp(-i angle/2 generator)``,
         returning ``R^dag . operator . R``.
         """
+
+    def conjugate_operator_many(
+        self, operator: Any, rotations: Iterable, max_bond_dimension: int
+    ):
+        """
+        Conjugate ``operator`` by each ``(generator, angle)`` rotation in turn,
+        as repeated :meth:`conjugate_operator` calls would: the first rotation
+        is folded first, i.e. it ends up innermost.
+
+        Engines override it to keep the operator in a working form across the
+        whole sequence instead of converting it on every call.
+        """
+        for generator, angle in rotations:
+            operator = self.conjugate_operator(
+                operator, generator, angle, max_bond_dimension
+            )
+        return operator

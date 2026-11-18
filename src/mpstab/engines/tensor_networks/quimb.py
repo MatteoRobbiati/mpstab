@@ -173,6 +173,53 @@ class _CanonicalMPS:
         )
 
 
+def _mpo_to_sites(mpo: MatrixProductOperator) -> list[np.ndarray]:
+    """
+    The MPO's site tensors as ``(left, 4, right)`` complex arrays, the middle
+    index being ``2 * out + in`` (quimb's upper index is the output).
+    """
+    L = mpo.L
+    sites = []
+    for i in range(L):
+        inds = [mpo.upper_ind(i), mpo.lower_ind(i)]
+        if i > 0:
+            inds.insert(0, mpo.bond(i - 1, i))
+        if i < L - 1:
+            inds.append(mpo.bond(i, i + 1))
+        data = np.asarray(mpo[i].transpose(*inds).data, dtype=complex)
+        if i == 0:
+            data = data[None]
+        if i == L - 1:
+            data = data[..., None]
+        left, right = data.shape[0], data.shape[-1]
+        sites.append(data.reshape(left, 4, right))
+    return sites
+
+
+def _sites_to_mpo(sites: list[np.ndarray], like: MatrixProductOperator):
+    """Inverse of :func:`_mpo_to_sites`, with ``like``'s index names and tags."""
+    L = len(sites)
+    arrays = []
+    for i, site in enumerate(sites):
+        tensor = site.reshape(site.shape[0], 2, 2, site.shape[-1])  # (l, k, b, r)
+        if L == 1:
+            arrays.append(tensor[0, :, :, 0])
+        elif i == 0:
+            arrays.append(tensor[0].transpose(2, 0, 1))  # (r, k, b)
+        elif i == L - 1:
+            arrays.append(tensor[..., 0])  # (l, k, b)
+        else:
+            arrays.append(tensor.transpose(0, 3, 1, 2))  # (l, r, k, b)
+    return MatrixProductOperator(
+        arrays,
+        shape="lrud",
+        upper_ind_id=like.upper_ind_id,
+        lower_ind_id=like.lower_ind_id,
+        site_tag_id=like.site_tag_id,
+        tags=[tag for tag in like.tags if tag not in set(like.site_tags)],
+    )
+
+
 def _qibo_circuit_to_quimb(nqubits: int, qibo_circ, **circuit_kwargs) -> CircuitMPS:
     """
     Convert a qibo circuit into a quimb ``CircuitMPS``. Measurement gates are
@@ -528,6 +575,10 @@ class QuimbEngine(TensorNetworkEngine):
         :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.tail_truncation` to
         quantify it.
         """
+        if self._fast:
+            return self.conjugate_operator_many(
+                operator, [(generator, angle)], max_bond_dimension
+            )
         rotation = self._pauli_exp(generator, angle)
         rotation_dag = self._pauli_exp(generator, -angle)
 
@@ -535,3 +586,37 @@ class QuimbEngine(TensorNetworkEngine):
             operator, compress=True, max_bond=max_bond_dimension
         )
         return operator.apply(rotation, compress=True, max_bond=max_bond_dimension)
+
+    def conjugate_operator_many(
+        self,
+        operator: MatrixProductOperator,
+        rotations,
+        max_bond_dimension: int | None,
+    ):
+        """
+        Conjugate ``operator`` by each ``(generator, angle)`` rotation in turn,
+        the first one innermost, as repeated :meth:`conjugate_operator` calls.
+
+        On the numpy backend the MPO is unpacked once into canonical site
+        arrays, and each conjugation touches only its generator's window
+        (:func:`~._mps_kernels.operator_conjugation`), with the same truncation
+        rule as quimb's ``compress``, so a whole tail costs about as much as
+        evolving a state through it. Other backends go through quimb.
+        """
+        if not self._fast:
+            return super().conjugate_operator_many(
+                operator, rotations, max_bond_dimension
+            )
+        cutoff = _QUIMB_DEFAULT_CUTOFF if self.svd_cutoff is None else self.svd_cutoff
+        sites = _mpo_to_sites(operator)
+        center = kernels.move_center(sites, len(sites) - 1, 0)
+        for generator, angle in rotations:
+            center = kernels.operator_conjugation(
+                sites,
+                center,
+                generator.upper(),
+                float(angle),
+                max_bond=max_bond_dimension,
+                cutoff=cutoff,
+            )
+        return _sites_to_mpo(sites, operator)

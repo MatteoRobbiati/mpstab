@@ -72,3 +72,52 @@ def test_split_of_zero_matrix_keeps_one_value():
     iso, rest = kernels._split_left_isometry(np.zeros((6, 9), complex), 1e-10, None)
     assert iso.shape == (6, 1)
     np.testing.assert_allclose(iso @ rest, 0.0)
+
+
+def _quimb_conjugation(engine, operator, rotations, max_bond):
+    """The generic quimb route: two MPO-MPO products per rotation."""
+    for generator, angle in rotations:
+        rotation = engine._pauli_exp(generator, angle)
+        rotation_dag = engine._pauli_exp(generator, -angle)
+        operator = rotation_dag.apply(operator, compress=True, max_bond=max_bond)
+        operator = operator.apply(rotation, compress=True, max_bond=max_bond)
+    return operator
+
+
+@pytest.mark.parametrize("max_bond", [None, 4])
+def test_windowed_operator_conjugation_matches_quimb(max_bond):
+    from scipy.linalg import expm
+    from utils import pauli_matrix
+
+    from mpstab.engines import QuimbEngine
+
+    rng = np.random.default_rng(3)
+    n, base = 6, "IZXIYI"
+    rotations = [
+        ("".join(rng.choice(list("IXYZ"), n)), rng.uniform(-1.5, 1.5))
+        for _ in range(12)
+    ] + [("IIXIII", 0.7), ("IIIIII", 0.3), ("ZIIIIY", -1.1)]
+    engine = QuimbEngine()
+
+    fast = engine.conjugate_operator_many(engine.pauli_mpo(base), rotations, max_bond)
+    generic = _quimb_conjugation(engine, engine.pauli_mpo(base), rotations, max_bond)
+    np.testing.assert_allclose(fast.to_dense(), generic.to_dense(), atol=1e-11)
+
+    if max_bond is None:
+        exact = pauli_matrix(base)
+        for generator, angle in rotations:
+            r = expm(-0.5j * angle * pauli_matrix(generator))
+            exact = r.conj().T @ exact @ r
+        np.testing.assert_allclose(fast.to_dense(), exact, atol=1e-11)
+
+
+def test_single_conjugation_matches_many():
+    from mpstab.engines import QuimbEngine
+
+    engine = QuimbEngine()
+    rotations = [("XYZI", 0.4), ("IZZX", -0.9), ("YIIY", 1.3)]
+    one_by_one = engine.pauli_mpo("ZIXI")
+    for generator, angle in rotations:
+        one_by_one = engine.conjugate_operator(one_by_one, generator, angle, None)
+    batched = engine.conjugate_operator_many(engine.pauli_mpo("ZIXI"), rotations, None)
+    np.testing.assert_allclose(one_by_one.to_dense(), batched.to_dense(), atol=1e-12)

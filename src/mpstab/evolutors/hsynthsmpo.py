@@ -266,11 +266,11 @@ class HSynthSMPO(HSMPO):
                 for rotation in tail
             ]
 
-        operator = self.tn_engine.pauli_mpo(backpropagated)
-        for generator, angle in reversed(tail):  # outermost rotation folded last
-            operator = self.tn_engine.conjugate_operator(
-                operator, generator, angle, max_bond_dimension
-            )
+        operator = self.tn_engine.conjugate_operator_many(
+            self.tn_engine.pauli_mpo(backpropagated),
+            reversed(tail),  # outermost rotation folded last
+            max_bond_dimension,
+        )
         return operator, sign
 
     def _bond(self, max_bond_dimension):
