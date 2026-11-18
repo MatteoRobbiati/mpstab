@@ -148,6 +148,20 @@ def _eigh(hermitian: np.ndarray):
     return values, vectors
 
 
+def _gram_rank(values: np.ndarray, cutoff: float, max_bond: int | None) -> int:
+    """
+    :func:`n_kept` for the descending eigenvalues of a Gram matrix, the
+    squared singular values. Eigenvalues within roundoff of zero, below
+    ``order * eps`` of the largest, are dropped even at ``cutoff=0``: the Gram
+    matrix cannot tell them from an exact zero, and keeping them would only
+    inflate the bond with noise directions.
+    """
+    values = np.clip(values, 0.0, None)
+    noise = values.size * np.finfo(float).eps * (values[0] if values.size else 0.0)
+    rank = max(int(np.count_nonzero(values > noise)), 1)
+    return min(n_kept(np.sqrt(values), cutoff, max_bond), rank)
+
+
 def _split_left_isometry(matrix: np.ndarray, cutoff: float, max_bond: int | None):
     """
     Truncated ``matrix ~ iso @ rest`` with ``iso`` orthonormal columns: the
@@ -166,14 +180,12 @@ def _split_left_isometry(matrix: np.ndarray, cutoff: float, max_bond: int | None
         if rows <= cols:
             # M M^H = U S^2 U^H, so U_k is the isometry outright.
             values, vectors = _eigh(matrix @ matrix.conj().T)
-            values = np.clip(values[::-1], 0.0, None)
-            k = n_kept(np.sqrt(values), cutoff, max_bond)
+            k = _gram_rank(values[::-1], cutoff, max_bond)
             iso = vectors[:, ::-1][:, :k]
             return iso, iso.conj().T @ matrix
         # M^H M = V S^2 V^H; M V_k = U_k S_k still needs orthonormalizing.
         values, vectors = _eigh(matrix.conj().T @ matrix)
-        values = np.clip(values[::-1], 0.0, None)
-        k = n_kept(np.sqrt(values), cutoff, max_bond)
+        k = _gram_rank(values[::-1], cutoff, max_bond)
         kept = vectors[:, ::-1][:, :k]
         factors = _cholesky_qr(matrix @ kept)
         if factors is not None:

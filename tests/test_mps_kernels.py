@@ -121,3 +121,13 @@ def test_single_conjugation_matches_many():
         one_by_one = engine.conjugate_operator(one_by_one, generator, angle, None)
     batched = engine.conjugate_operator_many(engine.pauli_mpo("ZIXI"), rotations, None)
     np.testing.assert_allclose(one_by_one.to_dense(), batched.to_dense(), atol=1e-12)
+
+
+@pytest.mark.parametrize("shape", [(30, 50), (50, 30)])
+def test_zero_cutoff_keeps_the_exact_rank(shape):
+    """Gram eigenvalues at roundoff level are zeros, not directions to keep."""
+    m = _complex(*shape, rank=7)
+    for split in (kernels._split_left_isometry, kernels._split_right_isometry):
+        a, b = split(m, 0.0, None)
+        assert min(a.shape + b.shape) == 7
+        np.testing.assert_allclose(a @ b, m, atol=1e-10)
