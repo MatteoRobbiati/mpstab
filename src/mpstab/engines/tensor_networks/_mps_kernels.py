@@ -49,6 +49,10 @@ def apply_pauli(tensor: np.ndarray, label: str) -> np.ndarray:
     return out
 
 
+#: Largest ``|Q^H Q - I|`` entry a Cholesky QR may leave before it is rejected.
+_ORTHOGONALITY_TOL = 1e-12
+
+
 def _svd(matrix: np.ndarray):
     """Thin SVD, falling back to the slower but sturdier ``gesvd`` driver."""
     try:
@@ -57,6 +61,43 @@ def _svd(matrix: np.ndarray):
         return scipy.linalg.svd(
             matrix, full_matrices=False, lapack_driver="gesvd", check_finite=False
         )
+
+
+def _cholesky_qr(matrix: np.ndarray):
+    """
+    Thin QR of a tall matrix by Cholesky QR, repeated once if the first pass
+    left ``Q`` short of orthonormal (CholQR2), or ``None`` when the matrix is
+    too ill-conditioned for it (Cholesky fails or ``Q`` stays non-orthonormal).
+
+    Its cost is a few matrix products, which BLAS runs far faster than the
+    Householder QR of LAPACK on the small, tall matrices MPS sweeps produce.
+    """
+    rows, cols = matrix.shape
+    if rows < cols:
+        return None
+    identity = np.eye(cols)
+    q, r = matrix, None
+    gram = q.conj().T @ q
+    for _ in range(2):
+        try:
+            step = scipy.linalg.cholesky(gram, lower=False, check_finite=False)
+        except np.linalg.LinAlgError:
+            return None
+        # Q = M R^-1, from R^T Q^T = M^T.
+        q = scipy.linalg.solve_triangular(
+            step, q.T, trans="T", lower=False, check_finite=False
+        ).T
+        r = step if r is None else step @ r
+        gram = q.conj().T @ q
+        if np.abs(gram - identity).max() < _ORTHOGONALITY_TOL:
+            return q, r
+    return None
+
+
+def _qr(matrix: np.ndarray):
+    """Thin QR: Cholesky QR when the matrix allows it, Householder otherwise."""
+    result = _cholesky_qr(matrix)
+    return np.linalg.qr(matrix) if result is None else result
 
 
 def n_kept(s: np.ndarray, cutoff: float, max_bond: int | None) -> int:
@@ -76,18 +117,68 @@ def n_kept(s: np.ndarray, cutoff: float, max_bond: int | None) -> int:
     return max(keep, 1)
 
 
+def _eigh(hermitian: np.ndarray):
+    """Eigendecomposition of a Hermitian matrix, ascending, by LAPACK's MRRR
+    driver (``heevr``), the fastest of the ones scipy exposes at these sizes."""
+    return scipy.linalg.eigh(hermitian, driver="evr", check_finite=False)
+
+
+def _split_left_isometry(matrix: np.ndarray, cutoff: float, max_bond: int | None):
+    """
+    Truncated ``matrix ~ iso @ rest`` with ``iso`` orthonormal columns: the
+    rank-``k`` SVD truncation ``U_k (S_k V_k^H)``, up to a gauge on the bond.
+
+    The singular values come from the eigendecomposition of the Gram matrix
+    on the smaller side: about a fifth cheaper than LAPACK's SVD on the
+    square bond-doubled matrices of a rotation window, more on oblong ones.
+    Squaring the matrix only blurs singular values below ``sqrt(eps)`` of the
+    largest, the ones the ``"rsum2"`` cutoff drops anyway. When the Gram matrix sits on
+    the side of ``rest``, ``iso`` is re-orthonormalized by Cholesky QR, and
+    anything too ill-conditioned for that goes through a plain SVD.
+    """
+    rows, cols = matrix.shape
+    try:
+        if rows <= cols:
+            # M M^H = U S^2 U^H, so U_k is the isometry outright.
+            values, vectors = _eigh(matrix @ matrix.conj().T)
+            values = np.clip(values[::-1], 0.0, None)
+            k = n_kept(np.sqrt(values), cutoff, max_bond)
+            iso = vectors[:, ::-1][:, :k]
+            return iso, iso.conj().T @ matrix
+        # M^H M = V S^2 V^H; M V_k = U_k S_k still needs orthonormalizing.
+        values, vectors = _eigh(matrix.conj().T @ matrix)
+        values = np.clip(values[::-1], 0.0, None)
+        k = n_kept(np.sqrt(values), cutoff, max_bond)
+        kept = vectors[:, ::-1][:, :k]
+        factors = _cholesky_qr(matrix @ kept)
+        if factors is not None:
+            iso, r = factors
+            return iso, r @ kept.conj().T
+    except np.linalg.LinAlgError:
+        pass
+    u, s, vh = _svd(matrix)
+    k = n_kept(s, cutoff, max_bond)
+    return u[:, :k], s[:k, None] * vh[:k]
+
+
+def _split_right_isometry(matrix: np.ndarray, cutoff: float, max_bond: int | None):
+    """Truncated ``matrix ~ rest @ iso`` with ``iso`` orthonormal rows."""
+    iso, rest = _split_left_isometry(matrix.conj().T, cutoff, max_bond)
+    return rest.conj().T, iso.conj().T
+
+
 def move_center(A: list[np.ndarray], center: int, target: int) -> int:
     """Shift the orthogonality center to ``target`` with QR steps; returns it."""
     while center < target:
         left, phys, right = A[center].shape
-        q, r = np.linalg.qr(A[center].reshape(left * phys, right))
+        q, r = _qr(A[center].reshape(left * phys, right))
         A[center] = q.reshape(left, phys, -1)
         A[center + 1] = np.tensordot(r, A[center + 1], axes=(1, 0))
         center += 1
     while center > target:
         left, phys, right = A[center].shape
         # M = R^T Q^T from the QR of M^T, so Q^T has orthonormal rows.
-        q, r = np.linalg.qr(A[center].reshape(left, phys * right).T)
+        q, r = _qr(A[center].reshape(left, phys * right).T)
         A[center] = q.T.reshape(-1, phys, right)
         A[center - 1] = np.tensordot(A[center - 1], r.T, axes=(2, 0))
         center -= 1
@@ -108,8 +199,8 @@ def pauli_rotation(
     The rotation is ``cos(angle/2) I - i sin(angle/2) P``, a bond-2 MPO that is
     the identity outside the generator's support ``[a, b]``. On ``[a, b]`` it is
     applied directly as a block-diagonal stack of the two branches, after which
-    the window alone is re-canonicalized with QR and truncated with SVD. A
-    one-site generator is a 2x2 unitary and needs no truncation at all.
+    the window alone is re-canonicalized with QR and truncated. A one-site
+    generator is a 2x2 unitary and needs no truncation at all.
 
     Returns:
         The new orthogonality center.
@@ -153,19 +244,21 @@ def pauli_rotation(
         move_center(A, a, b)
         for j in range(b, a, -1):
             left, phys, right = A[j].shape
-            u, s, vh = _svd(A[j].reshape(left, phys * right))
-            k = n_kept(s, cutoff, max_bond)
-            A[j] = vh[:k].reshape(k, phys, right)
-            A[j - 1] = np.tensordot(A[j - 1], u[:, :k] * s[:k], axes=(2, 0))
+            rest, iso = _split_right_isometry(
+                A[j].reshape(left, phys * right), cutoff, max_bond
+            )
+            A[j] = iso.reshape(-1, phys, right)
+            A[j - 1] = np.tensordot(A[j - 1], rest, axes=(2, 0))
         return a
 
     move_center(A, b, a)
     for j in range(a, b):
         left, phys, right = A[j].shape
-        u, s, vh = _svd(A[j].reshape(left * phys, right))
-        k = n_kept(s, cutoff, max_bond)
-        A[j] = u[:, :k].reshape(left, phys, k)
-        A[j + 1] = np.tensordot(s[:k, None] * vh[:k], A[j + 1], axes=(1, 0))
+        iso, rest = _split_left_isometry(
+            A[j].reshape(left * phys, right), cutoff, max_bond
+        )
+        A[j] = iso.reshape(left, phys, -1)
+        A[j + 1] = np.tensordot(rest, A[j + 1], axes=(1, 0))
     return b
 
 
