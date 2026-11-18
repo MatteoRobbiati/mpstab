@@ -76,11 +76,7 @@ Below is an interactive notebook demonstrating DMRG optimization on the Heisenbe
    from mpstab.evolutors.hsmpo import HSMPO
    from mpstab.engines import QuimbEngine, StimEngine
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Interactive Examples
-
-   ../examples/dmrg_optimization_heisenberg
+The :doc:`../tutorials/ground_states` tutorial runs these steps end to end.
 
 Getting Started with DMRG
 -------------------------

@@ -119,4 +119,4 @@ Related Documentation
 
 - :doc:`../guides/using_ansatze` - Ansätze usage guide
 - :doc:`../guides/fidelity_and_approximation` - Understanding approximations
-- :doc:`../examples/introduction` - Practical examples
+- :doc:`../tutorials/introduction` - Practical examples
