@@ -29,6 +29,8 @@ Ansätze are pre-built quantum circuit patterns used as templates for quantum al
 - ``FloquetAnsatz``: Floquet echo circuit with tunable magic
 - ``KickedIsing``: Kicked Ising chain with RX/RZ kicks and CNOT-RZ-CNOT couplings, already in HSMPO form
 - ``ParametricKickedIsing``: Kicked Ising chain at a Clifford point plus deviations; only the deviations are magic gates
+- ``RampedKickedIsing``: ``ParametricKickedIsing`` with deviations that change from the first to the last step, optional disorder on the kicks and random dilution of the couplings
+- ``StarKickedIsing``: ``RampedKickedIsing`` on a star, every leaf coupled to the hub (qubit 0); native on devices with a central element such as the IQM Star
 
 *Circuit library (textbook algorithms, for HSMPO/HSynthSMPO benchmarks):*
 

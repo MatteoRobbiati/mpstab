@@ -289,21 +289,34 @@ class ParametricKickedIsing(Ansatz):
 
     def __post_init__(self):
         super().__post_init__()
+        self._check_clifford_angles()
+        for _ in range(self.n_steps):
+            for q in range(self.nqubits):
+                self._rotation(gates.RX, q, self.clifford_h, self.delta_h)
+                self._rotation(gates.RZ, q, 0.0, self.delta_z)
+            for layer in self._coupling_layers():
+                for a, b in layer:
+                    self._coupling(a, b)
+
+    def _check_clifford_angles(self):
         for name in ("clifford_h", "clifford_j"):
             quarter_turns = getattr(self, name) / (0.5 * np.pi)
             if not np.isclose(quarter_turns, round(quarter_turns)):
                 raise ValueError(
                     f"{name} must be a multiple of pi/2, got {getattr(self, name)}."
                 )
-        for _ in range(self.n_steps):
-            for q in range(self.nqubits):
-                self._rotation(gates.RX, q, self.clifford_h, self.delta_h)
-                self._rotation(gates.RZ, q, 0.0, self.delta_z)
-            for start in (0, 1):
-                for q in range(start, self.nqubits - 1, 2):
-                    self.circuit.add(gates.CNOT(q, q + 1))
-                    self._rotation(gates.RZ, q + 1, self.clifford_j, self.delta_j)
-                    self.circuit.add(gates.CNOT(q, q + 1))
+
+    def _coupling_layers(self) -> List[List[tuple]]:
+        """The bonds of one step, layer by layer: even bonds, then odd bonds."""
+        return [
+            [(q, q + 1) for q in range(start, self.nqubits - 1, 2)] for start in (0, 1)
+        ]
+
+    def _coupling(self, a: int, b: int):
+        """Add the ``R_ZZ`` coupling of qubits ``a``, ``b`` as ``CNOT · RZ · CNOT``."""
+        self.circuit.add(gates.CNOT(a, b))
+        self._rotation(gates.RZ, b, self.clifford_j, self.delta_j)
+        self.circuit.add(gates.CNOT(a, b))
 
     def _rotation(self, gate, qubit: int, clifford_angle: float, delta: float):
         """Add ``gate(clifford_angle)`` then ``gate(delta)``, skipping zero angles."""
@@ -321,6 +334,116 @@ class ParametricKickedIsing(Ansatz):
     def theta_j(self) -> float:
         """Total angle of the couplings."""
         return self.clifford_j + self.delta_j
+
+
+def _ramp(first: float, last: float, n_steps: int) -> np.ndarray:
+    """``n_steps`` values from ``first`` to ``last``: geometric when both have the
+    same sign, linear otherwise."""
+    if n_steps == 1 or first == last:
+        return np.full(n_steps, float(first))
+    if first * last > 0:
+        return np.sign(first) * np.geomspace(abs(first), abs(last), n_steps)
+    return np.linspace(first, last, n_steps)
+
+
+@dataclass
+class RampedKickedIsing(ParametricKickedIsing):
+    r"""
+    Build a :class:`ParametricKickedIsing` circuit whose magic changes from step to step.
+
+    The deviation of the transverse kicks goes from ``delta_h`` at the first
+    step to ``delta_h_last`` at the last one, geometrically when the two have
+    the same sign and linearly otherwise; likewise the longitudinal kicks, from
+    ``delta_z`` to ``delta_z_last``. With the magic concentrated in the first
+    steps, a head/tail split leaves the large rotations to the head and only
+    small angles to the tail; ``delta_h < delta_h_last`` is the opposite
+    profile, as a control. Without ``delta_h_last`` and ``delta_z_last``, at
+    ``bond_density = 1`` and ``disorder = 0``, the circuit is exactly
+    :class:`ParametricKickedIsing`.
+
+    Two optional sources of randomness, drawn from ``numpy.random.RandomState(seed)``
+    (from numpy's global generator when ``seed`` is ``None``), in circuit order:
+
+    - ``disorder > 0`` gives every kick its own deviation,
+      :math:`\delta_h (1 + \mathrm{disorder} \cdot u)` with :math:`u` uniform
+      in :math:`[-1, 1]`, so different seeds are disorder realisations of the
+      same magic profile;
+    - ``bond_density < 1`` keeps each coupling of each step with that
+      probability and drops the others. At :math:`\delta_J = 0` the couplings
+      are Clifford, so this lowers the entanglement without changing the magic.
+
+    No number is drawn when ``disorder = 0`` and ``bond_density = 1``.
+
+    Args:
+        nqubits: number of qubits.
+        n_steps: number of kick-and-couple steps.
+        delta_h: deviation of the transverse kicks at the first step.
+        delta_h_last: deviation of the transverse kicks at the last step
+            (``None``: ``delta_h`` at every step).
+        delta_j: deviation of the :math:`R_{ZZ}` couplings from ``clifford_j``.
+        delta_z: angle of the longitudinal kicks at the first step.
+        delta_z_last: angle of the longitudinal kicks at the last step
+            (``None``: ``delta_z`` at every step).
+        clifford_h: Clifford angle of the transverse kicks, a multiple of pi/2.
+        clifford_j: Clifford angle of the couplings, a multiple of pi/2.
+        bond_density: probability of keeping each coupling, in ``(0, 1]``.
+        disorder: relative spread of the transverse deviations across the kicks.
+        seed: seed of the random draws.
+    """
+
+    delta_h_last: Optional[float] = None
+    delta_z_last: Optional[float] = None
+    bond_density: float = 1.0
+    disorder: float = 0.0
+    seed: Optional[int] = None
+
+    def __post_init__(self):
+        Ansatz.__post_init__(self)
+        self._check_clifford_angles()
+        if not 0.0 < self.bond_density <= 1.0:
+            raise ValueError(
+                f"bond_density must lie in (0, 1], got {self.bond_density}."
+            )
+        rng = np.random if self.seed is None else np.random.RandomState(self.seed)
+        last_h = self.delta_h if self.delta_h_last is None else self.delta_h_last
+        last_z = self.delta_z if self.delta_z_last is None else self.delta_z_last
+        deltas_h = _ramp(self.delta_h, last_h, self.n_steps)
+        deltas_z = _ramp(self.delta_z, last_z, self.n_steps)
+        for delta_h, delta_z in zip(deltas_h, deltas_z):
+            for q in range(self.nqubits):
+                factor = (
+                    1.0 + self.disorder * rng.uniform(-1, 1)
+                    if self.disorder > 0
+                    else 1.0
+                )
+                self._rotation(gates.RX, q, self.clifford_h, float(delta_h * factor))
+                self._rotation(gates.RZ, q, 0.0, float(delta_z))
+            for layer in self._coupling_layers():
+                for a, b in layer:
+                    if self.bond_density < 1.0 and rng.random() >= self.bond_density:
+                        continue
+                    self._coupling(a, b)
+
+
+@dataclass
+class StarKickedIsing(RampedKickedIsing):
+    r"""
+    Build a :class:`RampedKickedIsing` circuit on a star: a central-spin model.
+
+    The kicks are those of :class:`RampedKickedIsing`; the couplings of each
+    step are :math:`R_{ZZ}` between the hub (qubit 0) and every leaf, leaf 1
+    first, each written as ``CNOT · RZ · CNOT``. It is the native circuit of a
+    device with a central element, such as an IQM Star, where the hub can stay
+    in the computational resonator: one step costs ``nqubits - 1`` CZ gates and
+    two MOVE gates, where a chain costs about one MOVE per CZ.
+
+    Args: as :class:`RampedKickedIsing`; ``bond_density`` applies to the
+    hub-leaf couplings.
+    """
+
+    def _coupling_layers(self) -> List[List[tuple]]:
+        """The hub-leaf bonds of one step, as a single layer."""
+        return [[(0, leaf) for leaf in range(1, self.nqubits)]]
 
 
 @dataclass
