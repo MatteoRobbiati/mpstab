@@ -394,7 +394,7 @@ class QuimbEngine(TensorNetworkEngine):
         if self._fast and pauli is not None and len(pauli) == state_circuit.L:
             return self.pauli_expvals(state_circuit, [pauli])[0]
 
-        norm = state_circuit.norm(squared=True).real
+        norm = self.squared_norm(state_circuit).real
         ket = state_circuit.reindex({f"k{i}": f"b{i}" for i in range(state_circuit.L)})
         bra = state_circuit.H
         return (bra & operator & ket).contract(
@@ -533,6 +533,18 @@ class QuimbEngine(TensorNetworkEngine):
         state_circuit.gate_with_mpo(
             rotation, inplace=True, max_bond=max_bond_dimension, **options
         )
+
+    def squared_norm(self, state_circuit: MatrixProductState):
+        """
+        ``<psi|psi>``. On the numpy backend it is read off the orthogonality
+        center of the cached canonical form, no full contraction needed.
+        """
+        if not self._fast:
+            return super().squared_norm(state_circuit)
+        view = _CanonicalMPS(state_circuit)
+        norm = kernels.squared_norm(view, view.center)
+        view.commit()
+        return norm
 
     def copy_state(self, state_circuit: MatrixProductState):
         """

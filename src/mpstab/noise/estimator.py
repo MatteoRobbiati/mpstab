@@ -524,9 +524,7 @@ def _evaluate_patterns(
         if paulis:
             expvals = engine.pauli_expvals(state, paulis)
             values[row] = np.real(np.asarray(expvals, dtype=complex)) * signs
-        fidelities[row] = (
-            np.real(state.norm(squared=True)) if hasattr(state, "norm") else np.nan
-        )
+        fidelities[row] = np.real(engine.squared_norm(state))
     return values, fidelities
 
 

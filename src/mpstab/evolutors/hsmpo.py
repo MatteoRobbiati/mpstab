@@ -262,7 +262,7 @@ class HSMPO:
         )
 
         if return_fidelity:
-            return expval, self.original_circuit_mps.norm(squared=True)
+            return expval, self.tn_engine.squared_norm(self.original_circuit_mps)
         return expval
 
     def noisy_expectation(
@@ -460,7 +460,7 @@ class HSMPO:
         )
         mps = self.initial_mps()
         self._apply_rotations(mps, self._dress(magic_gates, clifford_circuit))
-        return mps.norm(squared=True)
+        return self.tn_engine.squared_norm(mps)
 
     def get_parameters(self) -> np.ndarray:
         """The circuit's current parameters."""

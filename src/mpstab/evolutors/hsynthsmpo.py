@@ -323,7 +323,7 @@ class HSynthSMPO(HSMPO):
             truncation_l2=float(truncation_l2),
             n_settings=0,
             n_shots=0,
-            state_fidelity=float(np.real(state_mps.norm(squared=True))),
+            state_fidelity=float(np.real(self.tn_engine.squared_norm(state_mps))),
         )
 
     def tail_truncation(

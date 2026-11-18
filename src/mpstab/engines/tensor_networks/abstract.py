@@ -83,6 +83,15 @@ class TensorNetworkEngine(ABC):
         generator, angle = rotation
         self.pauli_rot(state_circuit, generator, angle, max_bond_dimension)
 
+    def squared_norm(self, state_circuit: Any):
+        """
+        ``<psi|psi>`` of a state, which truncation leaves below 1, as a backend
+        scalar (so it stays differentiable). The default asks the state's own
+        ``norm(squared=True)``, ``nan`` if it has none.
+        """
+        norm = getattr(state_circuit, "norm", None)
+        return float("nan") if norm is None else norm(squared=True)
+
     def copy_state(self, state_circuit: Any):
         """
         An independent copy of a state: evolving either one in place leaves
