@@ -7,7 +7,9 @@ the observable. Getting from that split to a number is a three-step pipeline,
 one subpackage each:
 
 1. :mod:`~mpstab.qpu.synthesis` turns the head into a runnable circuit plus a
-   pure-Clifford residual, folded into the observable.
+   pure-Clifford residual, folded into the observable; with
+   ``head="original"``, :mod:`~mpstab.qpu.original_head` cuts the original
+   circuit instead.
 2. :mod:`~mpstab.qpu.measurement` fixes the circuits and shots that measure the
    folded observable, and turns the measured frequencies into an
    :class:`~mpstab.qpu.measurement.abstract.ExpectationResult`.
