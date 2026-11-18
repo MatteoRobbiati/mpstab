@@ -432,10 +432,13 @@ class StarKickedIsing(RampedKickedIsing):
 
     The kicks are those of :class:`RampedKickedIsing`; the couplings of each
     step are :math:`R_{ZZ}` between the hub (qubit 0) and every leaf, leaf 1
-    first, each written as ``CNOT · RZ · CNOT``. It is the native circuit of a
-    device with a central element, such as an IQM Star, where the hub can stay
-    in the computational resonator: one step costs ``nqubits - 1`` CZ gates and
-    two MOVE gates, where a chain costs about one MOVE per CZ.
+    first, each written as ``CNOT · RZ · CNOT``. The hub is an ordinary logical
+    qubit; the label 0 is a convention. The circuit suits devices with a central
+    element, such as an IQM Star: there the compiler can move the hub's state
+    into the computational resonator once per step and apply all its CZ gates
+    from it, instead of moving a qubit in and out for nearly every CZ as a
+    chain needs (on a 10-qubit IQM Star, 6 steps: about 20 MOVE gates against
+    about 100 for the chain).
 
     Args: as :class:`RampedKickedIsing`; ``bond_density`` applies to the
     hub-leaf couplings.
