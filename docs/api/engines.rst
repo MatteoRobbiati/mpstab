@@ -145,8 +145,8 @@ evolutors and the noise compiler only ask it for backpropagated Pauli strings.
        across observables.
    * - ``backpropagate_at``
      - Dressing each magic gate and noise event with the Clifford gates before
-       it. The default runs one stim tableau pass; an engine with its own
-       Clifford backend overrides it.
+       it. The default replays each prefix through ``backpropagate``;
+       ``StimEngine`` overrides it with a single tableau pass.
 
 See Also
 --------

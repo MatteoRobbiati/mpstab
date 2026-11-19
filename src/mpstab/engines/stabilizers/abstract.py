@@ -5,8 +5,6 @@ from typing import Sequence
 
 from qibo import Circuit
 
-from mpstab.engines.stabilizers import _stim_gates
-
 
 class StabilizersEngine(ABC):
     """
@@ -14,9 +12,9 @@ class StabilizersEngine(ABC):
 
     This is the only way mpstab touches the Clifford part of a circuit: the
     evolutors and the noise compiler ask the engine for backpropagated Pauli
-    strings and never simulate the Clifford circuit themselves. Methods with a
-    default fall back on stim; an engine with its own Clifford backend
-    overrides them to use it.
+    strings and never simulate the Clifford circuit themselves. Only
+    :meth:`backpropagate` is required: the other methods have defaults built on
+    it, which an engine overrides when its backend can do the same work faster.
     """
 
     @abstractmethod
@@ -53,12 +51,28 @@ class StabilizersEngine(ABC):
 
         This is what dresses the magic gates of a circuit, and the noise events
         between them, with the Clifford gates that precede each one. The
-        default runs one stim tableau pass over the circuit, a segment at a time
-        in breakpoint order; an engine with its own Clifford backend overrides
-        it.
+        default replays each prefix through :meth:`backpropagate`, so its cost
+        grows with the circuit length times the number of observables; an
+        engine whose backend can sweep the circuit once, as
+        :class:`~mpstab.engines.StimEngine` does with a tableau simulator,
+        overrides it.
 
         Returns:
             One ``(pauli_string, sign)`` per observable, in order, each for
             ``U_k^dag . O . U_k`` with ``U_k`` the first ``k`` gates.
+
+        Raises:
+            ValueError: on a breakpoint outside ``[0, len(clifford_circuit.queue)]``.
         """
-        return _stim_gates.backpropagate_at(observables, breakpoints, clifford_circuit)
+        results = []
+        for observable, breakpoint_index in zip(observables, breakpoints):
+            if not 0 <= breakpoint_index <= len(clifford_circuit.queue):
+                raise ValueError(
+                    f"Breakpoint {breakpoint_index} is outside the circuit's "
+                    f"{len(clifford_circuit.queue)} gates."
+                )
+            prefix = Circuit(clifford_circuit.nqubits)
+            for gate in clifford_circuit.queue[:breakpoint_index]:
+                prefix.add(gate)
+            results.append(self.backpropagate(observable, prefix))
+        return results
