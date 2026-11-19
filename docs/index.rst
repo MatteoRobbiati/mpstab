@@ -30,6 +30,7 @@ Among our core features:
 
    examples/introduction
    examples/state_metrics
+   examples/vqe_gradients
    guides/dmrg_optimization
    guides/qibo_backend_provider
    guides/working_with_engines
