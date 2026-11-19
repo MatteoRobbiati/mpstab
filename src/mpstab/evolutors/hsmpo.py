@@ -20,8 +20,7 @@ from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 from mpstab.noise.compile import compile_noise
 from mpstab.noise.mc_noise_estimator import noisy_expectation
-from mpstab.pauli import conjugate
-from mpstab.pauli import light_cone as pauli_light_cone
+from mpstab.pauli import conjugate, pauli_light_cone
 
 
 @dataclass
@@ -320,7 +319,7 @@ class HSMPO:
             return_partitions: also return the magic gates, the Clifford-only
                 circuit, the sampled full circuit and the evolved MPS.
             light_cone: skip the dressed rotations that cannot affect the
-                observable (:func:`~mpstab.pauli.light_cone`). This is exact,
+                observable (:func:`~mpstab.pauli.pauli_light_cone`). This is exact,
                 and with a bond-dimension cap it also spares those rotations'
                 truncation error.
 

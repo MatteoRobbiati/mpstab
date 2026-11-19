@@ -61,9 +61,7 @@ import stim
 
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.hamiltonians import Observable, pauli_terms
-from mpstab.pauli import conjugate
-from mpstab.pauli import light_cone as pauli_light_cone
-from mpstab.pauli import validate_pauli_string
+from mpstab.pauli import conjugate, pauli_light_cone, validate_pauli_string
 from mpstab.qpu.execution import QiboSimulator, execute_plan, save_circuits
 from mpstab.qpu.measurement import (
     ExpectationResult,

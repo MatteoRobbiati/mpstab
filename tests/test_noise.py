@@ -22,7 +22,7 @@ from mpstab.noise import (
 from mpstab.noise.compile import compile_noise
 from mpstab.noise.events import CoherentRotation, NoiseEvent, PauliChannel
 from mpstab.noise.mc_noise_estimator import noisy_expectation
-from mpstab.pauli import anticommutation, light_cone, pauli_matrix
+from mpstab.pauli import anticommutation, pauli_light_cone, pauli_matrix
 
 OBSERVABLE = {"ZZIII": 0.7, "IXIXI": -0.4, "IIYZI": 0.3}
 
@@ -386,7 +386,7 @@ def _docstring_examples():
     objects = [getattr(mpstab.noise, name) for name in mpstab.noise.__all__]
     objects += [compile_noise, noisy_expectation]
     objects += [PauliChannel, CoherentRotation]
-    objects += [anticommutation, light_cone]
+    objects += [anticommutation, pauli_light_cone]
     for obj in objects:
         lines = (inspect.getdoc(obj) or "").splitlines()
         for i, line in enumerate(lines):

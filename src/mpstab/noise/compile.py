@@ -20,7 +20,7 @@ from qibo import gates
 
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.noise.events import CoherentRotation, NoiseEvent, PauliChannel
-from mpstab.pauli import anticommutation, light_cone, validate_pauli_string
+from mpstab.pauli import anticommutation, pauli_light_cone, validate_pauli_string
 
 if TYPE_CHECKING:
     from mpstab.evolutors.hsmpo import HSMPO
@@ -103,7 +103,7 @@ class CompiledNoise:
         The same noisy circuit, reduced to what can affect an observable.
 
         Rotations outside the observable's light cone
-        (:func:`~mpstab.pauli.light_cone`) are dropped. A fault that then flips
+        (:func:`~mpstab.pauli.pauli_light_cone`) are dropped. A fault that then flips
         neither a remaining rotation nor an observable term leaves every
         expectation value unchanged, so it is folded into its location's
         no-fault probability, and locations left with no fault are dropped.
@@ -117,7 +117,7 @@ class CompiledNoise:
             A new :class:`CompiledNoise`; this one is left untouched.
         """
         dressed_paulis = list(dressed_paulis)
-        kept = light_cone(self.generators, dressed_paulis, self.nqubits)
+        kept = pauli_light_cone(self.generators, dressed_paulis, self.nqubits)
         flips = self.flips[:, kept]
         relevant = flips.any(axis=1) | self.observable_flips(dressed_paulis).any(axis=1)
         _, location = np.unique(self.fault_location[relevant], return_inverse=True)
