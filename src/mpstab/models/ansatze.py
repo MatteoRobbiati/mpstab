@@ -4,7 +4,7 @@ import random
 from abc import ABC
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import ClassVar, List, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -20,9 +20,26 @@ from mpstab.models.utils import (
 
 @dataclass
 class Ansatz(ABC):
-    """Abstract ansatz to generate quantum states."""
+    """
+    Abstract ansatz to generate quantum states.
+
+    Every ansatz names the fields that set its two resources, so a sweep knows
+    which knob to turn:
+
+    - ``magic_parameters``: fields that set how far the circuit is from a
+      Clifford circuit, i.e. how many magic gates HSMPO keeps and how large
+      their angles are;
+    - ``entanglement_parameters``: fields that set which qubits interact and
+      for how long, i.e. how fast the bond dimension of the state can grow.
+
+    A field may appear in both: a generic rotation angle sets the magic and,
+    through the couplings, also the entangling power.
+    """
 
     nqubits: int
+
+    magic_parameters: ClassVar[Tuple[str, ...]] = ()
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ()
 
     def __post_init__(self):
         self._circuit = Circuit(self.nqubits)
@@ -86,12 +103,26 @@ class Ansatz(ABC):
         return (magic_gates, clifford_circuit), full_circuit
 
 
+def _add_rzz(circuit: Circuit, a: int, b: int, theta: float) -> None:
+    """Add ``R_ZZ(theta)`` on ``a``, ``b`` as ``CNOT · RZ(theta) on b · CNOT``.
+
+    This is the form HSMPO splits into Clifford gates and one rotation, so the
+    coupling needs no transpilation.
+    """
+    circuit.add(gates.CNOT(a, b))
+    circuit.add(gates.RZ(q=b, theta=theta))
+    circuit.add(gates.CNOT(a, b))
+
+
 @dataclass
 class HardwareEfficient(Ansatz):
     """Layers of random RY rotations, each followed by a ring of CZ gates."""
 
     nlayers: int = 1
     entangling: bool = True
+
+    magic_parameters: ClassVar[Tuple[str, ...]] = ("nlayers",)
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers", "entangling")
 
     def __post_init__(self):
         super().__post_init__()
@@ -124,6 +155,9 @@ class HardwareEfficientBrickwork(Ansatz):
 
     nlayers: int = 1
 
+    magic_parameters: ClassVar[Tuple[str, ...]] = ("nlayers",)
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers",)
+
     def __post_init__(self):
         super().__post_init__()
         for _ in range(self.nlayers):
@@ -145,7 +179,52 @@ class HardwareEfficientBrickwork(Ansatz):
 
 
 @dataclass
-class KickedIsing(Ansatz):
+class _KickedIsingBase(Ansatz):
+    r"""
+    Step structure shared by the kicked Ising ansätze.
+
+    Each of the ``n_steps`` steps kicks every qubit (:meth:`_kick`), then applies
+    the :math:`R_{ZZ}` couplings (:meth:`_coupling`) on the bonds of
+    :meth:`_coupling_layers`, layer by layer. A subclass sets the kick and
+    coupling angles; the geometry and the bond dilution are overridden by
+    :meth:`_coupling_layers` and :meth:`_keep_bond` alone.
+    """
+
+    n_steps: int = 1
+
+    def __post_init__(self):
+        super().__post_init__()
+        self._validate()
+        for step in range(self.n_steps):
+            for q in range(self.nqubits):
+                self._kick(step, q)
+            for layer in self._coupling_layers():
+                for a, b in layer:
+                    if self._keep_bond():
+                        self._coupling(a, b)
+
+    def _validate(self) -> None:
+        """Check the fields before any gate is added."""
+
+    def _coupling_layers(self) -> List[List[tuple]]:
+        """The bonds of one step, layer by layer: even bonds, then odd bonds."""
+        return [
+            [(q, q + 1) for q in range(start, self.nqubits - 1, 2)] for start in (0, 1)
+        ]
+
+    def _keep_bond(self) -> bool:
+        """Whether the next coupling is applied."""
+        return True
+
+    def _kick(self, step: int, qubit: int) -> None:
+        raise NotImplementedError
+
+    def _coupling(self, a: int, b: int) -> None:
+        raise NotImplementedError
+
+
+@dataclass
+class KickedIsing(_KickedIsingBase):
     r"""
     Build a kicked Ising circuit on an open chain.
 
@@ -157,6 +236,10 @@ class KickedIsing(Ansatz):
     default ``theta_j = -pi/2`` the couplings are Clifford and only the kicks are
     magic, so the MPS bond dimension grows with the number of steps.
 
+    Every angle that is not a multiple of :math:`\pi/2` is a magic gate as a
+    whole; :class:`ParametricKickedIsing` separates the Clifford part of each
+    angle from the magic one.
+
     Args:
         nqubits: number of qubits in the chain.
         n_steps: number of kick-and-couple steps.
@@ -165,26 +248,27 @@ class KickedIsing(Ansatz):
         theta_j: angle of the :math:`R_{ZZ}` couplings.
     """
 
-    n_steps: int = 1
     theta_h: float = 0.8
     theta_z: float = 0.0
     theta_j: float = -0.5 * np.pi
 
-    def __post_init__(self):
-        super().__post_init__()
-        for _ in range(self.n_steps):
-            for q in range(self.nqubits):
-                self.circuit.add(gates.RX(q=q, theta=self.theta_h))
-                self.circuit.add(gates.RZ(q=q, theta=self.theta_z))
-            for start in (0, 1):
-                for q in range(start, self.nqubits - 1, 2):
-                    self.circuit.add(gates.CNOT(q, q + 1))
-                    self.circuit.add(gates.RZ(q=q + 1, theta=self.theta_j))
-                    self.circuit.add(gates.CNOT(q, q + 1))
+    magic_parameters: ClassVar[Tuple[str, ...]] = ("theta_h", "theta_z", "theta_j")
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = (
+        "n_steps",
+        "theta_h",
+        "theta_j",
+    )
+
+    def _kick(self, step: int, qubit: int) -> None:
+        self.circuit.add(gates.RX(q=qubit, theta=self.theta_h))
+        self.circuit.add(gates.RZ(q=qubit, theta=self.theta_z))
+
+    def _coupling(self, a: int, b: int) -> None:
+        _add_rzz(self.circuit, a, b, self.theta_j)
 
 
 @dataclass
-class ParametricKickedIsing(Ansatz):
+class ParametricKickedIsing(_KickedIsingBase):
     r"""
     Build a kicked Ising circuit parametrised by its distance from a Clifford point.
 
@@ -204,10 +288,16 @@ class ParametricKickedIsing(Ansatz):
     :math:`R(\theta^C + \delta) = R(\delta)\,R(\theta^C)`, as two separate
     gates. HSMPO then puts :math:`R(\theta^C)` in the stabilizer part and keeps
     only the small rotation :math:`R(\delta)` as a magic gate, instead of
-    treating the whole :math:`R(\theta^C + \delta)` as magic: the deviations
-    set how much magic the circuit holds, while the Clifford skeleton, hence
-    the entanglement structure, stays the same. A deviation equal to zero adds
-    no gate.
+    treating the whole :math:`R(\theta^C + \delta)` as magic. The two groups of
+    fields therefore tune the two resources separately:
+
+    - the deviations ``delta_h``, ``delta_j``, ``delta_z`` set the magic: the
+      number of magic gates (a deviation equal to zero adds no gate) and the
+      size of their angles;
+    - the Clifford skeleton ``clifford_h``, ``clifford_j`` and ``n_steps`` set
+      the entanglement: which Clifford circuit the stabilizer part evolves,
+      hence how fast the entanglement grows. The deviations change it only
+      perturbatively.
 
     Each of the ``n_steps`` steps applies the kicks :math:`R_X` and then
     :math:`R_Z` on every qubit, followed by the couplings :math:`R_{ZZ}` on the
@@ -224,30 +314,36 @@ class ParametricKickedIsing(Ansatz):
         clifford_j: Clifford angle of the couplings, a multiple of pi/2.
     """
 
-    n_steps: int = 1
     delta_h: float = 0.1
     delta_j: float = 0.0
     delta_z: float = 0.0
     clifford_h: float = 0.5 * np.pi
     clifford_j: float = -0.5 * np.pi
 
-    def __post_init__(self):
-        super().__post_init__()
+    magic_parameters: ClassVar[Tuple[str, ...]] = ("delta_h", "delta_j", "delta_z")
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = (
+        "n_steps",
+        "clifford_h",
+        "clifford_j",
+    )
+
+    def _validate(self) -> None:
         for name in ("clifford_h", "clifford_j"):
             quarter_turns = getattr(self, name) / (0.5 * np.pi)
             if not np.isclose(quarter_turns, round(quarter_turns)):
                 raise ValueError(
                     f"{name} must be a multiple of pi/2, got {getattr(self, name)}."
                 )
-        for _ in range(self.n_steps):
-            for q in range(self.nqubits):
-                self._rotation(gates.RX, q, self.clifford_h, self.delta_h)
-                self._rotation(gates.RZ, q, 0.0, self.delta_z)
-            for start in (0, 1):
-                for q in range(start, self.nqubits - 1, 2):
-                    self.circuit.add(gates.CNOT(q, q + 1))
-                    self._rotation(gates.RZ, q + 1, self.clifford_j, self.delta_j)
-                    self.circuit.add(gates.CNOT(q, q + 1))
+
+    def _kick(self, step: int, qubit: int) -> None:
+        self._rotation(gates.RX, qubit, self.clifford_h, self.delta_h)
+        self._rotation(gates.RZ, qubit, 0.0, self.delta_z)
+
+    def _coupling(self, a: int, b: int) -> None:
+        """Add the ``R_ZZ`` coupling of qubits ``a``, ``b`` as ``CNOT · RZ · CNOT``."""
+        self.circuit.add(gates.CNOT(a, b))
+        self._rotation(gates.RZ, b, self.clifford_j, self.delta_j)
+        self.circuit.add(gates.CNOT(a, b))
 
     def _rotation(self, gate, qubit: int, clifford_angle: float, delta: float):
         """Add ``gate(clifford_angle)`` then ``gate(delta)``, skipping zero angles."""
@@ -265,6 +361,129 @@ class ParametricKickedIsing(Ansatz):
     def theta_j(self) -> float:
         """Total angle of the couplings."""
         return self.clifford_j + self.delta_j
+
+
+def _ramp(first: float, last: float, n_steps: int) -> np.ndarray:
+    """``n_steps`` values from ``first`` to ``last``: geometric when both have the
+    same sign, linear otherwise."""
+    if n_steps == 1 or first == last:
+        return np.full(n_steps, float(first))
+    if first * last > 0:
+        return np.sign(first) * np.geomspace(abs(first), abs(last), n_steps)
+    return np.linspace(first, last, n_steps)
+
+
+@dataclass
+class RampedKickedIsing(ParametricKickedIsing):
+    r"""
+    Build a :class:`ParametricKickedIsing` circuit whose magic changes from step to step.
+
+    The deviation of the transverse kicks goes from ``delta_h`` at the first
+    step to ``delta_h_last`` at the last one, geometrically when the two have
+    the same sign and linearly otherwise; likewise the longitudinal kicks, from
+    ``delta_z`` to ``delta_z_last``. With the magic concentrated in the first
+    steps, a head/tail split leaves the large rotations to the head and only
+    small angles to the tail; ``delta_h < delta_h_last`` is the opposite
+    profile, as a control. Without ``delta_h_last`` and ``delta_z_last``, at
+    ``bond_density = 1`` and ``disorder = 0``, the circuit is exactly
+    :class:`ParametricKickedIsing`.
+
+    Two optional sources of randomness, drawn from ``numpy.random.RandomState(seed)``
+    (from numpy's global generator when ``seed`` is ``None``), in circuit order:
+
+    - ``disorder > 0`` gives every kick its own deviation,
+      :math:`\delta_h (1 + \mathrm{disorder} \cdot u)` with :math:`u` uniform
+      in :math:`[-1, 1]`, so different seeds are disorder realisations of the
+      same magic profile;
+    - ``bond_density < 1`` keeps each coupling of each step with that
+      probability and drops the others. At :math:`\delta_J = 0` the couplings
+      are Clifford, so this lowers the entanglement without changing the magic.
+
+    No number is drawn when ``disorder = 0`` and ``bond_density = 1``.
+
+    The ramp and the disorder add magic knobs to those of
+    :class:`ParametricKickedIsing`; ``bond_density`` adds an entanglement knob.
+
+    Args:
+        nqubits: number of qubits.
+        n_steps: number of kick-and-couple steps.
+        delta_h: deviation of the transverse kicks at the first step.
+        delta_h_last: deviation of the transverse kicks at the last step
+            (``None``: ``delta_h`` at every step).
+        delta_j: deviation of the :math:`R_{ZZ}` couplings from ``clifford_j``.
+        delta_z: angle of the longitudinal kicks at the first step.
+        delta_z_last: angle of the longitudinal kicks at the last step
+            (``None``: ``delta_z`` at every step).
+        clifford_h: Clifford angle of the transverse kicks, a multiple of pi/2.
+        clifford_j: Clifford angle of the couplings, a multiple of pi/2.
+        bond_density: probability of keeping each coupling, in ``(0, 1]``.
+        disorder: relative spread of the transverse deviations across the kicks.
+        seed: seed of the random draws.
+    """
+
+    delta_h_last: Optional[float] = None
+    delta_z_last: Optional[float] = None
+    bond_density: float = 1.0
+    disorder: float = 0.0
+    seed: Optional[int] = None
+
+    magic_parameters: ClassVar[Tuple[str, ...]] = (
+        ParametricKickedIsing.magic_parameters
+        + ("delta_h_last", "delta_z_last", "disorder")
+    )
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = (
+        ParametricKickedIsing.entanglement_parameters + ("bond_density",)
+    )
+
+    def __post_init__(self):
+        self._rng = np.random if self.seed is None else np.random.RandomState(self.seed)
+        last_h = self.delta_h if self.delta_h_last is None else self.delta_h_last
+        last_z = self.delta_z if self.delta_z_last is None else self.delta_z_last
+        self._deltas_h = _ramp(self.delta_h, last_h, self.n_steps)
+        self._deltas_z = _ramp(self.delta_z, last_z, self.n_steps)
+        super().__post_init__()
+
+    def _validate(self) -> None:
+        super()._validate()
+        if not 0.0 < self.bond_density <= 1.0:
+            raise ValueError(
+                f"bond_density must lie in (0, 1], got {self.bond_density}."
+            )
+
+    def _kick(self, step: int, qubit: int) -> None:
+        factor = (
+            1.0 + self.disorder * self._rng.uniform(-1, 1) if self.disorder > 0 else 1.0
+        )
+        delta_h = float(self._deltas_h[step] * factor)
+        self._rotation(gates.RX, qubit, self.clifford_h, delta_h)
+        self._rotation(gates.RZ, qubit, 0.0, float(self._deltas_z[step]))
+
+    def _keep_bond(self) -> bool:
+        return self.bond_density >= 1.0 or self._rng.random() < self.bond_density
+
+
+@dataclass
+class StarKickedIsing(RampedKickedIsing):
+    r"""
+    Build a :class:`RampedKickedIsing` circuit on a star: a central-spin model.
+
+    The kicks are those of :class:`RampedKickedIsing`; the couplings of each
+    step are :math:`R_{ZZ}` between the hub (qubit 0) and every leaf, leaf 1
+    first, each written as ``CNOT · RZ · CNOT``. The hub is an ordinary logical
+    qubit; the label 0 is a convention. The circuit suits devices with a central
+    element, such as an IQM Star: there the compiler can move the hub's state
+    into the computational resonator once per step and apply all its CZ gates
+    from it, instead of moving a qubit in and out for nearly every CZ as a
+    chain needs (on a 10-qubit IQM Star, 6 steps: about 20 MOVE gates against
+    about 100 for the chain).
+
+    Args: as :class:`RampedKickedIsing`; ``bond_density`` applies to the
+    hub-leaf couplings.
+    """
+
+    def _coupling_layers(self) -> List[List[tuple]]:
+        """The hub-leaf bonds of one step, as a single layer."""
+        return [[(0, leaf) for leaf in range(1, self.nqubits)]]
 
 
 @dataclass
@@ -301,6 +520,9 @@ class HammingWeightPreserving(Ansatz):
     """
 
     nlayers: int = 1
+
+    magic_parameters: ClassVar[Tuple[str, ...]] = ("nlayers",)
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers",)
 
     def __post_init__(self):
         if self.nqubits % 2 != 0:
@@ -363,6 +585,9 @@ class FloquetAnsatz(Ansatz):
     target_qubit: int = 1
     decompose_rzz: bool = True
 
+    magic_parameters: ClassVar[Tuple[str, ...]] = ("b", "theta")
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers", "b")
+
     def __post_init__(self):
         super().__post_init__()
 
@@ -402,15 +627,8 @@ class FloquetAnsatz(Ansatz):
             if not self.decompose_rzz:
                 layer.add(gates.RZZ(q0=q1, q1=q2, theta=0.5 * np.pi))
             else:
-                layer += self._decomposed_rzz(q0=q1, q1=q2, theta=0.5 * np.pi)
+                _add_rzz(layer, q1, q2, 0.5 * np.pi)
 
-        return layer
-
-    def _decomposed_rzz(self, q0, q1, theta):
-        layer = Circuit(self.nqubits)
-        layer.add(gates.CNOT(q0, q1))
-        layer.add(gates.RZ(q=q1, theta=theta))
-        layer.add(gates.CNOT(q0, q1))
         return layer
 
     def partitionate_circuit(
@@ -590,6 +808,34 @@ class TranspiledAnsatz(_CompiledAnsatz):
 
 
 @dataclass(kw_only=True)
+class TranspiledAnsatz(_CompiledAnsatz):
+    """
+    Any circuit, transpiled into the native gates of a given quantum device
+    presenting a given connectivity.
+
+    Args:
+        original_circuit: The circuit to be transpiled.
+        native_gates: Optional[List]: list of native gates of the used device.
+            Default is [gates.GPI2, gates.RZ, gates.Z, gates.CZ].
+        connectivity: Optional[nx.Graph]: graph representing the topology of the
+            used device. Default is None and in this case the transpilation
+            does not take into account any connectivity constraint.
+    """
+
+    original_circuit: Circuit
+    # Always transpiled; nqubits is taken from the circuit.
+    transpile: bool = field(default=True, init=False)
+    nqubits: int = field(init=False)
+
+    def __post_init__(self):
+        self.nqubits = self.original_circuit.nqubits
+        super().__post_init__()
+
+    def _build_circuit(self) -> Circuit:
+        return self.original_circuit
+
+
+@dataclass(kw_only=True)
 class QFT(_CompiledAnsatz):
     """Quantum Fourier Transform (H, controlled-phase and SWAP)."""
 
@@ -610,6 +856,8 @@ class QFTPhaseKernel(_CompiledAnsatz):
     """
 
     coeffs: Optional[np.ndarray] = None
+
+    magic_parameters: ClassVar[Tuple[str, ...]] = ("coeffs",)
 
     def _build_circuit(self) -> Circuit:
         n = self.nqubits
@@ -639,6 +887,8 @@ class Grover(_CompiledAnsatz):
 
     marked_state: Optional[int] = None
     n_iterations: Optional[int] = None
+
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("n_iterations",)
 
     def _build_circuit(self) -> Circuit:
         n = self.nqubits
@@ -692,6 +942,9 @@ class QPE(_CompiledAnsatz):
     phase: float = 0.375
     nqubits: int = field(init=False)
 
+    magic_parameters: ClassVar[Tuple[str, ...]] = ("phase",)
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("n_counting",)
+
     def __post_init__(self):
         self.nqubits = self.n_counting + 1
         super().__post_init__()
@@ -734,6 +987,9 @@ class QAE(_CompiledAnsatz):
     theta_A: float = 0.4
     nqubits: int = field(init=False)
 
+    magic_parameters: ClassVar[Tuple[str, ...]] = ("theta_A",)
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("n_counting",)
+
     def __post_init__(self):
         self.nqubits = self.n_counting + 1
         super().__post_init__()
@@ -775,6 +1031,9 @@ class TrotterIsing(_CompiledAnsatz):
     dt: float = 0.2
     J: float = 1.0
     h: float = 0.5
+
+    magic_parameters: ClassVar[Tuple[str, ...]] = ("dt", "J", "h")
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("n_steps", "dt", "J")
 
     def _build_circuit(self) -> Circuit:
         n = self.nqubits

@@ -19,6 +19,7 @@ pattern.
 
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
 import numpy as np
@@ -32,23 +33,17 @@ class NoisyExpectation:
     """
     Result of :func:`noisy_expectation`.
 
-    Attributes
-    ----------
-    mean : float
-        The noisy expectation value.
-    stderr : float
-        Its standard error, from the sampled ``k >= 2`` stratum only: the
-        lower strata are exact. Zero when nothing was sampled.
-    n_patterns : int
-        Distinct rotation sign patterns evaluated on the MPS.
-    fidelities : numpy.ndarray
-        Truncation fidelity of the MPS of each evaluated pattern, shape
-        ``(n_patterns,)``; ``nan`` for an engine that does not expose a norm.
-    stratum_weights : tuple of float
-        ``(Pr(k = 0), Pr(k = 1), Pr(k >= 2))``, counting only the faults
-        that can affect the observable.
-    n_samples : int
-        Fault configurations sampled for the ``k >= 2`` stratum.
+    Attributes:
+        mean: the noisy expectation value.
+        stderr: its standard error, from the sampled ``k >= 2`` stratum only:
+            the lower strata are exact. Zero when nothing was sampled.
+        n_patterns: distinct rotation sign patterns evaluated on the MPS.
+        fidelities: truncation fidelity of the MPS of each evaluated pattern,
+            shape ``(n_patterns,)``; ``nan`` for an engine that does not expose
+            a norm.
+        stratum_weights: ``(Pr(k = 0), Pr(k = 1), Pr(k >= 2))``, counting only
+            the faults that can affect the observable.
+        n_samples: fault configurations sampled for the ``k >= 2`` stratum.
     """
 
     mean: float
@@ -70,42 +65,32 @@ def noisy_expectation(
     """
     Expectation value of ``observable`` on the noisy circuit.
 
-    Parameters
-    ----------
-    compiled : CompiledNoise
-        The noisy circuit, from :func:`~mpstab.noise.compile_noise`.
-    observable : Observable
-        A Pauli string or any other format
-        :func:`~mpstab.hamiltonians.pauli_terms` accepts.
-    n_samples : int, optional
-        Fault configurations to sample for the ``k >= 2`` stratum. With ``0``
-        that stratum is dropped, which biases the mean by at most
-        ``stratum_weights[2]`` times the sum of the absolute coefficients.
-    seed : int, optional
-        Seed of the sampler.
-    light_cone : bool, optional
-        Restrict the circuit to the observable's light cone first. This is
-        exact, and it leaves fewer rotations per pattern and fewer faults, so
-        a smaller ``Pr(k >= 2)`` and a smaller standard error. Turn it off only
-        to compare against the unrestricted computation.
-    n_workers : int, optional
-        Processes evaluating the sign patterns. The distinct patterns are split
-        into contiguous blocks, so the result is identical for any value; each
-        extra process costs a start-up of about a second, so it pays off only
-        when there are many patterns or the MPS is large.
+    Args:
+        compiled: the noisy circuit, from :func:`~mpstab.noise.compile_noise`.
+        observable: a Pauli string or any other format
+            :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+        n_samples: fault configurations to sample for the ``k >= 2`` stratum.
+            With ``0`` that stratum is dropped, which biases the mean by at most
+            ``stratum_weights[2]`` times the sum of the absolute coefficients.
+        seed: seed of the sampler.
+        light_cone: restrict the circuit to the observable's light cone first.
+            This is exact, and it leaves fewer rotations per pattern and fewer
+            faults, so a smaller ``Pr(k >= 2)`` and a smaller standard error.
+            Turn it off only to compare against the unrestricted computation.
+        n_workers: processes evaluating the sign patterns. The distinct patterns
+            are split into contiguous blocks, so the result is identical for any
+            value; each extra process costs a start-up of about a second, so it
+            pays off only when there are many patterns or the MPS is large.
 
-    Returns
-    -------
-    NoisyExpectation
+    Returns:
+        The :class:`NoisyExpectation`.
 
-    Examples
-    --------
-    ::
+    Example::
 
         from qibo import Circuit, gates
         from mpstab import HSMPO
         from mpstab.noise.compile import compile_noise
-        from mpstab.noise.estimator import noisy_expectation
+        from mpstab.noise.mc_noise_estimator import noisy_expectation
         from mpstab.noise.events import PauliChannel
 
         circuit = Circuit(2)
@@ -273,8 +258,6 @@ def _pattern_values(compiled, patterns, dressed, n_workers: int = 1):
     if n_workers == 1:
         values, fidelities = _evaluate_patterns(*args, unique)
     else:
-        from concurrent.futures import ProcessPoolExecutor
-
         blocks = np.array_split(unique, n_workers)
         with ProcessPoolExecutor(max_workers=n_workers) as pool:
             results = list(

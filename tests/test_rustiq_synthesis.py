@@ -9,8 +9,6 @@ Covers:
     reproduces direct qibo simulation.
 """
 
-import builtins
-
 import numpy as np
 import pytest
 from qibo import Circuit
@@ -27,6 +25,7 @@ from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 from mpstab.pauli import conjugate
 from mpstab.qpu.synthesis import RustiqSynthesis, head_to_qibo_circuit
+from mpstab.qpu.synthesis import rustiq as rustiq_synthesis
 
 
 def _target_unitary(paulis, angles):
@@ -163,14 +162,8 @@ def test_resynthesize_head_gate_counts_across_partial_cuts():
 
 
 def test_rustiq_import_error_has_install_hint(monkeypatch):
-    real_import = builtins.__import__
-
-    def fake_import(name, *args, **kwargs):
-        if name == "rustiq":
-            raise ImportError("no rustiq here")
-        return real_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", fake_import)
+    # What the module-level guarded import leaves behind without rustiq.
+    monkeypatch.setattr(rustiq_synthesis, "pauli_network_synthesis", None)
 
     with pytest.raises(ImportError, match="mpstab\\[rustiq\\]"):
         RustiqSynthesis().synthesize(["X"], [0.1])

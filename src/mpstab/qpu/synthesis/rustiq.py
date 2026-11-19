@@ -2,8 +2,9 @@
 Head synthesis with rustiq's Pauli-network synthesis, which cancels gates across
 rotations.
 
-``rustiq`` is optional and not on PyPI, so it is imported lazily; install it
-with ``pip install "mpstab[rustiq]"``.
+``rustiq`` is optional and not on PyPI: this module imports without it, and
+synthesising raises an ``ImportError`` with the install hint
+``pip install "mpstab[rustiq]"``.
 """
 
 from __future__ import annotations
@@ -14,16 +15,19 @@ from typing import ClassVar
 from mpstab.qpu.synthesis.abstract import HeadSynthesis
 from mpstab.qpu.synthesis.utils import place_rotations
 
+try:
+    from rustiq import Metric, pauli_network_synthesis
+except ImportError:  # optional dependency
+    Metric = pauli_network_synthesis = None
 
-def _import_rustiq():
-    try:
-        from rustiq import Metric, pauli_network_synthesis
-    except ImportError as error:
+
+def _require_rustiq():
+    """Raise an ``ImportError`` with the install hint if rustiq is missing."""
+    if pauli_network_synthesis is None:
         raise ImportError(
             "rustiq is required for Pauli-network resynthesis. Install it with: "
             'pip install "mpstab[rustiq]"'
-        ) from error
-    return Metric, pauli_network_synthesis
+        )
 
 
 @dataclass(frozen=True)
@@ -49,11 +53,11 @@ class RustiqSynthesis(HeadSynthesis):
     name: ClassVar[str] = "rustiq"
 
     def synthesize(self, paulis, angles, nqubits=None):
-        _import_rustiq()  # fail with the install hint even on an empty head
+        _require_rustiq()  # fail with the install hint even on an empty head
         return super().synthesize(paulis, angles, nqubits)
 
     def _synthesize(self, paulis, angles, nqubits):
-        Metric, pauli_network_synthesis = _import_rustiq()
+        _require_rustiq()
         metric = Metric(self.metric)
         skeleton = pauli_network_synthesis(
             paulis, metric, self.preserve_order, fix_clifford=False

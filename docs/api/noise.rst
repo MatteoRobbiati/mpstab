@@ -71,7 +71,7 @@ fault-pattern estimator. The three steps are available on their own.
 .. automodule:: mpstab.noise.compile
    :members:
 
-.. automodule:: mpstab.noise.estimator
+.. automodule:: mpstab.noise.mc_noise_estimator
    :members: noisy_expectation
 
 See ``examples/scripts/noise/noisy_simulation.py`` for a comparison against exact

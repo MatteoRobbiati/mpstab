@@ -6,6 +6,7 @@ from operator import add
 from typing import Union
 
 import numpy as np
+import quimb.tensor as qtn
 
 from mpstab.hamiltonians import Observable, pauli_terms
 
@@ -56,8 +57,6 @@ def minimize_expectation_dmrg(
         and ``energy_history``. Energies include the Hamiltonian's constant
         offset and identity terms.
     """
-    import quimb.tensor as qtn
-
     constant, terms = pauli_terms(observables, hsmpo.nqubits)
     constant += terms.pop("I" * hsmpo.nqubits, 0.0)
 

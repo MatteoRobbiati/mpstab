@@ -19,6 +19,20 @@ from mpstab.engines.tensor_networks import _mps_kernels as kernels
 from mpstab.engines.tensor_networks.abstract import TensorNetworkEngine
 from mpstab.pauli import PAULI_MATRICES
 
+# jax and torch are optional quimb backends.
+try:
+    import jax.numpy as jnp
+
+    from mpstab.engines.tensor_networks._jax_linalg import (
+        install as _install_jax_linalg,
+    )
+except ImportError:
+    jnp = None
+try:
+    import torch
+except ImportError:
+    torch = None
+
 #: qibo gate names mapped to their quimb equivalents.
 GATE_MAP = {
     "h": "H",
@@ -213,25 +227,22 @@ def _qibo_circuit_to_quimb(nqubits: int, qibo_circ, **circuit_kwargs) -> Circuit
 def _array_module(backend: str):
     """The array module of a quimb backend: numpy, ``jax.numpy`` or torch."""
     if backend == "numpy":
-        import numpy
-
-        return numpy
+        return np
+    if backend not in ("jax", "torch"):
+        raise ValueError(
+            f"Unsupported quimb backend {backend!r}, expected 'numpy', 'jax' or 'torch'."
+        )
+    module = jnp if backend == "jax" else torch
+    if module is None:
+        raise ImportError(
+            f"The {backend!r} quimb backend needs {backend}: "
+            f'pip install "mpstab[{"pytorch" if backend == "torch" else "jax"}]"'
+        )
     if backend == "jax":
-        import jax.numpy
-
-        from ._jax_linalg import install
-
         # jax's SVD derivative is nan on repeated zero singular values, which
         # an MPS evolved from a product state hits at its first compressions.
-        install()
-        return jax.numpy
-    if backend == "torch":
-        import torch
-
-        return torch
-    raise ValueError(
-        f"Unsupported quimb backend {backend!r}, expected 'numpy', 'jax' or 'torch'."
-    )
+        _install_jax_linalg()
+    return module
 
 
 class QuimbEngine(TensorNetworkEngine):

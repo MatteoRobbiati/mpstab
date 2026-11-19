@@ -8,6 +8,7 @@ as a separate ``+1``/``-1`` factor, so callers always handle them explicitly.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from functools import reduce
 
 import numpy as np
 import stim
@@ -25,6 +26,21 @@ PAULI_MATRICES = {
 
 #: The same matrices stacked in :data:`PAULI_LABELS` order, shape ``(4, 2, 2)``.
 PAULI_ARRAY = np.stack([PAULI_MATRICES[label] for label in PAULI_LABELS])
+
+
+def pauli_matrix(pauli: str) -> np.ndarray:
+    """
+    Dense matrix of a Pauli string, qubit 0 being the most significant.
+
+    Args:
+        pauli: the Pauli string; the empty string gives the ``1 x 1`` identity.
+
+    Returns:
+        The ``2**n x 2**n`` complex matrix ``P_0 (x) P_1 (x) ... (x) P_{n-1}``.
+    """
+    return reduce(
+        np.kron, (PAULI_MATRICES[label] for label in pauli), np.eye(1, dtype=complex)
+    )
 
 
 def validate_pauli_string(pauli: str, nqubits: int | None = None) -> None:

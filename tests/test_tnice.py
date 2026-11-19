@@ -15,8 +15,11 @@ layer up (the `HSynthSMPO` integration and cross-route agreement).
 import numpy as np
 import pytest
 
+from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+from mpstab.models.ansatze import FloquetAnsatz
 from mpstab.pauli import PAULI_LABELS, PAULI_MATRICES
-from mpstab.qpu.measurement import shadows, tnice
+from mpstab.qpu.execution import QiboSimulator, execute_plan
+from mpstab.qpu.measurement import TNICE, ClassicalShadows, shadows, tnice
 from mpstab.qpu.measurement.pauli_expansion import mpo_site_arrays, mpo_to_pauli_mps
 
 
@@ -216,11 +219,6 @@ def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
     on every shot, so it must equal ``"shadows"`` on the same frequencies --
     here at a cut whose tail MPS genuinely carries complex gauge phases.
     """
-    from mpstab.evolutors.hsynthsmpo import HSynthSMPO
-    from mpstab.models.ansatze import FloquetAnsatz
-    from mpstab.qpu.execution import QiboSimulator, execute_plan
-    from mpstab.qpu.measurement import TNICE, ClassicalShadows
-
     ansatz = FloquetAnsatz(nqubits=4, nlayers=1, target_qubit=1, decompose_rzz=True)
     hs = HSynthSMPO.rotations_only(ansatz)
     hs.max_bond_dimension = 16
