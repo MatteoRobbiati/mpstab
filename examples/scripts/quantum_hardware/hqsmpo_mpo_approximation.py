@@ -1,6 +1,6 @@
-"""HSynthSMPO: how folding rotations into the observable MPO introduces error.
+"""HQSMPO: how folding rotations into the observable MPO introduces error.
 
-The HSynthSMPO splits the chain of dressed Pauli rotations at a cut index:
+The HQSMPO splits the chain of dressed Pauli rotations at a cut index:
 
   * the *head* rotations (closer to the initial state) are resynthesized with
     Qiskit's Rustiq backend and applied exactly to build the state MPS;
@@ -20,12 +20,10 @@ gate-count-optimized) decomposition.
 """
 
 import numpy as np
-from qibo import set_backend
 
-from mpstab import HSynthSMPO
+from mpstab import HQSMPO
 from mpstab.models.ansatze import HardwareEfficient
 
-set_backend("numpy")
 np.random.seed(42)
 
 # ---------------------------------------------------------------------------
@@ -37,7 +35,7 @@ MAX_BOND = 4  # deliberately tight so the MPO truncation is visible
 OBSERVABLE = "Z" * NQUBITS
 
 ansatz = HardwareEfficient(nqubits=NQUBITS, nlayers=NLAYERS)
-hs = HSynthSMPO(ansatz, max_bond_dimension=MAX_BOND)
+hs = HQSMPO(ansatz, max_bond_dimension=MAX_BOND)
 
 n_dressed = len(hs.magic_gates)
 print(f"qubits={NQUBITS}  layers={NLAYERS}  bond cap={MAX_BOND}")

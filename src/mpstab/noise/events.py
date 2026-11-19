@@ -9,11 +9,11 @@ listed.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from itertools import product
 
-from qibo import Circuit, gates
-from qibo.noise import NoiseModel
+import numpy as np
 
-from mpstab.pauli import validate_pauli_string
+from mpstab.pauli import PAULI_MATRICES, validate_pauli_string
 
 
 @dataclass(frozen=True)
@@ -22,9 +22,8 @@ class NoiseEvent:
     Base class of every noise event.
 
     :func:`~mpstab.noise.compile_noise` dispatches on the concrete type and
-    rejects any it does not know. A new channel, such as amplitude damping
-    simulated by quantum trajectories, is added as a subclass plus a branch
-    there.
+    rejects any it does not know: a new kind of event is added as a subclass
+    plus a branch there.
 
     Parameters
     ----------
@@ -151,111 +150,93 @@ class CoherentRotation(NoiseEvent):
         validate_pauli_string(self.generator)
 
 
-def from_qibo_noise_model(
-    noise_model: NoiseModel, circuit: Circuit
-) -> list[PauliChannel]:
+@dataclass(frozen=True, eq=False)
+class KrausChannel(NoiseEvent):
     """
-    The Pauli channels a qibo ``NoiseModel`` inserts into ``circuit``.
+    A general channel ``rho -> sum_k K_k rho K_k^dag`` on a few qubits, such as
+    amplitude damping or thermal relaxation.
 
-    The model is applied with qibo's own ``NoiseModel.apply``, so which gates
-    get noise follows qibo's rules exactly. Only Pauli channels are supported:
-    ``PauliError`` and ``DepolarizingError``. An ``n``-qubit depolarizing
-    channel of strength ``lam`` becomes a Pauli channel with probability
-    ``lam / 4**n`` on each of its ``4**n - 1`` non-identity Paulis.
+    In the Pauli basis the channel is ``sum_{A, B} chi[A, B] A rho B``
+    (:attr:`chi`). The diagonal of ``chi`` is a Pauli channel, its Pauli
+    twirl; the off-diagonal entries are what makes it non-unital or
+    otherwise non-Pauli, and the estimator evaluates them as transition
+    amplitudes between two sign patterns of the rotation chain.
 
     Parameters
     ----------
-    noise_model : qibo.noise.NoiseModel
-        The model to convert.
-    circuit : qibo.Circuit
-        The noiseless circuit, normally ``ansatz.circuit``. Event positions
-        index its ``queue``.
-
-    Returns
-    -------
-    list of PauliChannel
-        The channels, in circuit order.
-
-    Raises
-    ------
-    NotImplementedError
-        On any channel other than a Pauli or depolarizing one, such as
-        amplitude damping, thermal relaxation or readout errors.
-    ValueError
-        If a ``PauliError`` label does not match the width of the gate it is
-        attached to, as happens when a multi-qubit ``PauliError`` is applied
-        by qibo one qubit at a time.
+    after_gate : int
+        Index of the gate the channel follows, or ``-1`` for the initial state.
+    qubits : tuple of int
+        The qubits the channel acts on. ``qubits[0]`` is the most significant
+        factor of the Kraus matrices, as in qibo.
+    kraus : tuple of numpy.ndarray
+        Kraus operators, each ``2**k x 2**k`` for ``k = len(qubits)``. They
+        must satisfy ``sum_k K_k^dag K_k = I``.
 
     Examples
     --------
-    Depolarizing noise after every CZ::
+    Amplitude damping of qubit 0 after the first gate::
 
         import numpy as np
-        from qibo import Circuit, gates
-        from qibo.noise import DepolarizingError, NoiseModel
-        from mpstab.noise.events import from_qibo_noise_model
+        from mpstab.noise.events import KrausChannel
 
-        circuit = Circuit(2)
-        circuit.add(gates.RY(0, theta=0.3))
-        circuit.add(gates.CZ(0, 1))
-        model = NoiseModel()
-        model.add(DepolarizingError(0.01), gates.CZ)
-        events = from_qibo_noise_model(model, circuit)
-        print(events[0].after_gate, len(events[0].probs))  # 1 15
-    """
-    density = Circuit(circuit.nqubits, density_matrix=True)
-    for gate in circuit.queue:
-        density.add(gate)
-    noisy = noise_model.apply(density)
-
-    events: list[PauliChannel] = []
-    gate_index = -1
-    for gate in noisy.queue:
-        if not isinstance(gate, gates.Channel):
-            gate_index += 1
-            continue
-        events.append(_pauli_channel(gate, gate_index))
-
-    if gate_index + 1 != len(circuit.queue):
-        raise ValueError(
-            "The noise model changed the circuit's gates, not just added channels "
-            "to it, so noise positions cannot be mapped back onto it."
+        gamma = 0.05
+        damping = KrausChannel(
+            after_gate=0,
+            qubits=(0,),
+            kraus=(
+                np.array([[1, 0], [0, np.sqrt(1 - gamma)]]),
+                np.array([[0, np.sqrt(gamma)], [0, 0]]),
+            ),
         )
-    return events
+        print(damping.chi[("I", "Z")])  # gamma / 4
+    """
 
+    qubits: tuple[int, ...]
+    kraus: tuple[np.ndarray, ...]
 
-def _pauli_channel(channel, after_gate: int) -> PauliChannel:
-    """Convert one qibo channel gate into a :class:`PauliChannel`."""
-    qubits = tuple(channel.qubits)
-    # DepolarizingChannel subclasses PauliNoiseChannel in qibo, so test it first.
-    if isinstance(channel, gates.DepolarizingChannel):
-        lam = channel.init_kwargs["lam"]
-        n = len(qubits)
-        labels = _all_paulis(n)[1:]  # drop the identity
-        return PauliChannel(after_gate, qubits, {label: lam / 4**n for label in labels})
+    def __post_init__(self):
+        object.__setattr__(self, "qubits", tuple(int(q) for q in self.qubits))
+        if len(set(self.qubits)) != len(self.qubits):
+            raise ValueError(f"KrausChannel qubits {self.qubits} repeat a qubit.")
+        dim = 2 ** len(self.qubits)
+        kraus = tuple(np.asarray(k, dtype=complex) for k in self.kraus)
+        if not kraus or any(k.shape != (dim, dim) for k in kraus):
+            raise ValueError(
+                f"KrausChannel on {len(self.qubits)} qubit(s) needs {dim}x{dim} "
+                "Kraus operators."
+            )
+        completeness = sum(k.conj().T @ k for k in kraus)
+        if not np.allclose(completeness, np.eye(dim), atol=1e-10):
+            raise ValueError(
+                "KrausChannel operators are not trace preserving: "
+                "sum_k K_k^dag K_k != I."
+            )
+        object.__setattr__(self, "kraus", kraus)
 
-    if isinstance(channel, gates.PauliNoiseChannel):
-        probs = dict(channel.init_kwargs)
-        for label in probs:
-            if len(label) != len(qubits):
-                raise ValueError(
-                    f"qibo applied the Pauli error {label!r} to qubits {qubits}. "
-                    "qibo's PauliError spreads multi-qubit labels one qubit at a "
-                    "time; use PauliChannel directly for correlated noise."
-                )
-        return PauliChannel(after_gate, qubits, probs)
-
-    raise NotImplementedError(
-        f"{type(channel).__name__} is not a Pauli channel. mpstab.noise supports "
-        "qibo's PauliError and DepolarizingError; general Kraus channels such as "
-        "amplitude damping, thermal relaxation, reset and readout errors are not "
-        "supported."
-    )
-
-
-def _all_paulis(n: int) -> list[str]:
-    """Every Pauli string on ``n`` qubits, identity first."""
-    labels = [""]
-    for _ in range(n):
-        labels = [label + p for label in labels for p in "IXYZ"]
-    return labels
+    @property
+    def chi(self) -> dict[tuple[str, str], complex]:
+        """
+        The process matrix in the Pauli basis, ``{(A, B): chi[A, B]}``, with
+        ``A`` and ``B`` labels on :attr:`qubits`; entries below ``1e-15`` in
+        magnitude are left out. It is Hermitian, and its diagonal sums to 1.
+        """
+        k = len(self.qubits)
+        labels = ["".join(p) for p in product("IXYZ", repeat=k)]
+        matrices = []
+        for label in labels:
+            matrix = np.array([[1.0]], dtype=complex)
+            for p in label:
+                matrix = np.kron(matrix, PAULI_MATRICES[p])
+            matrices.append(matrix)
+        # K = sum_A c[A] A with c[A] = Tr(A K) / 2**k, as Paulis are Hermitian.
+        coefficients = np.array(
+            [[np.trace(m @ op) / 2**k for m in matrices] for op in self.kraus]
+        )
+        chi = coefficients.T @ coefficients.conj()
+        return {
+            (a, b): complex(chi[i, j])
+            for i, a in enumerate(labels)
+            for j, b in enumerate(labels)
+            if abs(chi[i, j]) > 1e-15
+        }

@@ -1,64 +1,99 @@
 """
 Layered correctness checks for `mpstab.qpu.measurement.pauli_expansion`, the
 Pauli-sampling half of the head/tail measurement split (the `"pauli"` route of
-`HSynthSMPO.expectation_at_cut`).
+`HQSMPO.expectation_at_cut`).
 
 Each test targets one layer in isolation so a failure localizes: coefficient
 extraction first (no randomness at all), then the perfect sampler against
 that same extraction, then QWC grouping as pure combinatorics, then the
 retained-weight bias bound that ties truncation back to the reported
 diagnostic. `test_expectation_methods.py` covers the next layer up (the
-`HSynthSMPO` integration and cross-method agreement).
+`HQSMPO` integration and cross-method agreement).
 """
 
 from itertools import product
 
 import numpy as np
 import pytest
-from qibo import set_backend
+from utils import pauli_matrix
 
 from mpstab.engines import QuimbEngine
-from mpstab.pauli import PAULI_ARRAY as PAULIS
-from mpstab.pauli import PAULI_LABELS as LABELS
-from mpstab.qpu.measurement import build_measurement_plan, group_qwc
+from mpstab.pauli import PAULI_LABELS
+from mpstab.qpu.measurement.pauli import build_measurement_plan, group_qwc
 from mpstab.qpu.measurement.pauli_expansion import (
     PauliEnsemble,
-    _draw_one_string,
+    _pauli_string_coefficient,
+    _retained_fraction,
     _right_environments,
-    enumerate_pauli_coefficients,
     mpo_to_pauli_mps,
     sample_pauli_strings,
     shadow_variance_from_mpo,
-    top_k_pauli_strings,
     truncation_error_estimate,
 )
 
-set_backend("numpy")
+# Brute-force references, exponential in n: small systems only.
 
 
-def _folded_mpo(base: str, generators, angles, max_bond=None):
-    """A tail-folded MPO with nontrivial bond dimension, no HSynthSMPO needed."""
-    engine = QuimbEngine()
-    mpo = engine.pauli_mpo(base)
-    for generator, angle in zip(generators, angles):
-        mpo = engine.conjugate_operator(mpo, generator, angle, max_bond)
-    return mpo
+def enumerate_pauli_coefficients(mpo):
+    """
+    Every ``(pauli_string, c_P)``, sorted by ``|c_P|**2`` descending.
+
+    Enumerates all ``4**n`` label sequences, so it is exponential in ``n``: use
+    it to validate the samplers on small systems, not in production.
+    """
+    tensors = mpo_to_pauli_mps(mpo)
+    n = len(tensors)
+    results = [
+        (
+            "".join(PAULI_LABELS[label] for label in labels),
+            _pauli_string_coefficient(tensors, labels),
+        )
+        for labels in product(range(4), repeat=n)
+    ]
+    results.sort(key=lambda item: -abs(item[1]) ** 2)
+    return results
 
 
-def _dense_pauli_matrix(label: str) -> np.ndarray:
-    matrix = PAULIS[LABELS.index(label[0])]
-    for char in label[1:]:
-        matrix = np.kron(matrix, PAULIS[LABELS.index(char)])
-    return matrix
+def top_k_pauli_strings(mpo, k: int) -> PauliEnsemble:
+    """
+    Deterministic top-``k`` strings by ``|c_P|**2``.
+
+    Goes through the full ``4**n`` enumeration, so it exists to validate
+    :func:`sample_pauli_strings` on small systems.
+    """
+    ranked = enumerate_pauli_coefficients(mpo)
+    total_weight = float(sum(abs(coefficient) ** 2 for _, coefficient in ranked))
+    coefficients = np.array([c for _, c in ranked[:k]], dtype=complex)
+    return PauliEnsemble(
+        strings=tuple(string for string, _ in ranked[:k]),
+        coefficients=coefficients,
+        retained_weight=_retained_fraction(coefficients, total_weight),
+        total_weight=total_weight,
+    )
 
 
-@pytest.fixture
-def scrambled_mpo():
-    """A 4-qubit operator scrambled enough to have several sizeable Pauli terms."""
-    rng = np.random.default_rng(3)
-    generators = ["YYII", "IXZY", "ZIXY", "YZYX"]
-    angles = [rng.uniform(0.3, 1.5) for _ in generators]
-    return _folded_mpo("ZZZI", generators, angles)
+def _draw_one_string(tensors, envs, rng) -> str:
+    """One unbatched left-to-right perfect-sampling sweep."""
+    left = np.ones((1, 1), dtype=complex)
+    labels = []
+    for site, tensor in enumerate(tensors):
+        weights = np.einsum(
+            "lm,ilr,ims,rs->i",
+            left,
+            tensor,
+            tensor.conj(),
+            envs[site + 1],
+            optimize=True,
+        ).real
+        weights = np.clip(weights, 0.0, None)
+        probabilities = weights / weights.sum()
+        label = int(rng.choice(4, p=probabilities))
+        labels.append(label)
+        left = (
+            np.einsum("lm,lr,ms->rs", left, tensor[label], tensor[label].conj())
+            / weights[label]
+        )
+    return "".join(PAULI_LABELS[label] for label in labels)
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +105,7 @@ def test_coefficients_match_dense_trace(scrambled_mpo):
     dense = scrambled_mpo.to_dense()
     nqubits = 4
     for label, coefficient in enumerate_pauli_coefficients(scrambled_mpo):
-        reference = np.trace(dense @ _dense_pauli_matrix(label)) / 2**nqubits
+        reference = np.trace(dense @ pauli_matrix(label)) / 2**nqubits
         assert (
             abs(coefficient - reference) < 1e-14
         ), f"[{label}] mps={coefficient} brute-force={reference}"
@@ -195,18 +230,12 @@ def test_measurement_plan_diagnostics(scrambled_mpo):
     coefficients = dict(zip(ensemble.strings, ensemble.coefficients))
     plan = build_measurement_plan(coefficients)
 
-    assert plan.n_settings == len(plan.groups)
-    assert plan.l1_norm == pytest.approx(sum(abs(c) for c in coefficients.values()))
-    assert plan.max_weight == max(sum(l != "I" for l in s) for s in coefficients)
-
-    # shots_upper_bound keeps the old (worst-case, perfectly-correlated) scaling.
-    assert plan.shots_upper_bound(1e-2) == pytest.approx(plan.l1_norm**2 / 1e-2**2)
-
-    # shots_for_precision now uses the Neyman-optimal, per-group-variance
-    # scaling instead, which is never larger than the worst case.
+    # Neyman-optimal, per-group-variance scaling, never above the ungrouped
+    # worst case ||c||_1**2 / epsilon**2.
     expected = sum(np.sqrt(v) for v in plan.group_variances) ** 2 / 1e-2**2
     assert plan.shots_for_precision(1e-2) == pytest.approx(expected)
-    assert plan.shots_for_precision(1e-2) <= plan.shots_upper_bound(1e-2) + 1e-6
+    l1_norm = sum(abs(c) for c in coefficients.values())
+    assert plan.shots_for_precision(1e-2) <= l1_norm**2 / 1e-2**2 + 1e-6
 
 
 # ---------------------------------------------------------------------------

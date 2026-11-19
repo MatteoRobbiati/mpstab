@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Iterable
 
 #: What each method takes and returns is engine-specific: an engine may
 #: represent states and operators however it likes, as long as the objects it
@@ -18,18 +18,15 @@ class TensorNetworkEngine(ABC):
     def build_circuit_mps(
         self,
         n: int,
-        initial_state_amplitudes: Any,
         initial_state_circuit: Any,
         max_bond_dimension: int | None = None,
     ):
         """
-        Build an MPS on ``n`` qubits in the given initial state.
+        Build an MPS on ``n`` qubits in the state a qibo circuit prepares.
 
         Args:
             n: number of qubits.
-            initial_state_amplitudes: array of per-site single-qubit amplitudes.
-            initial_state_circuit: the same state as a qibo circuit. Engines take
-                whichever of the two forms they prefer.
+            initial_state_circuit: the qibo circuit preparing the state.
             max_bond_dimension: truncation cap, or ``None`` for no cap.
         """
 
@@ -59,7 +56,8 @@ class TensorNetworkEngine(ABC):
         """
         raise NotImplementedError(
             f"{type(self).__name__} does not compute transition amplitudes, "
-            "which analytic gradients need; use QuimbEngine."
+            "which analytic gradients and non-Pauli noise channels need; use "
+            "QuimbEngine."
         )
 
     def apply_pauli_sum(
@@ -100,6 +98,15 @@ class TensorNetworkEngine(ABC):
         generator, angle = rotation
         self.pauli_rot(state_circuit, generator, angle, max_bond_dimension)
 
+    def squared_norm(self, state_circuit: Any):
+        """
+        ``<psi|psi>`` of a state, which truncation leaves below 1, as a backend
+        scalar (so it stays differentiable). The default asks the state's own
+        ``norm(squared=True)``, ``nan`` if it has none.
+        """
+        norm = getattr(state_circuit, "norm", None)
+        return float("nan") if norm is None else norm(squared=True)
+
     def copy_state(self, state_circuit: Any):
         """
         An independent copy of a state: evolving either one in place leaves
@@ -118,3 +125,20 @@ class TensorNetworkEngine(ABC):
         Heisenberg-conjugate ``operator`` by ``R = exp(-i angle/2 generator)``,
         returning ``R^dag . operator . R``.
         """
+
+    def conjugate_operator_many(
+        self, operator: Any, rotations: Iterable, max_bond_dimension: int
+    ):
+        """
+        Conjugate ``operator`` by each ``(generator, angle)`` rotation in turn,
+        as repeated :meth:`conjugate_operator` calls would: the first rotation
+        is folded first, i.e. it ends up innermost.
+
+        Engines override it to keep the operator in a working form across the
+        whole sequence instead of converting it on every call.
+        """
+        for generator, angle in rotations:
+            operator = self.conjugate_operator(
+                operator, generator, angle, max_bond_dimension
+            )
+        return operator

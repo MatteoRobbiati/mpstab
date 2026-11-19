@@ -11,20 +11,17 @@ that alternative out, and the two must agree exactly.
 """
 
 import time
-from functools import reduce
 
 import numpy as np
 import pytest
 import stim
-from qibo import set_backend
+from utils import rotation_unitary
 
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.evolutors.hsmpo import HSMPO
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.models.ansatze import QAE, QFT, QPE
-from mpstab.pauli import PAULI_LABELS, PAULI_MATRICES, validate_pauli_string
-
-set_backend("numpy")
+from mpstab.pauli import PAULI_LABELS, validate_pauli_string
 
 
 def _reference_dressed_rotations(hs):
@@ -51,7 +48,7 @@ _LIBRARY_ANSATZE = [
 )
 def test_dressed_rotations_match_reference(label, factory):
     ansatz = factory()
-    hs = HSynthSMPO.rotations_only(ansatz)
+    hs = HQSMPO.rotations_only(ansatz)
 
     reference = _reference_dressed_rotations(hs)
     fast = hs._dressed_rotations()
@@ -68,7 +65,7 @@ def test_dressed_rotations_is_faster_than_reference():
     # Large enough that the O(nmagic^2) reference is clearly, robustly slower
     # (~50x at n=10), while still completing in seconds: n=18 took ~3 minutes.
     ansatz = QFT(nqubits=10)
-    hs = HSynthSMPO.rotations_only(ansatz)
+    hs = HQSMPO.rotations_only(ansatz)
 
     t0 = time.perf_counter()
     reference = _reference_dressed_rotations(hs)
@@ -78,7 +75,7 @@ def test_dressed_rotations_is_faster_than_reference():
     fast = hs._dressed_rotations()
     t_fast = time.perf_counter() - t0
 
-    assert reference == fast
+    assert reference == list(fast)
     assert t_fast < t_reference, (
         f"single-pass path ({t_fast:.3f}s) not faster than the per-gate "
         f"reference ({t_reference:.3f}s)"
@@ -87,14 +84,6 @@ def test_dressed_rotations_is_faster_than_reference():
         f"\n[dressed_rotations] QFT n=10, nmagic={len(hs.magic_gates)}: "
         f"reference={t_reference:.3f}s fast={t_fast:.3f}s "
         f"speedup={t_reference / t_fast:.1f}x"
-    )
-
-
-def _rotation(generator: str, angle: float) -> np.ndarray:
-    """Dense ``exp(-i angle/2 G)`` for a Pauli string ``G``, qubit 0 leftmost."""
-    dense = reduce(np.kron, [PAULI_MATRICES[label] for label in generator])
-    return (
-        np.cos(angle / 2) * np.eye(2 ** len(generator)) - 1j * np.sin(angle / 2) * dense
     )
 
 
@@ -113,8 +102,8 @@ def test_conjugate_rotation_matches_dense_random_clifford(seed):
     validate_pauli_string(conjugated, 3)
     assert abs(conjugated_angle) == pytest.approx(abs(angle))
     np.testing.assert_allclose(
-        _rotation(conjugated, conjugated_angle),
-        unitary @ _rotation(generator, angle) @ unitary.conj().T,
+        rotation_unitary(conjugated, conjugated_angle),
+        unitary @ rotation_unitary(generator, angle) @ unitary.conj().T,
         atol=1e-12,
     )
 

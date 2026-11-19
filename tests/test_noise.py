@@ -1,31 +1,31 @@
-"""Tests for mpstab.noise: Pauli and coherent noise in the HSMPO frame."""
-
-from functools import reduce
+"""Tests for mpstab.noise: Pauli, coherent and Kraus noise in the HSMPO frame."""
 
 import numpy as np
 import pytest
 import stim
 from qibo import Circuit, gates
-from qibo.noise import AmplitudeDampingError, DepolarizingError, NoiseModel, PauliError
+from utils import pauli_matrix
 
 from mpstab import HSMPO
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
+from mpstab.engines import QuimbEngine
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
+from mpstab.noise import (
+    AmplitudeDampingError,
+    CoherentError,
+    DepolarizingError,
+    KrausError,
+    NoiseModel,
+    PauliError,
+    ReadoutError,
+    StatePreparationError,
+    ThermalRelaxationError,
+)
 from mpstab.noise.compile import compile_noise
 from mpstab.noise.estimator import noisy_expectation
-from mpstab.noise.events import (
-    CoherentRotation,
-    NoiseEvent,
-    PauliChannel,
-    from_qibo_noise_model,
-)
-from mpstab.pauli import PAULI_MATRICES
+from mpstab.noise.events import CoherentRotation, KrausChannel, NoiseEvent, PauliChannel
+from mpstab.noise.model import _qibo_gate
 
 OBSERVABLE = {"ZZIII": 0.7, "IXIXI": -0.4, "IIYZI": 0.3}
-
-
-def _matrix(pauli: str) -> np.ndarray:
-    return reduce(np.kron, [PAULI_MATRICES[label] for label in pauli])
 
 
 def _exact_expectation(circuit: Circuit, events, observable: dict) -> float:
@@ -47,7 +47,7 @@ def _exact_expectation(circuit: Circuit, events, observable: dict) -> float:
                 local = "".join(event.generator[q] for q in support)
                 unitary = np.cos(event.angle / 2) * np.eye(
                     2 ** len(support)
-                ) - 1j * np.sin(event.angle / 2) * _matrix(local)
+                ) - 1j * np.sin(event.angle / 2) * pauli_matrix(local)
                 noisy.add(gates.Unitary(unitary, *support))
 
     add_events(-1)
@@ -56,7 +56,9 @@ def _exact_expectation(circuit: Circuit, events, observable: dict) -> float:
         add_events(index)
 
     rho = noisy().state()
-    return sum(c * np.real(np.trace(rho @ _matrix(p))) for p, c in observable.items())
+    return sum(
+        c * np.real(np.trace(rho @ pauli_matrix(p))) for p, c in observable.items()
+    )
 
 
 def _hardware_efficient():
@@ -172,8 +174,7 @@ def test_light_cone_matches_unrestricted(make_ansatz):
     """Coherent noise is deterministic, so the two computations must agree."""
     circuit = make_ansatz().circuit
     events = _coherent(circuit, np.random.default_rng(7))
-    hsmpo = HSMPO(circuit)
-    hsmpo.set_engines(tn_engine=QuimbEngine(svd_cutoff=0.0))
+    hsmpo = HSMPO(circuit, tn_engine=QuimbEngine(svd_cutoff=0.0))
     compiled = compile_noise(hsmpo, events)
     for observable in (OBSERVABLE, "IIIIZ", "XIIII"):
         full = noisy_expectation(compiled, observable, n_samples=0, light_cone=False)
@@ -321,55 +322,6 @@ def test_truncated_strata_bias_is_bounded():
     assert sum(result.stratum_weights) == pytest.approx(1.0, abs=1e-14)
 
 
-def test_native_engine_matches_quimb():
-    """The engine's default rotation hooks give the same estimate as quimb's MPO cache."""
-    circuit = _kicked_ising().circuit
-    events = _depolarizing(circuit, 0.02)
-    quimb = noisy_expectation(
-        compile_noise(HSMPO(circuit), events), OBSERVABLE, n_samples=200, seed=9
-    )
-    native = HSMPO(circuit)
-    native.set_engines(tn_engine=NativeTensorNetworkEngine())
-    result = noisy_expectation(
-        compile_noise(native, events), OBSERVABLE, n_samples=200, seed=9
-    )
-    assert result.n_patterns == quimb.n_patterns
-    assert result.mean == pytest.approx(quimb.mean, abs=1e-10)
-
-
-# -- qibo noise models ----------------------------------------------------------
-
-
-def test_from_qibo_noise_model():
-    circuit = _kicked_ising().circuit
-    model = NoiseModel()
-    model.add(PauliError([("X", 0.01), ("Z", 0.02)]), gates.RX)
-    model.add(DepolarizingError(0.03), gates.CNOT)
-    events = from_qibo_noise_model(model, circuit)
-
-    cnots = [i for i, g in enumerate(circuit.queue) if g.name == "cx"]
-    assert [e.after_gate for e in events if len(e.qubits) == 2] == cnots
-    assert all(len(e.probs) == 15 for e in events if len(e.qubits) == 2)
-
-    density = Circuit(circuit.nqubits, density_matrix=True)
-    for gate in circuit.queue:
-        density.add(gate)
-    rho = model.apply(density)().state()
-    exact = sum(c * np.real(np.trace(rho @ _matrix(p))) for p, c in OBSERVABLE.items())
-
-    result = noisy_expectation(
-        compile_noise(HSMPO(circuit), events), OBSERVABLE, n_samples=1500, seed=8
-    )
-    assert abs(result.mean - exact) <= 4 * result.stderr + 1e-10
-
-
-def test_unsupported_qibo_channel():
-    model = NoiseModel()
-    model.add(AmplitudeDampingError(0.01), gates.RX)
-    with pytest.raises(NotImplementedError, match="AmplitudeDampingChannel"):
-        from_qibo_noise_model(model, _kicked_ising().circuit)
-
-
 # -- Validation -----------------------------------------------------------------
 
 
@@ -405,7 +357,7 @@ def test_two_qubit_rotations_as_magic_gates():
     circuit = _rzz_circuit()
     state = circuit().state()
     for pauli in ("ZZI", "XIY", "IYX"):
-        exact = np.real(state.conj() @ _matrix(pauli) @ state)
+        exact = np.real(state.conj() @ pauli_matrix(pauli) @ state)
         assert HSMPO(circuit).expectation(pauli) == pytest.approx(exact, abs=1e-12)
 
 
@@ -422,7 +374,7 @@ def test_two_qubit_rotations_replaced_by_cliffords():
         )
         assert not partitions["magic_gates"]
         state = partitions["full_circuit"]().state()
-        exact = np.real(state.conj() @ _matrix("ZXY") @ state)
+        exact = np.real(state.conj() @ pauli_matrix("ZXY") @ state)
         assert expval == pytest.approx(exact, abs=1e-12)
 
 
@@ -444,7 +396,7 @@ def _docstring_examples():
     objects += [
         events.PauliChannel,
         events.CoherentRotation,
-        events.from_qibo_noise_model,
+        events.KrausChannel,
     ]
     objects += [pauli.anticommutation, pauli.light_cone]
     for obj in objects:
@@ -473,12 +425,13 @@ def test_docstring_examples_run(code):
 
 def _model_expectation_exact(noise, circuit, observable):
     rho = noise.apply(circuit)().state()
-    return sum(c * np.real(np.trace(rho @ _matrix(p))) for p, c in observable.items())
+    return sum(
+        c * np.real(np.trace(rho @ pauli_matrix(p))) for p, c in observable.items()
+    )
 
 
 @pytest.mark.parametrize("make_ansatz", ANSATZE)
-def test_noise_model_matches_density_matrix(make_ansatz):
-    from mpstab.noise import CoherentError, DepolarizingError, NoiseModel, PauliError
+def test_noise_model_matches_densitypauli_matrix(make_ansatz):
 
     ansatz = make_ansatz()
     noise = NoiseModel()
@@ -495,7 +448,6 @@ def test_noise_model_matches_density_matrix(make_ansatz):
 
 
 def test_noise_model_matches_events():
-    from mpstab.noise import NoiseModel, PauliError
 
     circuit = _kicked_ising().circuit
     p = 0.01
@@ -514,7 +466,6 @@ def test_noise_model_matches_events():
 
 
 def test_noise_model_rules():
-    from mpstab.noise import CoherentError, DepolarizingError, NoiseModel, PauliError
 
     circuit = _hand_circuit()  # H(0), RZ(0), CNOT(0,1), RX(1)
     events = NoiseModel().add(PauliError({"Z": 0.1}), gates.CNOT).events(circuit)
@@ -543,7 +494,6 @@ def test_noise_model_rules():
 
 
 def test_noise_model_scaled():
-    from mpstab.noise import CoherentError, NoiseModel, PauliError
 
     circuit = _hand_circuit()
     noise = (
@@ -558,20 +508,7 @@ def test_noise_model_scaled():
     assert noise.scaled(0.0).events(circuit)[0].probs["X"] == 0.0
 
 
-def test_noise_model_from_qibo():
-    from mpstab.noise import NoiseModel as MpstabNoiseModel
-
-    circuit = _kicked_ising().circuit
-    model = NoiseModel()
-    model.add(DepolarizingError(0.03), gates.CNOT)
-    wrapped = MpstabNoiseModel.from_qibo(model)
-    assert wrapped.events(circuit) == from_qibo_noise_model(model, circuit)
-    with pytest.raises(NotImplementedError, match="scaled"):
-        wrapped.scaled(2.0)
-
-
 def test_noisy_expectation_without_noise():
-    from mpstab.noise import NoiseModel
 
     hsmpo = HSMPO(_kicked_ising())
     result = hsmpo.noisy_expectation(OBSERVABLE, NoiseModel())
@@ -580,7 +517,6 @@ def test_noisy_expectation_without_noise():
 
 
 def test_readout_matches_bit_flips_before_measurement():
-    from mpstab.noise import NoiseModel, PauliError, ReadoutError
 
     circuit = _kicked_ising().circuit
     noise = NoiseModel().add(PauliError({"Z": 0.004, "X": 0.002}))
@@ -593,14 +529,15 @@ def test_readout_matches_bit_flips_before_measurement():
         noisy.add(gates.PauliNoiseChannel([q], [("X", 0.03)]))
     noisy.add(gates.PauliNoiseChannel([1], [("X", 0.05)]))
     rho = noisy().state()
-    exact = sum(c * np.real(np.trace(rho @ _matrix(p))) for p, c in observable.items())
+    exact = sum(
+        c * np.real(np.trace(rho @ pauli_matrix(p))) for p, c in observable.items()
+    )
 
     result = HSMPO(circuit).noisy_expectation(observable, noise, n_samples=1500, seed=2)
     assert abs(result.mean - exact) <= 4 * result.stderr + 1e-10
 
 
 def test_readout_only_attenuates_terms():
-    from mpstab.noise import NoiseModel, ReadoutError
 
     hsmpo = HSMPO(_hardware_efficient())
     noise = NoiseModel().add(ReadoutError(0.1), qubits=[0, 2])
@@ -618,3 +555,387 @@ def test_readout_only_attenuates_terms():
 
     with pytest.raises(ValueError, match="without a gate"):
         NoiseModel().add(ReadoutError(0.1), gates.M)
+
+
+def test_parallel_patterns_match_serial():
+    from mpstab.noise import NoiseModel, PauliError
+
+    hsmpo = HSMPO(_kicked_ising(), max_bond_dimension=4)
+    noise = NoiseModel().add(PauliError({"X": 0.01, "Z": 0.02}))
+    serial = hsmpo.noisy_expectation(OBSERVABLE, noise, n_samples=200, seed=5)
+    parallel = hsmpo.noisy_expectation(
+        OBSERVABLE, noise, n_samples=200, seed=5, n_workers=3
+    )
+    assert parallel.mean == pytest.approx(serial.mean, abs=1e-12)
+    assert parallel.stderr == pytest.approx(serial.stderr, abs=1e-12)
+    np.testing.assert_allclose(parallel.fidelities, serial.fidelities, atol=1e-12)
+
+
+# -- Kraus channels: amplitude damping, thermal relaxation ----------------------
+
+
+def _events_exact(circuit, events, observable):
+    """``<observable>`` on qibo's density matrix with ``events`` inserted."""
+    by_gate = {}
+    for event in events:
+        by_gate.setdefault(event.after_gate, []).append(event)
+    noisy = Circuit(circuit.nqubits, density_matrix=True)
+    for event in by_gate.get(-1, ()):
+        noisy.add(_qibo_gate(event))
+    for index, gate in enumerate(circuit.queue):
+        noisy.add(gate)
+        for event in by_gate.get(index, ()):
+            noisy.add(_qibo_gate(event))
+    rho = noisy().state()
+    return sum(
+        c * np.real(np.trace(rho @ pauli_matrix(p))) for p, c in observable.items()
+    )
+
+
+def _random_kraus(rng, nqubits=2, rank=3):
+    """A random channel, from an isometry stacked into Kraus operators."""
+    dim = 2**nqubits
+    matrix = rng.normal(size=(rank * dim, dim)) + 1j * rng.normal(
+        size=(rank * dim, dim)
+    )
+    isometry, _ = np.linalg.qr(matrix)
+    return [isometry[k * dim : (k + 1) * dim] for k in range(rank)]
+
+
+def test_amplitude_damping_process_matrix():
+    gamma = 0.2
+    chi = AmplitudeDampingError(gamma)._event(0, (0,), 1).chi
+    a, b = (1 + np.sqrt(1 - gamma)) / 2, (1 - np.sqrt(1 - gamma)) / 2
+    assert chi[("I", "I")] == pytest.approx(a**2)
+    assert chi[("Z", "Z")] == pytest.approx(b**2)
+    assert chi[("X", "X")] == pytest.approx(gamma / 4)
+    assert chi[("Y", "Y")] == pytest.approx(gamma / 4)
+    assert chi[("I", "Z")] == pytest.approx(gamma / 4)
+    assert chi[("X", "Y")] == pytest.approx(-1j * gamma / 4)
+    for (p, q), value in chi.items():
+        assert chi[(q, p)] == pytest.approx(np.conj(value))
+    assert sum(chi[(p, p)] for p in "IXYZ").real == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("make_ansatz", ANSATZE)
+def test_single_kraus_location_is_exact(make_ansatz):
+    """One channel leaves nothing to sample: the k <= 1 strata are the answer."""
+    circuit = make_ansatz().circuit
+    hsmpo = HSMPO(circuit, tn_engine=QuimbEngine(svd_cutoff=0.0))
+    observable = dict(OBSERVABLE, IIIII=0.2, IIIIZ=0.5)
+    rng = np.random.default_rng(8)
+    two_qubit = [i for i, g in enumerate(circuit.queue) if len(g.qubits) == 2]
+    events = [
+        AmplitudeDampingError(0.3)._event(-1, (2,), 5),
+        AmplitudeDampingError(0.3)._event(3, (0,), 5),
+        ThermalRelaxationError(1.0, 0.6, 0.4, 0.2)._event(
+            len(circuit.queue) - 1, (4,), 5
+        ),
+        KrausChannel(
+            two_qubit[0], circuit.queue[two_qubit[0]].qubits, _random_kraus(rng)
+        ),
+    ]
+    for event in events:
+        result = noisy_expectation(compile_noise(hsmpo, [event]), observable)
+        assert result.n_samples == 0
+        assert result.n_transitions > 0
+        exact = _events_exact(circuit, [event], observable)
+        assert result.mean == pytest.approx(exact, abs=1e-10)
+
+
+def test_kraus_light_cone_matches_unrestricted():
+    circuit = _kicked_ising().circuit
+    hsmpo = HSMPO(circuit, tn_engine=QuimbEngine(svd_cutoff=0.0))
+    events = _coherent(circuit, np.random.default_rng(9))
+    events.append(AmplitudeDampingError(0.2)._event(4, (1,), 5))
+    compiled = compile_noise(hsmpo, events)
+    for observable in (OBSERVABLE, "IIIIZ", "ZIIII"):
+        full = noisy_expectation(compiled, observable, light_cone=False)
+        cut = noisy_expectation(compiled, observable)
+        assert cut.mean == pytest.approx(full.mean, abs=1e-12)
+        assert cut.mean == pytest.approx(
+            _events_exact(circuit, events, pauli_terms_dict(observable)), abs=1e-10
+        )
+
+
+def pauli_terms_dict(observable):
+    return {observable: 1.0} if isinstance(observable, str) else observable
+
+
+@pytest.mark.parametrize("make_ansatz", ANSATZE)
+def test_relaxation_matches_density_matrix(make_ansatz):
+    ansatz = make_ansatz()
+    noise = NoiseModel()
+    noise.add(
+        ThermalRelaxationError(t1=1.0, t2=0.8, time=0.01, excited_population=0.05)
+    )
+    noise.add(AmplitudeDampingError(0.02), (gates.CZ, gates.CNOT))
+    noise.add(PauliError({"X": 0.002, "Z": 0.004}))
+    result = HSMPO(ansatz).noisy_expectation(OBSERVABLE, noise, n_samples=2000, seed=3)
+    exact = _model_expectation_exact(noise, ansatz.circuit, OBSERVABLE)
+    assert result.stratum_weights[2] > 0.05  # the sampled stratum matters
+    assert abs(result.mean - exact) <= 4 * result.stderr + 1e-10
+    noiseless = HSMPO(ansatz).expectation(OBSERVABLE)
+    assert abs(exact - noiseless) > 1e-3  # and the noise matters
+
+
+def test_random_two_qubit_kraus_matches_density_matrix():
+    circuit = _hardware_efficient().circuit
+    rng = np.random.default_rng(10)
+    # A weak random channel: mostly the identity, a little of a random channel.
+    noise = NoiseModel()
+    weak = [np.sqrt(0.97) * np.eye(4)] + [np.sqrt(0.03) * k for k in _random_kraus(rng)]
+    noise.add(KrausError(weak), gates.CZ)
+    result = HSMPO(circuit).noisy_expectation(OBSERVABLE, noise, n_samples=2000, seed=4)
+    exact = _model_expectation_exact(noise, circuit, OBSERVABLE)
+    assert abs(result.mean - exact) <= 4 * result.stderr + 1e-10
+
+
+def test_kraus_validation():
+    with pytest.raises(ValueError, match="trace preserving"):
+        KrausError([np.eye(2), np.eye(2)])
+    with pytest.raises(ValueError, match="2\\*\\*k"):
+        KrausError([np.eye(3)])
+    with pytest.raises(ValueError, match="2 t1"):
+        ThermalRelaxationError(t1=1.0, t2=3.0, time=0.1)
+    with pytest.raises(NotImplementedError):
+        NoiseModel().add(KrausError([np.eye(2)])).scaled(2.0)
+    with pytest.raises(ValueError, match="width 2"):
+        NoiseModel().add(KrausError([np.eye(4)]), gates.H).events(_hand_circuit())
+
+
+def test_new_errors_scaled():
+    noise = NoiseModel().add(AmplitudeDampingError(0.01))
+    noise.add(ThermalRelaxationError(1.0, 1.0, 0.1)).add(ReadoutError(0.01, 0.03))
+    noise.add(StatePreparationError(0.02))
+    errors = [rule.error for rule in noise.scaled(2.0).rules]
+    assert errors[0].gamma == pytest.approx(0.02)
+    assert errors[1].time == pytest.approx(0.2)
+    assert (errors[2].p0, errors[2].p1) == pytest.approx((0.02, 0.06))
+    assert errors[3].p == pytest.approx(0.04)
+
+
+def test_pauli_transitions_against_statevectors():
+    rng = np.random.default_rng(11)
+    engine = QuimbEngine(svd_cutoff=0.0)
+    hsmpo = HSMPO(_hardware_efficient(), tn_engine=engine)
+    states, vectors = [], []
+    for _ in range(2):
+        mps = hsmpo.initial_mps()
+        vector = np.zeros(32, dtype=complex)
+        vector[0] = 1
+        for _ in range(6):
+            generator = "".join(rng.choice(list("IXYZ"), 5))
+            angle = rng.uniform(-1, 1)
+            engine.pauli_rot(mps, generator, angle, None)
+            matrix = pauli_matrix(generator)
+            vector = (
+                np.cos(angle / 2) * vector - 1j * np.sin(angle / 2) * matrix @ vector
+            )
+        states.append(mps)
+        vectors.append(vector)
+    paulis = ["IIIII", "ZXIYZ", "XIIIX"]
+    values = engine.pauli_transitions(states[0], states[1], paulis)
+    expected = [vectors[0].conj() @ pauli_matrix(p) @ vectors[1] for p in paulis]
+    np.testing.assert_allclose(values, expected, atol=1e-12)
+    same = engine.pauli_transitions(states[0], states[0], paulis)
+    np.testing.assert_allclose(
+        same,
+        [vectors[0].conj() @ pauli_matrix(p) @ vectors[0] for p in paulis],
+        atol=1e-12,
+    )
+
+
+# -- Crosstalk, idle noise and preparation errors --------------------------------
+
+
+def _layered_circuit():
+    """Five qubits on a line, queued layer by layer; qubit 4 never acts."""
+    circuit = Circuit(5)
+    circuit.add(gates.H(0))  # 0, moment 0
+    circuit.add(gates.CNOT(1, 2))  # 1, moment 0
+    circuit.add(gates.RX(3, theta=0.3))  # 2, moment 0
+    circuit.add(gates.CNOT(0, 1))  # 3, moment 1
+    circuit.add(gates.RY(2, theta=0.5))  # 4, moment 1
+    circuit.add(gates.CZ(2, 3))  # 5, moment 2
+    return circuit
+
+
+LINE = [(0, 1), (1, 2), (2, 3), (3, 4)]
+
+
+def test_crosstalk_rule_events():
+    circuit = _layered_circuit()
+    events = NoiseModel().add_crosstalk(CoherentError("ZZ", 0.1), LINE, gates.CNOT)
+    events = events.events(circuit)
+    assert [(e.after_gate, e.generator) for e in events] == [
+        (1, "ZZIII"),  # CNOT(1,2): spectators 0 (via 1) and 3 (via 2)
+        (1, "IIZZI"),
+        (3, "IZZII"),  # CNOT(0,1): spectator 2 (via 1)
+    ]
+    events = NoiseModel().add_crosstalk(PauliError({"Z": 0.1}), LINE, gates.CZ)
+    assert [(e.after_gate, e.qubits) for e in events.events(circuit)] == [
+        (5, (1,)),
+        (5, (4,)),
+    ]
+    with pytest.raises(ValueError, match="width 3"):
+        NoiseModel().add_crosstalk(PauliError({"ZZZ": 0.1}), LINE).events(circuit)
+
+
+def test_idle_rule_events():
+    circuit = _layered_circuit()
+    events = NoiseModel().add_idle(PauliError({"Z": 0.1})).events(circuit)
+    # Moment 0: 4 idle; moment 1: 3 and 4 idle; moment 2: 0, 1 and 4 idle.
+    assert [(e.after_gate, e.qubits) for e in events] == [
+        (-1, (4,)),
+        (2, (3,)),
+        (-1, (4,)),
+        (3, (0,)),
+        (3, (1,)),
+        (-1, (4,)),
+    ]
+    events = NoiseModel().add_idle(CoherentError("ZZ", 0.1), coupling=LINE)
+    assert [(e.after_gate, e.generator) for e in events.events(circuit)] == [
+        (2, "IIIZZ"),  # moment 1: after RX(3)
+        (3, "ZZIII"),  # moment 2: after CNOT(0,1)
+    ]
+    with pytest.raises(ValueError, match="coupling"):
+        NoiseModel().add_idle(CoherentError("ZZ", 0.1)).events(circuit)
+
+
+def test_idle_moments_follow_the_queue():
+    """A gate never starts before the one queued ahead of it, so moments never go back."""
+    circuit = Circuit(3)
+    for _ in range(3):
+        circuit.add(gates.H(2))  # 0-2: moments 0-2
+    circuit.add(gates.H(0))  # 3: moment 2, not 0
+    circuit.add(gates.CNOT(0, 2))  # 4: moment 3
+    circuit.add(gates.H(1))  # 5: moment 3
+    noise = NoiseModel().add_idle(PauliError({"ZZ": 0.1}), coupling=[(0, 1)])
+    # Qubits 0 and 1 are both idle in moments 0 and 1, before any gate.
+    assert [(e.after_gate, e.qubits) for e in noise.events(circuit)] == [
+        (-1, (0, 1)),
+        (-1, (0, 1)),
+    ]
+    events = NoiseModel().add_idle(PauliError({"Z": 0.1}), qubits=[1]).events(circuit)
+    assert [e.after_gate for e in events] == [-1, -1, -1]
+
+
+@pytest.mark.parametrize("make_ansatz", ANSATZE)
+def test_crosstalk_and_idle_match_density_matrix(make_ansatz):
+    ansatz = make_ansatz()
+    line = [(q, q + 1) for q in range(4)]
+    noise = NoiseModel()
+    noise.add_crosstalk(CoherentError("ZZ", 0.04), line, (gates.CZ, gates.CNOT))
+    noise.add_crosstalk(PauliError({"Z": 0.01}), line)
+    noise.add_idle(CoherentError("ZZ", 0.03), coupling=line)
+    noise.add_idle(AmplitudeDampingError(0.01))
+    noise.add(StatePreparationError(0.01))
+    hsmpo = HSMPO(ansatz, tn_engine=QuimbEngine(svd_cutoff=0.0))
+    result = hsmpo.noisy_expectation(OBSERVABLE, noise, n_samples=2000, seed=5)
+    exact = _model_expectation_exact(noise, ansatz.circuit, OBSERVABLE)
+    assert abs(result.mean - exact) <= 4 * result.stderr + 1e-10
+
+
+def test_coherent_twirled():
+    twirled = CoherentError("ZZ", 0.2).twirled()
+    assert twirled.probs == {"ZZ": pytest.approx(np.sin(0.1) ** 2)}
+
+
+def test_preparation_error_events():
+    circuit = _hand_circuit()
+    events = NoiseModel().add(StatePreparationError(0.1), qubits=[1]).events(circuit)
+    assert events == [PauliChannel(-1, (1,), {"X": 0.1})]
+    with pytest.raises(ValueError, match="without a gate"):
+        NoiseModel().add(StatePreparationError(0.1), gates.H)
+
+
+# -- Asymmetric readout -----------------------------------------------------------
+
+
+def _readout_exact(rho, observable, confusion):
+    """
+    ``<observable>`` read out with per-qubit confusion matrices
+    ``confusion[q][reported, true]``, each term measured in its own eigenbasis.
+    """
+    n = len(confusion)
+    total = 0.0
+    for pauli, coefficient in observable.items():
+        rotation = np.array([[1.0]])
+        for p in pauli:
+            basis = {
+                "X": np.array([[1, 1], [1, -1]]) / np.sqrt(2),
+                "Y": np.array([[1, -1j], [1, 1j]]) / np.sqrt(2),
+            }.get(p, np.eye(2))
+            rotation = np.kron(rotation, basis)
+        probs = np.real(np.diag(rotation @ rho @ rotation.conj().T))
+        probs = probs.reshape([2] * n)
+        for q in range(n):
+            probs = np.moveaxis(np.tensordot(confusion[q], probs, axes=(1, q)), 0, q)
+        signs = np.ones([2] * n)
+        for q, p in enumerate(pauli):
+            if p != "I":
+                shape = [1] * n
+                shape[q] = 2
+                signs = signs * np.array([1, -1]).reshape(shape)
+        total += coefficient * float(np.sum(probs * signs))
+    return total
+
+
+def test_asymmetric_readout_matches_confusion_matrices():
+    circuit = _kicked_ising().circuit
+    noise = NoiseModel().add(PauliError({"Z": 0.004, "X": 0.002}))
+    noise.add(ReadoutError(0.01, 0.04)).add(ReadoutError(0.02, 0.0), qubits=[1])
+    observable = {"ZZIII": 0.7, "IXIXI": -0.4, "IIYZZ": 0.3, "IIIII": 0.1}
+
+    confusion = []
+    for q in range(5):
+        matrix = np.eye(2)
+        errors = [(0.01, 0.04)] + ([(0.02, 0.0)] if q == 1 else [])
+        for p0, p1 in errors:
+            matrix = np.array([[1 - p0, p1], [p0, 1 - p1]]) @ matrix
+        confusion.append(matrix)
+    exact = _readout_exact(noise.apply(circuit)().state(), observable, confusion)
+
+    constant, terms = noise.readout_observable(observable, 5)
+    rho = noise.apply(circuit)().state()
+    folded = constant + sum(
+        c * np.real(np.trace(rho @ pauli_matrix(p))) for p, c in terms.items()
+    )
+    assert folded == pytest.approx(exact, abs=1e-12)
+
+    result = HSMPO(circuit).noisy_expectation(observable, noise, n_samples=1500, seed=6)
+    assert abs(result.mean - exact) <= 4 * result.stderr + 1e-10
+
+
+def test_causal_cone_drops_unreachable_kraus_locations():
+    """Damping that cannot reach the observable is the identity, by trace preservation."""
+    circuit = Circuit(4)
+    circuit.add(gates.RY(0, theta=0.4))
+    circuit.add(gates.CNOT(0, 1))
+    circuit.add(gates.RX(1, theta=0.3))
+    circuit.add(gates.RY(3, theta=0.7))
+    circuit.add(gates.CNOT(2, 3))
+    circuit.add(gates.RZ(2, theta=0.2))
+    hsmpo = HSMPO(circuit, tn_engine=QuimbEngine(svd_cutoff=0.0))
+    noise = NoiseModel().add(AmplitudeDampingError(0.1))
+    compiled = compile_noise(hsmpo, noise.events(circuit))
+
+    # Qubits 2 and 3 never meet 0 and 1: all of their damping drops out.
+    restricted = compiled.restricted_to([compiled.dress_observable("ZZII")[0]])
+    assert set(restricted.location_position) <= set(
+        range(len(restricted.generators) + 1)
+    )
+    for pauli in restricted.coherence_ket + restricted.coherence_bra:
+        assert pauli[2:] == "II"
+    assert len(restricted.coherence_weights) < len(compiled.coherence_weights)
+
+    # Damping after the last gate on qubits 2, 3 only: exactly noiseless for ZZII.
+    late = NoiseModel().add(AmplitudeDampingError(0.3), gates.CNOT, qubits=[2, 3])
+    result = hsmpo.noisy_expectation("ZZII", late)
+    assert result.n_transitions == 0
+    assert result.mean == pytest.approx(hsmpo.expectation("ZZII"), abs=1e-12)
+
+    result = hsmpo.noisy_expectation("ZZII", noise, n_samples=3000, seed=12)
+    exact = _model_expectation_exact(noise, circuit, {"ZZII": 1.0})
+    assert abs(result.mean - exact) <= 4 * result.stderr + 1e-10

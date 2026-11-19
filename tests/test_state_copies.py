@@ -1,11 +1,10 @@
 import copy
 
 import numpy as np
-import pytest
 from qibo import Circuit, gates
 
 from mpstab import HSMPO
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
+from mpstab.engines import QuimbEngine
 
 
 def _evolved(tn_engine):
@@ -15,13 +14,12 @@ def _evolved(tn_engine):
     for q in range(3):
         circuit.add(gates.CNOT(q, q + 1))
         circuit.add(gates.RZ(q + 1, theta=0.7))
-    hsmpo = HSMPO(circuit)
-    hsmpo.set_engines(tn_engine=tn_engine)
+    hsmpo = HSMPO(circuit, tn_engine=tn_engine)
     return hsmpo.original_circuit_mps
 
 
-@pytest.mark.parametrize("tn_engine", [QuimbEngine(), NativeTensorNetworkEngine()])
-def test_copy_state_is_independent(tn_engine):
+def test_copy_state_is_independent():
+    tn_engine = QuimbEngine()
     original = _evolved(tn_engine)
     reference = copy.deepcopy(original)
     paulis = ["ZIII", "XXIY", "IZZI"]

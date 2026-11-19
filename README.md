@@ -142,48 +142,21 @@ Run with coverage report:
 uv run pytest --cov=mpstab --cov-report=html
 ```
 
-Using the task runner ([Poethepoet](https://poethepoet.nauce.org/)):
-
-```bash
-uv run poe test
-```
-
 
 ## Development Workflow
 
-### Code Quality
-
-Code formatting and linting are managed through [pre-commit](https://pre-commit.com/). To set up:
+Code formatting is managed through [pre-commit](https://pre-commit.com/):
 
 ```bash
 pip install pre-commit
-cd mpstab
 pre-commit install
 ```
 
-From now on, `pre-commit` automatically checks and standardizes code on every commit. Additional checks:
+Build the documentation with:
 
 ```bash
-# Lint with pylint
-uv run poe lint
-
-# Check for warnings
-uv run poe lint-warnings
-```
-
-### Running Tasks
-
-Use [Poethepoet](https://poethepoet.nauce.org/) via uv:
-
-```bash
-# Run tests
-uv run poe test
-
-# Run benchmarks
-uv run poe bench
-
-# Build documentation
-uv run poe docs
+uv sync --group docs
+uv run sphinx-build -b html docs docs/_build/html
 ```
 
 ## Contribution Guidelines
@@ -201,7 +174,9 @@ Contributions are welcome! Please follow these guidelines:
    - Document all public functions and classes
    - Update documentation when changing APIs
    - Add docstrings following NumPy style
-   - **All code examples in documentation must be executable** — see [TESTING_DOCUMENTATION.md](TESTING_DOCUMENTATION.md) for guidelines
+   - **All code examples in documentation must be executable**: every `::`
+     block in `docs/**/*.rst` runs as a test (`pytest tests/test_rst_code_blocks.py`),
+     so give each block its own imports and variables
 
 4. **Pull Request Process**:
    - Fork the repository

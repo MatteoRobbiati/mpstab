@@ -9,12 +9,11 @@ Validates that:
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates
 from qibo.hamiltonians import SymbolicHamiltonian
 from qibo.symbols import X, Y, Z
 
 from mpstab import HSMPO
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
+from mpstab.engines import QuimbEngine
 from mpstab.hamiltonians import pauli_terms
 from mpstab.models.ansatze import HardwareEfficient
 
@@ -119,6 +118,24 @@ class TestDMRGOptimization:
         assert result["converged"], "DMRG should converge"
         assert result["energy"] < -1.0, "Energy should be negative and below -1.0"
         assert result["num_sweeps"] <= 10, "Should converge within max sweeps"
+
+    @pytest.mark.parametrize(
+        "hamiltonian",
+        [
+            {"ZZII": 1.0, "IIXX": 0.5, "IIII": 2.0},
+            SymbolicHamiltonian(nqubits=4, form=Z(0) * Z(1) + 0.5 * X(2) * X(3) + 2.0),
+        ],
+        ids=["dict-identity-term", "symbolic-constant"],
+    )
+    def test_energy_includes_constant_offset(self, hamiltonian):
+        """The identity term / constant shifts the reported energy, not the state."""
+        hsmpo = HSMPO(ansatz=HardwareEfficient(nqubits=4, nlayers=2))
+        result = hsmpo.minimize_expectation(
+            observables=hamiltonian, bond_dims=[8], max_sweeps=10, verbosity=0
+        )
+        # Ground state of ZZ + 0.5 XX on disjoint pairs is -1.5; the offset is +2.
+        assert result["energy"] == pytest.approx(0.5, abs=1e-6)
+        assert result["energy_history"][-1] == pytest.approx(result["energy"])
 
     def test_list_hamiltonian_optimization(self):
         """Test optimization with list Hamiltonian format (equal weights)."""
@@ -298,94 +315,21 @@ class TestHamiltonianConversion:
 
 
 class TestEngineSupportValidation:
-    """Test that unsupported engines raise appropriate errors."""
-
-    def test_native_tensor_network_engine_raises_not_implemented(self):
-        """Test that NativeTensorNetworkEngine raises NotImplementedError during initialization."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-
-        with pytest.raises(
-            NotImplementedError,
-            match="NativeTensorNetworkEngine is not supported by HSMPO",
-        ):
-            hsmpo = HSMPO(ansatz=ansatz)
-            hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
-
-    def test_native_tensor_network_engine_error_during_post_init(self):
-        """Test that NativeTensorNetworkEngine raises error at HSMPO creation if set as default."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-
-        # Verify that using NativeTensorNetworkEngine later also raises error
-        with pytest.raises(
-            NotImplementedError,
-            match="NativeTensorNetworkEngine is not supported by HSMPO",
-        ):
-            hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
-
-    def test_quimb_engine_works(self):
-        """Test that QuimbEngine works correctly (should pass without error)."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-
-        # This should not raise any error
-        hsmpo.set_engines(tn_engine=QuimbEngine())
-
-        # Verify it still works
-        result = hsmpo.expectation("ZZZZ")
-        assert isinstance(result, (float, np.floating))
-
-
-class TestEngineSupportValidation:
     """Test native engine support and graceful degradation."""
 
     def test_expectation_with_quimb_engine(self):
         """Test expectation calculation with QuimbEngine (default)."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-        hsmpo.set_engines(tn_engine=QuimbEngine())
+        hsmpo = HSMPO(ansatz=ansatz, tn_engine=QuimbEngine())
 
         # Should work without error
         result = hsmpo.expectation("ZZZZ")
         assert isinstance(result, (float, np.floating))
 
-    def test_expectation_with_native_engine(self):
-        """Test expectation calculation with NativeTensorNetworkEngine."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-
-        # Switch to NativeTensorNetworkEngine
-        hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
-
-        # Should work: expectation() supports native engine via statevector
-        result = hsmpo.expectation("ZZZZ")
-        assert isinstance(result, (float, np.floating))
-
-    def test_minimize_expectation_fails_with_native_engine(self):
-        """Test that minimize_expectation raises NotImplementedError for NativeTensorNetworkEngine."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-
-        # Switch to NativeTensorNetworkEngine
-        hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
-
-        # Should raise NotImplementedError
-        with pytest.raises(
-            NotImplementedError, match="DMRG optimization requires QuimbEngine"
-        ):
-            hsmpo.minimize_expectation(
-                observables={"ZZZZ": 1.0},
-                method="dmrg",
-                bond_dims=[8],
-                max_sweeps=2,
-                verbosity=0,
-            )
-
     def test_minimize_expectation_works_with_quimb_engine(self):
         """Test that minimize_expectation works with QuimbEngine."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-        hsmpo = HSMPO(ansatz=ansatz)
-        hsmpo.set_engines(tn_engine=QuimbEngine())
+        hsmpo = HSMPO(ansatz=ansatz, tn_engine=QuimbEngine())
 
         # Should work without error
         result = hsmpo.minimize_expectation(
@@ -401,24 +345,3 @@ class TestEngineSupportValidation:
         # Check whatever key is used for energy
         energy_key = "energy" if "energy" in result else "ground_state_energy"
         assert isinstance(result[energy_key], (float, np.floating))
-
-    def test_expectation_accuracy_native_vs_quimb(self):
-        """Verify expectation values match between native and quimb engines."""
-        ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-
-        # Calculate with Quimb engine
-        hsmpo_quimb = HSMPO(ansatz=ansatz)
-        hsmpo_quimb.set_engines(tn_engine=QuimbEngine())
-        result_quimb = hsmpo_quimb.expectation("ZZZZ")
-
-        # Calculate with Native engine
-        hsmpo_native = HSMPO(ansatz=ansatz)
-        hsmpo_native.set_engines(tn_engine=NativeTensorNetworkEngine())
-        result_native = hsmpo_native.expectation("ZZZZ")
-
-        # Results should match (within numerical precision)
-        np.testing.assert_allclose(result_native, result_quimb, rtol=1e-5)
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

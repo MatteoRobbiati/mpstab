@@ -20,13 +20,7 @@ from __future__ import annotations
 import numpy as np
 import scipy.linalg
 
-#: Single-qubit Paulis acting on the physical index.
-_PAULI_2x2 = {
-    "I": np.eye(2, dtype=complex),
-    "X": np.array([[0, 1], [1, 0]], dtype=complex),
-    "Y": np.array([[0, -1j], [1j, 0]], dtype=complex),
-    "Z": np.array([[1, 0], [0, -1]], dtype=complex),
-}
+from mpstab.pauli import PAULI_MATRICES as _PAULI_2x2
 
 
 def bounds(pauli: str) -> tuple[int, int] | None:
@@ -55,6 +49,21 @@ def apply_pauli(tensor: np.ndarray, label: str) -> np.ndarray:
     return out
 
 
+#: Largest ``|Q^H Q - I|`` entry a Cholesky QR may leave before it is rejected.
+_ORTHOGONALITY_TOL = 1e-12
+
+# Raw complex LAPACK routines: scipy.linalg's wrappers validate and copy their
+# inputs, which costs more than the factorization itself on the small matrices
+# of a low bond dimension.
+_POTRF, _TRTRS, _HEEVR, _HEEVR_LWORK = scipy.linalg.lapack.get_lapack_funcs(
+    ("potrf", "trtrs", "heevr", "heevr_lwork"), dtype=np.complex128
+)
+
+#: Optimal ``heevr`` workspace sizes per matrix order: its default is the
+#: minimum, which runs unblocked and is markedly slower on large matrices.
+_HEEVR_WORKSPACE: dict = {}
+
+
 def _svd(matrix: np.ndarray):
     """Thin SVD, falling back to the slower but sturdier ``gesvd`` driver."""
     try:
@@ -63,6 +72,43 @@ def _svd(matrix: np.ndarray):
         return scipy.linalg.svd(
             matrix, full_matrices=False, lapack_driver="gesvd", check_finite=False
         )
+
+
+def _cholesky_qr(matrix: np.ndarray):
+    """
+    Thin QR of a tall matrix by Cholesky QR, repeated once if the first pass
+    left ``Q`` short of orthonormal (CholQR2), or ``None`` when the matrix is
+    too ill-conditioned for it (Cholesky fails or ``Q`` stays non-orthonormal).
+
+    Its cost is a few matrix products, which BLAS runs far faster than the
+    Householder QR of LAPACK on the small, tall matrices MPS sweeps produce.
+    """
+    rows, cols = matrix.shape
+    if rows < cols:
+        return None
+    identity = np.eye(cols)
+    q, r = np.asarray(matrix, dtype=np.complex128), None
+    gram = q.conj().T @ q
+    for _ in range(2):
+        step, info = _POTRF(gram, lower=0, clean=1)
+        if info != 0:
+            return None
+        # Q = M R^-1, from R^T Q^T = M^T.
+        solution, info = _TRTRS(step, q.T, lower=0, trans=1)
+        if info != 0:
+            return None
+        q = solution.T
+        r = step if r is None else step @ r
+        gram = q.conj().T @ q
+        if np.abs(gram - identity).max() < _ORTHOGONALITY_TOL:
+            return q, r
+    return None
+
+
+def _qr(matrix: np.ndarray):
+    """Thin QR: Cholesky QR when the matrix allows it, Householder otherwise."""
+    result = _cholesky_qr(matrix)
+    return np.linalg.qr(matrix) if result is None else result
 
 
 def n_kept(s: np.ndarray, cutoff: float, max_bond: int | None) -> int:
@@ -82,18 +128,94 @@ def n_kept(s: np.ndarray, cutoff: float, max_bond: int | None) -> int:
     return max(keep, 1)
 
 
+def _eigh(hermitian: np.ndarray):
+    """
+    Eigendecomposition of a Hermitian matrix, ascending, by LAPACK's MRRR
+    driver (``heevr``), the fastest of the ones scipy exposes at these sizes.
+    """
+    order = hermitian.shape[0]
+    workspace = _HEEVR_WORKSPACE.get(order)
+    if workspace is None:
+        lwork, lrwork, liwork, _ = _HEEVR_LWORK(order)
+        workspace = _HEEVR_WORKSPACE[order] = dict(
+            lwork=int(lwork.real), lrwork=int(lrwork), liwork=int(liwork)
+        )
+    values, vectors, _, _, info = _HEEVR(
+        np.asarray(hermitian, dtype=np.complex128), compute_v=1, lower=0, **workspace
+    )
+    if info != 0:
+        raise np.linalg.LinAlgError(f"heevr failed with info={info}")
+    return values, vectors
+
+
+def _gram_rank(values: np.ndarray, cutoff: float, max_bond: int | None) -> int:
+    """
+    :func:`n_kept` for the descending eigenvalues of a Gram matrix, the
+    squared singular values. Eigenvalues within roundoff of zero, below
+    ``order * eps`` of the largest, are dropped even at ``cutoff=0``: the Gram
+    matrix cannot tell them from an exact zero, and keeping them would only
+    inflate the bond with noise directions.
+    """
+    values = np.clip(values, 0.0, None)
+    noise = values.size * np.finfo(float).eps * (values[0] if values.size else 0.0)
+    rank = max(int(np.count_nonzero(values > noise)), 1)
+    return min(n_kept(np.sqrt(values), cutoff, max_bond), rank)
+
+
+def _split_left_isometry(matrix: np.ndarray, cutoff: float, max_bond: int | None):
+    """
+    Truncated ``matrix ~ iso @ rest`` with ``iso`` orthonormal columns: the
+    rank-``k`` SVD truncation ``U_k (S_k V_k^H)``, up to a gauge on the bond.
+
+    The singular values come from the eigendecomposition of the Gram matrix
+    on the smaller side: about a fifth cheaper than LAPACK's SVD on the
+    square bond-doubled matrices of a rotation window, more on oblong ones.
+    Squaring the matrix only blurs singular values below ``sqrt(eps)`` of the
+    largest, the ones the ``"rsum2"`` cutoff drops anyway. When the Gram matrix sits on
+    the side of ``rest``, ``iso`` is re-orthonormalized by Cholesky QR, and
+    anything too ill-conditioned for that goes through a plain SVD.
+    """
+    rows, cols = matrix.shape
+    try:
+        if rows <= cols:
+            # M M^H = U S^2 U^H, so U_k is the isometry outright.
+            values, vectors = _eigh(matrix @ matrix.conj().T)
+            k = _gram_rank(values[::-1], cutoff, max_bond)
+            iso = vectors[:, ::-1][:, :k]
+            return iso, iso.conj().T @ matrix
+        # M^H M = V S^2 V^H; M V_k = U_k S_k still needs orthonormalizing.
+        values, vectors = _eigh(matrix.conj().T @ matrix)
+        k = _gram_rank(values[::-1], cutoff, max_bond)
+        kept = vectors[:, ::-1][:, :k]
+        factors = _cholesky_qr(matrix @ kept)
+        if factors is not None:
+            iso, r = factors
+            return iso, r @ kept.conj().T
+    except np.linalg.LinAlgError:
+        pass
+    u, s, vh = _svd(matrix)
+    k = n_kept(s, cutoff, max_bond)
+    return u[:, :k], s[:k, None] * vh[:k]
+
+
+def _split_right_isometry(matrix: np.ndarray, cutoff: float, max_bond: int | None):
+    """Truncated ``matrix ~ rest @ iso`` with ``iso`` orthonormal rows."""
+    iso, rest = _split_left_isometry(matrix.conj().T, cutoff, max_bond)
+    return rest.conj().T, iso.conj().T
+
+
 def move_center(A: list[np.ndarray], center: int, target: int) -> int:
     """Shift the orthogonality center to ``target`` with QR steps; returns it."""
     while center < target:
         left, phys, right = A[center].shape
-        q, r = np.linalg.qr(A[center].reshape(left * phys, right))
+        q, r = _qr(A[center].reshape(left * phys, right))
         A[center] = q.reshape(left, phys, -1)
         A[center + 1] = np.tensordot(r, A[center + 1], axes=(1, 0))
         center += 1
     while center > target:
         left, phys, right = A[center].shape
         # M = R^T Q^T from the QR of M^T, so Q^T has orthonormal rows.
-        q, r = np.linalg.qr(A[center].reshape(left, phys * right).T)
+        q, r = _qr(A[center].reshape(left, phys * right).T)
         A[center] = q.T.reshape(-1, phys, right)
         A[center - 1] = np.tensordot(A[center - 1], r.T, axes=(2, 0))
         center -= 1
@@ -114,13 +236,77 @@ def pauli_rotation(
     The rotation is ``cos(angle/2) I - i sin(angle/2) P``, a bond-2 MPO that is
     the identity outside the generator's support ``[a, b]``. On ``[a, b]`` it is
     applied directly as a block-diagonal stack of the two branches, after which
-    the window alone is re-canonicalized with QR and truncated with SVD. A
-    one-site generator is a 2x2 unitary and needs no truncation at all.
+    the window alone is re-canonicalized with QR and truncated. A one-site
+    generator is a 2x2 unitary and needs no truncation at all.
+
+    Returns:
+        The new orthogonality center.
+    """
+    return _windowed_rotation(
+        A,
+        center,
+        bounds(generator),
+        lambda j, tensor: apply_pauli(tensor, generator[j]),
+        angle,
+        max_bond,
+        cutoff,
+    )
+
+
+#: ``P (x) I`` and ``I (x) P^T`` on the vectorized index ``2 * out + in`` of an
+#: operator site: left and right multiplication by ``P``.
+_LEFT_PAULI = {label: np.kron(m, np.eye(2)) for label, m in _PAULI_2x2.items()}
+_RIGHT_PAULI = {label: np.kron(np.eye(2), m.T) for label, m in _PAULI_2x2.items()}
+
+
+def operator_conjugation(
+    A: list[np.ndarray],
+    center: int,
+    generator: str,
+    angle: float,
+    max_bond: int | None,
+    cutoff: float,
+) -> int:
+    """
+    Replace the MPO ``O`` by ``R^dag O R``, ``R = exp(-i angle/2 generator)``,
+    in place.
+
+    ``A`` holds the MPO as an MPS whose site tensors are ``(left, 4, right)``,
+    the physical index being ``2 * out + in``, in mixed canonical form for the
+    Frobenius inner product. Right multiplication by ``R`` is then the
+    rotation generated by ``I (x) P^T`` on that index, and left multiplication
+    by ``R^dag`` the one generated by ``P (x) I`` at angle ``-angle``: two
+    windowed bond-2 rotations, each truncated like :func:`pauli_rotation`.
 
     Returns:
         The new orthogonality center.
     """
     window = bounds(generator)
+    if window is None:  # a global phase, which conjugation cancels
+        return center
+    for table, signed_angle in ((_RIGHT_PAULI, angle), (_LEFT_PAULI, -angle)):
+        center = _windowed_rotation(
+            A,
+            center,
+            window,
+            lambda j, tensor, table=table: (
+                tensor
+                if generator[j] == "I"
+                else np.einsum("pq,lqr->lpr", table[generator[j]], tensor)
+            ),
+            signed_angle,
+            max_bond,
+            cutoff,
+        )
+    return center
+
+
+def _windowed_rotation(A, center, window, flip, angle, max_bond, cutoff) -> int:
+    """
+    Apply ``cos(angle/2) - i sin(angle/2) F`` in place, ``F`` a product of
+    local involutions on the sites of ``window`` (``(a, b)``, or ``None`` for
+    no site), ``flip(j, tensor)`` applying the one on site ``j``.
+    """
     cos, sin = np.cos(angle / 2), np.sin(angle / 2)
 
     if window is None:  # a global phase
@@ -130,8 +316,7 @@ def pauli_rotation(
     a, b = window
     if a == b:
         # A physical-index unitary keeps every isometry an isometry.
-        gate = cos * _PAULI_2x2["I"] - 1j * sin * _PAULI_2x2[generator[a]]
-        A[a] = np.einsum("pq,lqr->lpr", gate, A[a])
+        A[a] = cos * A[a] - 1j * sin * flip(a, A[a])
         return center
 
     # Enter the window from whichever end the center is closer to.
@@ -140,7 +325,7 @@ def pauli_rotation(
 
     for j in range(a, b + 1):
         tensor = A[j]
-        flipped = apply_pauli(tensor, generator[j])
+        flipped = flip(j, tensor)
         if j == a:
             A[j] = np.concatenate([tensor, flipped], axis=2)
         elif j == b:
@@ -159,19 +344,21 @@ def pauli_rotation(
         move_center(A, a, b)
         for j in range(b, a, -1):
             left, phys, right = A[j].shape
-            u, s, vh = _svd(A[j].reshape(left, phys * right))
-            k = n_kept(s, cutoff, max_bond)
-            A[j] = vh[:k].reshape(k, phys, right)
-            A[j - 1] = np.tensordot(A[j - 1], u[:, :k] * s[:k], axes=(2, 0))
+            rest, iso = _split_right_isometry(
+                A[j].reshape(left, phys * right), cutoff, max_bond
+            )
+            A[j] = iso.reshape(-1, phys, right)
+            A[j - 1] = np.tensordot(A[j - 1], rest, axes=(2, 0))
         return a
 
     move_center(A, b, a)
     for j in range(a, b):
         left, phys, right = A[j].shape
-        u, s, vh = _svd(A[j].reshape(left * phys, right))
-        k = n_kept(s, cutoff, max_bond)
-        A[j] = u[:, :k].reshape(left, phys, k)
-        A[j + 1] = np.tensordot(s[:k, None] * vh[:k], A[j + 1], axes=(1, 0))
+        iso, rest = _split_left_isometry(
+            A[j].reshape(left * phys, right), cutoff, max_bond
+        )
+        A[j] = iso.reshape(left, phys, -1)
+        A[j + 1] = np.tensordot(rest, A[j + 1], axes=(1, 0))
     return b
 
 

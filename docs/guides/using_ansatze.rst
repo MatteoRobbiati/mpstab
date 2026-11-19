@@ -40,7 +40,7 @@ Circuit-library ansätze
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 MPSTAB ships a small library of textbook circuits — ``QFT``, ``QFTPhaseKernel``,
-``Grover``, ``QPE``, ``QAE`` and ``TrotterIsing`` — useful as HSMPO/HSynthSMPO
+``Grover``, ``QPE``, ``QAE`` and ``TrotterIsing`` — useful as HSMPO/HQSMPO
 benchmarks. They are written with high-level gates (``CU1``, ``SWAP``,
 ``TOFFOLI``, ``RZZ``, …) and, by default, transpiled to a native gate set on
 construction, so every non-Clifford gate becomes an ``rz`` rotation that HSMPO
@@ -62,7 +62,7 @@ can consume — you never hand-decompose anything::
 
 Pass ``transpile=False`` to keep the raw high-level circuit for inspection
 (HSMPO itself requires the transpiled form). These pair naturally with
-``HSynthSMPO`` and its cut-index split — see :doc:`../api/engines`.
+``HQSMPO`` and its cut-index split — see :doc:`../api/engines`.
 
 
 Building Custom Ansätze

@@ -69,7 +69,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+_build/
 
 # PyBuilder
 .pybuilder/
@@ -166,8 +166,14 @@ benchmarks/results/
 *DS_Store*
 Thumbs.db
 
-# Circuits saved by HSynthSMPO.plan() when no out_folder is given
+# Circuits saved by HQSMPO.plan() when no out_folder is given
 planned_runs/
 
 # Unpublished examples, kept locally only
 /old/
+
+# Local scratch: benchmark output, throwaway notebooks, tool state
+.benchmarks/
+benchmark_results/
+Untitled*.ipynb
+.claude/

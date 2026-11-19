@@ -1,7 +1,7 @@
 Models & Methods
 ================
 
-The models subpackage contains quantum circuit templates (ansätze), error mitigation techniques, and analysis tools.
+The models subpackage contains quantum circuit templates (ansätze) and analysis tools.
 
 Ansätze: Quantum Circuit Templates
 ----------------------------------
@@ -30,7 +30,7 @@ Ansätze are pre-built quantum circuit patterns used as templates for quantum al
 - ``KickedIsing``: Kicked Ising chain with RX/RZ kicks and CNOT-RZ-CNOT couplings, already in HSMPO form
 - ``ParametricKickedIsing``: Kicked Ising chain at a Clifford point plus deviations; only the deviations are magic gates
 
-*Circuit library (textbook algorithms, for HSMPO/HSynthSMPO benchmarks):*
+*Circuit library (textbook algorithms, for HSMPO/HQSMPO benchmarks):*
 
 - ``QFT``: Quantum Fourier Transform
 - ``QFTPhaseKernel``: QFT followed by a diagonal RZ phase kernel
@@ -48,8 +48,6 @@ form.
 
 **Key Methods**:
 
-- ``execute(nshots, initial_state, with_noise)``: Execute the circuit
-- ``update_noise_model(noise_model)``: Add noise to simulation
 - ``partitionate_circuit(replacement_probability, replacement_method)``: Partition circuit
 - ``nparams``: Number of circuit parameters
 - ``circuit``: Access the underlying QiboCircuit
@@ -67,16 +65,6 @@ form.
     result = simulator.expectation("ZZZZZ")
 
 See :doc:`../guides/using_ansatze` for detailed examples.
-
-Error Mitigation
-----------------
-
-Techniques for reducing approximation errors and improving simulation accuracy.
-
-.. automodule:: mpstab.models.mitigation_methods
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Entanglement Metrics & Analysis
 --------------------------------

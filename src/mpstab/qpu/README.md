@@ -1,19 +1,19 @@
 # QPU: running a head/tail split on a device
 
-This package answers one question: **given a circuit that `HSynthSMPO` has
+This package answers one question: **given a circuit that `HQSMPO` (Hybrid Quantum Stabilizer Matrix Product Operator) has
 split into a "head" and a "tail" at some cut point, how do we actually get an
 expectation value out of real (or simulated) quantum hardware?**
 
 ## The problem in one picture
 
-`HSynthSMPO` represents a circuit as a chain of "dressed" Pauli rotations. A
+`HQSMPO` represents a circuit as a chain of "dressed" Pauli rotations. A
 cut point `k` splits that chain in two: the magic (non-Clifford) gates become
 rotations that get cut into a head and a tail; the Clifford gates are free and
 exact, absorbed however they fall relative to the cut. The head is
 resynthesised and run on the device; the tail is folded into the observable
 classically, with no shot spent on it at all:
 
-![Head/tail split: a circuit's magic gates become a chain of rotations, cut into a head that runs on the device and a tail folded classically into the observable, then measured with finite shots into an expectation value with noise and truncation.](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_head_tail_split_concept_en.png)
+![Head/tail split: a circuit's magic gates become a chain of rotations, cut into a head that runs on the device and a tail folded classically into the observable, then measured with finite shots into an expectation value with noise and truncation.](../../../examples/scripts/quantum_hardware/figures/hqsmpo_head_tail_split_concept_en.png)
 
 So instead of running the *whole* circuit and measuring `O`, we run only the
 *head* on the device and measure a *different* operator `O'` -- the
@@ -28,7 +28,8 @@ finally a number, however global or entangled `O'` turned out to be.**
 ```
 synthesis/      head's rotations   ->  a runnable circuit
                                         (+ a small Clifford leftover)
-                rustiq.py, cnot_ladder.py; utils.py holds the gate-list format
+                rustiq.py, extraction.py, cnot_ladder.py; utils.py holds the
+                gate-list format
 
 measurement/    O' (as an MPO)     ->  which circuits to run, how many shots
                                         each (fixed BEFORE anything runs, so
@@ -36,7 +37,7 @@ measurement/    O' (as an MPO)     ->  which circuits to run, how many shots
                                         on real hardware)
                 measured           ->  a value + its error bar
                 frequencies
-                one module per method: pauli.py, shadows.py, tnice.py;
+                one module per method: pauli.py, shadows.py;
                 pauli_expansion.py turns O' into Pauli strings for them
 
 execution/      a plan's circuits  ->  frequencies (simulator.py), or
@@ -44,22 +45,20 @@ execution/      a plan's circuits  ->  frequencies (simulator.py), or
                                         (qasm.py, storage.py)
 ```
 
-`HSynthSMPO.expectation_at_cut` (in `mpstab.evolutors.hsynthsmpo`) is the one
+`HQSMPO.expectation_at_cut` (in `mpstab.evolutors.hqsmpo`) is the one
 function that runs all three steps and hands back the result. Everything
 below explains what happens *inside* it.
 
 On a real device the steps happen at different times, so they can also be run
-one by one: `HSynthSMPO.plan` builds the plan and, given an `out_folder`, saves
+one by one: `HQSMPO.plan` builds the plan and, given an `out_folder`, saves
 its circuits as OpenQASM with their shots (`execution/storage.py`). A device backend runs
 those files, and `estimate(plan, frequencies)` recombines the counts.
 
-## Three ways to turn O' into a number
+## Two ways to turn O' into a number
 
-All three share the *same* first step (resynthesising the head into a
-circuit) and differ only in what they measure and how they turn the results
-back into a number:
-
-![Three measurement routes from the same head on chip: pauli samples and groups Pauli strings then drops the weak ones; shadows measures a random basis per shot then contracts with the MPO, noisier per shot; tnice reuses the same shots and bases as shadows but fits an estimator on half the data and evaluates on the rest.](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_three_measurement_routes_en.png)
+Both share the *same* first step (resynthesising the head into a circuit)
+and differ only in what they measure and how they turn the results back into
+a number.
 
 ### `"pauli"` -- sample and group
 
@@ -80,20 +79,6 @@ The catch is the fixed recipe used to turn a shot into a number (the
 that spread across many qubits -- a well-known limitation of classical
 shadows with *local* random measurements.
 
-### `"tnice"` -- the same shadows data, smarter post-processing
-
-Runs the *exact same* circuits and shots as `"shadows"` (same random bases,
-same seed) -- nothing about what runs on the device changes. The only
-difference is what happens after: instead of the fixed canonical-dual
-recipe, it fits a second small tensor network (an MPS of "reconstruction
-coefficients") to the measured data, chosen to minimize the statistical
-variance while still reproducing `O'` on average. This is the
-Mangini & Cavalcanti TN-ICE method (arXiv:2407.02923) -- see
-`measurement/tnice.py`'s module docstring for the equations. Because it reuses
-`"shadows"`'s measurement data unchanged, it's directly comparable: same
-"quantum" cost (shots and circuits), usually a smaller error bar, at the
-price of some extra *classical* compute to do the fit.
-
 ## The two currencies
 
 Every route spends two different things, and they don't trade off the same
@@ -101,13 +86,10 @@ way:
 
 - **Quantum**: circuits executed on the device and shots spent. This is
   fixed once a route and a shot budget are chosen (`"pauli"` typically needs
-  far fewer distinct circuits than `"shadows"`/`"tnice"`, which need one
-  random basis per shot by construction).
-- **Classical**: the post-processing cost of `estimate()`. Trivial for
-  `"pauli"`/`"shadows"` (a fixed contraction); for `"tnice"` it scales with
-  how entangled `O'` is (its MPO bond dimension) -- expensive exactly when
-  the tail is long and `"shadows"`'s variance problem is worst, cheap when
-  the tail is short and there was nothing to gain in the first place.
+  far fewer distinct circuits than `"shadows"`, which needs one random basis
+  per shot by construction).
+- **Classical**: the post-processing cost of `estimate()`, a fixed
+  contraction for both routes.
 
 ## How much does accuracy actually cost?
 
@@ -116,7 +98,7 @@ hardware design: a few steps of
 Double-Bracket Quantum Imaginary-Time Evolution (`qrisp.algorithms.qite`,
 arXiv:2412.04554) approximating the ground state of a 6-site Heisenberg
 chain (8 physical qubits once `qrisp`'s own ancilla qubits are counted, 77
-magic gates after `HSynthSMPO`'s Clifford/magic split). One
+magic gates after `HQSMPO`'s Clifford/magic split). One
 fixed cut, one fixed observable (a spin-spin correlator), pricing every shot
 at 1 EUR:
 
@@ -126,7 +108,7 @@ at 1 EUR:
 decomposition) is chosen *before* any shot is spent -- raising it costs
 exactly 0 EUR, only classical compute:
 
-![pauli error vs n_string_samples, free](../../../examples/scripts/quantum_hardware/figures/hsynthsmpo_qite_cost_analysis.png)
+![pauli error vs n_string_samples, free](../../../examples/scripts/quantum_hardware/figures/hqsmpo_qite_cost_analysis.png)
 
 *(left panel)* At a fixed 4000-shot budget, `total_error` barely moves from
 `n_string_samples=20` to `800` (0.53 -> 0.44) -- it's dominated almost
@@ -148,46 +130,45 @@ not reduce it; only a larger bond dimension, or a cut closer to the end, does.
 the anti-Hermitian part it leaves in the sampled coefficients, which is
 projected out before measuring.
 
-### EUR spent vs accuracy, all three routes
+### EUR spent vs accuracy
 
-*(right panel, same figure)* Fixing `"pauli"` at `n_string_samples=800` and
-sweeping the shot budget for all three routes:
+*(right panel, same figure; its third curve is the TN-ICE estimator that
+mpstab no longer ships)* Fixing `"pauli"` at `n_string_samples=800` and
+sweeping the shot budget:
 
-| EUR spent | pauli | shadows | tnice |
-|---:|---:|---:|---:|
-| 200  | 0.466 | 0.784 | **0.394** |
-| 500  | 0.450 | 0.588 | **0.274** |
-| 1000 | 0.445 | 0.352 | **0.232** |
-| 2000 | 0.443 | 0.275 | **0.211** |
-| 4000 | 0.441 | 0.200 | **0.175** |
+| EUR spent | pauli | shadows |
+|---:|---:|---:|
+| 200  | **0.466** | 0.784 |
+| 500  | **0.450** | 0.588 |
+| 1000 | 0.445 | **0.352** |
+| 2000 | 0.443 | **0.275** |
+| 4000 | 0.441 | **0.200** |
 
-(`total_error`, lower is better.) `"tnice"` is cheapest at every budget
-measured here, and its curve tracks closest to the `1/sqrt(EUR)` reference a
-statistically well-behaved estimator should follow; `"pauli"` is flat for
-the reason above (it needs more `n_string_samples`, not more EUR); `"shadows"`
-improves steadily but stays the most expensive of the three in this range.
+(`total_error`, lower is better.) `"pauli"` is flat for the reason above (it
+needs more `n_string_samples`, not more EUR); `"shadows"` improves steadily
+along the `1/sqrt(EUR)` a statistically well-behaved estimator should
+follow, and overtakes `"pauli"` around 1000 EUR.
 
 **Extrapolating beyond the measured range is where this breaks down --
 worth saying explicitly rather than glossing over.** Fitting a power law to
 these five points and solving for "EUR needed to reach `total_error=0.07`"
-gives `"shadows"` ~36,000 EUR, `"tnice"` ~126,000 EUR, and `"pauli"` a
-physically meaningless multi-digit-exponent number, because `"pauli"`'s curve
-isn't a power law at all here -- it's a plateau (see above), and a power-law
-fit through five nearly-flat points extrapolates nonsense the moment you ask
-it to reach below that plateau. The lesson isn't "shadows beats tnice
-asymptotically"; it's **don't trust a cost extrapolation past the shot range
-you actually measured**, especially for a route that's visibly not
+gives `"shadows"` ~36,000 EUR, and `"pauli"` a physically meaningless
+multi-digit-exponent number, because `"pauli"`'s curve isn't a power law at
+all here -- it's a plateau (see above), and a power-law fit through five
+nearly-flat points extrapolates nonsense the moment you ask it to reach below
+that plateau. The lesson: **don't trust a cost extrapolation past the shot
+range you actually measured**, especially for a route that's visibly not
 shot-noise-limited yet.
 
 ## Where to look next
 
-- `mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut` -- the entry
+- `mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut` -- the entry
   point; its docstring lists every argument each route accepts.
-- `tests/test_expectation_methods.py`, `tests/test_pauli_sampling.py`,
-  `tests/test_tnice.py` -- one route/module per test file, each checked
+- `tests/test_expectation_methods.py`, `tests/test_pauli_sampling.py` --
+  one route/module per test file, each checked
   against the exact (uncut) reference.
 - `examples/scripts/quantum_hardware/` -- runnable examples: how folding
   the tail into the observable MPO introduces error
-  (`hsynthsmpo_mpo_approximation.py`), and a fully resynthesized head
+  (`hqsmpo_mpo_approximation.py`), and a fully resynthesized head
   measured with finite shots through the `"pauli"` route
-  (`hsynthsmpo_rustiq_fold.py`).
+  (`hqsmpo_rustiq_fold.py`).

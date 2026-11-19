@@ -1,5 +1,5 @@
 """
-`HSMPO.rotations_only` / `HSynthSMPO.rotations_only`: a lazy constructor that
+`HSMPO.rotations_only` / `HQSMPO.rotations_only`: a lazy constructor that
 skips the eager MPS precompute in `__post_init__`, for when only the dressed
 rotations or a resynthesized circuit are needed.
 """
@@ -8,26 +8,12 @@ import time
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates, set_backend
+from utils import small_entangled_circuit
 
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine, StimEngine
-from mpstab.engines.stabilizers.native import NativeStabilizersEngine
+from mpstab.engines import QuimbEngine, StimEngine
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.evolutors.hsmpo import HSMPO
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
-
-set_backend("numpy")
-
-
-def _small_entangled_circuit(n=4):
-    circ = Circuit(n)
-    for q in range(n):
-        circ.add(gates.H(q))
-    for q in range(n - 1):
-        circ.add(gates.CZ(q, q + 1))
-    for q in range(n):
-        circ.add(gates.RY(q, theta=float(np.random.uniform(0.1, 1.2))))
-    return circ
 
 
 def test_rotations_only_sets_expected_attributes():
@@ -62,8 +48,8 @@ def test_rotations_only_skips_mps_precompute():
 
 
 def test_rotations_only_accepts_plain_qibo_circuit():
-    circuit = _small_entangled_circuit(4)
-    lazy = HSynthSMPO.rotations_only(circuit)
+    circuit = small_entangled_circuit(4)
+    lazy = HQSMPO.rotations_only(circuit)
 
     assert isinstance(lazy.ansatz, CircuitAnsatz)
     assert lazy.nqubits == 4
@@ -73,8 +59,8 @@ def test_rotations_only_accepts_plain_qibo_circuit():
 def test_rotations_only_dressed_rotations_match_full_construction():
     ansatz = HardwareEfficient(nqubits=5, nlayers=3)
 
-    full = HSynthSMPO(ansatz)
-    lazy = HSynthSMPO.rotations_only(ansatz)
+    full = HQSMPO(ansatz)
+    lazy = HQSMPO.rotations_only(ansatz)
 
     assert lazy._dressed_rotations() == full._dressed_rotations()
 
@@ -88,8 +74,9 @@ def test_rotations_only_validates_engine_types():
         HSMPO.rotations_only(ansatz, tn_engine="not-an-engine")
 
     # Non-default but valid engines are accepted and stored as-is.
-    lazy = HSMPO.rotations_only(ansatz, stab_engine=NativeStabilizersEngine())
-    assert isinstance(lazy.stab_engine, NativeStabilizersEngine)
+    engine = StimEngine()
+    lazy = HSMPO.rotations_only(ansatz, stab_engine=engine)
+    assert lazy.stab_engine is engine
 
 
 def test_set_engines_upgrades_lazy_instance():

@@ -1,4 +1,4 @@
-"""Pauli and coherent noise on the HSMPO surrogate.
+"""Pauli, coherent and general (Kraus) noise on the HSMPO surrogate.
 
 Build a :class:`NoiseModel` with :meth:`NoiseModel.add`, as in qibo, then call
 :meth:`~mpstab.HSMPO.noisy_expectation`::
@@ -16,18 +16,26 @@ into the Clifford frame, and the fault-pattern estimator) lives in
 
 from mpstab.noise.estimator import NoisyExpectation
 from mpstab.noise.model import (
+    AmplitudeDampingError,
     CoherentError,
     DepolarizingError,
+    KrausError,
     NoiseModel,
     PauliError,
     ReadoutError,
+    StatePreparationError,
+    ThermalRelaxationError,
 )
 
 __all__ = [
+    "AmplitudeDampingError",
     "CoherentError",
     "DepolarizingError",
+    "KrausError",
     "NoiseModel",
     "NoisyExpectation",
     "PauliError",
     "ReadoutError",
+    "StatePreparationError",
+    "ThermalRelaxationError",
 ]

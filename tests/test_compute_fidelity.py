@@ -1,13 +1,10 @@
 import pytest
 from numpy import allclose, round
-from qibo import set_backend
 from utils import DEFAULT_ATOL
 
 from mpstab.engines import QuimbEngine, StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
-
-set_backend("numpy")
 
 
 @pytest.mark.parametrize("nlayers", [2, 9, 15])
@@ -21,8 +18,9 @@ def test_fidelity_decreases_with_layers(nlayers):
     hs = HSMPO(
         ansatz=ansatz,
         max_bond_dimension=max_bond_dim,
+        stab_engine=StimEngine(),
+        tn_engine=QuimbEngine(),
     )
-    hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine())
     _, fidelity = hs.expectation(observable, return_fidelity=True)
 
     # Store fidelity for the first run
@@ -44,8 +42,9 @@ def test_fidelity_decreases_with_bond_dim(max_bond_dim):
     hs = HSMPO(
         ansatz=ansatz,
         max_bond_dimension=max_bond_dim,
+        stab_engine=StimEngine(),
+        tn_engine=QuimbEngine(),
     )
-    hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine())
     _, fidelity = hs.expectation(observable, return_fidelity=True)
 
     # Store fidelity for the first run
@@ -66,8 +65,9 @@ def test_fidelity_faithfull(nqubits):
     hs = HSMPO(
         ansatz=ansatz,
         max_bond_dimension=max_bond_dim,
+        stab_engine=StimEngine(),
+        tn_engine=QuimbEngine(),
     )
-    hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine())
     _, fidelity = hs.expectation(observable, return_fidelity=True)
 
     fidelity_check = hs.truncation_fidelity()

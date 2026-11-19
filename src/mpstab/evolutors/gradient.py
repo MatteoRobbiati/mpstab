@@ -24,7 +24,7 @@ of a gate object queued several times.
 
 Not covered here: gradients under noise (an average over fault patterns of
 the XOR of fault and parameter rows), and the parameters of the head that
-:class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO` runs on hardware, which
+:class:`~mpstab.evolutors.hqsmpo.HQSMPO` runs on hardware, which
 still need shifted circuits.
 """
 

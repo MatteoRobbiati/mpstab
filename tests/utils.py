@@ -1,11 +1,14 @@
 import random
+from functools import reduce
 
 import numpy as np
 from qibo import Circuit, gates, hamiltonians
 from qibo.backends import Backend, construct_backend, get_backend
 from qibo.symbols import X, Y, Z
 
+from mpstab.engines import QuimbEngine
 from mpstab.hamiltonians import pauli_string_to_hamiltonian
+from mpstab.pauli import PAULI_MATRICES
 
 DEFAULT_REPLACEMENT_PROBABILITY = 0.75
 DEFAULT_MAX_BD = 128
@@ -101,3 +104,51 @@ def construct_symbolic_hamiltonian(
     return hamiltonians.SymbolicHamiltonian(
         nqubits=nqubits, form=ham_form, backend=qibo_backend
     )
+
+
+def pauli_matrix(pauli: str) -> np.ndarray:
+    """Dense matrix of a Pauli string, qubit 0 leftmost."""
+    return reduce(np.kron, [PAULI_MATRICES[label] for label in pauli])
+
+
+def dense_expectation(state, pauli: str) -> float:
+    """``<state|pauli|state>`` on a dense statevector."""
+    state = np.asarray(state)
+    return float(np.real(np.vdot(state, pauli_matrix(pauli) @ state)))
+
+
+def rotation_unitary(generator: str, angle: float) -> np.ndarray:
+    """Dense ``exp(-i angle/2 G)`` for a Pauli string ``G``."""
+    return np.cos(angle / 2) * np.eye(2 ** len(generator)) - 1j * np.sin(
+        angle / 2
+    ) * pauli_matrix(generator)
+
+
+def small_entangled_circuit(nqubits: int = 4) -> Circuit:
+    """H layer + CZ chain + seeded RY layer: yields multi-qubit dressed rotations."""
+    set_rng_seed()
+    circ = Circuit(nqubits)
+    for q in range(nqubits):
+        circ.add(gates.H(q))
+    for q in range(nqubits - 1):
+        circ.add(gates.CZ(q, q + 1))
+    for q in range(nqubits):
+        circ.add(gates.RY(q, theta=float(np.random.uniform(0.1, 1.2))))
+    return circ
+
+
+def folded_mpo(base: str, generators, angles, max_bond=None):
+    """A Pauli MPO conjugated by Pauli rotations, as HQSMPO folds a tail."""
+    engine = QuimbEngine()
+    mpo = engine.pauli_mpo(base)
+    for generator, angle in zip(generators, angles):
+        mpo = engine.conjugate_operator(mpo, generator, angle, max_bond)
+    return mpo
+
+
+def magic_gates(ansatz):
+    """The ansatz's non-Clifford gates, with nothing replaced by a Clifford."""
+    (gates_, _), _ = ansatz.partitionate_circuit(
+        replacement_probability=0.0, replacement_method="closest"
+    )
+    return gates_

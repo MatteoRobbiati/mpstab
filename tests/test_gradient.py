@@ -8,7 +8,7 @@ from qibo import Circuit, gates
 from utils import construct_symbolic_hamiltonian
 
 from mpstab import HSMPO
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine, StimEngine
+from mpstab.engines import QuimbEngine, StimEngine
 from mpstab.evolutors.gradient import analytic_gradient
 from mpstab.models.ansatze import HardwareEfficient
 from mpstab.pauli import PAULI_MATRICES
@@ -292,16 +292,6 @@ def test_gradient_finite_bond_dimension(method):
     np.testing.assert_allclose(
         hsmpo.gradient(observable, method=method), exact, atol=1e-9
     )
-
-
-@pytest.mark.parametrize(
-    "method, message", [("adjoint", "Pauli sums"), ("flips", "transition amplitudes")]
-)
-def test_gradient_native_engine_not_supported(method, message):
-    hsmpo = HSMPO(_generic_circuit(nlayers=1))
-    hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
-    with pytest.raises(NotImplementedError, match=message):
-        hsmpo.gradient(OBSERVABLE, method=method)
 
 
 def test_gradient_adjoint_cost_is_independent_of_parameters():

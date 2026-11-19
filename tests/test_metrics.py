@@ -7,15 +7,12 @@ the sampled stabilizer Renyi entropy only to within its statistical error.
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates, set_backend
+from qibo import Circuit, gates
 from qibo.quantum_info import meyer_wallach_entanglement, stabilizer_renyi_entropy
 
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
 from mpstab.models.metrics import meyer_wallach_mps, stabilizer_renyi_entropy_mps
-
-set_backend("numpy")
 
 
 def _ghz(n):
@@ -77,13 +74,9 @@ def test_meyer_wallach_mps_partial_entanglement():
     [_ghz(4), _kicked_ising(6, 3, 1.2), _hardware_efficient(5, 3, seed=1)],
     ids=["ghz", "kicked_ising", "hardware_efficient"],
 )
-@pytest.mark.parametrize(
-    "tn_engine", [QuimbEngine, NativeTensorNetworkEngine], ids=["quimb", "native"]
-)
-def test_meyer_wallach_mps_matches_dense(circuit, tn_engine):
+def test_meyer_wallach_mps_matches_dense(circuit):
     dense = meyer_wallach_entanglement(circuit.copy()().state())
     hsmpo = HSMPO(ansatz=circuit.copy())
-    hsmpo.set_engines(tn_engine=tn_engine())
     assert meyer_wallach_mps(hsmpo) == pytest.approx(dense, abs=1e-10)
 
 
@@ -92,7 +85,7 @@ def test_meyer_wallach_mps_grows_with_hardware_efficient_layers():
     Deeper HardwareEfficient circuits approach the Haar-random average
     (2^n - 2) / (2^n + 1), close to 1. A single random instance need not grow
     monotonically, so Q is averaged over seeds.
-    
+
     """
     n, seeds = 6, range(10)
     nlayers = [1, 3, 5, 10]

@@ -1,7 +1,6 @@
 """Stabilizers engine backed by stim."""
 
-from collections import OrderedDict
-from dataclasses import dataclass, field
+from functools import lru_cache
 
 import numpy as np
 import stim
@@ -34,19 +33,22 @@ def _is_multiple_of(angle, target, atol: float = 1e-5) -> bool:
     return difference < atol or abs(difference - 2 * np.pi) < atol
 
 
-#: How many backpropagation tableaus :class:`StimEngine` keeps.
-_TABLEAU_CACHE_SIZE = 32
-
-
-@dataclass
-class StimEngine(StabilizersEngine):
-    """Clifford backpropagation and tableau folding, powered by stim."""
-
-    #: ``U^dag`` tableaus of recently backpropagated circuits, keyed by the
-    #: circuit's content so in-place parameter changes can never hit a stale one.
-    _tableaus: OrderedDict = field(
-        default_factory=OrderedDict, init=False, repr=False, compare=False
+@lru_cache(maxsize=32)
+def _inverse_tableau(width: int, instructions: tuple) -> stim.Tableau:
+    """
+    ``U^dag`` for the circuit given as stim instructions. Cached on the
+    circuit's content, so in-place parameter changes can never hit a stale one.
+    """
+    simulator = stim.TableauSimulator()
+    simulator.do(
+        stim.Circuit("\n".join([f"I {width - 1}", *filter(None, instructions)]))
     )
+    # current_inverse_tableau() is U^dag, so conjugating by it gives U^dag O U.
+    return simulator.current_inverse_tableau()
+
+
+class StimEngine(StabilizersEngine):
+    """Clifford backpropagation of Pauli observables, powered by stim."""
 
     def backpropagate(self, observable: str, clifford_circuit: Circuit):
         """
@@ -70,59 +72,10 @@ class StimEngine(StabilizersEngine):
             return []
         # Size the tableau to at least the observables: stim sizes a circuit by
         # the highest qubit any gate touches, which may be lower.
-        tableau = self._inverse_tableau(
-            max(map(len, observables)), self.instructions(clifford_circuit)
+        tableau = _inverse_tableau(
+            max(map(len, observables)), tuple(self.instructions(clifford_circuit))
         )
         return [conjugate(o, tableau) for o in observables]
-
-    def _inverse_tableau(self, width: int, instructions: list) -> stim.Tableau:
-        """``U^dag`` for the circuit given as :meth:`instructions`, cached."""
-        key = (width, tuple(instructions))
-        tableau = self._tableaus.get(key)
-        if tableau is not None:
-            self._tableaus.move_to_end(key)
-            return tableau
-        simulator = stim.TableauSimulator()
-        simulator.do(
-            stim.Circuit("\n".join([f"I {width - 1}", *filter(None, instructions)]))
-        )
-        # current_inverse_tableau() is U^dag, so conjugating by it gives U^dag O U.
-        tableau = simulator.current_inverse_tableau()
-        self._tableaus[key] = tableau
-        if len(self._tableaus) > _TABLEAU_CACHE_SIZE:
-            self._tableaus.popitem(last=False)
-        return tableau
-
-    def fold_pauli_through_tableau(
-        self, pauli_str: str, tableau: stim.Tableau, sign: float = 1.0
-    ):
-        """
-        Reabsorb a Clifford ``tableau`` applied *after* the state into an observable.
-
-        Since ``<psi| U^dag . P . U |psi> = <psi| M |psi>`` with
-        ``M = U^dag . P . U``, folding the Clifford residual of a resynthesis into
-        the observable is exact and involves no tensor-network truncation.
-
-        Args:
-            pauli_str: Pauli string (qubit-0-leftmost), e.g. ``"XZIZ"``.
-            tableau: the Clifford to reabsorb.
-            sign: prefactor carried on the input Pauli.
-
-        Returns:
-            ``(pauli_string, sign)`` for the folded observable.
-        """
-        return conjugate(pauli_str, tableau.inverse(), sign)
-
-    def to_stim(self, circuit: Circuit) -> stim.Circuit:
-        """
-        Convert a Clifford qibo circuit into a stim circuit.
-
-        Raises:
-            ValueError: on a non-Clifford rotation angle, or a gate with no stim
-                equivalent. Unsupported gates fail loudly rather than being
-                dropped, which would silently give a wrong Pauli frame.
-        """
-        return stim.Circuit("\n".join(filter(None, self.instructions(circuit))))
 
     def instructions(self, circuit: Circuit) -> list:
         """
@@ -133,7 +86,9 @@ class StimEngine(StabilizersEngine):
         instructions one call at a time, so circuits are assembled as text.
 
         Raises:
-            ValueError: as :meth:`to_stim`.
+            ValueError: on a non-Clifford rotation angle, or a gate with no stim
+                equivalent. Unsupported gates fail loudly rather than being
+                dropped, which would silently give a wrong Pauli frame.
         """
         return [gate_instruction(gate) for gate in circuit.queue]
 

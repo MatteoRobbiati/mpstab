@@ -26,11 +26,14 @@ Among our core features:
 
 .. toctree::
    :maxdepth: 2
-   :caption: Tutorials & Examples
+   :caption: Examples
 
-   examples/introduction
-   examples/state_metrics
-   examples/vqe_gradients
+   examples/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Guides
+
    guides/dmrg_optimization
    guides/qibo_backend_provider
    guides/working_with_engines

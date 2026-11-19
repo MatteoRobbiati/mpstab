@@ -14,11 +14,10 @@ sigma[b,k]``, hence the ``"kb,bk"`` index patterns below.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import product
 
 import numpy as np
 
-from mpstab.pauli import PAULI_ARRAY, PAULI_LABELS
+from mpstab.pauli import PAULI_ARRAY, PAULI_LABELS, conjugate
 
 
 def mpo_site_arrays(mpo) -> list:
@@ -69,6 +68,16 @@ def fold_fidelity(mpo, nqubits: int) -> float:
     weight the truncation discarded.
     """
     return float(np.real(mpo.norm())) ** 2 / 2**nqubits
+
+
+def fold_truncation_l2(coefficient, mpo, nqubits: int) -> float:
+    """
+    ``|c| sqrt(1 - fold_fidelity)``: a term's share of the bias of folding its
+    tail at a finite bond dimension, from the norm the fold lost.
+    """
+    return abs(coefficient) * float(
+        np.sqrt(max(0.0, 1.0 - fold_fidelity(mpo, nqubits)))
+    )
 
 
 def shadow_variance_from_mpo(mpo) -> float:
@@ -140,26 +149,6 @@ def _ensemble(tensors, strings: tuple, total_weight: float) -> PauliEnsemble:
     )
 
 
-def enumerate_pauli_coefficients(mpo, top_k=None):
-    """
-    Every ``(pauli_string, c_P)``, sorted by ``|c_P|**2`` descending.
-
-    Enumerates all ``4**n`` label sequences, so it is exponential in ``n``: use
-    it to validate the samplers on small systems, not in production.
-    """
-    tensors = mpo_to_pauli_mps(mpo)
-    n = len(tensors)
-    results = [
-        (
-            "".join(PAULI_LABELS[label] for label in labels),
-            _pauli_string_coefficient(tensors, labels),
-        )
-        for labels in product(range(4), repeat=n)
-    ]
-    results.sort(key=lambda item: -abs(item[1]) ** 2)
-    return results[:top_k] if top_k is not None else results
-
-
 def _right_environments(tensors) -> list:
     n = len(tensors)
     envs = [None] * (n + 1)
@@ -175,32 +164,11 @@ def _right_environments(tensors) -> list:
     return envs
 
 
-def _draw_one_string(tensors, envs, rng) -> str:
-    """One left-to-right perfect-sampling sweep, cost ``O(n chi**2)``."""
-    left = np.ones((1, 1), dtype=complex)
-    labels = []
-    for site, tensor in enumerate(tensors):
-        weights = np.einsum(
-            "lm,ilr,ims,rs->i",
-            left,
-            tensor,
-            tensor.conj(),
-            envs[site + 1],
-            optimize=True,
-        ).real
-        weights = np.clip(weights, 0.0, None)
-        probabilities = weights / weights.sum()
-        label = int(rng.choice(4, p=probabilities))
-        labels.append(label)
-        left = (
-            np.einsum("lm,lr,ms->rs", left, tensor[label], tensor[label].conj())
-            / weights[label]
-        )
-    return "".join(PAULI_LABELS[label] for label in labels)
-
-
 def _draw_many_strings(tensors, envs, n_samples: int, rng) -> np.ndarray:
-    """:func:`_draw_one_string` batched over a sample axis, ``O(n_samples n chi**2)``."""
+    """
+    Draw ``n_samples`` strings by left-to-right perfect sampling, batched over
+    the sample axis: cost ``O(n_samples n chi**2)``.
+    """
     n = len(tensors)
     left = np.ones((n_samples, 1, 1), dtype=complex)
     labels = np.empty((n_samples, n), dtype=np.int64)
@@ -255,24 +223,6 @@ def sample_pauli_strings(mpo, n_samples: int, seed=None) -> PauliEnsemble:
     drawn = {"".join(PAULI_LABELS[label] for label in row) for row in labels}
 
     return _ensemble(tensors, tuple(sorted(drawn)), total_weight)
-
-
-def top_k_pauli_strings(mpo, k: int) -> PauliEnsemble:
-    """
-    Deterministic top-``k`` strings by ``|c_P|**2``.
-
-    Goes through the full ``4**n`` enumeration, so it exists to validate
-    :func:`sample_pauli_strings` on small systems.
-    """
-    ranked = enumerate_pauli_coefficients(mpo)
-    total_weight = float(sum(abs(coefficient) ** 2 for _, coefficient in ranked))
-    coefficients = np.array([c for _, c in ranked[:k]], dtype=complex)
-    return PauliEnsemble(
-        strings=tuple(string for string, _ in ranked[:k]),
-        coefficients=coefficients,
-        retained_weight=_retained_fraction(coefficients, total_weight),
-        total_weight=total_weight,
-    )
 
 
 # Relative size below which a weight is floating-point noise, not signal.
@@ -337,7 +287,7 @@ def pool_pauli_terms(terms) -> dict:
     return pooled
 
 
-def fold_pool_through_tableau(pool: dict, residual_tableau, stab_engine) -> dict:
+def fold_pool_through_tableau(pool: dict, residual_tableau) -> dict:
     """
     Conjugate every pooled ``{pauli: coefficient}`` entry through ``residual_tableau``.
 
@@ -351,13 +301,12 @@ def fold_pool_through_tableau(pool: dict, residual_tableau, stab_engine) -> dict
 
     Args:
         pool: ``{pauli: coefficient}``, already pooled across Hamiltonian terms.
-        residual_tableau: the Clifford residual, a ``stim.Tableau``.
-        stab_engine: a :class:`~mpstab.engines.StimEngine`.
+        residual_tableau: the Clifford residual ``R``, a ``stim.Tableau``;
+            every string ``P`` becomes ``R^dag P R``.
     """
+    inverse = residual_tableau.inverse()
     folded: dict = {}
     for label, coefficient in pool.items():
-        folded_label, sign = stab_engine.fold_pauli_through_tableau(
-            label, residual_tableau, 1.0
-        )
+        folded_label, sign = conjugate(label, inverse)
         folded[folded_label] = folded.get(folded_label, 0.0) + coefficient * sign
     return folded

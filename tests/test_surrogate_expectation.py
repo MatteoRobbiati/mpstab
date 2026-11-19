@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates, set_backend
+from qibo import Circuit, gates
 from utils import (
     DEFAULT_MAX_BD,
     DEFAULT_REPLACEMENT_PROBABILITY,
@@ -17,9 +17,6 @@ from mpstab.engines import StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
-set_backend("numpy")
-set_rng_seed()
-
 
 @pytest.mark.parametrize("observable", ["ZIIXI", "XIXXI", "ZYXZI"])
 def test_expectation_matches_qibo(observable):
@@ -31,8 +28,7 @@ def test_expectation_matches_qibo(observable):
 
     ansatz = CircuitAnsatz(qibo_circuit=circ)
 
-    hs = HSMPO(ansatz)
-    hs.set_engines(stab_engine=StimEngine())
+    hs = HSMPO(ansatz, stab_engine=StimEngine())
     exp_hybrid = hs.expectation(observable)
 
     exp_qibo = expectation_with_qibo(

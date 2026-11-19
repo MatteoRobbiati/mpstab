@@ -34,18 +34,18 @@ class MeasurementPlan:
     - ``"pauli"``: ``(groups, coefficients)``, one :class:`~mpstab.qpu.measurement.pauli.QWCGroup` per circuit
       in the same order, plus the ``{pauli_string: c_P}`` map the groups came
       from.
-    - ``"shadows"``: ``(mpo_terms, bases)``, where ``mpo_terms`` holds
-      ``(label, coefficient, sign, mpo)`` per Hamiltonian term and ``bases`` has
-      one basis string per circuit.
+    - ``"shadows"``: ``(mpo_terms, bases)``, where ``mpo_terms``
+      holds ``(label, coefficient, sign, mpo)`` per Hamiltonian term and
+      ``bases`` has one basis string per circuit.
 
     Attributes:
-        retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
+        retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``
             (which sample nothing): the ``|coefficient|``-weighted average, over
             Hamiltonian terms, of each term's
             :attr:`~mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight`
             -- the fraction of the tail-folded observable's Frobenius weight
             that ``n_string_samples`` actually covered.
-        bond_truncation_l2: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
+        bond_truncation_l2: ``"pauli"`` only, ``None`` for ``"shadows"``
             (whose ``truncation_l2`` already is this quantity): the bias
             estimate of folding the tail at a finite bond dimension,
             ``sum_terms |coefficient| * sqrt(1 - ||O'||_F**2 / 2**n)``, from the
@@ -72,6 +72,20 @@ class MeasurementPlan:
     bond_truncation_l2: float | None = None
     antihermitian_l2: float | None = None
 
+    def result(self, value, stderr, n_shots, n_settings) -> ExpectationResult:
+        """An :class:`ExpectationResult` carrying this plan's truncation diagnostics."""
+        return ExpectationResult(
+            value=float(value),
+            stderr=float(stderr),
+            truncation_l1=self.truncation_l1,
+            truncation_l2=self.truncation_l2,
+            n_settings=n_settings,
+            n_shots=int(n_shots),
+            retained_weight=self.retained_weight,
+            bond_truncation_l2=self.bond_truncation_l2,
+            antihermitian_l2=self.antihermitian_l2,
+        )
+
 
 @dataclass(frozen=True)
 class ExpectationResult:
@@ -84,10 +98,10 @@ class ExpectationResult:
         truncation_l1: heuristic discarded-Pauli-mass estimate (see
             :func:`~mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate`
             -- an extrapolation, not a rigorous bound); ``None`` for the
-            ``"shadows"``/``"tnice"`` routes, whose bond truncation has no
+            ``"shadows"`` route, whose bond truncation has no
             L1/L2 split.
         truncation_l2: typical-case truncation estimate -- Pauli-set truncation
-            for ``"pauli"``, MPO bond truncation for ``"shadows"``/``"tnice"``.
+            for ``"pauli"``, MPO bond truncation for ``"shadows"``.
         n_settings: number of distinct circuits the shots came from.
         n_shots: total shots used.
         retained_weight: ``"pauli"`` only, ``None`` otherwise -- see
@@ -150,6 +164,21 @@ class ExpectationResult:
         )
 
 
+def weighted_mean_and_variance(values, weights) -> tuple:
+    """
+    ``(mean, variance of a single draw)`` of ``values`` repeated ``weights``
+    times each, the variance with Bessel's correction.
+    """
+    values, weights = np.asarray(values, dtype=float), np.asarray(weights, dtype=float)
+    total = float(weights.sum())
+    if total == 0:
+        return 0.0, 0.0
+    mean = float(np.sum(weights * values) / total)
+    if total <= 1:
+        return mean, 0.0
+    return mean, float(np.sum(weights * (values - mean) ** 2) / (total - 1))
+
+
 def basis_measurement(basis: str, nqubits: int) -> Circuit:
     """A single ``gates.M`` layer measuring each qubit in its given Pauli basis."""
     circuit = Circuit(nqubits)
@@ -166,8 +195,8 @@ class MeasurementMethod(ABC):
     expectation value (:meth:`estimate`).
 
     Subclasses are frozen dataclasses holding their own options, passed as
-    ``method`` to :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.plan` and
-    :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut`.
+    ``method`` to :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.plan` and
+    :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut`.
     """
 
     #: Short name, stored as :attr:`MeasurementPlan.method`.
@@ -190,14 +219,14 @@ class MeasurementMethod(ABC):
         Fold the tail of every term and fix the circuits and shots.
 
         Args:
-            model: the :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO` whose
+            model: the :class:`~mpstab.evolutors.hqsmpo.HQSMPO` whose
                 tail is folded.
             terms: the observable's ``{pauli_string: coefficient}``.
             constant: the observable's identity offset, added back on
                 estimation.
             cut_index: the split point.
             resynthesis: the head, a
-                :class:`~mpstab.evolutors.hsynthsmpo.ResynthesizedHead`.
+                :class:`~mpstab.evolutors.hqsmpo.ResynthesizedHead`.
             max_bond_dimension: bond cap for every tail fold, ``None`` for an
                 exact fold.
             n_shots: a fixed shot budget, or ``None`` to size it from

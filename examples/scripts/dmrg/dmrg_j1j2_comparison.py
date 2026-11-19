@@ -44,8 +44,7 @@ ansatz = CircuitAnsatz(qibo_circuit=c)
 
 # We use a throwaway HSMPO strictly to compute the analytical backpropagation
 # to generate the physical problem for the pure Quimb baseline.
-_temp_hsmpo = HSMPO(ansatz)
-_temp_hsmpo.set_engines(tn_engine=QuimbEngine())
+_temp_hsmpo = HSMPO(ansatz, tn_engine=QuimbEngine())
 
 print(f"Generating highly entangled target Hamiltonian for {n_qubits} qubits...")
 h_scrambled = {}
@@ -91,8 +90,7 @@ print(f"Quimb Final Energy: {energy_quimb:.4f}")
 # 3. HSMPO PIPELINE
 # ==========================================
 print("\n=== Running HSMPO DMRG ===")
-hsmpo = HSMPO(ansatz, max_bond_dimension=4)
-hsmpo.set_engines(tn_engine=QuimbEngine())
+hsmpo = HSMPO(ansatz, max_bond_dimension=4, tn_engine=QuimbEngine())
 
 # HSMPO untangles the state BEFORE the tensor network sees it.
 res_hsmpo = hsmpo.minimize_expectation(
