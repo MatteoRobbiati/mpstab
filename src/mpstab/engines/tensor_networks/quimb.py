@@ -57,6 +57,12 @@ PAULI_GATES = {"I": I, "X": X, "Y": Y, "Z": Z}
 #: quimb's default singular-value cutoff (``"rsum2"`` mode) when compressing.
 _QUIMB_DEFAULT_CUTOFF = 1e-10
 
+#: Relative cutoff for compressions meant to be exact up to roundoff.
+_EXACT_CUTOFF = 1e-14
+
+#: Pauli strings stacked into one block-diagonal MPO before compressing it.
+_PAULI_SUM_CHUNK = 64
+
 #: Attribute marking an MPO built by :meth:`QuimbEngine.pauli_mpo` with the
 #: Pauli string it represents. quimb's ``copy`` drops it, so any arithmetic on
 #: the MPO (``2 * mpo``, a conjugation) falls back to a generic contraction.
@@ -217,6 +223,28 @@ def _qibo_circuit_to_quimb(nqubits: int, qibo_circ, **circuit_kwargs) -> Circuit
             circuit.apply_gate(quimb_name, *parameters, *qubits)
 
     return circuit
+
+
+def _pauli_sum_mpo(paulis: list[str], coefficients) -> MatrixProductOperator:
+    """
+    ``sum_t c_t P_t`` as an MPO: block-diagonal site tensors, one block per
+    string, compressed once to its exact rank.
+    """
+    nqubits = len(paulis[0])
+    coefficients = np.asarray(coefficients, dtype=complex)
+    sites = [np.stack([PAULI_GATES[p[j]] for p in paulis]) for j in range(nqubits)]
+    sites[0] = sites[0] * coefficients[:, None, None]  # (term, up, down)
+    if nqubits == 1:
+        return MatrixProductOperator([sites[0].sum(axis=0)])
+    arrays = [sites[0]]
+    for site in sites[1:-1]:
+        block = np.zeros((len(paulis), *site.shape), dtype=complex)
+        block[np.arange(len(paulis)), np.arange(len(paulis))] = site
+        arrays.append(block)  # (left, right, up, down)
+    arrays.append(sites[-1])
+    operator = MatrixProductOperator(arrays)
+    operator.compress(cutoff=_EXACT_CUTOFF)
+    return operator
 
 
 class QuimbEngine(TensorNetworkEngine):
@@ -411,6 +439,84 @@ class QuimbEngine(TensorNetworkEngine):
             values[k] = kernels.pauli_expectation(view, view.center, paulis[k]).real
         view.commit()
         return values / self.norm
+
+    def pauli_transitions(
+        self,
+        bra_state: MatrixProductState,
+        ket_state: MatrixProductState,
+        paulis,
+        normalize: bool = True,
+    ):
+        """
+        Transition amplitudes ``<bra|P|ket>`` of many Pauli strings between
+        two states, with ``normalize`` divided by the norms of both states.
+
+        Returns:
+            A complex array on the numpy backend, a list of backend scalars
+            otherwise.
+        """
+        paulis = list(paulis)
+        if not self._fast:
+            norm = (
+                np.sqrt(
+                    bra_state.norm(squared=True).real
+                    * ket_state.norm(squared=True).real
+                )
+                if normalize
+                else 1.0
+            )
+            ket = ket_state.reindex({f"k{i}": f"b{i}" for i in range(ket_state.L)})
+            return [
+                (bra_state.H & self.pauli_mpo(p) & ket).contract(
+                    backend=self.backend, optimize="greedy"
+                )
+                / norm
+                for p in paulis
+            ]
+
+        def sites(state):
+            # One view at a time: the two may be the same state.
+            view = _CanonicalMPS(state)
+            norm = kernels.squared_norm(view, view.center)
+            arrays = [view[i] for i in range(view.L)]
+            view.commit()
+            return arrays, norm
+
+        bra_sites, bra_norm = sites(bra_state)
+        ket_sites, ket_norm = sites(ket_state)
+        values = kernels.pauli_transitions(bra_sites, ket_sites, paulis)
+        return values / np.sqrt(bra_norm * ket_norm) if normalize else values
+
+    def apply_pauli_sum(
+        self,
+        state_circuit: MatrixProductState,
+        paulis,
+        coefficients,
+        max_bond_dimension: int | None,
+    ) -> MatrixProductState:
+        """
+        A new state ``sum_t c_t P_t |state>``.
+
+        The terms are stacked into block-diagonal MPOs of
+        :data:`_PAULI_SUM_CHUNK` terms each, compressed exactly and summed (a
+        sum of local strings keeps a small bond), and the result is applied to
+        the state and compressed to ``max_bond_dimension``.
+        """
+        paulis, coefficients = list(paulis), list(coefficients)
+        operator = None
+        for start in range(0, len(paulis), _PAULI_SUM_CHUNK):
+            chunk = slice(start, start + _PAULI_SUM_CHUNK)
+            block = _pauli_sum_mpo(paulis[chunk], coefficients[chunk])
+            if operator is None:
+                operator = block
+            else:
+                operator = operator.add_MPO(block)
+                operator.compress(cutoff=_EXACT_CUTOFF)
+        operator = self._to_backend(operator)
+        options = {} if self.svd_cutoff is None else {"cutoff": self.svd_cutoff}
+        return operator.apply(
+            state_circuit, compress=True, max_bond=max_bond_dimension, **options
+        )
 
     def pauli_rot(
         self,

@@ -197,3 +197,40 @@ def pauli_expectation(A: list[np.ndarray], center: int, pauli: str) -> complex:
 def squared_norm(A: list[np.ndarray], center: int) -> float:
     """``<psi|psi>``, which in mixed canonical form lives on the center alone."""
     return float(np.vdot(A[center], A[center]).real)
+
+
+def pauli_transitions(
+    bra: list[np.ndarray], ket: list[np.ndarray], paulis: list[str]
+) -> np.ndarray:
+    """
+    Unnormalized ``<bra|P|ket>`` for many Pauli strings between two MPS.
+
+    The two states have different gauges, so nothing outside a string's
+    support contracts away. Instead, the identity environments from both ends
+    are built once for all the strings, each by a sweep that is correct in any
+    gauge and only as far as the strings need, and each string then contracts
+    only its own support between them.
+    """
+    n = len(ket)
+    windows = [bounds(pauli) or (0, 0) for pauli in paulis]
+    left = [np.ones((1, 1))]  # left[j]: sites before j, as (bra, ket) bonds
+    for j in range(max((a for a, _ in windows), default=0)):
+        left.append(_transfer_right(left[-1], bra[j], ket[j]))
+    right = {n: np.ones((1, 1))}  # right[j]: sites from j on
+    for j in range(n - 1, min((b for _, b in windows), default=n - 1), -1):
+        ket_j = np.tensordot(ket[j], right[j + 1], axes=(2, 1))  # (ket_l, phys, bra_r)
+        right[j] = np.tensordot(bra[j].conj(), ket_j, axes=([1, 2], [1, 2]))
+
+    values = np.empty(len(paulis), dtype=complex)
+    for k, (pauli, (a, b)) in enumerate(zip(paulis, windows)):
+        env = left[a]
+        for j in range(a, b + 1):
+            env = _transfer_right(env, bra[j], apply_pauli(ket[j], pauli[j]))
+        values[k] = np.sum(env * right[b + 1])
+    return values
+
+
+def _transfer_right(env: np.ndarray, bra: np.ndarray, ket: np.ndarray) -> np.ndarray:
+    """Extend a ``(bra, ket)`` left environment over one more site."""
+    ket = np.tensordot(env, ket, axes=(1, 0))  # (bra_l, phys, ket_r)
+    return np.tensordot(bra.conj(), ket, axes=([0, 1], [0, 1]))
