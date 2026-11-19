@@ -21,6 +21,8 @@ _DIRECT_GATES = {
     "swap": "SWAP",
     "s": "S",
     "sdg": "S_DAG",
+    "sx": "SQRT_X",
+    "sxdg": "SQRT_X_DAG",
 }
 
 #: Gates that leave the Pauli frame untouched and are simply dropped.

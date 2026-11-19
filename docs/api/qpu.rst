@@ -75,6 +75,9 @@ device.
    :members:
    :show-inheritance:
 
+.. automodule:: mpstab.qpu.execution.noisy
+   :members:
+
 .. automodule:: mpstab.qpu.execution.qasm
    :members:
    :show-inheritance:

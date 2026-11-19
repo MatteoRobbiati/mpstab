@@ -121,7 +121,7 @@ Key Concepts
 Next Steps
 ----------
 
-- Read the :doc:`../examples/introduction` example for more detailed explanations
+- Read the :doc:`../tutorials/introduction` example for more detailed explanations
 - Explore :doc:`working_with_engines` for backend options
 - Learn about :doc:`using_ansatze` for circuit design
 - Check the :doc:`../api/evolutors` for complete documentation

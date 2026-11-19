@@ -494,7 +494,9 @@ def test_epsilon_sizes_a_nonzero_shot_budget():
 def test_no_orphan_imports_of_deleted_modules():
 
     src = pathlib.Path(__file__).resolve().parents[1] / "src"
-    forbidden = ("mpstab.measurements", "mpstab.models.noise", "models.noise")
+    # mpstab.models.noise was a qibo-noise layer, deleted; the name now holds
+    # the HSMPO noise package, so only mpstab.measurements stays forbidden.
+    forbidden = ("mpstab.measurements",)
     offenders = [
         (str(path), token)
         for path in src.rglob("*.py")
