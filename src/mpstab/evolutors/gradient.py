@@ -4,7 +4,7 @@ In the Clifford frame the state is ``|psi> = R_R ... R_1 |init>``, with dressed
 rotations ``R_j = exp(-i phi_j/2 G_j)``, and the observable is
 ``sum_t c_t s_t P_t`` once dressed. Since ``dR_j/dphi_j = -(i/2) G_j R_j``,
 and ``R_k G_j = G_j R~_k`` with ``R~_k`` the rotation at angle ``-phi_k`` when
-``G_k`` anticommutes with ``G_j`` and ``R_k`` itself otherwise,
+``G_k`` anticommutes with ``G_j`` and ``R_k`` itself otherwise::
 
     df/dphi_j = sum_t c_t s_t Im <psi| P_t G_j |psi~_j>,
 
