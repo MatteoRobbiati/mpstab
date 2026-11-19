@@ -27,8 +27,8 @@ from mpstab import HSMPO
 from mpstab.engines import QuimbEngine
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
 from mpstab.noise.compile import compile_noise
-from mpstab.noise.estimator import noisy_expectation
 from mpstab.noise.events import CoherentRotation, PauliChannel
+from mpstab.noise.mc_noise_estimator import noisy_expectation
 
 # -- Circuits and noise ---------------------------------------------------------
 

@@ -8,15 +8,13 @@ import time
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates, set_backend
+from qibo import Circuit, gates
 
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine, StimEngine
+from mpstab.engines import QuimbEngine, StimEngine
 from mpstab.engines.stabilizers.native import NativeStabilizersEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
-
-set_backend("numpy")
 
 
 def _small_entangled_circuit(n=4):
@@ -79,7 +77,7 @@ def test_rotations_only_dressed_rotations_match_full_construction():
     assert lazy._dressed_rotations() == full._dressed_rotations()
 
 
-def test_rotations_only_validates_engine_types():
+def test_rotations_only_validates_engine_types(native_stab_engine):
     ansatz = HardwareEfficient(nqubits=3, nlayers=1)
 
     with pytest.raises(ValueError):
@@ -88,7 +86,7 @@ def test_rotations_only_validates_engine_types():
         HSMPO.rotations_only(ansatz, tn_engine="not-an-engine")
 
     # Non-default but valid engines are accepted and stored as-is.
-    lazy = HSMPO.rotations_only(ansatz, stab_engine=NativeStabilizersEngine())
+    lazy = HSMPO.rotations_only(ansatz, stab_engine=native_stab_engine)
     assert isinstance(lazy.stab_engine, NativeStabilizersEngine)
 
 

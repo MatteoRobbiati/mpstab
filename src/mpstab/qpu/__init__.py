@@ -23,8 +23,8 @@ passed to :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`::
     model = HSynthSMPO(ansatz, head_synthesis=ExtractionSynthesis(connectivity="line"))
     result = model.expectation_at_cut(H, cut_index, method=ClassicalShadows(), n_shots=10_000)
 
-Importing this package never requires the optional ``rustiq`` dependency, which
-:mod:`~mpstab.qpu.synthesis.rustiq` imports lazily.
+Importing this package never requires the optional ``rustiq`` dependency:
+:mod:`~mpstab.qpu.synthesis.rustiq` only needs it when it synthesises.
 """
 
 from mpstab.qpu.execution import (

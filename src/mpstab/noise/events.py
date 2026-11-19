@@ -26,11 +26,9 @@ class NoiseEvent:
     simulated by quantum trajectories, is added as a subclass plus a branch
     there.
 
-    Parameters
-    ----------
-    after_gate : int
-        Index in ``ansatz.circuit.queue`` of the gate the event follows, or
-        ``-1`` for the initial state.
+    Attributes:
+        after_gate: index in ``ansatz.circuit.queue`` of the gate the event
+            follows, or ``-1`` for the initial state.
     """
 
     after_gate: int
@@ -44,24 +42,21 @@ class PauliChannel(NoiseEvent):
     With probability ``probs[P]`` the Pauli string ``P`` acts on ``qubits``,
     and with the remaining probability nothing happens.
 
-    Parameters
-    ----------
-    after_gate : int
-        Index of the gate the channel follows, or ``-1`` for the initial state.
-    qubits : tuple of int
-        The qubits the channel acts on, in the order the Pauli labels use.
-    probs : dict of str to float
-        Probability of each non-identity Pauli string on ``qubits``, one label
-        per qubit. They must sum to at most 1.
+    Attributes:
+        after_gate: index of the gate the channel follows, or ``-1`` for the
+            initial state.
+        qubits: the qubits the channel acts on, in the order the Pauli labels
+            use.
+        probs: probability of each non-identity Pauli string on ``qubits``, one
+            label per qubit. They must sum to at most 1.
 
-    Examples
-    --------
-    A correlated two-qubit channel after the first gate::
+    Example:
+        A correlated two-qubit channel after the first gate::
 
-        from mpstab.noise.events import PauliChannel
+            from mpstab.noise.events import PauliChannel
 
-        channel = PauliChannel(after_gate=0, qubits=(0, 1), probs={"ZZ": 0.01, "XI": 0.002})
-        print(channel.no_fault_probability)
+            channel = PauliChannel(after_gate=0, qubits=(0, 1), probs={"ZZ": 0.01, "XI": 0.002})
+            print(channel.no_fault_probability)
     """
 
     qubits: tuple[int, ...]
@@ -96,15 +91,14 @@ class PauliChannel(NoiseEvent):
         """
         The channel's terms as ``(pauli, probability)``, padded to ``nqubits``.
 
-        Parameters
-        ----------
-        nqubits : int
-            Width of the circuit.
+        Args:
+            nqubits: width of the circuit.
 
-        Returns
-        -------
-        list of (str, float)
-            One entry per term, in ``probs`` order.
+        Returns:
+            One ``(pauli, probability)`` entry per term, in ``probs`` order.
+
+        Raises:
+            ValueError: if the channel acts on a qubit outside the circuit.
         """
         if max(self.qubits, default=-1) >= nqubits:
             raise ValueError(
@@ -126,22 +120,18 @@ class CoherentRotation(NoiseEvent):
     A coherent error ``exp(-i angle/2 generator)``, such as ZZ crosstalk or an
     over-rotation.
 
-    Parameters
-    ----------
-    after_gate : int
-        Index of the gate the rotation follows, or ``-1`` for the initial state.
-    generator : str
-        Full-width Pauli string, one label per qubit of the circuit.
-    angle : float
-        Rotation angle.
+    Attributes:
+        after_gate: index of the gate the rotation follows, or ``-1`` for the
+            initial state.
+        generator: full-width Pauli string, one label per qubit of the circuit.
+        angle: rotation angle.
 
-    Examples
-    --------
-    ZZ crosstalk between qubits 1 and 2 of a 4-qubit circuit, after gate 3::
+    Example:
+        ZZ crosstalk between qubits 1 and 2 of a 4-qubit circuit, after gate 3::
 
-        from mpstab.noise.events import CoherentRotation
+            from mpstab.noise.events import CoherentRotation
 
-        crosstalk = CoherentRotation(after_gate=3, generator="IZZI", angle=0.02)
+            crosstalk = CoherentRotation(after_gate=3, generator="IZZI", angle=0.02)
     """
 
     generator: str
@@ -163,45 +153,37 @@ def from_qibo_noise_model(
     channel of strength ``lam`` becomes a Pauli channel with probability
     ``lam / 4**n`` on each of its ``4**n - 1`` non-identity Paulis.
 
-    Parameters
-    ----------
-    noise_model : qibo.noise.NoiseModel
-        The model to convert.
-    circuit : qibo.Circuit
-        The noiseless circuit, normally ``ansatz.circuit``. Event positions
-        index its ``queue``.
+    Args:
+        noise_model: the qibo model to convert.
+        circuit: the noiseless circuit, normally ``ansatz.circuit``. Event
+            positions index its ``queue``.
 
-    Returns
-    -------
-    list of PauliChannel
-        The channels, in circuit order.
+    Returns:
+        The :class:`PauliChannel` events, in circuit order.
 
-    Raises
-    ------
-    NotImplementedError
-        On any channel other than a Pauli or depolarizing one, such as
-        amplitude damping, thermal relaxation or readout errors.
-    ValueError
-        If a ``PauliError`` label does not match the width of the gate it is
-        attached to, as happens when a multi-qubit ``PauliError`` is applied
-        by qibo one qubit at a time.
+    Raises:
+        NotImplementedError: on any channel other than a Pauli or depolarizing
+            one, such as amplitude damping, thermal relaxation or readout
+            errors.
+        ValueError: if a ``PauliError`` label does not match the width of the
+            gate it is attached to, as happens when a multi-qubit
+            ``PauliError`` is applied by qibo one qubit at a time.
 
-    Examples
-    --------
-    Depolarizing noise after every CZ::
+    Example:
+        Depolarizing noise after every CZ::
 
-        import numpy as np
-        from qibo import Circuit, gates
-        from qibo.noise import DepolarizingError, NoiseModel
-        from mpstab.noise.events import from_qibo_noise_model
+            import numpy as np
+            from qibo import Circuit, gates
+            from qibo.noise import DepolarizingError, NoiseModel
+            from mpstab.noise.events import from_qibo_noise_model
 
-        circuit = Circuit(2)
-        circuit.add(gates.RY(0, theta=0.3))
-        circuit.add(gates.CZ(0, 1))
-        model = NoiseModel()
-        model.add(DepolarizingError(0.01), gates.CZ)
-        events = from_qibo_noise_model(model, circuit)
-        print(events[0].after_gate, len(events[0].probs))  # 1 15
+            circuit = Circuit(2)
+            circuit.add(gates.RY(0, theta=0.3))
+            circuit.add(gates.CZ(0, 1))
+            model = NoiseModel()
+            model.add(DepolarizingError(0.01), gates.CZ)
+            events = from_qibo_noise_model(model, circuit)
+            print(events[0].after_gate, len(events[0].probs))  # 1 15
     """
     density = Circuit(circuit.nqubits, density_matrix=True)
     for gate in circuit.queue:

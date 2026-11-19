@@ -15,7 +15,7 @@ A synthesiser is a :class:`~mpstab.qpu.synthesis.abstract.HeadSynthesis`
 holding its own options. Three are available, one module each:
 
 - :class:`~mpstab.qpu.synthesis.rustiq.RustiqSynthesis`: rustiq's Pauli-network
-  synthesis (optional dependency, imported lazily).
+  synthesis (optional dependency, needed only when synthesising).
 - :class:`~mpstab.qpu.synthesis.extraction.ExtractionSynthesis`: Clifford
   extraction, dependency-free and connectivity-aware.
 - :class:`~mpstab.qpu.synthesis.cnot_ladder.CnotLadderSynthesis`: the textbook

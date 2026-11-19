@@ -2,8 +2,9 @@
 Head synthesis with rustiq's Pauli-network synthesis, which cancels gates across
 rotations.
 
-``rustiq`` is optional and not on PyPI, so it is imported lazily; install it
-with ``pip install "mpstab[rustiq]"``.
+``rustiq`` is optional and not on PyPI: this module imports without it, and
+synthesising raises an ``ImportError`` with the install hint
+``pip install "mpstab[rustiq]"``.
 """
 
 from __future__ import annotations
@@ -16,16 +17,19 @@ import stim
 from mpstab.qpu.synthesis.abstract import HeadSynthesis
 from mpstab.qpu.synthesis.utils import CLIFFORD_TABLEAUS, place_rotations
 
+try:
+    from rustiq import Metric, pauli_network_synthesis
+except ImportError:  # optional dependency
+    Metric = pauli_network_synthesis = None
 
-def _import_rustiq():
-    try:
-        from rustiq import Metric, pauli_network_synthesis
-    except ImportError as error:
+
+def _require_rustiq():
+    """Raise an ``ImportError`` with the install hint if rustiq is missing."""
+    if pauli_network_synthesis is None:
         raise ImportError(
             "rustiq is required for Pauli-network resynthesis. Install it with: "
             'pip install "mpstab[rustiq]"'
-        ) from error
-    return Metric, pauli_network_synthesis
+        )
 
 
 def build_head_and_residual(
@@ -53,7 +57,7 @@ def build_head_and_residual(
         randomly) even though the Clifford operator it implements is unique, so
         compare tableaus rather than gate lists.
     """
-    Metric, pauli_network_synthesis = _import_rustiq()
+    _require_rustiq()
 
     if not paulis:
         return [], stim.Tableau(0), []
@@ -93,7 +97,7 @@ def head_counts_only(
     Returns:
         ``(total_gates, two_qubit_gates)``.
     """
-    Metric, pauli_network_synthesis = _import_rustiq()
+    _require_rustiq()
 
     if not paulis:
         return 0, 0

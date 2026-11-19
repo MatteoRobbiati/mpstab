@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates, set_backend
+from qibo import Circuit, gates
 from utils import (
     DEFAULT_MAX_BD,
     DEFAULT_REPLACEMENT_PROBABILITY,
@@ -13,16 +13,13 @@ from utils import (
     set_rng_seed,
 )
 
-from mpstab.engines import StimEngine
+import mpstab.evolutors.hsmpo as hsmpo_module
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
-set_backend("numpy")
-set_rng_seed()
-
 
 @pytest.mark.parametrize("observable", ["ZIIXI", "XIXXI", "ZYXZI"])
-def test_expectation_matches_qibo(observable):
+def test_expectation_matches_qibo(observable, stim_engine):
     circ = Circuit(5)
     [circ.add(gates.H(q)) for q in range(5)]
     circ.add(gates.CNOT(0, 1))
@@ -32,7 +29,7 @@ def test_expectation_matches_qibo(observable):
     ansatz = CircuitAnsatz(qibo_circuit=circ)
 
     hs = HSMPO(ansatz)
-    hs.set_engines(stab_engine=StimEngine())
+    hs.set_engines(stab_engine=stim_engine)
     exp_hybrid = hs.expectation(observable)
 
     exp_qibo = expectation_with_qibo(
@@ -149,8 +146,6 @@ def test_expectation_from_partition_light_cone_is_exact(observable):
 
 
 def test_progress_bar_shows_and_can_be_disabled(capsys, monkeypatch):
-    import mpstab.evolutors.hsmpo as hsmpo_module
-
     monkeypatch.setattr(hsmpo_module, "_PROGRESS_DELAY", 0)  # show it at once
     HSMPO(ansatz=HardwareEfficient(nqubits=4, nlayers=2))
     assert "building MPS" in capsys.readouterr().err

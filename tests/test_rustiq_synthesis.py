@@ -10,39 +10,28 @@ Covers:
     reproduces direct qibo simulation.
 """
 
-import builtins
-
 import numpy as np
 import pytest
 import stim
-from qibo import Circuit, gates, set_backend
+from qibo import Circuit, gates
 from utils import expectation_with_qibo, set_rng_seed
 
 pytest.importorskip("rustiq")
 
-from mpstab.engines import StimEngine
+import mpstab.qpu.synthesis.rustiq as rustiq_synthesis
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
-from mpstab.pauli import PAULI_MATRICES as _PAULI_MATS
+from mpstab.pauli import pauli_matrix
 from mpstab.qpu.synthesis import (
     build_head_and_residual,
     head_counts_only,
     head_to_qibo_circuit,
 )
 
-set_backend("numpy")
-
-
-def _pauli_matrix(pauli_str):
-    mat = _PAULI_MATS[pauli_str[0]]
-    for c in pauli_str[1:]:
-        mat = np.kron(mat, _PAULI_MATS[c])
-    return mat
-
 
 def _rotation_unitary(pauli_str, angle):
     dim = 2 ** len(pauli_str)
-    return np.cos(angle / 2) * np.eye(dim) - 1j * np.sin(angle / 2) * _pauli_matrix(
+    return np.cos(angle / 2) * np.eye(dim) - 1j * np.sin(angle / 2) * pauli_matrix(
         pauli_str
     )
 
@@ -137,15 +126,14 @@ def test_build_head_and_residual_empty_input():
     assert len(residual_tableau) == 0
 
 
-def test_folding_an_identity_residual_leaves_the_observable_alone():
+def test_folding_an_identity_residual_leaves_the_observable_alone(stim_engine):
     identity = stim.Tableau(3)
-    engine = StimEngine()
 
-    folded, sign = engine.fold_pauli_through_tableau("XYZ", identity, sign=1.0)
+    folded, sign = stim_engine.fold_pauli_through_tableau("XYZ", identity, sign=1.0)
     assert folded == "XYZ"
     assert sign == 1.0
 
-    folded, sign = engine.fold_pauli_through_tableau("XYZ", identity, sign=-1.0)
+    folded, sign = stim_engine.fold_pauli_through_tableau("XYZ", identity, sign=-1.0)
     assert folded == "XYZ"
     assert sign == -1.0
 
@@ -169,7 +157,7 @@ def _expectation_via_full_resynthesis(hs, observable):
         backpropagated, resynthesis.residual_tableau, 1.0
     )
     state = resynthesis.circuit().state()
-    expval = np.real(np.conj(state) @ _pauli_matrix(folded) @ state)
+    expval = np.real(np.conj(state) @ pauli_matrix(folded) @ state)
     return clifford_sign * residual_sign * expval
 
 
@@ -212,14 +200,8 @@ def test_resynthesize_head_gate_counts_across_partial_cuts():
 
 
 def test_rustiq_import_error_has_install_hint(monkeypatch):
-    real_import = builtins.__import__
-
-    def fake_import(name, *args, **kwargs):
-        if name == "rustiq":
-            raise ImportError("no rustiq here")
-        return real_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", fake_import)
+    # What the module-level guarded import leaves behind without rustiq.
+    monkeypatch.setattr(rustiq_synthesis, "pauli_network_synthesis", None)
 
     with pytest.raises(ImportError, match="mpstab\\[rustiq\\]"):
         build_head_and_residual(["X"], [0.1])

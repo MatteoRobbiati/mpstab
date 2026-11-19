@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, replace
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
 import stim
@@ -21,10 +21,12 @@ from qibo import Circuit, gates
 
 from mpstab.engines import StimEngine
 from mpstab.engines.stabilizers.stim import gate_instruction
-from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.noise.events import CoherentRotation, NoiseEvent, PauliChannel
 from mpstab.pauli import anticommutation, conjugate, light_cone, validate_pauli_string
+
+if TYPE_CHECKING:
+    from mpstab.evolutors.hsmpo import HSMPO
 
 
 @dataclass
@@ -37,29 +39,22 @@ class CompiledNoise:
     non-identity terms with nonzero probability; faults are stored in
     location order.
 
-    Attributes
-    ----------
-    hsmpo : HSMPO
-        The surrogate supplying the engines and the initial MPS. It is only
-        read from, never modified.
-    generators : list of str
-        Dressed generators of the rotation chain: the magic gates and the
-        coherent rotations, in circuit order.
-    angles : numpy.ndarray
-        Signed angle of each rotation, shape ``(R,)``.
-    inverse_tableau : stim.Tableau
-        ``U^dag`` for the full Clifford circuit ``U``, which dresses observables.
-    fault_paulis : list of str
-        Dressed Pauli of each fault, unsigned, length ``F``.
-    fault_probs : numpy.ndarray
-        Probability of each fault, shape ``(F,)``.
-    fault_location : numpy.ndarray
-        Location index of each fault, shape ``(F,)``, nondecreasing.
-    location_probs : numpy.ndarray
-        Probability that each location faults at all, shape ``(L,)``.
-    flips : numpy.ndarray
-        Boolean ``(F, R)`` matrix, ``True`` where a fault flips the sign of a
-        rotation's angle.
+    Attributes:
+        hsmpo: the surrogate supplying the engines and the initial MPS. It is
+            only read from, never modified.
+        generators: dressed generators of the rotation chain: the magic gates
+            and the coherent rotations, in circuit order.
+        angles: signed angle of each rotation, shape ``(R,)``.
+        inverse_tableau: ``U^dag`` for the full Clifford circuit ``U``, which
+            dresses observables.
+        fault_paulis: dressed Pauli of each fault, unsigned, length ``F``.
+        fault_probs: probability of each fault, shape ``(F,)``.
+        fault_location: location index of each fault, shape ``(F,)``,
+            nondecreasing.
+        location_probs: probability that each location faults at all, shape
+            ``(L,)``.
+        flips: boolean ``(F, R)`` matrix, ``True`` where a fault flips the sign
+            of a rotation's angle.
     """
 
     hsmpo: HSMPO
@@ -74,20 +69,17 @@ class CompiledNoise:
 
     @property
     def nqubits(self) -> int:
+        """Width of the circuit."""
         return self.hsmpo.nqubits
 
     def dress_observable(self, pauli: str):
         """
         Dress a Pauli observable with the full Clifford circuit.
 
-        Parameters
-        ----------
-        pauli : str
-            Full-width Pauli string.
+        Args:
+            pauli: full-width Pauli string.
 
-        Returns
-        -------
-        (str, int)
+        Returns:
             The dressed string and its sign, as
             :meth:`~mpstab.engines.StimEngine.backpropagate` returns them.
         """
@@ -97,14 +89,11 @@ class CompiledNoise:
         """
         Which faults flip the sign of each dressed observable term.
 
-        Parameters
-        ----------
-        dressed_paulis : sequence of str
-            Dressed observable terms, from :meth:`dress_observable`.
+        Args:
+            dressed_paulis: dressed observable terms, from
+                :meth:`dress_observable`.
 
-        Returns
-        -------
-        numpy.ndarray
+        Returns:
             Boolean ``(F, len(dressed_paulis))`` matrix.
         """
         return anticommutation(self.fault_paulis, list(dressed_paulis), self.nqubits)
@@ -120,15 +109,12 @@ class CompiledNoise:
         no-fault probability, and locations left with no fault are dropped.
         Both steps are exact for this observable.
 
-        Parameters
-        ----------
-        dressed_paulis : sequence of str
-            Dressed observable terms, from :meth:`dress_observable`.
+        Args:
+            dressed_paulis: dressed observable terms, from
+                :meth:`dress_observable`.
 
-        Returns
-        -------
-        CompiledNoise
-            A new instance; this one is left untouched.
+        Returns:
+            A new :class:`CompiledNoise`; this one is left untouched.
         """
         dressed_paulis = list(dressed_paulis)
         kept = light_cone(self.generators, dressed_paulis, self.nqubits)
@@ -159,32 +145,24 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
     gate, coherent rotation and Pauli fault at its own position, and the flip
     matrix then follows from the symplectic form in one matrix product.
 
-    Parameters
-    ----------
-    hsmpo : HSMPO
-        Surrogate of the noiseless circuit. Its ``ansatz.circuit.queue`` is what
-        ``after_gate`` indexes. It may be built with
-        :meth:`~mpstab.HSMPO.rotations_only`.
-    events : sequence of NoiseEvent
-        The noise, as :class:`~mpstab.noise.PauliChannel` and
-        :class:`~mpstab.noise.CoherentRotation` events.
+    Args:
+        hsmpo: surrogate of the noiseless circuit. Its ``ansatz.circuit.queue``
+            is what ``after_gate`` indexes. It may be built with
+            :meth:`~mpstab.HSMPO.rotations_only`.
+        events: the noise, as :class:`~mpstab.noise.PauliChannel` and
+            :class:`~mpstab.noise.CoherentRotation` events.
 
-    Returns
-    -------
-    CompiledNoise
+    Returns:
+        The :class:`CompiledNoise`.
 
-    Raises
-    ------
-    NotImplementedError
-        On an event type this function does not know, or a stabilizers engine
-        other than :class:`~mpstab.engines.StimEngine`.
-    ValueError
-        On an ``after_gate`` outside the circuit, or an ansatz whose own
-        partitioning does not follow its circuit queue (``FloquetAnsatz``).
+    Raises:
+        NotImplementedError: on an event type this function does not know, or a
+            stabilizers engine other than :class:`~mpstab.engines.StimEngine`.
+        ValueError: on an ``after_gate`` outside the circuit, or an ansatz whose
+            own partitioning does not follow its circuit queue
+            (``FloquetAnsatz``).
 
-    Examples
-    --------
-    ::
+    Example::
 
         from qibo import Circuit, gates
         from mpstab import HSMPO

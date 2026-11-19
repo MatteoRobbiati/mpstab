@@ -1,14 +1,11 @@
 import numpy as np
 import pytest
-from qibo import Circuit, gates, set_backend
-from utils import expectation_with_qibo, set_rng_seed
+from qibo import Circuit, gates
+from utils import expectation_with_qibo
 
 from mpstab.engines import QuimbEngine, StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz, FloquetAnsatz
-
-set_backend("numpy")
-set_rng_seed()
 
 
 def layered_magical_circuit(n_qubits, n_layers, b=np.pi / 4):

@@ -8,6 +8,7 @@ from typing import Iterable, Sequence, Union
 import numpy as np
 from qibo import Circuit, gates
 
+from mpstab.hamiltonians import pauli_terms
 from mpstab.noise.events import (
     CoherentRotation,
     NoiseEvent,
@@ -15,7 +16,7 @@ from mpstab.noise.events import (
     _all_paulis,
     from_qibo_noise_model,
 )
-from mpstab.pauli import PAULI_MATRICES, validate_pauli_string
+from mpstab.pauli import pauli_matrix, validate_pauli_string
 
 
 @dataclass(frozen=True)
@@ -28,9 +29,10 @@ class PauliError:
     two-qubit gate) act jointly on its qubits, in the gate's qubit order, which
     is how correlated noise is written.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        probs: probability of each non-identity Pauli label.
+
+    Example::
 
         from mpstab.noise import PauliError
 
@@ -73,9 +75,10 @@ class DepolarizingError:
     For independent single-qubit depolarizing on every qubit of a multi-qubit
     gate, use ``PauliError({"X": p / 3, "Y": p / 3, "Z": p / 3})``.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        lam: depolarizing strength, in ``[0, 4/3]``.
+
+    Example::
 
         from mpstab.noise import DepolarizingError
 
@@ -105,9 +108,11 @@ class CoherentError:
     A single-qubit ``generator`` acts on each qubit of the gate; one as wide as
     the gate acts jointly on its qubits, in the gate's qubit order.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        generator: Pauli label of the rotation, one qubit or as wide as the gate.
+        angle: rotation angle.
+
+    Example::
 
         from mpstab.noise import CoherentError
 
@@ -143,9 +148,10 @@ class ReadoutError:
     qubit picks up a factor ``1 - 2 p``. Add it with no gate, optionally
     restricted to some qubits; errors on the same qubit compose.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        p: flip probability of each measured bit, in ``[0, 1]``.
+
+    Example::
 
         from mpstab.noise import NoiseModel, ReadoutError
 
@@ -218,9 +224,10 @@ class NoiseModel:
     to :meth:`~mpstab.HSMPO.noisy_expectation`; :meth:`apply` gives the same
     noisy circuit as a qibo density-matrix circuit, for exact reference values.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        rules: the rules added so far, in order.
+
+    Example::
 
         from qibo import gates
         from mpstab import HSMPO
@@ -250,21 +257,20 @@ class NoiseModel:
         """
         Put ``error`` after every gate of type ``gate`` (all gates if ``None``).
 
-        Parameters
-        ----------
-        error : PauliError, DepolarizingError or CoherentError
-            The error to insert.
-        gate : qibo gate class or sequence of them, optional
-            Only gates of these types get the error. Measurements never do.
-        qubits : int or sequence of int, optional
-            Restrict the error to these qubits. A single-qubit error acts only
-            on the gate's qubits in this set; an error spanning the whole gate
-            applies only to gates entirely inside it.
+        Args:
+            error: the error to insert.
+            gate: qibo gate class, or sequence of them; only gates of these
+                types get the error. Measurements never do.
+            qubits: restrict the error to these qubits. A single-qubit error
+                acts only on the gate's qubits in this set; an error spanning
+                the whole gate applies only to gates entirely inside it.
 
-        Returns
-        -------
-        NoiseModel
+        Returns:
             ``self``, so calls can be chained.
+
+        Raises:
+            TypeError: if ``error`` is not an mpstab error.
+            ValueError: if a :class:`ReadoutError` is given a ``gate``.
         """
         if not isinstance(
             error, (PauliError, DepolarizingError, CoherentError, ReadoutError)
@@ -355,8 +361,6 @@ class NoiseModel:
         coefficient multiplied by the readout attenuation of the qubits its
         term acts on. The constant is not measured, so it is left unchanged.
         """
-        from mpstab.hamiltonians import pauli_terms
-
         constant, terms = pauli_terms(observable, nqubits)
         factors = self.readout_attenuation(nqubits)
         scaled = {
@@ -390,9 +394,7 @@ def _qibo_gate(event: NoiseEvent):
     if isinstance(event, PauliChannel):
         return gates.PauliNoiseChannel(event.qubits, list(event.probs.items()))
     support = [q for q, p in enumerate(event.generator) if p != "I"]
-    matrix = np.array([[1.0]])
-    for q in support:
-        matrix = np.kron(matrix, PAULI_MATRICES[event.generator[q]])
+    matrix = pauli_matrix("".join(event.generator[q] for q in support))
     unitary = (
         np.cos(event.angle / 2) * np.eye(len(matrix))
         - 1j * np.sin(event.angle / 2) * matrix

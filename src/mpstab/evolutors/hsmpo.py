@@ -1,12 +1,13 @@
 """The hybrid stabilizer-MPO surrogate of a quantum circuit."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import List, Tuple, Union
 
 import numpy as np
 import stim
 from qibo import Circuit
 from qibo.hamiltonians import SymbolicHamiltonian
+from tqdm.auto import tqdm
 
 from mpstab.engines import (
     NativeTensorNetworkEngine,
@@ -21,6 +22,8 @@ from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 from mpstab.models.metrics import stabilizer_renyi_entropy_mps
+from mpstab.noise.compile import compile_noise
+from mpstab.noise.mc_noise_estimator import noisy_expectation
 from mpstab.pauli import conjugate
 from mpstab.pauli import light_cone as pauli_light_cone
 from mpstab.pauli import validate_pauli_string
@@ -344,11 +347,6 @@ class HSMPO:
             :class:`~mpstab.noise.NoisyExpectation`, with the value in ``mean``
             and its standard error in ``stderr``.
         """
-        from dataclasses import replace
-
-        from mpstab.noise.compile import compile_noise
-        from mpstab.noise.estimator import noisy_expectation
-
         constant, terms = noise.readout_observable(observable, self.nqubits)
         compiled = compile_noise(self, noise.events(self.ansatz.circuit))
         result = noisy_expectation(
@@ -618,8 +616,6 @@ def _progress_bar(rotations, state_mps, description: str, enabled: bool = True):
     if not enabled or not rotations:
         yield from rotations
         return
-    from tqdm.auto import tqdm
-
     bond = getattr(state_mps, "max_bond", None)
     every = max(1, len(rotations) // 200)  # refresh chi ~200 times at most
     with tqdm(

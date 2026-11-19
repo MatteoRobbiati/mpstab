@@ -4,6 +4,7 @@ import copy
 from typing import Union
 
 import numpy as np
+import quimb.tensor as qtn
 
 from mpstab.hamiltonians import Observable, pauli_terms
 
@@ -65,8 +66,6 @@ def minimize_expectation_dmrg(
         A dict with ``ground_state``, ``energy``, ``converged``, ``num_sweeps``
         and ``energy_history``.
     """
-    import quimb.tensor as qtn
-
     _, terms = pauli_terms(observables, hsmpo.nqubits)
 
     if bond_dims is None:

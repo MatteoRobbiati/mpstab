@@ -14,6 +14,7 @@ only rotate within a degenerate (or null) singular subspace, where the singular
 vectors are arbitrary and no output of a truncated decomposition depends on them.
 """
 
+import autoray
 import jax
 import jax.numpy as jnp
 
@@ -120,7 +121,5 @@ def safe_qr(a, mode="reduced", **kwargs):
 
 def install():
     """Make ``autoray`` (and so quimb) use the safe SVD and QR on the jax backend."""
-    import autoray
-
     autoray.register_function("jax", "linalg.svd", safe_svd)
     autoray.register_function("jax", "linalg.qr", safe_qr)

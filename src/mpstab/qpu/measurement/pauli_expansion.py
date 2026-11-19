@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from itertools import product
 
 import numpy as np
+import quimb.tensor as qtn
 
 from mpstab.pauli import PAULI_ARRAY, PAULI_LABELS
 
@@ -28,8 +29,6 @@ def mpo_site_arrays(mpo) -> list:
     Boundary bonds become singleton axes so every site has rank 4 and callers
     need no special case for the first and last site.
     """
-    import quimb.tensor as qtn
-
     arrays = []
     for site in range(mpo.L):
         tensor = mpo[site]
