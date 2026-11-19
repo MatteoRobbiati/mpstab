@@ -346,8 +346,9 @@ class HSMPO:
                 about twice the cost of :meth:`expectation` whatever the number
                 of parameters; or ``"flips"``, one shifted tail per parameter,
                 with no costate to truncate.
-            costate_bond: bond cap of the adjoint costate,
-                ``max_bond_dimension`` by default; raise it for accuracy.
+            costate_bond: bond cap of the adjoint costate, twice
+                ``max_bond_dimension`` by default; ``max_bond_dimension``
+                itself is about twice as fast, for twice the error.
 
         Returns:
             One derivative per requested parameter.

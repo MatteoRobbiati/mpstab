@@ -89,8 +89,10 @@ def analytic_gradient(
       checkpoints, and one backward pass of the costate ``lambda`` gives every
       derivative: about ``2 R`` rotations for ``R`` rotations in the chain,
       whatever the number of parameters. ``O |psi>`` is a sum of states, so
-      the costate is compressed, by default to the state's bond cap; a
-      larger ``costate_bond`` buys accuracy at a cubic cost in time.
+      the costate is compressed, by default to twice the state's bond cap.
+      Beyond that the error is set by the state's own truncation: like any
+      gradient built from overlaps, it is first order in the state error,
+      where an energy (and so the parameter-shift rule) is second order.
     - ``"flips"``: each derivative is ``Im <psi| O G_j |psi~_j>``, with
       ``psi~_j`` the chain under the sign pattern of a fault ``G_j``. Each
       distinct pattern re-applies only the tail after its first flipped
@@ -118,9 +120,10 @@ def analytic_gradient(
         ``"adjoint"`` (default) or ``"flips"``.
     costate_bond : int, optional
         Bond-dimension cap of the costate with ``"adjoint"``. Defaults to
-        ``hsmpo.max_bond_dimension``. Twice that roughly halves the
-        truncation error of the gradient, for about eight times the cost of
-        the backward pass.
+        twice ``hsmpo.max_bond_dimension``, and to no cap when the state has
+        none. Capping it at the state's own bond is about twice as fast, for
+        roughly twice the gradient error; a larger cap gains nothing, since
+        the state's truncation then dominates.
 
     Returns
     -------
@@ -192,8 +195,8 @@ def analytic_gradient(
     fidelities = []
     if sites and observables:
         if method == "adjoint":
-            if costate_bond is None:
-                costate_bond = hsmpo.max_bond_dimension
+            if costate_bond is None and hsmpo.max_bond_dimension is not None:
+                costate_bond = 2 * hsmpo.max_bond_dimension
             fidelities = _adjoint(
                 chain, sites, observables, weights, costate_bond, derivatives
             )
