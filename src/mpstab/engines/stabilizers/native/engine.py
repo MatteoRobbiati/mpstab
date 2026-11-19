@@ -61,3 +61,20 @@ class NativeStabilizersEngine(StabilizersEngine):
         if result[0] not in "IXYZ":  # a leading sign or phase character
             return result[1:], -1 if result.startswith("-") else 1
         return result, 1.0
+
+    def backpropagate_at(self, observables, breakpoints, clifford_circuit: Circuit):
+        """
+        Backpropagate each observable through its own prefix of
+        ``clifford_circuit``, one :meth:`backpropagate` per observable.
+
+        Each prefix is replayed from scratch, so the cost grows with the
+        circuit length times the number of observables: the plain version of
+        what a tableau simulator does in a single pass.
+        """
+        results = []
+        for observable, breakpoint_index in zip(observables, breakpoints):
+            prefix = Circuit(clifford_circuit.nqubits)
+            for gate in clifford_circuit.queue[:breakpoint_index]:
+                prefix.add(gate)
+            results.append(self.backpropagate(observable, prefix))
+        return results

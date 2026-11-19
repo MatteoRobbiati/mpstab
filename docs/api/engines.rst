@@ -129,6 +129,25 @@ engine whose states and operators expose nothing.
 An optional method an engine does not implement raises ``NotImplementedError``
 only when the feature that needs it is used.
 
+A stabilizers engine is where the Clifford part of the circuit is handled; the
+evolutors and the noise compiler only ask it for backpropagated Pauli strings.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - ``StabilizersEngine`` methods
+     - Needed for
+   * - ``backpropagate``
+     - Required: dressing observables with the Clifford circuit.
+   * - ``backpropagate_many``
+     - Optional, with a generic default an engine may override to share work
+       across observables.
+   * - ``backpropagate_at``
+     - Dressing each magic gate and noise event with the Clifford gates before
+       it. The default runs one stim tableau pass; an engine with its own
+       Clifford backend overrides it.
+
 See Also
 --------
 

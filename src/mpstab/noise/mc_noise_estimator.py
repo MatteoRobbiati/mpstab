@@ -104,7 +104,7 @@ def noisy_expectation(
         print(f"{result.mean:.4f} +- {result.stderr:.4f}")
     """
     constant, terms = pauli_terms(observable, compiled.nqubits)
-    dressed = [compiled.dress_observable(pauli) for pauli in terms]
+    dressed = compiled.dress_observables(terms)
     if light_cone:
         compiled = compiled.restricted_to([pauli for pauli, _ in dressed])
     observable_flips = compiled.observable_flips([pauli for pauli, _ in dressed])

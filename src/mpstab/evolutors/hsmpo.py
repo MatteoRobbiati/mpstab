@@ -195,44 +195,18 @@ class HSMPO:
         ``magic_gates``, conjugated by the first ``breakpoint`` gates of
         ``clifford_circuit``.
 
-        With a :class:`~mpstab.engines.StimEngine` the Clifford circuit is
-        simulated once, a segment at a time, so dressing every gate costs one
-        pass over the circuit. Other engines backpropagate each generator
-        through its own prefix, which is quadratic in the circuit length.
+        The stabilizers engine does the dressing
+        (:meth:`~mpstab.engines.StabilizersEngine.backpropagate_at`).
         """
-        if not isinstance(self.stab_engine, StimEngine):
-            rotations = []
-            for breakpoint_index, gate in magic_gates:
-                prefix = self._clifford_subcircuit(clifford_circuit, breakpoint_index)
-                generator, sign = self.stab_engine.backpropagate(
-                    gate_generator(gate, self.nqubits), prefix
-                )
-                rotations.append((generator, sign * gate_angle(gate)))
-            return rotations
-
-        instructions = self.stab_engine.instructions(clifford_circuit)
-        simulator = stim.TableauSimulator()
-        simulator.do(stim.Circuit(f"I {self.nqubits - 1}"))
-
-        rotations: List[Tuple[str, float]] = []
-        simulated = 0
-        inverse = None
-        for breakpoint_index, gate in magic_gates:
-            if breakpoint_index < simulated:
-                raise ValueError("Magic gates must be listed in circuit order.")
-            if breakpoint_index > simulated or inverse is None:
-                # Every Clifford gate up to this magic gate, in one stim call.
-                segment = filter(None, instructions[simulated:breakpoint_index])
-                simulator.do(stim.Circuit("\n".join(segment)))
-                simulated = breakpoint_index
-                # current_inverse_tableau() is U^dag for the Clifford prefix U.
-                inverse = simulator.current_inverse_tableau()
-            rotations.append(
-                self._conjugate_rotation(
-                    (gate_generator(gate, self.nqubits), gate_angle(gate)), inverse
-                )
-            )
-        return rotations
+        dressed = self.stab_engine.backpropagate_at(
+            [gate_generator(gate, self.nqubits) for _, gate in magic_gates],
+            [breakpoint_index for breakpoint_index, _ in magic_gates],
+            clifford_circuit,
+        )
+        return [
+            (generator, sign * gate_angle(gate))
+            for (generator, sign), (_, gate) in zip(dressed, magic_gates)
+        ]
 
     def _evolve_original(self):
         """

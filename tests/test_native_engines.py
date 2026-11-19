@@ -17,6 +17,7 @@ from mpstab.engines import (
     NativeStabilizersEngine,
     NativeTensorNetworkEngine,
     QuimbEngine,
+    StimEngine,
 )
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient, KickedIsing
@@ -63,6 +64,38 @@ def test_noisy_expectation_matches_quimb():
     )
     assert native.n_patterns == quimb.n_patterns
     assert native.mean == pytest.approx(quimb.mean, abs=1e-10)
+
+
+def test_backpropagate_at_matches_backpropagate_on_each_prefix(stab_engine):
+    """The default (stim) and the native override honour the same contract."""
+    circuit = HSMPO(small_entangled_circuit(4)).clifford_circuit
+    observables = ["ZIII", "XYIZ", "IIXX", "YZZY", "ZZZZ"]
+    breakpoints = [3, 0, len(circuit.queue), 1, 3]  # unsorted on purpose
+    result = stab_engine.backpropagate_at(observables, breakpoints, circuit)
+    for observable, k, got in zip(observables, breakpoints, result):
+        prefix = Circuit(circuit.nqubits)
+        for gate in circuit.queue[:k]:
+            prefix.add(gate)
+        expected = StimEngine().backpropagate(observable, prefix)
+        assert (got[0], float(got[1])) == (expected[0], float(expected[1]))
+
+
+def test_backpropagate_at_rejects_a_breakpoint_outside_the_circuit():
+    circuit = HSMPO(small_entangled_circuit(4)).clifford_circuit
+    with pytest.raises(ValueError, match="outside"):
+        StimEngine().backpropagate_at(["ZIII"], [len(circuit.queue) + 1], circuit)
+
+
+def test_noise_with_native_stabilizers_matches_stim():
+    ansatz = KickedIsing(nqubits=5)
+    noise = NoiseModel().add(DepolarizingError(0.02), gates.CNOT)
+    observable = {"ZZIII": 0.7, "IXIXI": -0.4}
+    stim = HSMPO(ansatz).noisy_expectation(observable, noise, n_samples=200, seed=9)
+    native = HSMPO(ansatz, stab_engine=NativeStabilizersEngine()).noisy_expectation(
+        observable, noise, n_samples=200, seed=9
+    )
+    assert native.n_patterns == stim.n_patterns
+    assert native.mean == pytest.approx(stim.mean, abs=1e-10)
 
 
 def test_hsynthsmpo_with_native_stabilizers():
