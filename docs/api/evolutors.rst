@@ -44,6 +44,28 @@ device can run, and a tail folded into the observable. See
    :undoc-members:
    :show-inheritance:
 
+Gradients
+---------
+
+Analytic gradients of the HSMPO surrogate, at about twice the cost of one
+expectation value whatever the number of parameters, instead of the two shifted
+circuits per parameter of the parameter-shift rule.
+
+.. automodule:: mpstab.evolutors.gradient
+   :members:
+   :show-inheritance:
+
+**Usage Example**::
+
+    import numpy as np
+    from mpstab import HSMPO
+    from mpstab.models.ansatze import HardwareEfficient
+
+    np.random.seed(0)
+    surrogate = HSMPO(HardwareEfficient(nqubits=6, nlayers=2))
+    gradient = surrogate.gradient({"ZZIIII": 1.0, "IIXXII": 0.5})
+    print(gradient.shape)  # one derivative per parameter: (12,)
+
 Optimization
 ------------
 
