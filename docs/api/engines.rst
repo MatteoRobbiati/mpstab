@@ -31,6 +31,32 @@ Tensor Network Engine
 conjugation with `quimb <https://quimb.readthedocs.io/>`_, on the numpy, jax or
 torch backend.
 
+Native Engines
+--------------
+
+Pure-Python implementations of the two interfaces, kept as readable examples
+of what an engine does rather than for performance. They give the same
+expectation values as stim and quimb, but are slower and cover less: the
+native tensor-network engine has no operator-side conjugation (so no head/tail
+split in :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`) and no DMRG.
+
+.. automodule:: mpstab.engines.stabilizers.native.engine
+   :members:
+   :show-inheritance:
+
+**Native Stabilizers Engine**: backpropagates a Pauli string by composing one
+tableau per gate, on the XZ-encoded Pauli arithmetic of
+:mod:`mpstab.engines.stabilizers.native.pauli_string`.
+
+.. automodule:: mpstab.engines.tensor_networks.native.engine
+   :members:
+   :show-inheritance:
+
+**Native Tensor Network Engine**: an MPS in Vidal canonical form on a small
+in-package tensor-network layer
+(:mod:`mpstab.engines.tensor_networks.native.circuit_mps`), evolved by
+applying MPOs and re-splitting by SVD.
+
 Selecting Engines
 -----------------
 

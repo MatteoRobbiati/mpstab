@@ -5,7 +5,12 @@ import pytest
 from qibo import set_backend
 from utils import folded_mpo, set_rng_seed
 
-from mpstab.engines import QuimbEngine, StimEngine
+from mpstab.engines import (
+    NativeStabilizersEngine,
+    NativeTensorNetworkEngine,
+    QuimbEngine,
+    StimEngine,
+)
 
 
 def pytest_configure(config):
@@ -27,6 +32,20 @@ def stim_engine():
 @pytest.fixture
 def quimb_engine():
     return QuimbEngine()
+
+
+@pytest.fixture(params=[StimEngine, NativeStabilizersEngine], ids=["stim", "native"])
+def stab_engine(request):
+    """Each stabilizers engine in turn."""
+    return request.param()
+
+
+@pytest.fixture(
+    params=[QuimbEngine, NativeTensorNetworkEngine], ids=["quimb", "native"]
+)
+def tn_engine(request):
+    """Each tensor-network engine in turn."""
+    return request.param()
 
 
 @pytest.fixture
