@@ -2,12 +2,13 @@ import pytest
 from numpy import allclose, round
 from utils import DEFAULT_ATOL
 
+from mpstab.engines import QuimbEngine, StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
 
 
 @pytest.mark.parametrize("nlayers", [2, 9, 15])
-def test_fidelity_decreases_with_layers(nlayers, stim_engine, quimb_engine):
+def test_fidelity_decreases_with_layers(nlayers):
     """Checks that fidelity decreases as layers increase and bond dimension decreases."""
     nqubits = 15
     max_bond_dim = 8
@@ -17,8 +18,9 @@ def test_fidelity_decreases_with_layers(nlayers, stim_engine, quimb_engine):
     hs = HSMPO(
         ansatz=ansatz,
         max_bond_dimension=max_bond_dim,
+        stab_engine=StimEngine(),
+        tn_engine=QuimbEngine(),
     )
-    hs.set_engines(stab_engine=stim_engine, tn_engine=quimb_engine)
     _, fidelity = hs.expectation(observable, return_fidelity=True)
 
     # Store fidelity for the first run
@@ -30,7 +32,7 @@ def test_fidelity_decreases_with_layers(nlayers, stim_engine, quimb_engine):
 
 
 @pytest.mark.parametrize("max_bond_dim", [10, 4, 2])
-def test_fidelity_decreases_with_bond_dim(max_bond_dim, stim_engine, quimb_engine):
+def test_fidelity_decreases_with_bond_dim(max_bond_dim):
     """Checks that fidelity decreases as layers increase and bond dimension decreases."""
     nqubits = 20
     nlayers = 5
@@ -40,8 +42,9 @@ def test_fidelity_decreases_with_bond_dim(max_bond_dim, stim_engine, quimb_engin
     hs = HSMPO(
         ansatz=ansatz,
         max_bond_dimension=max_bond_dim,
+        stab_engine=StimEngine(),
+        tn_engine=QuimbEngine(),
     )
-    hs.set_engines(stab_engine=stim_engine, tn_engine=quimb_engine)
     _, fidelity = hs.expectation(observable, return_fidelity=True)
 
     # Store fidelity for the first run
@@ -53,7 +56,7 @@ def test_fidelity_decreases_with_bond_dim(max_bond_dim, stim_engine, quimb_engin
 
 
 @pytest.mark.parametrize("nqubits", [4, 7, 10, 15])
-def test_fidelity_faithfull(nqubits, stim_engine, quimb_engine):
+def test_fidelity_faithfull(nqubits):
     nlayers = 5
     max_bond_dim = 4
     observable = "Z" * nqubits
@@ -62,8 +65,9 @@ def test_fidelity_faithfull(nqubits, stim_engine, quimb_engine):
     hs = HSMPO(
         ansatz=ansatz,
         max_bond_dimension=max_bond_dim,
+        stab_engine=StimEngine(),
+        tn_engine=QuimbEngine(),
     )
-    hs.set_engines(stab_engine=stim_engine, tn_engine=quimb_engine)
     _, fidelity = hs.expectation(observable, return_fidelity=True)
 
     fidelity_check = hs.truncation_fidelity()

@@ -125,11 +125,11 @@ def anticommutation(left: Sequence[str], right: Sequence[str], nqubits: int):
     return _anticommuting(*_symplectic(left, nqubits), *_symplectic(right, nqubits))
 
 
-#: Rows of rotations :func:`light_cone` handles at once, bounding its memory.
+#: Rows of rotations :func:`pauli_light_cone` handles at once, bounding its memory.
 _LIGHT_CONE_BLOCK = 1024
 
 
-def light_cone(
+def pauli_light_cone(
     generators: Sequence[str], observables: Sequence[str], nqubits: int
 ) -> np.ndarray:
     """
@@ -153,11 +153,11 @@ def light_cone(
 
     Example::
 
-        from mpstab.pauli import light_cone
+        from mpstab.pauli import pauli_light_cone
 
         # IX commutes with everything after it and drops out; ZI commutes
         # with the observable but not with the kept XI, so it stays.
-        print(light_cone(["ZI", "IX", "XI"], ["ZI"], 2))
+        print(pauli_light_cone(["ZI", "IX", "XI"], ["ZI"], 2))
         # [0 2]
     """
     x, z = _symplectic(generators, nqubits)

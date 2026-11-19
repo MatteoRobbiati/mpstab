@@ -1,10 +1,6 @@
 """
 The ``"pauli"`` method: measure the sampled Pauli strings of the tail-folded
 observable, grouped into qubit-wise-commuting settings.
-
-The point estimate comes from qibo's own
-:meth:`qibo.hamiltonians.SymbolicHamiltonian.expectation_from_samples`; only the
-standard error, which qibo does not report, is computed here.
 """
 
 from __future__ import annotations
@@ -14,19 +10,17 @@ from typing import ClassVar
 
 import numpy as np
 import stim
-from qibo import symbols
-from qibo.hamiltonians import SymbolicHamiltonian
 
-from mpstab.pauli import weight
 from mpstab.qpu.measurement.abstract import (
     ExpectationResult,
     MeasurementMethod,
     MeasurementPlan,
     basis_measurement,
+    weighted_mean_and_variance,
 )
 from mpstab.qpu.measurement.pauli_expansion import (
-    fold_fidelity,
     fold_pool_through_tableau,
+    fold_truncation_l2,
     pool_pauli_terms,
     sample_pauli_strings,
     truncation_error_estimate,
@@ -102,18 +96,6 @@ class PauliMeasurementPlan:
     coefficients: dict
 
     @property
-    def n_settings(self) -> int:
-        return len(self.groups)
-
-    @property
-    def l1_norm(self) -> float:
-        return float(sum(abs(c) for c in self.coefficients.values()))
-
-    @property
-    def max_weight(self) -> int:
-        return max((weight(string) for string in self.coefficients), default=0)
-
-    @property
     def group_variances(self) -> tuple:
         """
         Per-group a-priori variance, ``sum_{P in group} |c_P|**2``.
@@ -134,20 +116,11 @@ class PauliMeasurementPlan:
         variance-proportional (Neyman-optimal) allocation across groups,
         ``(sum_G sqrt(V_G))**2 / epsilon**2``.
 
-        Prefer this over :meth:`shots_upper_bound` when comparing measurement
-        routes: by Cauchy-Schwarz ``sqrt(V_G) <= sum_{P in G} |c_P|``, so the L1
-        bound always overestimates, by exactly the saving grouping buys. Sizing
-        budgets from the L1 bound can rank the routes backwards.
+        By Cauchy-Schwarz ``sqrt(V_G) <= sum_{P in G} |c_P|``, so this is never
+        above the ungrouped ``||c||_1**2 / epsilon**2``: the difference is what
+        grouping saves.
         """
         return float(sum(np.sqrt(v) for v in self.group_variances)) ** 2 / epsilon**2
-
-    def shots_upper_bound(self, epsilon: float) -> float:
-        """
-        Worst-case predicted shots, ``||c||_1**2 / epsilon**2``: what
-        :meth:`shots_for_precision` would need if every group's terms were
-        perfectly correlated.
-        """
-        return self.l1_norm**2 / epsilon**2
 
 
 def build_measurement_plan(coefficients: dict) -> PauliMeasurementPlan:
@@ -203,134 +176,6 @@ def allocate_shots_by_variance(plan: PauliMeasurementPlan, n_shots: int) -> tupl
     return tuple(int(x) + 1 for x in base)  # +1: the one shot reserved above
 
 
-def build_pauli_plan(
-    head_circuit,
-    nqubits: int,
-    coefficients: dict,
-    n_shots: int | None,
-    epsilon: float | None,
-    constant: float = 0.0,
-    truncation_l1: float = 0.0,
-    truncation_l2: float = 0.0,
-    retained_weight: float | None = None,
-    bond_truncation_l2: float = 0.0,
-    antihermitian_l2: float = 0.0,
-) -> MeasurementPlan:
-    """
-    Build the ``"pauli"`` route's plan: one circuit per QWC group.
-
-    Args:
-        head_circuit: the resynthesised head, without measurements.
-        nqubits: circuit width.
-        coefficients: sampled, tail-folded ``{pauli_string: coefficient}``.
-        n_shots: fixed total shot budget, or ``None`` to size it from ``epsilon``.
-        epsilon: target standard error, or ``None`` when ``n_shots`` is given.
-        constant: observable offset, added back by the estimator.
-        truncation_l1: heuristic discarded-Pauli-mass estimate to report (see
-            :func:`~mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate`
-            -- not a rigorous bound).
-        truncation_l2: typical-case discarded-Pauli-mass estimate to report.
-        retained_weight: see :attr:`MeasurementPlan.retained_weight`.
-        bond_truncation_l2: see :attr:`MeasurementPlan.bond_truncation_l2`.
-        antihermitian_l2: see :attr:`MeasurementPlan.antihermitian_l2`.
-    """
-    plan = build_measurement_plan(coefficients)
-    if epsilon is not None:
-        n_shots = int(np.ceil(plan.shots_for_precision(epsilon)))
-    shots = allocate_shots_by_variance(plan, n_shots)
-
-    circuits = tuple(
-        head_circuit + basis_measurement(group.setting, nqubits)
-        for group in plan.groups
-    )
-    return MeasurementPlan(
-        method="pauli",
-        circuits=circuits,
-        shots=shots,
-        recombination=(plan.groups, plan.coefficients),
-        constant=constant,
-        truncation_l1=truncation_l1,
-        truncation_l2=truncation_l2,
-        retained_weight=retained_weight,
-        bond_truncation_l2=bond_truncation_l2,
-        antihermitian_l2=antihermitian_l2,
-    )
-
-
-def _variance_from_frequencies(freq: dict, weighted_supports: list) -> float:
-    """
-    Sample variance of a *single* shot's value of ``sum_i c_i parity_i(bitstring)``
-    over one measurement setting. Divide by the setting's shot count to get the
-    variance of the mean.
-
-    Exact rather than a sum of per-member variances, since the joint frequency
-    table already carries the members' full covariance.
-    """
-    total = sum(freq.values())
-    if total <= 1:
-        return 0.0
-    values, weights = [], []
-    for bitstring, count in freq.items():
-        bits = [int(b) for b in bitstring]
-        values.append(
-            sum(
-                coeff * (-1) ** sum(bits[q] for q in support)
-                for support, coeff in weighted_supports
-            )
-        )
-        weights.append(count)
-    values = np.asarray(values)
-    weights = np.asarray(weights)
-    mean = float(np.sum(weights * values) / total)
-    return float(np.sum(weights * (values - mean) ** 2) / (total - 1))
-
-
-def estimate_pauli(plan, frequencies) -> ExpectationResult:
-    """Recombine a ``"pauli"`` plan's frequencies into an :class:`ExpectationResult`."""
-    groups, coefficients = plan.recombination
-    nqubits = len(next(iter(coefficients)))
-
-    value = plan.constant
-    variance = 0.0
-    n_shots = 0
-    for group, freq in zip(groups, frequencies):
-        shots = sum(freq.values())
-        n_shots += shots
-
-        weighted_supports = []
-        form = 0
-        for member in group.members:
-            coeff = float(np.real(coefficients[member]))
-            support = tuple(q for q, label in enumerate(member) if label != "I")
-            if not support:
-                value += coeff  # identity member: parity is always 1, no shot noise
-                continue
-            weighted_supports.append((support, coeff))
-            term = coeff
-            for qubit in support:
-                term *= symbols.Z(qubit)
-            form += term
-
-        if form != 0:
-            value += SymbolicHamiltonian(
-                form=form, nqubits=nqubits
-            ).expectation_from_samples(freq)
-        if shots > 1:
-            variance += _variance_from_frequencies(freq, weighted_supports) / shots
-
-    return ExpectationResult(
-        value=float(value),
-        stderr=float(np.sqrt(variance)),
-        truncation_l1=plan.truncation_l1,
-        truncation_l2=plan.truncation_l2,
-        n_settings=len(frequencies),
-        n_shots=n_shots,
-        retained_weight=plan.retained_weight,
-        bond_truncation_l2=plan.bond_truncation_l2,
-        antihermitian_l2=plan.antihermitian_l2,
-    )
-
-
 @dataclass(frozen=True)
 class PauliSampling(MeasurementMethod):
     """
@@ -370,13 +215,9 @@ class PauliSampling(MeasurementMethod):
         ``"shadows"`` method: the string truncation is measured against the
         already truncated MPO, so it cannot see it. ``antihermitian_l2`` is the
         size of the anti-Hermitian part that truncation leaves in the pooled
-        coefficients, projected out by :func:`_assert_real_coefficients`.
+        coefficients, projected out by :func:`_real_coefficients`.
         """
-        truncated = (
-            max_bond_dimension is not None
-            if max_bond_dimension != -1
-            else model.max_bond_dimension is not None
-        )
+        truncated = max_bond_dimension is not None
         rng = np.random.default_rng(seed)
         ensembles, diagnostics = [], []
         bond_truncation_l2 = 0.0
@@ -384,9 +225,10 @@ class PauliSampling(MeasurementMethod):
             operator, sign = model.build_post_head_mpo(
                 pauli, cut_index, max_bond_dimension
             )
+            operator = model.tn_engine.operator_site_arrays(operator)
             if truncated:
-                bond_truncation_l2 += abs(coefficient) * np.sqrt(
-                    max(0.0, 1.0 - fold_fidelity(operator, model.nqubits))
+                bond_truncation_l2 += fold_truncation_l2(
+                    coefficient, operator, model.nqubits
                 )
             ensemble = sample_pauli_strings(
                 operator,
@@ -399,19 +241,25 @@ class PauliSampling(MeasurementMethod):
 
         pooled = pool_pauli_terms(ensembles)
         if resynthesis.residual_tableau != stim.Tableau(model.nqubits):
-            pooled = fold_pool_through_tableau(
-                pooled, resynthesis.residual_tableau, model.stab_engine
-            )
+            pooled = fold_pool_through_tableau(pooled, resynthesis.residual_tableau)
 
         truncation_l1, truncation_l2, retained_weight = _aggregate_truncation(
             diagnostics
         )
-        return build_pauli_plan(
-            resynthesis.circuit,
-            model.nqubits,
-            _assert_real_coefficients(pooled, truncated=truncated),
-            n_shots,
-            epsilon,
+        grouping = build_measurement_plan(
+            _real_coefficients(pooled, check=not truncated)
+        )
+        if epsilon is not None:
+            n_shots = int(np.ceil(grouping.shots_for_precision(epsilon)))
+
+        return MeasurementPlan(
+            method=self.name,
+            circuits=tuple(
+                resynthesis.circuit + basis_measurement(group.setting, model.nqubits)
+                for group in grouping.groups
+            ),
+            shots=allocate_shots_by_variance(grouping, n_shots),
+            recombination=(grouping.groups, grouping.coefficients),
             constant=constant,
             truncation_l1=truncation_l1,
             truncation_l2=truncation_l2,
@@ -421,8 +269,36 @@ class PauliSampling(MeasurementMethod):
         )
 
     def estimate(self, plan, frequencies, seed=None) -> ExpectationResult:
-        """:func:`estimate_pauli`; ``seed`` is unused, nothing is random."""
-        return estimate_pauli(plan, frequencies)
+        """
+        Sum each setting's mean of ``sum_P c_P parity_P(bitstring)``, with its
+        standard error from the same per-bitstring values, which carry the
+        members' full covariance. ``seed`` is unused, nothing is random.
+        """
+        groups, coefficients = plan.recombination
+        value, variance, n_shots = plan.constant, 0.0, 0
+        for group, freq in zip(groups, frequencies):
+            supports = [
+                (
+                    [q for q, label in enumerate(member) if label != "I"],
+                    coefficients[member],
+                )
+                for member in group.members
+            ]
+            values = [
+                sum(
+                    c * (-1) ** sum(int(bitstring[q]) for q in support)
+                    for support, c in supports
+                )
+                for bitstring in freq
+            ]
+            counts = list(freq.values())
+            mean, per_shot_variance = weighted_mean_and_variance(values, counts)
+            shots = sum(counts)
+            value += mean
+            if shots > 1:
+                variance += per_shot_variance / shots
+            n_shots += shots
+        return plan.result(value, np.sqrt(variance), n_shots, len(frequencies))
 
 
 def _aggregate_truncation(diagnostics: list) -> tuple:
@@ -456,52 +332,39 @@ def _antihermitian_norm(pooled: dict) -> float:
     """
     ``sqrt(sum_P Im(c_P)**2)`` of a pooled ``{pauli: complex coefficient}`` map:
     the Frobenius norm, per ``2**(n/2)``, of the anti-Hermitian part of the
-    operator the map describes. It is what :func:`_assert_real_coefficients`
-    drops when the tail was truncated, restricted to the sampled strings.
+    operator the map describes. It is what :func:`_real_coefficients` drops
+    when the tail was truncated, restricted to the sampled strings.
     """
     return float(np.sqrt(sum(np.imag(c) ** 2 for c in pooled.values())))
 
 
-def _assert_real_coefficients(
-    pooled: dict, tolerance: float = 1e-8, truncated: bool = False
-) -> dict:
+def _real_coefficients(pooled: dict, check: bool = True, tolerance: float = 1e-8):
     """
-    Coerce a pooled ``{pauli: complex coefficient}`` map to real, raising
-    instead of silently truncating if any imaginary part isn't negligible.
+    The real parts of a pooled ``{pauli: complex coefficient}`` map.
 
-    With ``truncated=True`` (the tail MPO was compressed to a finite bond
-    dimension) the imaginary parts are dropped without raising: the bond
-    truncation in ``conjugate_operator`` does not preserve Hermiticity (the
-    intermediate ``R^dag O`` is not Hermitian, and Pauli-structured operators
-    have degenerate singular values, so even a single compression picks an
-    arbitrary subspace), so a truncated MPO carries an anti-Hermitian part of
-    the order of the truncation error. Taking the real part of every Pauli
-    coefficient is exactly the projection ``(O + O^dag) / 2`` onto the
-    Hermitian part, the closest Hermitian operator, which is never farther
-    from the exact (Hermitian) observable than ``O`` itself. The size of what
-    is dropped is reported by :func:`_antihermitian_norm`.
+    The tail-folded, Clifford-backpropagated observable is Hermitian, so with an
+    exact fold every coefficient is real up to rounding, and with ``check`` a
+    larger imaginary part raises: it points to a bug upstream (backpropagation,
+    tableau folding, or a non-Hermitian input observable) that silently dropping
+    it would hide.
 
-    The tail-folded, Clifford-backpropagated observable is Hermitian, so
-    every pooled coefficient should be real up to floating-point noise. A
-    non-negligible imaginary part means backpropagation, tableau folding, or
-    the input observable itself went wrong somewhere upstream -- silently
-    dropping it (``float(np.real(c))``) would hide that bug behind a
-    plausible-looking float instead of surfacing it.
+    A tail truncated to a finite bond dimension is not Hermitian (the
+    intermediate ``R^dag O`` is not, and Pauli-structured operators have
+    degenerate singular values, so a compression picks an arbitrary subspace).
+    There, pass ``check=False``: the real part is exactly the projection
+    ``(O + O^dag) / 2``, the closest Hermitian operator, and the size of what is
+    dropped is :func:`_antihermitian_norm`.
 
     Raises:
-        ValueError: if any coefficient's imaginary part exceeds ``tolerance``
-            relative to its magnitude.
+        ValueError: with ``check``, if an imaginary part exceeds ``tolerance``
+            relative to its coefficient's magnitude.
     """
-    real_coefficients = {}
     for pauli, coefficient in pooled.items():
-        magnitude = max(abs(coefficient), 1.0)
-        if not truncated and abs(np.imag(coefficient)) > tolerance * magnitude:
+        if check and abs(np.imag(coefficient)) > tolerance * max(abs(coefficient), 1.0):
             raise ValueError(
-                f"Pooled coefficient for {pauli!r} is not real within "
-                f"tolerance ({coefficient!r}); the tail-folded observable "
-                "should be Hermitian, so this points to a bug upstream "
-                "(backpropagation, tableau folding, or a non-Hermitian "
-                "input observable) rather than ordinary floating-point noise."
+                f"Pooled coefficient for {pauli!r} is not real within tolerance "
+                f"({coefficient!r}); the tail-folded observable should be "
+                "Hermitian, so this points to a bug upstream rather than "
+                "floating-point noise."
             )
-        real_coefficients[pauli] = float(np.real(coefficient))
-    return real_coefficients
+    return {pauli: float(np.real(c)) for pauli, c in pooled.items()}

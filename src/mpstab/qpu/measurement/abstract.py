@@ -34,9 +34,11 @@ class MeasurementPlan:
     - ``"pauli"``: ``(groups, coefficients)``, one :class:`~mpstab.qpu.measurement.pauli.QWCGroup` per circuit
       in the same order, plus the ``{pauli_string: c_P}`` map the groups came
       from.
-    - ``"shadows"``: ``(mpo_terms, bases)``, where ``mpo_terms`` holds
-      ``(label, coefficient, sign, mpo)`` per Hamiltonian term and ``bases`` has
-      one basis string per circuit.
+    - ``"shadows"`` and ``"tnice"``: ``(mpo_terms, bases)``, where ``mpo_terms``
+      holds ``(label, coefficient, sign, mpo)`` per Hamiltonian term, the
+      folded tail ``mpo`` as its site arrays
+      (:meth:`~mpstab.engines.TensorNetworkEngine.operator_site_arrays`), and
+      ``bases`` has one basis string per circuit.
 
     Attributes:
         retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
@@ -71,6 +73,20 @@ class MeasurementPlan:
     retained_weight: float | None = None
     bond_truncation_l2: float | None = None
     antihermitian_l2: float | None = None
+
+    def result(self, value, stderr, n_shots, n_settings) -> ExpectationResult:
+        """An :class:`ExpectationResult` carrying this plan's truncation diagnostics."""
+        return ExpectationResult(
+            value=float(value),
+            stderr=float(stderr),
+            truncation_l1=self.truncation_l1,
+            truncation_l2=self.truncation_l2,
+            n_settings=n_settings,
+            n_shots=int(n_shots),
+            retained_weight=self.retained_weight,
+            bond_truncation_l2=self.bond_truncation_l2,
+            antihermitian_l2=self.antihermitian_l2,
+        )
 
 
 @dataclass(frozen=True)
@@ -148,6 +164,21 @@ class ExpectationResult:
             f"ExpectationResult({self.value:+.6f}, total_error={self.total_error:.6f}, "
             f"n_shots={self.n_shots}, n_settings={self.n_settings})"
         )
+
+
+def weighted_mean_and_variance(values, weights) -> tuple:
+    """
+    ``(mean, variance of a single draw)`` of ``values`` repeated ``weights``
+    times each, the variance with Bessel's correction.
+    """
+    values, weights = np.asarray(values, dtype=float), np.asarray(weights, dtype=float)
+    total = float(weights.sum())
+    if total == 0:
+        return 0.0, 0.0
+    mean = float(np.sum(weights * values) / total)
+    if total <= 1:
+        return mean, 0.0
+    return mean, float(np.sum(weights * (values - mean) ** 2) / (total - 1))
 
 
 def basis_measurement(basis: str, nqubits: int) -> Circuit:

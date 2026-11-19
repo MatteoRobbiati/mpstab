@@ -17,12 +17,10 @@ the cost of that saving (see ``resynthesize_head``'s docstring).
 
 import numpy as np
 import stim
-from qibo import set_backend
 
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import HardwareEfficient
 
-set_backend("numpy")
 np.random.seed(42)
 
 NQUBITS = 6

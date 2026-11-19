@@ -2,7 +2,6 @@
 
 from qibo.config import raise_error
 
-from mpstab.engines import QuimbEngine, StimEngine
 from mpstab.qibo_backend.mpstab import MPStabBackend
 
 
@@ -28,8 +27,7 @@ class MetaBackend:
             )
 
         return MPStabBackend(
-            stab_engine=kwargs.get("stab_engine", StimEngine()),
-            tn_engine=kwargs.get("tn_engine", QuimbEngine()),
+            stab_engine=kwargs.get("stab_engine"), tn_engine=kwargs.get("tn_engine")
         )
 
     def list_available(self) -> dict:

@@ -14,12 +14,13 @@ from utils import (
 )
 
 import mpstab.evolutors.hsmpo as hsmpo_module
+from mpstab.engines import StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
 
 @pytest.mark.parametrize("observable", ["ZIIXI", "XIXXI", "ZYXZI"])
-def test_expectation_matches_qibo(observable, stim_engine):
+def test_expectation_matches_qibo(observable):
     circ = Circuit(5)
     [circ.add(gates.H(q)) for q in range(5)]
     circ.add(gates.CNOT(0, 1))
@@ -28,8 +29,7 @@ def test_expectation_matches_qibo(observable, stim_engine):
 
     ansatz = CircuitAnsatz(qibo_circuit=circ)
 
-    hs = HSMPO(ansatz)
-    hs.set_engines(stab_engine=stim_engine)
+    hs = HSMPO(ansatz, stab_engine=StimEngine())
     exp_hybrid = hs.expectation(observable)
 
     exp_qibo = expectation_with_qibo(

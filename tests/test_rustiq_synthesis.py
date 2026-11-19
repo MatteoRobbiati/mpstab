@@ -5,42 +5,34 @@ Covers:
   - target == residual . head at the unitary level (dense, small n);
   - residual tableaus are reproducible across repeated calls, while gate lists
     need not be (rustiq's fix_clifford=True draws randomly);
-  - head_counts_only agrees with the (expensive) exact head;
   - resynthesizing the whole chain and folding the residual into the observable
     reproduces direct qibo simulation.
 """
 
 import numpy as np
 import pytest
-import stim
-from qibo import Circuit, gates
-from utils import expectation_with_qibo, set_rng_seed
+from qibo import Circuit
+from utils import (
+    expectation_with_qibo,
+    pauli_matrix,
+    rotation_unitary,
+    small_entangled_circuit,
+)
 
 pytest.importorskip("rustiq")
 
-import mpstab.qpu.synthesis.rustiq as rustiq_synthesis
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
-from mpstab.pauli import pauli_matrix
-from mpstab.qpu.synthesis import (
-    build_head_and_residual,
-    head_counts_only,
-    head_to_qibo_circuit,
-)
-
-
-def _rotation_unitary(pauli_str, angle):
-    dim = 2 ** len(pauli_str)
-    return np.cos(angle / 2) * np.eye(dim) - 1j * np.sin(angle / 2) * pauli_matrix(
-        pauli_str
-    )
+from mpstab.pauli import conjugate
+from mpstab.qpu.synthesis import RustiqSynthesis, head_to_qibo_circuit
+from mpstab.qpu.synthesis import rustiq as rustiq_synthesis
 
 
 def _target_unitary(paulis, angles):
     dim = 2 ** len(paulis[0])
     U = np.eye(dim, dtype=complex)
     for p, a in zip(paulis, angles):
-        U = _rotation_unitary(p, a) @ U
+        U = rotation_unitary(p, a) @ U
     return U
 
 
@@ -62,20 +54,8 @@ def _equal_up_to_global_phase(A, B, atol=1e-6):
     return np.allclose(A * phase, B, atol=atol)
 
 
-def _small_entangled_circuit(n=4):
-    set_rng_seed()
-    circ = Circuit(n)
-    for q in range(n):
-        circ.add(gates.H(q))
-    for q in range(n - 1):
-        circ.add(gates.CZ(q, q + 1))
-    for q in range(n):
-        circ.add(gates.RY(q, theta=float(np.random.uniform(0.1, 1.2))))
-    return circ
-
-
 def _dressed_paulis_and_angles(n=4):
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(n))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(n))
     hs = HSynthSMPO.rotations_only(ansatz)
     dressed = hs._dressed_rotations()
     paulis = [p for p, _ in dressed]
@@ -88,7 +68,9 @@ def test_target_equals_tail_times_head_dense():
     _, paulis, angles = _dressed_paulis_and_angles(n)
     assert len(paulis) > 3  # non-trivial rotation chain
 
-    head, residual_tableau, residual_gates = build_head_and_residual(paulis, angles)
+    head, residual_tableau, residual_gates = RustiqSynthesis().synthesize(
+        paulis, angles
+    )
 
     U_target = _target_unitary(paulis, angles)
     U_head = _unitary_from_gate_list(head, n)
@@ -100,42 +82,22 @@ def test_target_equals_tail_times_head_dense():
 def test_residual_tableau_reproducible_across_calls_gate_list_not_necessarily():
     _, paulis, angles = _dressed_paulis_and_angles(4)
 
-    _, residual_tableau_1, residual_gates_1 = build_head_and_residual(paulis, angles)
-    _, residual_tableau_2, residual_gates_2 = build_head_and_residual(paulis, angles)
+    _, residual_tableau_1, residual_gates_1 = RustiqSynthesis().synthesize(
+        paulis, angles
+    )
+    _, residual_tableau_2, residual_gates_2 = RustiqSynthesis().synthesize(
+        paulis, angles
+    )
 
     # The Clifford OPERATOR is unique -- compare tableaus, not gate lists.
     assert residual_tableau_1 == residual_tableau_2
 
 
-def test_head_counts_only_matches_exact_head():
-    _, paulis, angles = _dressed_paulis_and_angles(4)
-
-    head, _, _ = build_head_and_residual(paulis, angles)
-    exact_total, exact_two_q = len(head), sum(1 for g in head if len(g[1]) == 2)
-
-    cheap_total, cheap_two_q = head_counts_only(paulis)
-
-    assert cheap_total == exact_total
-    assert cheap_two_q == exact_two_q
-
-
 def test_build_head_and_residual_empty_input():
-    head, residual_tableau, residual_gates = build_head_and_residual([], [])
+    head, residual_tableau, residual_gates = RustiqSynthesis().synthesize([], [])
     assert head == []
     assert residual_gates == []
     assert len(residual_tableau) == 0
-
-
-def test_folding_an_identity_residual_leaves_the_observable_alone(stim_engine):
-    identity = stim.Tableau(3)
-
-    folded, sign = stim_engine.fold_pauli_through_tableau("XYZ", identity, sign=1.0)
-    assert folded == "XYZ"
-    assert sign == 1.0
-
-    folded, sign = stim_engine.fold_pauli_through_tableau("XYZ", identity, sign=-1.0)
-    assert folded == "XYZ"
-    assert sign == -1.0
 
 
 def _expectation_via_full_resynthesis(hs, observable):
@@ -153,8 +115,8 @@ def _expectation_via_full_resynthesis(hs, observable):
         observable=observable, clifford_circuit=hs.clifford_circuit
     )
     resynthesis = hs.resynthesize_head(cut_index=len(hs.magic_gates))
-    folded, residual_sign = hs.stab_engine.fold_pauli_through_tableau(
-        backpropagated, resynthesis.residual_tableau, 1.0
+    folded, residual_sign = conjugate(
+        backpropagated, resynthesis.residual_tableau.inverse()
     )
     state = resynthesis.circuit().state()
     expval = np.real(np.conj(state) @ pauli_matrix(folded) @ state)
@@ -163,7 +125,7 @@ def _expectation_via_full_resynthesis(hs, observable):
 
 @pytest.mark.parametrize("observable", ["ZZZZ", "XIII", "IZIX", "YYYY"])
 def test_full_resynthesis_and_fold_matches_direct_simulation(observable):
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO.rotations_only(ansatz)
 
     expval = _expectation_via_full_resynthesis(hs, observable)
@@ -184,7 +146,7 @@ def test_full_resynthesis_and_fold_on_library_ansatz():
 
 
 def test_resynthesize_head_gate_counts_across_partial_cuts():
-    ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
     hs = HSynthSMPO.rotations_only(ansatz)
     n_dressed = len(hs.magic_gates)
 
@@ -204,4 +166,4 @@ def test_rustiq_import_error_has_install_hint(monkeypatch):
     monkeypatch.setattr(rustiq_synthesis, "pauli_network_synthesis", None)
 
     with pytest.raises(ImportError, match="mpstab\\[rustiq\\]"):
-        build_head_and_residual(["X"], [0.1])
+        RustiqSynthesis().synthesize(["X"], [0.1])

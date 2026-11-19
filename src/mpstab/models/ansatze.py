@@ -10,9 +10,12 @@ import networkx as nx
 import numpy as np
 from qibo import Circuit, gates
 from qibo.models import QFT as qibo_qft
-from qibo.noise import NoiseModel
 
-from mpstab.models.utils import hardware_compatible_circuit, replace_non_clifford_gate
+from mpstab.models.utils import (
+    DEFAULT_NATIVE_GATES,
+    hardware_compatible_circuit,
+    replace_non_clifford_gate,
+)
 
 
 @dataclass
@@ -34,63 +37,30 @@ class Ansatz(ABC):
     """
 
     nqubits: int
-    density_matrix: bool = False
 
     magic_parameters: ClassVar[Tuple[str, ...]] = ()
     entanglement_parameters: ClassVar[Tuple[str, ...]] = ()
 
     def __post_init__(self):
-        self._circuit = Circuit(
-            nqubits=self.nqubits, density_matrix=self.density_matrix
-        )
-        self.noise_model = None
-        self.noisy_circuit = None
+        self._circuit = Circuit(self.nqubits)
 
     @property
-    def circuit(self):
+    def circuit(self) -> Circuit:
         return self._circuit
 
     @circuit.setter
-    def circuit(self, value):
+    def circuit(self, value: Circuit):
         if not isinstance(value, Circuit):
             raise TypeError("Expected a Circuit instance")
         self._circuit = value
+        self.nqubits = value.nqubits
 
     @property
     def nparams(self):
         return len(self.circuit.get_parameters())
 
-    def execute(
-        self,
-        nshots: int = None,
-        initial_state: Circuit = None,
-        with_noise: bool = False,
-    ):
-        """Execute the circuit and return the outcome."""
-        # Default empty initial circuit
-        if initial_state is None:
-            initial_state = Circuit(self.nqubits, density_matrix=self.density_matrix)
-
-        if with_noise:
-            if self.noisy_circuit is None:
-                raise ValueError(
-                    f"Before asking for noisy simulation, ensure the noise model is set via the `update_noise_model` method."
-                )
-            if len(initial_state.queue) != 0:
-                initial_state.density_matrix = True
-                initial_state = self.noise_model.apply(initial_state)
-            result = (initial_state + self.noisy_circuit)(nshots=nshots)
-        else:
-            result = (initial_state + self.circuit)(nshots=nshots)
-        return result
-
-    def update_noise_model(self, noise_model: NoiseModel):
-        """Construct an attribute which is the noisy version of circuit."""
-        self.noise_model = noise_model
-        self.noisy_circuit = noise_model.apply(self.circuit)
-
     def partitionate_circuit(
-        self, replacement_probability: float, replacement_method: str
+        self, replacement_probability: float = 0.0, replacement_method: str = "closest"
     ):
         """
         Split the circuit into a Clifford part and the magic gates left over.
@@ -102,6 +72,7 @@ class Ansatz(ABC):
 
         Args:
             replacement_probability: chance of replacing each non-Clifford gate.
+                The default 0 keeps every non-Clifford gate as magic.
             replacement_method: ``"closest"`` or ``"random"`` Clifford angle.
 
         Returns:
@@ -113,45 +84,23 @@ class Ansatz(ABC):
             self.circuit.queue, replacement_probability, replacement_method
         )
 
-    def _partition(
-        self,
-        queue,
-        replacement_probability: float,
-        replacement_method: str,
-        copy_gates: bool = False,
-    ):
-        """
-        Partition the gates of ``queue`` as :meth:`partitionate_circuit` does.
-
-        The breakpoints count the Clifford gates of ``queue`` from zero. With
-        ``copy_gates`` the Clifford gates are copied into the two output
-        circuits instead of shared with ``queue``.
-        """
+    def _partition(self, queue, replacement_probability, replacement_method):
+        """:meth:`partitionate_circuit` over any gate sequence."""
         magic_gates = []
-        clifford_only_circuit = Circuit(
-            nqubits=self.nqubits, density_matrix=self.density_matrix
-        )
-        full_circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
+        clifford_circuit = Circuit(self.nqubits)
+        full_circuit = Circuit(self.nqubits)
 
-        break_point = 0
         for gate in queue:
-
             if not gate.clifford and not isinstance(gate, gates.M):
-                r = random.random()
-                if r > replacement_probability:
-                    magic_gates.append((break_point, gate))
+                if random.random() > replacement_probability:
+                    magic_gates.append((len(clifford_circuit.queue), gate))
                     full_circuit.add(gate)
                     continue
+                gate = replace_non_clifford_gate(gate, replacement_method)
+            clifford_circuit.add(gate)
+            full_circuit.add(gate)
 
-                gate = replace_non_clifford_gate(
-                    gate, replacement_method=replacement_method
-                )
-
-            break_point += 1
-            clifford_only_circuit.add(deepcopy(gate) if copy_gates else gate)
-            full_circuit.add(deepcopy(gate) if copy_gates else gate)
-
-        return (magic_gates, clifford_only_circuit), full_circuit
+        return (magic_gates, clifford_circuit), full_circuit
 
 
 def _add_rzz(circuit: Circuit, a: int, b: int, theta: float) -> None:
@@ -167,7 +116,7 @@ def _add_rzz(circuit: Circuit, a: int, b: int, theta: float) -> None:
 
 @dataclass
 class HardwareEfficient(Ansatz):
-    """Hardware Efficient ansatz."""
+    """Layers of random RY rotations, each followed by a ring of CZ gates."""
 
     nlayers: int = 1
     entangling: bool = True
@@ -181,31 +130,8 @@ class HardwareEfficient(Ansatz):
             for q in range(self.nqubits):
                 self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
             if self.entangling:
-                self.circuit += self.entanglement_layer()
-        # self.circuit.add(gates.M(*range(self.nqubits)))
-
-    @property
-    def parameters_per_layers(self):
-        return int(self.nparams / self.nlayers)
-
-    def parametric_layer(self, layer_index: int):
-        """Return the gates composing a parametric layer."""
-        # Start and end index for the layer in the circuit
-        # Count as start the number of parametric gates per layer + the entanglement layer
-        start_index = (
-            layer_index * self.parameters_per_layers + layer_index * self.nqubits
-        )
-        end_index = start_index + self.parameters_per_layers
-        return deepcopy(self.circuit.queue[start_index:end_index])
-
-    def entanglement_layer(self):
-        """Construct an entanglement layer compatible with the target quantum circuit."""
-        ent_circuit = Circuit(self.nqubits, density_matrix=self.density_matrix)
-        [
-            ent_circuit.add(gates.CZ(q0=q % self.nqubits, q1=(q + 1) % self.nqubits))
-            for q in range(self.nqubits)
-        ]
-        return ent_circuit
+                for q in range(self.nqubits):
+                    self.circuit.add(gates.CZ(q, (q + 1) % self.nqubits))
 
 
 @dataclass
@@ -629,7 +555,7 @@ class HammingWeightPreserving(Ansatz):
         with CRY expanded as RY(θ)·CNOT·RY(-θ)·CNOT.  Verified analytically
         on all four computational basis states.
         """
-        circ = Circuit(self.nqubits, density_matrix=self.density_matrix)
+        circ = Circuit(self.nqubits)
         circ.add(gates.CNOT(q1, q0))
         circ.add(gates.RY(q=q1, theta=theta))
         circ.add(gates.CNOT(q0, q1))
@@ -665,42 +591,32 @@ class FloquetAnsatz(Ansatz):
     def __post_init__(self):
         super().__post_init__()
 
-        # Save attribute for replacements
         self.half_sandwich = Circuit(self.nqubits)
         for _ in range(self.nlayers):
             self.half_sandwich += self._build_floquet_layer()
 
-        # Len of the first half of the sandwich + 1 Hadamard
-        # # These attributes will be useful later for partitioning
-        self.rz_index = len(self.half_sandwich.queue) + 1
-        self.start_inverted_half = self.rz_index + 1
-
-        # First, we add an Hadamard to the target qubit
         self.circuit.add(gates.H(self.target_qubit))
-        # Then append nlayers Floquet layers
         self.circuit += self.half_sandwich
-        # Add RZ
         self.circuit.add(gates.RZ(q=self.target_qubit, theta=self.theta))
-        # Add the inverted Floquet layers
         self.circuit += self.half_sandwich.invert()
 
     def _build_floquet_layer(self) -> Circuit:
         """Construct one Floquet layer over all links."""
-        layer = Circuit(self.nqubits, density_matrix=self.density_matrix)
+        layer = Circuit(self.nqubits)
         layer += self._build_sublayer("even")
         layer += self._build_sublayer("odd")
         return layer
 
     def _build_sublayer(self, parity: str):
         """Helper function to build a sub-layer composing a Floquet layer."""
-        layer = Circuit(self.nqubits, density_matrix=self.density_matrix)
+        layer = Circuit(self.nqubits)
 
         if parity == "even":
             qubits = range(0, self.nqubits - 1, 2)
         elif parity == "odd":
             qubits = range(1, self.nqubits - 1, 2)
         else:
-            raise ValueError(f"Please set `parity` to be 'odd' or 'even'.")
+            raise ValueError("Please set `parity` to be 'odd' or 'even'.")
 
         for q1 in qubits:
             q2 = q1 + 1
@@ -715,20 +631,8 @@ class FloquetAnsatz(Ansatz):
 
         return layer
 
-    def partitionate_sub_circuit(
-        self, circuit: Circuit, replacement_probability: float, replacement_method: str
-    ):
-        """
-        Partitionate a *sub*-circuit replacing non-Clifford (magic) gates with a given probability.
-        Returns ((magic_gates, clifford_only_circuit), full_circuit) where
-        magic_gates is List of (local_bp, gate) with local_bp starting at 0.
-        """
-        return self._partition(
-            circuit.queue, replacement_probability, replacement_method, copy_gates=True
-        )
-
     def partitionate_circuit(
-        self, replacement_probability: float, replacement_method: str
+        self, replacement_probability: float = 0.0, replacement_method: str = "closest"
     ):
         """
         Partitionate the full Floquet circuit U = H · half_sandwich · RZ · (half_sandwich)†,
@@ -736,10 +640,8 @@ class FloquetAnsatz(Ansatz):
         Returns ((magic_gates, clifford_only_circuit), full_circuit).
         """
         magic_gates = []
-        clifford_only_circuit = Circuit(
-            self.nqubits, density_matrix=self.density_matrix
-        )
-        full_circuit = Circuit(nqubits=self.nqubits, density_matrix=self.density_matrix)
+        clifford_only_circuit = Circuit(self.nqubits)
+        full_circuit = Circuit(self.nqubits)
 
         # 1) initial H
         H = gates.H(self.target_qubit)
@@ -747,12 +649,10 @@ class FloquetAnsatz(Ansatz):
         clifford_only_circuit.add(deepcopy(H))
 
         # 2) first half: collect both full_circuit_1 and its magic break-points
-        (magic_gates_1, clifford_block_1), full_circuit_1 = (
-            self.partitionate_sub_circuit(
-                deepcopy(self.half_sandwich),
-                replacement_probability,
-                replacement_method,
-            )
+        (magic_gates_1, clifford_block_1), full_circuit_1 = self._partition(
+            deepcopy(self.half_sandwich).queue,
+            replacement_probability,
+            replacement_method,
         )
 
         # shift each local_bp by +1 to account for the leading H at index 0
@@ -802,17 +702,6 @@ class CircuitAnsatz(Ansatz):
         self.nqubits = self.qibo_circuit.nqubits
         super().__post_init__()
         self._circuit = deepcopy(self.qibo_circuit)
-
-    @property
-    def circuit(self):
-        return self._circuit
-
-    @circuit.setter
-    def circuit(self, value):
-        if not isinstance(value, Circuit):
-            raise TypeError("Expected a Qibo Circuit instance")
-        self._circuit = value
-        self.nqubits = value.nqubits
 
 
 # ---------------------------------------------------------------------------
@@ -874,7 +763,7 @@ class _CompiledAnsatz(Ansatz):
 
     transpile: bool = True
     native_gates: Optional[List] = field(
-        default_factory=lambda: [gates.GPI2, gates.RZ, gates.Z, gates.CZ]
+        default_factory=lambda: list(DEFAULT_NATIVE_GATES)
     )
     connectivity: Optional[nx.Graph] = None
 
@@ -893,9 +782,29 @@ class _CompiledAnsatz(Ansatz):
     def _build_circuit(self) -> Circuit:
         raise NotImplementedError
 
-    @property
-    def circuit(self):
-        return self._circuit
+
+@dataclass(kw_only=True)
+class TranspiledAnsatz(_CompiledAnsatz):
+    """
+    An existing circuit transpiled to the native gates and connectivity of a
+    device.
+
+    Args:
+        original_circuit: the circuit to transpile.
+        native_gates: native gates of the device. Defaults to
+            ``[GPI2, RZ, Z, CZ]``.
+        connectivity: device topology. ``None`` ignores connectivity constraints.
+    """
+
+    original_circuit: Circuit
+    nqubits: int = field(init=False)
+
+    def __post_init__(self):
+        self.nqubits = self.original_circuit.nqubits
+        super().__post_init__()
+
+    def _build_circuit(self) -> Circuit:
+        return self.original_circuit
 
 
 @dataclass(kw_only=True)

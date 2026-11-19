@@ -1,7 +1,5 @@
 """Pure-Python stabilizers engine."""
 
-from dataclasses import dataclass
-
 from qibo.models import Circuit
 
 from mpstab.engines.stabilizers.abstract import StabilizersEngine
@@ -27,9 +25,14 @@ GATE_TABLEAUS = {
 }
 
 
-@dataclass
 class NativeStabilizersEngine(StabilizersEngine):
-    """Clifford backpropagation by composing per-gate tableaus."""
+    """
+    Clifford backpropagation by composing per-gate tableaus.
+
+    A pure-Python example of the :class:`StabilizersEngine` interface, written
+    to be read rather than to be fast: use :class:`~mpstab.engines.StimEngine`
+    for real workloads.
+    """
 
     def backpropagate(self, observable: str, clifford_circuit: Circuit):
         """

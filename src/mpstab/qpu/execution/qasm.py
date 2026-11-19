@@ -14,31 +14,7 @@ from qibo import gates
 #: missing from some parsers' default include (qiskit's needs
 #: ``LEGACY_CUSTOM_INSTRUCTIONS``), so :func:`circuit_to_qasm` emits only these.
 QELIB1_GATES = frozenset(
-    {
-        "u3",
-        "u2",
-        "u1",
-        "cx",
-        "id",
-        "x",
-        "y",
-        "z",
-        "h",
-        "s",
-        "sdg",
-        "t",
-        "tdg",
-        "rx",
-        "ry",
-        "rz",
-        "cz",
-        "cy",
-        "ch",
-        "ccx",
-        "crz",
-        "cu1",
-        "cu3",
-    }
+    "u3 u2 u1 cx id x y z h s sdg t tdg rx ry rz cz cy ch ccx crz cu1 cu3".split()
 )
 
 

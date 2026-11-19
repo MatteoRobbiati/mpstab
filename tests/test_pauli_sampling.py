@@ -15,49 +15,115 @@ from itertools import product
 
 import numpy as np
 import pytest
+from utils import pauli_matrix
 
-from mpstab.pauli import pauli_matrix
-from mpstab.qpu.measurement import build_measurement_plan, group_qwc
+from mpstab.engines import QuimbEngine
+from mpstab.pauli import PAULI_LABELS
+from mpstab.qpu.measurement.pauli import build_measurement_plan, group_qwc
 from mpstab.qpu.measurement.pauli_expansion import (
     PauliEnsemble,
-    _draw_one_string,
+    _pauli_string_coefficient,
+    _retained_fraction,
     _right_environments,
-    enumerate_pauli_coefficients,
     mpo_to_pauli_mps,
     sample_pauli_strings,
     shadow_variance_from_mpo,
-    top_k_pauli_strings,
     truncation_error_estimate,
 )
+
+# Brute-force references, exponential in n: small systems only.
+
+
+def enumerate_pauli_coefficients(mpo):
+    """
+    Every ``(pauli_string, c_P)``, sorted by ``|c_P|**2`` descending.
+
+    Enumerates all ``4**n`` label sequences, so it is exponential in ``n``: use
+    it to validate the samplers on small systems, not in production.
+    """
+    tensors = mpo_to_pauli_mps(mpo)
+    n = len(tensors)
+    results = [
+        (
+            "".join(PAULI_LABELS[label] for label in labels),
+            _pauli_string_coefficient(tensors, labels),
+        )
+        for labels in product(range(4), repeat=n)
+    ]
+    results.sort(key=lambda item: -abs(item[1]) ** 2)
+    return results
+
+
+def top_k_pauli_strings(mpo, k: int) -> PauliEnsemble:
+    """
+    Deterministic top-``k`` strings by ``|c_P|**2``.
+
+    Goes through the full ``4**n`` enumeration, so it exists to validate
+    :func:`sample_pauli_strings` on small systems.
+    """
+    ranked = enumerate_pauli_coefficients(mpo)
+    total_weight = float(sum(abs(coefficient) ** 2 for _, coefficient in ranked))
+    coefficients = np.array([c for _, c in ranked[:k]], dtype=complex)
+    return PauliEnsemble(
+        strings=tuple(string for string, _ in ranked[:k]),
+        coefficients=coefficients,
+        retained_weight=_retained_fraction(coefficients, total_weight),
+        total_weight=total_weight,
+    )
+
+
+def _draw_one_string(tensors, envs, rng) -> str:
+    """One unbatched left-to-right perfect-sampling sweep."""
+    left = np.ones((1, 1), dtype=complex)
+    labels = []
+    for site, tensor in enumerate(tensors):
+        weights = np.einsum(
+            "lm,ilr,ims,rs->i",
+            left,
+            tensor,
+            tensor.conj(),
+            envs[site + 1],
+            optimize=True,
+        ).real
+        weights = np.clip(weights, 0.0, None)
+        probabilities = weights / weights.sum()
+        label = int(rng.choice(4, p=probabilities))
+        labels.append(label)
+        left = (
+            np.einsum("lm,lr,ms->rs", left, tensor[label], tensor[label].conj())
+            / weights[label]
+        )
+    return "".join(PAULI_LABELS[label] for label in labels)
+
 
 # ---------------------------------------------------------------------------
 # 1. Coefficient extraction vs brute-force dense trace
 # ---------------------------------------------------------------------------
 
 
-def test_coefficients_match_dense_trace(scrambled_mpo):
+def test_coefficients_match_dense_trace(scrambled_mpo, scrambled_sites):
     dense = scrambled_mpo.to_dense()
     nqubits = 4
-    for label, coefficient in enumerate_pauli_coefficients(scrambled_mpo):
+    for label, coefficient in enumerate_pauli_coefficients(scrambled_sites):
         reference = np.trace(dense @ pauli_matrix(label)) / 2**nqubits
         assert (
             abs(coefficient - reference) < 1e-14
         ), f"[{label}] mps={coefficient} brute-force={reference}"
 
 
-def test_coefficients_sum_of_squares_is_one_for_pauli_observable(quimb_engine):
+def test_coefficients_sum_of_squares_is_one_for_pauli_observable():
     # Conjugating a single Pauli string preserves the Frobenius norm exactly,
     # so sum|c_P|^2 must equal 1 (||P||_F^2 / 2^n = 1) to machine precision.
-    mpo = quimb_engine.pauli_mpo("XZXI")
+    engine = QuimbEngine()
+    mpo = engine.pauli_mpo("XZXI")
     rng = np.random.default_rng(1)
     for generator in ["YYII", "IXZY", "ZIXY", "YZYX", "XYZI", "IIXY"]:
-        mpo = quimb_engine.conjugate_operator(
-            mpo, generator, rng.uniform(0.3, 1.5), None
-        )
+        mpo = engine.conjugate_operator(mpo, generator, rng.uniform(0.3, 1.5), None)
 
-    tensors = mpo_to_pauli_mps(mpo)
+    sites = engine.operator_site_arrays(mpo)
+    tensors = mpo_to_pauli_mps(sites)
     total = sum(
-        abs(coefficient) ** 2 for _, coefficient in enumerate_pauli_coefficients(mpo)
+        abs(coefficient) ** 2 for _, coefficient in enumerate_pauli_coefficients(sites)
     )
     assert total == pytest.approx(1.0, abs=1e-12)
     assert len(tensors) == 4
@@ -68,15 +134,15 @@ def test_coefficients_sum_of_squares_is_one_for_pauli_observable(quimb_engine):
 # ---------------------------------------------------------------------------
 
 
-def test_sampler_frequencies_match_exact_marginals(scrambled_mpo):
-    exact = enumerate_pauli_coefficients(scrambled_mpo)
+def test_sampler_frequencies_match_exact_marginals(scrambled_sites):
+    exact = enumerate_pauli_coefficients(scrambled_sites)
     total_weight = sum(abs(c) ** 2 for _, c in exact)
     exact_probabilities = {label: abs(c) ** 2 / total_weight for label, c in exact}
 
     rng = np.random.default_rng(0)
     counts: dict = {}
     n_draws = 20000
-    tensors = mpo_to_pauli_mps(scrambled_mpo)
+    tensors = mpo_to_pauli_mps(scrambled_sites)
     envs = _right_environments(tensors)
     for _ in range(n_draws):
         label = _draw_one_string(tensors, envs, rng)
@@ -94,9 +160,9 @@ def test_sampler_frequencies_match_exact_marginals(scrambled_mpo):
         ), f"[{label}] exact={exact_p:.4f} empirical={empirical_p:.4f}"
 
 
-def test_sampler_recovers_top_k_strings(scrambled_mpo):
-    top = top_k_pauli_strings(scrambled_mpo, k=4)
-    ensemble = sample_pauli_strings(scrambled_mpo, n_samples=5000, seed=42)
+def test_sampler_recovers_top_k_strings(scrambled_sites):
+    top = top_k_pauli_strings(scrambled_sites, k=4)
+    ensemble = sample_pauli_strings(scrambled_sites, n_samples=5000, seed=42)
 
     assert set(top.strings) <= set(ensemble.strings)
     for string, coefficient in zip(top.strings, top.coefficients):
@@ -104,8 +170,8 @@ def test_sampler_recovers_top_k_strings(scrambled_mpo):
         assert recovered == pytest.approx(coefficient, abs=1e-12)
 
 
-def test_sample_pauli_strings_deduplicates_and_reports_retained_weight(scrambled_mpo):
-    ensemble = sample_pauli_strings(scrambled_mpo, n_samples=3000, seed=7)
+def test_sample_pauli_strings_deduplicates_and_reports_retained_weight(scrambled_sites):
+    ensemble = sample_pauli_strings(scrambled_sites, n_samples=3000, seed=7)
     assert len(ensemble.strings) == len(set(ensemble.strings))
     assert 0.0 < ensemble.retained_weight <= 1.0 + 1e-9
     assert ensemble.total_weight == pytest.approx(1.0, abs=1e-8)
@@ -160,23 +226,17 @@ def test_qwc_setting_has_no_leftover_identity():
         assert "I" not in group.setting
 
 
-def test_measurement_plan_diagnostics(scrambled_mpo):
-    ensemble = sample_pauli_strings(scrambled_mpo, n_samples=3000, seed=11)
+def test_measurement_plan_diagnostics(scrambled_sites):
+    ensemble = sample_pauli_strings(scrambled_sites, n_samples=3000, seed=11)
     coefficients = dict(zip(ensemble.strings, ensemble.coefficients))
     plan = build_measurement_plan(coefficients)
 
-    assert plan.n_settings == len(plan.groups)
-    assert plan.l1_norm == pytest.approx(sum(abs(c) for c in coefficients.values()))
-    assert plan.max_weight == max(sum(l != "I" for l in s) for s in coefficients)
-
-    # shots_upper_bound keeps the old (worst-case, perfectly-correlated) scaling.
-    assert plan.shots_upper_bound(1e-2) == pytest.approx(plan.l1_norm**2 / 1e-2**2)
-
-    # shots_for_precision now uses the Neyman-optimal, per-group-variance
-    # scaling instead, which is never larger than the worst case.
+    # Neyman-optimal, per-group-variance scaling, never above the ungrouped
+    # worst case ||c||_1**2 / epsilon**2.
     expected = sum(np.sqrt(v) for v in plan.group_variances) ** 2 / 1e-2**2
     assert plan.shots_for_precision(1e-2) == pytest.approx(expected)
-    assert plan.shots_for_precision(1e-2) <= plan.shots_upper_bound(1e-2) + 1e-6
+    l1_norm = sum(abs(c) for c in coefficients.values())
+    assert plan.shots_for_precision(1e-2) <= l1_norm**2 / 1e-2**2 + 1e-6
 
 
 # ---------------------------------------------------------------------------
@@ -185,14 +245,14 @@ def test_measurement_plan_diagnostics(scrambled_mpo):
 
 
 def test_truncation_error_estimate_matches_exact_l2_and_bounds_zero_at_full_retention(
-    scrambled_mpo,
+    scrambled_sites,
 ):
-    # scrambled_mpo happens to have only 5 Pauli terms with non-negligible
+    # scrambled_sites happens to have only 5 Pauli terms with non-negligible
     # weight (the rest are ~1e-30, floating-point noise), so truncating to
     # the top 2 discards a genuine chunk of the Pauli mass, unlike sampling
     # enough strings to reach ~full retention, which would leave only
     # floating-point noise to compare an L1/L2 ordering against.
-    ensemble = top_k_pauli_strings(scrambled_mpo, k=2)
+    ensemble = top_k_pauli_strings(scrambled_sites, k=2)
     assert ensemble.retained_weight < 0.9
 
     l1, l2 = truncation_error_estimate(ensemble)
@@ -201,8 +261,8 @@ def test_truncation_error_estimate_matches_exact_l2_and_bounds_zero_at_full_rete
     assert l1 >= l2 - 1e-9  # L1 mass is never smaller than L2 mass for >=1 term
 
 
-def test_truncation_error_estimate_is_zero_when_nothing_is_discarded(scrambled_mpo):
-    ensemble = top_k_pauli_strings(scrambled_mpo, k=4**4)
+def test_truncation_error_estimate_is_zero_when_nothing_is_discarded(scrambled_sites):
+    ensemble = top_k_pauli_strings(scrambled_sites, k=4**4)
     assert ensemble.retained_weight == pytest.approx(1.0, abs=1e-8)
     l1, l2 = truncation_error_estimate(ensemble)
     assert l1 == pytest.approx(0.0, abs=1e-6)
@@ -237,12 +297,14 @@ def test_truncation_error_estimate_still_reports_real_discarded_weight():
     assert l1 == pytest.approx(0.1 / 0.7)  # scale set by the significant coefficient
 
 
-def test_shadow_variance_from_mpo_matches_brute_force_enumeration(scrambled_mpo):
+def test_shadow_variance_from_mpo_matches_brute_force_enumeration(
+    scrambled_mpo, scrambled_sites
+):
     assert scrambled_mpo.max_bond() > 1
 
     enumerated = sum(
         abs(coefficient) ** 2 * 3 ** sum(label != "I" for label in string)
-        for string, coefficient in enumerate_pauli_coefficients(scrambled_mpo)
+        for string, coefficient in enumerate_pauli_coefficients(scrambled_sites)
     )
-    from_mpo = shadow_variance_from_mpo(scrambled_mpo)
+    from_mpo = shadow_variance_from_mpo(scrambled_sites)
     assert from_mpo == pytest.approx(enumerated, abs=1e-10)
