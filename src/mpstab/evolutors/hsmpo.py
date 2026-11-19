@@ -1,13 +1,13 @@
 """The hybrid stabilizer-MPO surrogate of a quantum circuit."""
 
-import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import List, Tuple, Union
 
 import numpy as np
 import stim
 from qibo import Circuit
 from qibo.hamiltonians import SymbolicHamiltonian
+from tqdm.auto import tqdm
 
 from mpstab.engines import (
     NativeTensorNetworkEngine,
@@ -22,7 +22,11 @@ from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 from mpstab.models.metrics import stabilizer_renyi_entropy_mps
-from mpstab.pauli import conjugate, validate_pauli_string
+from mpstab.noise.compile import compile_noise
+from mpstab.noise.mc_noise_estimator import noisy_expectation
+from mpstab.pauli import conjugate
+from mpstab.pauli import light_cone as pauli_light_cone
+from mpstab.pauli import validate_pauli_string
 
 
 @dataclass
@@ -41,11 +45,15 @@ class HSMPO:
         max_bond_dimension: MPS truncation cap, or ``None`` for no cap.
         initial_state: single-qubit-gates-only circuit preparing the initial
             state. Defaults to ``|0...0>``.
+        progress: show a progress bar while the MPS is evolved through the
+            dressed rotations. It only appears once the evolution has taken
+            longer than about a second, so quick builds stay silent.
     """
 
     ansatz: Union[Ansatz, Circuit]
     max_bond_dimension: int = None
     initial_state: Circuit = None
+    progress: bool = True
 
     def __post_init__(self):
         if isinstance(self.ansatz, Circuit):
@@ -86,6 +94,7 @@ class HSMPO:
         self.ansatz = ansatz
         self.max_bond_dimension = None
         self.initial_state = Circuit(ansatz.nqubits)
+        self.progress = True
         self.stab_engine = _validated_stab_engine(stab_engine)
         self.tn_engine = _validated_tn_engine(tn_engine)
         (self.magic_gates, self.clifford_circuit), _ = ansatz.partitionate_circuit(
@@ -122,8 +131,25 @@ class HSMPO:
         self.original_circuit_mps = self._precompute_original_mps()
 
     def _init_tn(self, max_bond_dimension: int | None = None):
+        """Reset ``self.mps`` to the product state ``initial_state`` prepares."""
+        self.mps = self._product_state_mps(max_bond_dimension)
+
+    def initial_mps(self):
         """
-        Reset ``self.mps`` to the product state ``initial_state`` prepares.
+        A fresh MPS in the product state ``initial_state`` prepares, capped at
+        ``max_bond_dimension``.
+
+        Unlike the cached ``mps`` and ``original_circuit_mps``, the returned
+        state belongs to the caller: evolving it leaves this instance untouched.
+
+        Raises:
+            ValueError: if ``initial_state`` entangles any pair of qubits.
+        """
+        return self._product_state_mps(self.max_bond_dimension)
+
+    def _product_state_mps(self, max_bond_dimension: int | None):
+        """
+        Build the product-state MPS ``initial_state`` prepares.
 
         Both forms are handed to the engine, which takes whichever it prefers:
         the per-qubit amplitudes for the native engine, the circuit itself for
@@ -142,7 +168,7 @@ class HSMPO:
                 )
             amplitudes.append(light_circuit().state())
 
-        self.mps = self.tn_engine.build_circuit_mps(
+        return self.tn_engine.build_circuit_mps(
             n=self.nqubits,
             initial_state_amplitudes=np.array(amplitudes),
             initial_state_circuit=self.initial_state,
@@ -200,33 +226,51 @@ class HSMPO:
                 "set_engines(stab_engine=StimEngine()) to enable it."
             )
 
+        return self._dress(self.magic_gates, self.clifford_circuit)
+
+    def _dress(self, magic_gates, clifford_circuit) -> List[Tuple[str, float]]:
+        """
+        Dressed ``(generator, signed_angle)`` of each ``(breakpoint, gate)`` in
+        ``magic_gates``, conjugated by the first ``breakpoint`` gates of
+        ``clifford_circuit``.
+
+        With a :class:`~mpstab.engines.StimEngine` the Clifford circuit is
+        simulated once, a segment at a time, so dressing every gate costs one
+        pass over the circuit. Other engines backpropagate each generator
+        through its own prefix, which is quadratic in the circuit length.
+        """
+        if not isinstance(self.stab_engine, StimEngine):
+            rotations = []
+            for breakpoint_index, gate in magic_gates:
+                prefix = self._clifford_subcircuit(clifford_circuit, breakpoint_index)
+                generator, sign = self.stab_engine.backpropagate(
+                    gate_generator(gate, self.nqubits), prefix
+                )
+                rotations.append((generator, sign * gate_angle(gate)))
+            return rotations
+
+        instructions = self.stab_engine.instructions(clifford_circuit)
         simulator = stim.TableauSimulator()
         simulator.do(stim.Circuit(f"I {self.nqubits - 1}"))
 
         rotations: List[Tuple[str, float]] = []
-        pending = iter(self.magic_gates)
-        next_gate = next(pending, None)
-
-        def dress_gates_at(breakpoint_index: int):
-            nonlocal next_gate
-            while next_gate is not None and next_gate[0] == breakpoint_index:
-                gate = next_gate[1]
+        simulated = 0
+        inverse = None
+        for breakpoint_index, gate in magic_gates:
+            if breakpoint_index < simulated:
+                raise ValueError("Magic gates must be listed in circuit order.")
+            if breakpoint_index > simulated or inverse is None:
+                # Every Clifford gate up to this magic gate, in one stim call.
+                segment = filter(None, instructions[simulated:breakpoint_index])
+                simulator.do(stim.Circuit("\n".join(segment)))
+                simulated = breakpoint_index
                 # current_inverse_tableau() is U^dag for the Clifford prefix U.
-                rotations.append(
-                    self._conjugate_rotation(
-                        (gate_generator(gate, self.nqubits), gate_angle(gate)),
-                        simulator.current_inverse_tableau(),
-                    )
+                inverse = simulator.current_inverse_tableau()
+            rotations.append(
+                self._conjugate_rotation(
+                    (gate_generator(gate, self.nqubits), gate_angle(gate)), inverse
                 )
-                next_gate = next(pending, None)
-
-        dress_gates_at(0)
-        for breakpoint_index, gate in enumerate(self.clifford_circuit.queue, start=1):
-            one_gate = Circuit(self.nqubits)
-            one_gate.add(gate)
-            simulator.do(self.stab_engine.to_stim(one_gate))
-            dress_gates_at(breakpoint_index)
-
+            )
         return rotations
 
     def _precompute_original_mps(self):
@@ -237,19 +281,15 @@ class HSMPO:
         values do not re-partition the circuit.
         """
         self._init_tn(self.max_bond_dimension)
-        evolved_mps = copy.deepcopy(self.mps)
+        evolved_mps = self.tn_engine.copy_state(self.mps)
 
         (self.magic_gates, self.clifford_circuit), _ = self.ansatz.partitionate_circuit(
             replacement_probability=0.0, replacement_method="closest"
         )
 
-        for generator, angle in self._dressed_rotations():
-            self.tn_engine.pauli_rot(
-                state_circuit=evolved_mps,
-                generator=generator,
-                angle=angle,
-                max_bond_dimension=self.max_bond_dimension,
-            )
+        self._apply_rotations(
+            evolved_mps, self._dressed_rotations(), description="building MPS"
+        )
         return evolved_mps
 
     def expectation(self, observable: Observable, return_fidelity: bool = False):
@@ -264,26 +304,82 @@ class HSMPO:
                 pushes below 1.
         """
         constant, terms = pauli_terms(observable, self.nqubits)
-        expval = constant + sum(
-            coefficient * self._term_expectation(pauli, self.original_circuit_mps)
-            for pauli, coefficient in terms.items()
+        expval = constant + self._terms_expectation(
+            terms, self.original_circuit_mps, self.clifford_circuit
         )
 
         if return_fidelity:
             return expval, self.original_circuit_mps.norm(squared=True)
         return expval
 
-    def _term_expectation(self, pauli: str, state_mps) -> float:
+    def noisy_expectation(
+        self,
+        observable: Observable,
+        noise,
+        n_samples: int = 1000,
+        seed: int | None = None,
+        n_workers: int = 1,
+    ):
         """
-        Expectation value of one Pauli string, backpropagated through the cached
-        Clifford circuit before being contracted against ``state_mps``.
+        Expectation value of ``observable`` on the circuit with ``noise``.
+
+        Every set of Pauli faults only flips the signs of some dressed-rotation
+        angles, so the noisy value is an average of noiseless HSMPO values:
+        patterns with zero and one fault are summed exactly, those with two or
+        more are sampled. Coherent errors join the rotation chain like magic
+        gates. Only the rotations and faults in the observable's light cone are
+        kept, which is exact. Readout errors multiply each term by ``1 - 2 p``
+        per noisy qubit it acts on.
+
+        Args:
+            observable: a Pauli string or any other format
+                :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+            noise: a :class:`~mpstab.noise.NoiseModel`.
+            n_samples: fault configurations sampled for two or more faults. With
+                ``0`` that stratum is dropped, biasing the mean by at most
+                ``stratum_weights[2]`` times the sum of the absolute coefficients.
+            seed: seed of the sampler.
+            n_workers: processes evaluating the fault patterns in parallel. The
+                result does not depend on it; each extra process costs about a
+                second to start, so use it for large runs.
+
+        Returns:
+            :class:`~mpstab.noise.NoisyExpectation`, with the value in ``mean``
+            and its standard error in ``stderr``.
         """
-        backpropagated, sign = self.stab_engine.backpropagate(
-            observable=pauli, clifford_circuit=self.clifford_circuit
+        constant, terms = noise.readout_observable(observable, self.nqubits)
+        compiled = compile_noise(self, noise.events(self.ansatz.circuit))
+        result = noisy_expectation(
+            compiled, terms, n_samples=n_samples, seed=seed, n_workers=n_workers
         )
-        mpo = self.tn_engine.pauli_mpo(backpropagated)
-        return (
-            np.real(self.tn_engine.expval(state_circuit=state_mps, operator=mpo)) * sign
+        return replace(result, mean=result.mean + constant)
+
+    def _terms_expectation(self, terms: dict, state_mps, clifford_circuit) -> float:
+        """
+        ``sum_P c_P <P>`` for ``terms = {P: c_P}``, every ``P`` backpropagated
+        through ``clifford_circuit`` before being evaluated on ``state_mps``.
+
+        Both steps go through the engines' batched methods, so the Clifford
+        tableau is built once and the MPS is swept once for all the terms.
+        """
+        backpropagated = self.stab_engine.backpropagate_many(terms, clifford_circuit)
+        return self._evaluate_terms(terms, backpropagated, state_mps)
+
+    def _evaluate_terms(self, terms: dict, backpropagated: list, state_mps) -> float:
+        """
+        ``sum_P c_P <P>`` for ``terms = {P: c_P}``, given each term
+        backpropagated as ``(pauli, sign)``, in one sweep of ``state_mps``.
+        """
+        if not terms:
+            return 0.0
+        values = self.tn_engine.pauli_expvals(
+            state_mps, [pauli for pauli, _ in backpropagated]
+        )
+        return sum(
+            coefficient * np.real(value) * sign
+            for coefficient, (_, sign), value in zip(
+                terms.values(), backpropagated, values
+            )
         )
 
     def expectation_from_partition(
@@ -292,6 +388,7 @@ class HSMPO:
         replacement_probability: float,
         replacement_method: str = "closest",
         return_partitions: bool = False,
+        light_cone: bool = True,
     ):
         """
         Expectation value on a lower-magic circuit sampled from the ansatz.
@@ -304,6 +401,10 @@ class HSMPO:
             replacement_method: ``"closest"`` or ``"random"`` Clifford angle.
             return_partitions: also return the magic gates, the Clifford-only
                 circuit and the sampled full circuit.
+            light_cone: skip the dressed rotations that cannot affect the
+                observable (:func:`~mpstab.pauli.light_cone`). This is exact,
+                and with a bond-dimension cap it also spares those rotations'
+                truncation error.
 
         Returns:
             ``(expval, partitions)``, with ``partitions`` ``None`` unless
@@ -316,20 +417,18 @@ class HSMPO:
                 replacement_method=replacement_method,
             )
         )
-        self._evolve_magic_gates(self.mps, magic_gates, clifford_circuit)
-
         constant, terms = pauli_terms(observable, self.nqubits)
-        expval = constant
-        for pauli, coefficient in terms.items():
-            backpropagated, sign = self.stab_engine.backpropagate(
-                observable=pauli, clifford_circuit=clifford_circuit
+        backpropagated = self.stab_engine.backpropagate_many(terms, clifford_circuit)
+        rotations = self._dress(magic_gates, clifford_circuit)
+        if light_cone:
+            kept = pauli_light_cone(
+                [generator for generator, _ in rotations],
+                [pauli for pauli, _ in backpropagated],
+                self.nqubits,
             )
-            mpo = self.tn_engine.pauli_mpo(backpropagated)
-            expval += (
-                coefficient
-                * self.tn_engine.expval(state_circuit=self.mps, operator=mpo)
-                * sign
-            )
+            rotations = [rotations[k] for k in kept]
+        self._apply_rotations(self.mps, rotations)
+        expval = constant + self._evaluate_terms(terms, backpropagated, self.mps)
 
         partitions = (
             {
@@ -347,15 +446,23 @@ class HSMPO:
         Apply each magic gate to ``state_mps`` as a dressed Pauli rotation,
         dressing it with the Clifford prefix that precedes it.
         """
-        for breakpoint_index, magic_gate in magic_gates:
-            prefix = self._clifford_subcircuit(clifford_circuit, breakpoint_index)
-            generator, sign = self.stab_engine.backpropagate(
-                gate_generator(magic_gate, self.nqubits), prefix
-            )
+        self._apply_rotations(state_mps, self._dress(magic_gates, clifford_circuit))
+
+    def _apply_rotations(self, state_mps, rotations, description="evolving MPS"):
+        """
+        Apply ``(generator, angle)`` rotations to ``state_mps``, in order.
+
+        With :attr:`progress`, a progress bar shows the rotations applied and
+        the current bond dimension, once the evolution has taken longer than
+        :data:`_PROGRESS_DELAY` seconds.
+        """
+        for generator, angle in _progress_bar(
+            rotations, state_mps, description, enabled=self.progress
+        ):
             self.tn_engine.pauli_rot(
                 state_circuit=state_mps,
                 generator=generator,
-                angle=gate_angle(magic_gate) * sign,
+                angle=angle,
                 max_bond_dimension=self.max_bond_dimension,
             )
 
@@ -494,3 +601,36 @@ def _validated_tn_engine(tn_engine) -> TensorNetworkEngine:
             "NativeTensorNetworkEngine()."
         )
     return tn_engine
+
+
+#: Seconds an evolution must run before its progress bar appears.
+_PROGRESS_DELAY = 1.0
+
+
+def _progress_bar(rotations, state_mps, description: str, enabled: bool = True):
+    """
+    Iterate over ``rotations``, drawing a progress bar with the bond dimension
+    of ``state_mps`` once the loop has run for :data:`_PROGRESS_DELAY` seconds.
+    """
+    rotations = list(rotations)
+    if not enabled or not rotations:
+        yield from rotations
+        return
+    bond = getattr(state_mps, "max_bond", None)
+    every = max(1, len(rotations) // 200)  # refresh chi ~200 times at most
+    with tqdm(
+        total=len(rotations),
+        desc=description,
+        unit="rot",
+        delay=_PROGRESS_DELAY,
+        ascii=" ━",
+        colour="green",
+        bar_format="{desc} {bar} {n_fmt}/{total_fmt} rotations "
+        "{rate_fmt} eta {remaining}{postfix}",
+        leave=True,
+    ) as bar:
+        for step, rotation in enumerate(rotations, 1):
+            yield rotation
+            if bond is not None and (step % every == 0 or step == len(rotations)):
+                bar.set_postfix_str(f"chi={bond()}", refresh=False)
+            bar.update()

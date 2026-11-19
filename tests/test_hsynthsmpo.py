@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 import stim
-from qibo import Circuit, gates, set_backend
+from qibo import Circuit, gates
 from utils import expectation_with_qibo, set_rng_seed
 
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import (
     QAE,
@@ -19,9 +18,6 @@ from mpstab.models.ansatze import (
 from mpstab.qpu.measurement import allocate_shots_by_variance, build_measurement_plan
 from mpstab.qpu.measurement.pauli import _assert_real_coefficients
 from mpstab.qpu.synthesis import build_cnot_ladder_head_and_residual
-
-set_backend("numpy")
-set_rng_seed()
 
 
 def _small_entangled_circuit(n=4):
@@ -108,10 +104,10 @@ def test_simulation_rejects_shot_budget():
         hs.expectation_at_cut("ZZZZ", 2, method="simulation", epsilon=0.01)
 
 
-def test_native_engine_not_supported():
+def test_native_engine_not_supported(native_tn_engine):
     ansatz = CircuitAnsatz(qibo_circuit=_small_entangled_circuit(4))
     hs = HSynthSMPO(ansatz)
-    hs.set_engines(tn_engine=NativeTensorNetworkEngine())
+    hs.set_engines(tn_engine=native_tn_engine)
     with pytest.raises(NotImplementedError):
         hs.expectation_at_cut("ZZZZ", 2, method="simulation")
 

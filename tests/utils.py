@@ -5,7 +5,9 @@ from qibo import Circuit, gates, hamiltonians
 from qibo.backends import Backend, construct_backend, get_backend
 from qibo.symbols import X, Y, Z
 
+from mpstab.engines import QuimbEngine
 from mpstab.hamiltonians import pauli_string_to_hamiltonian
+from mpstab.pauli import pauli_matrix
 
 DEFAULT_REPLACEMENT_PROBABILITY = 0.75
 DEFAULT_MAX_BD = 128
@@ -50,6 +52,20 @@ def ghz_circuit(nqubits):
     for q in range(nqubits - 1):
         circ.add(gates.CNOT(q, q + 1))
     return circ
+
+
+def folded_mpo(base: str, generators, angles, max_bond=None):
+    """A Pauli MPO conjugated by Pauli rotations, as a tail fold builds it."""
+    engine = QuimbEngine()
+    mpo = engine.pauli_mpo(base)
+    for generator, angle in zip(generators, angles):
+        mpo = engine.conjugate_operator(mpo, generator, angle, max_bond)
+    return mpo
+
+
+def dense_expectation(state: np.ndarray, pauli: str) -> float:
+    """``<state|pauli|state>`` on a dense statevector, qubit 0 leftmost."""
+    return float(np.real(np.vdot(state, pauli_matrix(pauli) @ state)))
 
 
 def expectation_with_qibo(mpstab_ansatz, observable_str):

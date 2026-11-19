@@ -14,7 +14,6 @@ from qibo.hamiltonians import SymbolicHamiltonian
 from qibo.symbols import X, Y, Z
 
 from mpstab import HSMPO
-from mpstab.engines import NativeTensorNetworkEngine, QuimbEngine
 from mpstab.hamiltonians import pauli_terms
 from mpstab.models.ansatze import HardwareEfficient
 
@@ -300,7 +299,9 @@ class TestHamiltonianConversion:
 class TestEngineSupportValidation:
     """Test that unsupported engines raise appropriate errors."""
 
-    def test_native_tensor_network_engine_raises_not_implemented(self):
+    def test_native_tensor_network_engine_raises_not_implemented(
+        self, native_tn_engine
+    ):
         """Test that NativeTensorNetworkEngine raises NotImplementedError during initialization."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
 
@@ -309,9 +310,11 @@ class TestEngineSupportValidation:
             match="NativeTensorNetworkEngine is not supported by HSMPO",
         ):
             hsmpo = HSMPO(ansatz=ansatz)
-            hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
+            hsmpo.set_engines(tn_engine=native_tn_engine)
 
-    def test_native_tensor_network_engine_error_during_post_init(self):
+    def test_native_tensor_network_engine_error_during_post_init(
+        self, native_tn_engine
+    ):
         """Test that NativeTensorNetworkEngine raises error at HSMPO creation if set as default."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
@@ -321,15 +324,15 @@ class TestEngineSupportValidation:
             NotImplementedError,
             match="NativeTensorNetworkEngine is not supported by HSMPO",
         ):
-            hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
+            hsmpo.set_engines(tn_engine=native_tn_engine)
 
-    def test_quimb_engine_works(self):
+    def test_quimb_engine_works(self, quimb_engine):
         """Test that QuimbEngine works correctly (should pass without error)."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
 
         # This should not raise any error
-        hsmpo.set_engines(tn_engine=QuimbEngine())
+        hsmpo.set_engines(tn_engine=quimb_engine)
 
         # Verify it still works
         result = hsmpo.expectation("ZZZZ")
@@ -339,35 +342,35 @@ class TestEngineSupportValidation:
 class TestEngineSupportValidation:
     """Test native engine support and graceful degradation."""
 
-    def test_expectation_with_quimb_engine(self):
+    def test_expectation_with_quimb_engine(self, quimb_engine):
         """Test expectation calculation with QuimbEngine (default)."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
-        hsmpo.set_engines(tn_engine=QuimbEngine())
+        hsmpo.set_engines(tn_engine=quimb_engine)
 
         # Should work without error
         result = hsmpo.expectation("ZZZZ")
         assert isinstance(result, (float, np.floating))
 
-    def test_expectation_with_native_engine(self):
+    def test_expectation_with_native_engine(self, native_tn_engine):
         """Test expectation calculation with NativeTensorNetworkEngine."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
 
         # Switch to NativeTensorNetworkEngine
-        hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
+        hsmpo.set_engines(tn_engine=native_tn_engine)
 
         # Should work: expectation() supports native engine via statevector
         result = hsmpo.expectation("ZZZZ")
         assert isinstance(result, (float, np.floating))
 
-    def test_minimize_expectation_fails_with_native_engine(self):
+    def test_minimize_expectation_fails_with_native_engine(self, native_tn_engine):
         """Test that minimize_expectation raises NotImplementedError for NativeTensorNetworkEngine."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
 
         # Switch to NativeTensorNetworkEngine
-        hsmpo.set_engines(tn_engine=NativeTensorNetworkEngine())
+        hsmpo.set_engines(tn_engine=native_tn_engine)
 
         # Should raise NotImplementedError
         with pytest.raises(
@@ -381,11 +384,11 @@ class TestEngineSupportValidation:
                 verbosity=0,
             )
 
-    def test_minimize_expectation_works_with_quimb_engine(self):
+    def test_minimize_expectation_works_with_quimb_engine(self, quimb_engine):
         """Test that minimize_expectation works with QuimbEngine."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         hsmpo = HSMPO(ansatz=ansatz)
-        hsmpo.set_engines(tn_engine=QuimbEngine())
+        hsmpo.set_engines(tn_engine=quimb_engine)
 
         # Should work without error
         result = hsmpo.minimize_expectation(
@@ -402,18 +405,18 @@ class TestEngineSupportValidation:
         energy_key = "energy" if "energy" in result else "ground_state_energy"
         assert isinstance(result[energy_key], (float, np.floating))
 
-    def test_expectation_accuracy_native_vs_quimb(self):
+    def test_expectation_accuracy_native_vs_quimb(self, quimb_engine, native_tn_engine):
         """Verify expectation values match between native and quimb engines."""
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
 
         # Calculate with Quimb engine
         hsmpo_quimb = HSMPO(ansatz=ansatz)
-        hsmpo_quimb.set_engines(tn_engine=QuimbEngine())
+        hsmpo_quimb.set_engines(tn_engine=quimb_engine)
         result_quimb = hsmpo_quimb.expectation("ZZZZ")
 
         # Calculate with Native engine
         hsmpo_native = HSMPO(ansatz=ansatz)
-        hsmpo_native.set_engines(tn_engine=NativeTensorNetworkEngine())
+        hsmpo_native.set_engines(tn_engine=native_tn_engine)
         result_native = hsmpo_native.expectation("ZZZZ")
 
         # Results should match (within numerical precision)

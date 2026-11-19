@@ -4,29 +4,13 @@ at the angles `Clifford point + deviation`, only the deviations are magic for
 HSMPO, and its expectation values match the statevector.
 """
 
-from functools import reduce
-
 import numpy as np
 import pytest
-from qibo import set_backend
+from utils import dense_expectation
 
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import KickedIsing, ParametricKickedIsing
-
-set_backend("numpy")
-
-_PAULIS = {
-    "I": np.eye(2),
-    "X": np.array([[0, 1], [1, 0]]),
-    "Y": np.array([[0, -1j], [1j, 0]]),
-    "Z": np.diag([1, -1]),
-}
-
-
-def _dense_expectation(state, pauli):
-    operator = reduce(np.kron, [_PAULIS[p] for p in pauli])
-    return float(np.real(np.vdot(state, operator @ state)))
 
 
 def _state(ansatz):
@@ -116,7 +100,7 @@ def test_hsmpo_matches_statevector(pauli):
     )
     hsmpo = HSMPO(ansatz=ansatz)
     assert hsmpo.expectation(pauli) == pytest.approx(
-        _dense_expectation(_state(ansatz), pauli), abs=1e-10
+        dense_expectation(_state(ansatz), pauli), abs=1e-10
     )
 
 
@@ -126,5 +110,5 @@ def test_head_tail_split_matches_statevector(cut_index):
     evolutor = HSynthSMPO.rotations_only(ansatz)
     result = evolutor.expectation_at_cut("IZZIII", cut_index, method="simulation")
     assert result.value == pytest.approx(
-        _dense_expectation(_state(ansatz), "IZZIII"), abs=1e-8
+        dense_expectation(_state(ansatz), "IZZIII"), abs=1e-8
     )

@@ -14,40 +14,23 @@ layer up (the `HSynthSMPO` integration and cross-route agreement).
 
 import numpy as np
 import pytest
-from qibo import set_backend
 
-from mpstab.engines import QuimbEngine
+from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+from mpstab.models.ansatze import FloquetAnsatz
 from mpstab.pauli import PAULI_LABELS, PAULI_MATRICES
-from mpstab.qpu.measurement import tnice
+from mpstab.qpu.execution import QiboSimulator, execute_plan
+from mpstab.qpu.measurement import (
+    ClassicalShadows,
+    estimate_shadows,
+    estimate_tnice,
+    tnice,
+)
 from mpstab.qpu.measurement.pauli_expansion import mpo_site_arrays, mpo_to_pauli_mps
 from mpstab.qpu.measurement.shadows import (
     _BASIS_INDEX,
     _SNAPSHOT_FACTORS,
     _term_setting_stats,
 )
-
-set_backend("numpy")
-
-
-def _folded_mpo(base: str, generators, angles, max_bond=None):
-    """A tail-folded MPO with nontrivial bond dimension, no HSynthSMPO needed."""
-    engine = QuimbEngine()
-    mpo = engine.pauli_mpo(base)
-    for generator, angle in zip(generators, angles):
-        mpo = engine.conjugate_operator(mpo, generator, angle, max_bond)
-    return mpo
-
-
-@pytest.fixture
-def scrambled_mpo():
-    """A 4-qubit Hermitian operator scrambled enough to have a nontrivial bond
-    dimension and several sizeable Pauli terms -- conjugation by real-angle
-    Pauli rotations keeps it Hermitian throughout."""
-    rng = np.random.default_rng(3)
-    generators = ["YYII", "IXZY", "ZIXY", "YZYX"]
-    angles = [rng.uniform(0.3, 1.5) for _ in generators]
-    return _folded_mpo("ZZZI", generators, angles)
-
 
 # ---------------------------------------------------------------------------
 # 1. The fixed effect/dual maps
@@ -229,15 +212,6 @@ def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
     on every shot, so it must equal ``"shadows"`` on the same frequencies --
     here at a cut whose tail MPS genuinely carries complex gauge phases.
     """
-    from mpstab.evolutors.hsynthsmpo import HSynthSMPO
-    from mpstab.models.ansatze import FloquetAnsatz
-    from mpstab.qpu.execution import QiboSimulator, execute_plan
-    from mpstab.qpu.measurement import (
-        ClassicalShadows,
-        estimate_shadows,
-        estimate_tnice,
-    )
-
     ansatz = FloquetAnsatz(nqubits=4, nlayers=1, target_qubit=1, decompose_rzz=True)
     hs = HSynthSMPO.rotations_only(ansatz)
     hs.max_bond_dimension = 16

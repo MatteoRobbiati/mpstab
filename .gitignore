@@ -168,3 +168,6 @@ Thumbs.db
 
 # Circuits saved by HSynthSMPO.plan() when no out_folder is given
 planned_runs/
+
+# Unpublished examples, kept locally only
+/old/

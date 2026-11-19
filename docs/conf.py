@@ -11,12 +11,16 @@ release = "0.0.1"
 
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",  # For Google/NumPy style docstrings
+    "sphinx.ext.napoleon",  # For Google-style docstrings
     "sphinx.ext.viewcode",
     "nbsphinx",  # For Jupyter Notebook support
     "sphinx_copybutton",  # Adds "copy" button to code blocks
     "sphinxcontrib.katex",  # For fast math rendering
 ]
+
+# Docstrings are written in Google style only.
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
 
 # Furo Theme Settings
 html_theme = "furo"

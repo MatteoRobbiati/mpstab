@@ -1,3 +1,4 @@
+import contextlib
 import traceback
 
 import jax
@@ -15,19 +16,29 @@ from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
 @pytest.mark.parametrize("backend", ["jax", "torch"])
 def test_backend_support(backend):
-
-    nqubits = 10
+    """Each backend reproduces the numpy engine's value, not just runs."""
+    nqubits = 6
     nlayers = 3
     observable = "ZX" * int(nqubits / 2)
 
+    np.random.seed(0)
     ansatz = HardwareEfficient(nqubits=nqubits, nlayers=nlayers)
     hs = HSMPO(ansatz)
+    reference = hs.expectation(observable)
 
-    hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine(backend=backend))
+    # jax defaults to single precision, whose error varies across platforms
+    # (1e-6 to 2e-5), so it runs in double precision here. Even then its
+    # safe_qr nudges degenerate factorizations by sqrt(eps) ~ 1.5e-8 to keep
+    # gradients finite, which leaves value errors up to ~1e-8 depending on the
+    # platform's linear algebra. torch stays in single precision.
+    precision = jax.enable_x64(True) if backend == "jax" else contextlib.nullcontext()
+    tolerance = 1e-7 if backend == "jax" else 1e-4
+    with precision:
+        hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine(backend=backend))
+        expectation = float(np.real(np.asarray(hs.expectation(observable))))
 
-    expectation = hs.expectation(observable)
-
-    assert expectation is not None
+    assert expectation == pytest.approx(reference, abs=tolerance)
+    assert abs(reference) > 1e-3  # a vanishing value would make this vacuous
 
 
 def _non_clifford_circuit(nqubits, nlayers, rng):

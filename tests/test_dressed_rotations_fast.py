@@ -11,20 +11,16 @@ that alternative out, and the two must agree exactly.
 """
 
 import time
-from functools import reduce
 
 import numpy as np
 import pytest
 import stim
-from qibo import set_backend
 
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.models.ansatze import QAE, QFT, QPE
-from mpstab.pauli import PAULI_LABELS, PAULI_MATRICES, validate_pauli_string
-
-set_backend("numpy")
+from mpstab.pauli import PAULI_LABELS, pauli_matrix, validate_pauli_string
 
 
 def _reference_dressed_rotations(hs):
@@ -92,7 +88,7 @@ def test_dressed_rotations_is_faster_than_reference():
 
 def _rotation(generator: str, angle: float) -> np.ndarray:
     """Dense ``exp(-i angle/2 G)`` for a Pauli string ``G``, qubit 0 leftmost."""
-    dense = reduce(np.kron, [PAULI_MATRICES[label] for label in generator])
+    dense = pauli_matrix(generator)
     return (
         np.cos(angle / 2) * np.eye(2 ** len(generator)) - 1j * np.sin(angle / 2) * dense
     )

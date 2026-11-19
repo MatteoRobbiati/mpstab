@@ -4,28 +4,12 @@ as magic for Clifford and non-Clifford angles, and HSMPO expectation values
 against the statevector of the same circuit.
 """
 
-from functools import reduce
-
 import numpy as np
 import pytest
-from qibo import set_backend
+from utils import dense_expectation
 
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import KickedIsing
-
-set_backend("numpy")
-
-_PAULIS = {
-    "I": np.eye(2),
-    "X": np.array([[0, 1], [1, 0]]),
-    "Y": np.array([[0, -1j], [1j, 0]]),
-    "Z": np.diag([1, -1]),
-}
-
-
-def _dense_expectation(state, pauli):
-    operator = reduce(np.kron, [_PAULIS[p] for p in pauli])
-    return float(np.real(np.vdot(state, operator @ state)))
 
 
 def _magic_gates(ansatz):
@@ -69,5 +53,5 @@ def test_kicked_ising_hsmpo_matches_statevector(pauli):
     state = ansatz.circuit.copy()().state()
     hsmpo = HSMPO(ansatz=ansatz)
     assert hsmpo.expectation(pauli) == pytest.approx(
-        _dense_expectation(state, pauli), abs=1e-10
+        dense_expectation(state, pauli), abs=1e-10
     )

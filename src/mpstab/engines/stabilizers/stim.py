@@ -1,6 +1,7 @@
 """Stabilizers engine backed by stim."""
 
-from dataclasses import dataclass
+from collections import OrderedDict
+from dataclasses import dataclass, field
 
 import numpy as np
 import stim
@@ -33,9 +34,19 @@ def _is_multiple_of(angle, target, atol: float = 1e-5) -> bool:
     return difference < atol or abs(difference - 2 * np.pi) < atol
 
 
+#: How many backpropagation tableaus :class:`StimEngine` keeps.
+_TABLEAU_CACHE_SIZE = 32
+
+
 @dataclass
 class StimEngine(StabilizersEngine):
     """Clifford backpropagation and tableau folding, powered by stim."""
+
+    #: ``U^dag`` tableaus of recently backpropagated circuits, keyed by the
+    #: circuit's content so in-place parameter changes can never hit a stale one.
+    _tableaus: OrderedDict = field(
+        default_factory=OrderedDict, init=False, repr=False, compare=False
+    )
 
     def backpropagate(self, observable: str, clifford_circuit: Circuit):
         """
@@ -44,16 +55,43 @@ class StimEngine(StabilizersEngine):
         Returns:
             ``(pauli_string, sign)`` for ``U^dag . O . U``, with ``U`` the circuit.
         """
-        # Pad so the tableau is at least as wide as the observable: stim sizes a
-        # circuit by the highest qubit any gate touches, which may be lower.
-        padded = stim.Circuit()
-        padded.append("I", [len(observable) - 1])
-        padded += self.to_stim(clifford_circuit)
+        return self.backpropagate_many([observable], clifford_circuit)[0]
 
+    def backpropagate_many(self, observables, clifford_circuit: Circuit) -> list:
+        """
+        :meth:`backpropagate` every observable through the same circuit.
+
+        The circuit's ``U^dag`` tableau is built once and cached, so a whole
+        Hamiltonian costs one stim simulation plus one tableau lookup per term,
+        and repeated calls on an unchanged circuit skip the simulation too.
+        """
+        observables = list(observables)
+        if not observables:
+            return []
+        # Size the tableau to at least the observables: stim sizes a circuit by
+        # the highest qubit any gate touches, which may be lower.
+        tableau = self._inverse_tableau(
+            max(map(len, observables)), self.instructions(clifford_circuit)
+        )
+        return [conjugate(o, tableau) for o in observables]
+
+    def _inverse_tableau(self, width: int, instructions: list) -> stim.Tableau:
+        """``U^dag`` for the circuit given as :meth:`instructions`, cached."""
+        key = (width, tuple(instructions))
+        tableau = self._tableaus.get(key)
+        if tableau is not None:
+            self._tableaus.move_to_end(key)
+            return tableau
         simulator = stim.TableauSimulator()
-        simulator.do(padded)
+        simulator.do(
+            stim.Circuit("\n".join([f"I {width - 1}", *filter(None, instructions)]))
+        )
         # current_inverse_tableau() is U^dag, so conjugating by it gives U^dag O U.
-        return conjugate(observable, simulator.current_inverse_tableau())
+        tableau = simulator.current_inverse_tableau()
+        self._tableaus[key] = tableau
+        if len(self._tableaus) > _TABLEAU_CACHE_SIZE:
+            self._tableaus.popitem(last=False)
+        return tableau
 
     def fold_pauli_through_tableau(
         self, pauli_str: str, tableau: stim.Tableau, sign: float = 1.0
@@ -84,40 +122,74 @@ class StimEngine(StabilizersEngine):
                 equivalent. Unsupported gates fail loudly rather than being
                 dropped, which would silently give a wrong Pauli frame.
         """
-        stim_circuit = stim.Circuit()
-        for gate in circuit.queue:
-            name = gate.name.lower()
+        return stim.Circuit("\n".join(filter(None, self.instructions(circuit))))
 
-            if name in _DIRECT_GATES:
-                stim_circuit.append(_DIRECT_GATES[name], gate.qubits)
-            elif name in _IGNORED_GATES:
-                continue
-            elif name == "gpi2":
-                stim_circuit.append(_gpi2_instruction(gate), gate.qubits)
-            elif name in ("rx", "ry", "rz"):
-                instruction = _rotation_instruction(gate, axis=name[1].upper())
-                if instruction is not None:  # a zero-angle rotation is a no-op
-                    stim_circuit.append(instruction, gate.qubits)
-            else:
-                raise ValueError(
-                    f"Gate {name!r} has no stim equivalent. The Clifford part of "
-                    "the circuit must use gates this engine supports: "
-                    f"{sorted(_DIRECT_GATES)}, gpi2, rx, ry, rz."
-                )
-        return stim_circuit
+    def instructions(self, circuit: Circuit) -> list:
+        """
+        One stim instruction line per gate of ``circuit``, ``None`` for gates
+        that leave the Pauli frame untouched.
+
+        stim parses a whole program from text far faster than it appends
+        instructions one call at a time, so circuits are assembled as text.
+
+        Raises:
+            ValueError: as :meth:`to_stim`.
+        """
+        return [gate_instruction(gate) for gate in circuit.queue]
+
+
+def gate_instruction(gate):
+    """
+    The stim instruction line for one Clifford qibo gate, or ``None`` if it is
+    a no-op on the Pauli frame.
+
+    Raises:
+        ValueError: on a non-Clifford rotation angle, or a gate with no stim
+            equivalent.
+    """
+    name = gate.name.lower()
+    if name in _DIRECT_GATES:
+        instruction = _DIRECT_GATES[name]
+    elif name in _IGNORED_GATES:
+        return None
+    elif name == "gpi2":
+        instruction = _gpi2_instruction(gate)
+    elif name in _ROTATION_GATES:
+        instruction = _rotation_instruction(gate, axis=name[-1].upper())
+        if instruction is None:  # a zero-angle rotation is a no-op
+            return None
+    else:
+        raise ValueError(
+            f"Gate {name!r} has no stim equivalent. The Clifford part of "
+            "the circuit must use gates this engine supports: "
+            f"{sorted(_DIRECT_GATES)}, gpi2, {', '.join(_ROTATION_GATES)}."
+        )
+    return " ".join([instruction, *map(str, gate.qubits)])
+
+
+#: Pauli rotations ``exp(-i theta/2 P...P)``, Clifford at multiples of pi/2.
+_ROTATION_GATES = ("rx", "ry", "rz", "rxx", "ryy", "rzz")
 
 
 def _rotation_instruction(gate, axis: str):
-    """The stim instruction for an ``R{axis}`` gate, or ``None`` if it is a no-op."""
+    """
+    The stim instruction for an ``R{axis}`` or ``R{axis}{axis}`` gate, or
+    ``None`` if it is a no-op.
+
+    At ``pi`` the rotation is the Pauli ``axis`` on every target qubit, up to a
+    phase, so the single-qubit instruction is broadcast over them. At ``pi/2``
+    it is stim's ``SQRT_{axis}`` or ``SQRT_{axis}{axis}``, again up to a phase.
+    """
     theta = gate.parameters[0]
+    sqrt = "SQRT_" + axis * len(gate.qubits)
     if _is_multiple_of(theta, 0):
         return None
     if _is_multiple_of(theta, np.pi):
         return axis
     if _is_multiple_of(theta, np.pi / 2):
-        return f"SQRT_{axis}"
+        return sqrt
     if _is_multiple_of(theta, -np.pi / 2):
-        return f"SQRT_{axis}_DAG"
+        return f"{sqrt}_DAG"
     raise ValueError(f"Gate {gate} is not Clifford.")
 
 

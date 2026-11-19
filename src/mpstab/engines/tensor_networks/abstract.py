@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -40,11 +41,49 @@ class TensorNetworkEngine(ABC):
     def expval(self, state_circuit: Any, operator: Any):
         """Expectation value of ``operator`` on ``state_circuit``."""
 
+    def pauli_expvals(self, state_circuit: Any, paulis) -> list:
+        """
+        Expectation values of many Pauli strings on one state, in order.
+
+        Engines that can share work across strings override this.
+        """
+        return [self.expval(state_circuit, self.pauli_mpo(p)) for p in paulis]
+
     @abstractmethod
     def pauli_rot(
         self, state_circuit: Any, generator: str, angle: float, max_bond_dimension: int
     ):
         """Apply ``exp(-i angle/2 generator)`` to the state, in place."""
+
+    def rotation_operator(self, generator: str, angle: float):
+        """
+        Build ``exp(-i angle/2 generator)`` once, in a form
+        :meth:`apply_rotation` accepts, so a rotation applied many times is
+        not rebuilt on every call.
+
+        The default just stores the arguments; engines with a costly operator
+        construction override both methods.
+        """
+        return generator, angle
+
+    def apply_rotation(self, state_circuit: Any, rotation: Any, max_bond_dimension):
+        """
+        Apply a rotation built by :meth:`rotation_operator` to the state, in
+        place. Must give the same state as :meth:`pauli_rot` with the same
+        generator and angle.
+        """
+        generator, angle = rotation
+        self.pauli_rot(state_circuit, generator, angle, max_bond_dimension)
+
+    def copy_state(self, state_circuit: Any):
+        """
+        An independent copy of a state: evolving either one in place leaves
+        the other untouched.
+
+        The default is a deep copy; engines whose operations never write into
+        existing arrays override it with a cheaper one that shares them.
+        """
+        return copy.deepcopy(state_circuit)
 
     @abstractmethod
     def conjugate_operator(

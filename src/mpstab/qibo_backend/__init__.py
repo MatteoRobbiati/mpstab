@@ -3,6 +3,7 @@
 from qibo.config import raise_error
 
 from mpstab.engines import QuimbEngine, StimEngine
+from mpstab.qibo_backend.mpstab import MPStabBackend
 
 
 class MetaBackend:
@@ -25,8 +26,6 @@ class MetaBackend:
             raise_error(
                 ValueError, f"Backend {backend_name} is not supported. Use 'mpstab'."
             )
-
-        from mpstab.qibo_backend.mpstab import MPStabBackend
 
         return MPStabBackend(
             stab_engine=kwargs.get("stab_engine", StimEngine()),
