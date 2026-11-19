@@ -21,9 +21,19 @@ from mpstab.models.error_mitigation.cdr import (
     noisy_value,
     vncdr,
 )
+from mpstab.models.error_mitigation.plan import (
+    MitigatedResult,
+    MitigationPlan,
+    VnCDRMitigation,
+    mitigated_expectation_at_cut,
+)
 from mpstab.models.error_mitigation.training import fold_circuit, training_circuits
 
 __all__ = [
+    "MitigatedResult",
+    "MitigationPlan",
+    "VnCDRMitigation",
+    "mitigated_expectation_at_cut",
     "MitigationNoiseMap",
     "cdr",
     "fold_circuit",

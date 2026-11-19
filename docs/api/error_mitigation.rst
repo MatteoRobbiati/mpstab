@@ -68,8 +68,36 @@ execution code):
     noise_map = cdr(ansatz, "ZZII", lambda circuit: run_on_qpu(circuit, "ZZII"))
     mitigated = noise_map(run_on_qpu(ansatz.circuit, "ZZII"))
 
+Mitigating an HQSMPO measurement plan
+-------------------------------------
+
+On hardware, :class:`~mpstab.evolutors.hqsmpo.HQSMPO` measures a head circuit
+under many measurement settings. :class:`~mpstab.models.error_mitigation.VnCDRMitigation`
+plans the extra circuits that mitigate all of them at once: the head folded to
+several noise levels, low-magic training variants of it measured in their most
+informative settings, and six circuits calibrating the measurement layer. One
+vnCDR map, fitted on every training measurement, corrects every setting
+(``ansatz``, ``hamiltonian`` and ``noise`` stand for your own):
+
+.. code-block:: python
+
+    from mpstab import HQSMPO
+    from mpstab.models.error_mitigation import VnCDRMitigation
+    from mpstab.qpu import NoisySimulator, execute_plan
+
+    model = HQSMPO(ansatz, head_synthesis="extraction")
+    mitigation = VnCDRMitigation(n_training_circuits=8, training_settings=3)
+    plan = mitigation.build_plan(model, hamiltonian, cut_index, n_shots=50_000, seed=0)
+
+    counts = execute_plan(NoisySimulator(noise), plan)  # or run plan.circuits on a device
+    result = plan.estimate(counts)
+    print(result.unmitigated, result.measurement_mitigated, result.value)
+
 API
 ---
+
+.. automodule:: mpstab.models.error_mitigation.plan
+   :members: VnCDRMitigation, MitigationPlan, MitigatedResult, mitigated_expectation_at_cut
 
 .. automodule:: mpstab.models.error_mitigation.cdr
    :members: MitigationNoiseMap, cdr, vncdr, noisy_value
