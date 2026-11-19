@@ -21,6 +21,10 @@ extensions = [
 # Docstrings are written in Google style only.
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
+# Render "Attributes:" sections as :ivar: fields instead of separate
+# attribute directives, so dataclass fields (also picked up by autodoc's
+# :undoc-members:) are not documented twice.
+napoleon_use_ivar = True
 
 # Furo Theme Settings
 html_theme = "furo"
