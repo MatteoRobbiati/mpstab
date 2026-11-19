@@ -20,7 +20,7 @@ from mpstab.models.ansatze import FloquetAnsatz
 from mpstab.pauli import PAULI_LABELS, PAULI_MATRICES
 from mpstab.qpu.execution import QiboSimulator, execute_plan
 from mpstab.qpu.measurement import TNICE, ClassicalShadows, shadows, tnice
-from mpstab.qpu.measurement.pauli_expansion import mpo_site_arrays, mpo_to_pauli_mps
+from mpstab.qpu.measurement.pauli_expansion import mpo_to_pauli_mps
 
 
 def _snapshot_factor(basis: str, bit: int) -> np.ndarray:
@@ -31,10 +31,10 @@ def _snapshot_factor(basis: str, bit: int) -> np.ndarray:
     return 3 * ket @ ket.conj().T - np.eye(2)
 
 
-def _shadow_value(mpo, basis: str, bitstring: str) -> float:
+def _shadow_value(sites, basis: str, bitstring: str) -> float:
     """One shot's classical-shadow estimate ``Tr[sigma_hat O]``, site by site."""
     acc = np.ones((1, 1))
-    for array, label, bit in zip(mpo_site_arrays(mpo), basis, bitstring):
+    for array, label, bit in zip(sites, basis, bitstring):
         factor = _snapshot_factor(label, int(bit))
         acc = acc @ np.einsum("lrkb,bk->lr", array, factor)
     return float(acc[0, 0].real)
@@ -83,8 +83,8 @@ def test_local_canonical_dual_map_matches_shadows_snapshot_factors():
 # ---------------------------------------------------------------------------
 
 
-def test_canonical_seed_reproduces_shadows_per_shot_value(scrambled_mpo):
-    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+def test_canonical_seed_reproduces_shadows_per_shot_value(scrambled_sites):
+    pauli_mps = mpo_to_pauli_mps(scrambled_sites)
     omega = shadows.canonical_omega_seed(pauli_mps)
 
     rng = np.random.default_rng(0)
@@ -96,13 +96,13 @@ def test_canonical_seed_reproduces_shadows_per_shot_value(scrambled_mpo):
         [[shadows.outcome_index(b, bit) for b, bit in zip(basis, bits)]]
     )
     value_tnice = shadows.evaluate_omega(omega, outcome_row)[0]
-    value_shadows = _shadow_value(scrambled_mpo, basis, bitstring)
+    value_shadows = _shadow_value(scrambled_sites, basis, bitstring)
 
     assert value_tnice == pytest.approx(value_shadows, abs=1e-8)
 
 
-def test_reconstruction_error_is_near_zero_at_the_seed(scrambled_mpo):
-    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+def test_reconstruction_error_is_near_zero_at_the_seed(scrambled_sites):
+    pauli_mps = mpo_to_pauli_mps(scrambled_sites)
     omega = shadows.canonical_omega_seed(pauli_mps)
     assert tnice.reconstruction_error(pauli_mps, omega) < 1e-6
 
@@ -127,14 +127,14 @@ def _phase_gauged(pauli_mps, seed):
 
 @pytest.mark.parametrize("gauge_seed", [0, 1, 2])
 def test_seed_and_reconstruction_do_not_depend_on_the_bond_gauge(
-    scrambled_mpo, gauge_seed
+    scrambled_sites, gauge_seed
 ):
     """
     The site tensors of a Hermitian operator's Pauli MPS are real only in a lucky
     gauge, fixed by whichever LAPACK SVD built the MPO; the estimator must not
     depend on it. (Taking ``.real`` site by site did, and was wrong on Linux.)
     """
-    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+    pauli_mps = mpo_to_pauli_mps(scrambled_sites)
     gauged = _phase_gauged(pauli_mps, gauge_seed)
 
     omega = shadows.canonical_omega_seed(gauged)
@@ -173,8 +173,8 @@ def _with_complex_gauge(pauli_mps, seed):
     return gauged
 
 
-def test_real_pauli_mps_is_exact_under_a_complex_gauge(scrambled_mpo):
-    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+def test_real_pauli_mps_is_exact_under_a_complex_gauge(scrambled_sites):
+    pauli_mps = mpo_to_pauli_mps(scrambled_sites)
     gauged = _with_complex_gauge(pauli_mps, seed=0)
     expected = _dense_coefficients(pauli_mps).real
 
@@ -187,8 +187,8 @@ def test_real_pauli_mps_is_exact_under_a_complex_gauge(scrambled_mpo):
     assert np.allclose(_dense_coefficients(shadows.real_pauli_mps(gauged)), expected)
 
 
-def test_real_pauli_mps_does_not_grow_the_bond_dimension(scrambled_mpo):
-    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+def test_real_pauli_mps_does_not_grow_the_bond_dimension(scrambled_sites):
+    pauli_mps = mpo_to_pauli_mps(scrambled_sites)
     gauged = _with_complex_gauge(pauli_mps, seed=2)
     real_mps = shadows.real_pauli_mps(gauged)
 
@@ -198,8 +198,8 @@ def test_real_pauli_mps_does_not_grow_the_bond_dimension(scrambled_mpo):
         assert rewritten.shape[2] <= original.shape[2]
 
 
-def test_canonical_seed_does_not_depend_on_the_gauge(scrambled_mpo):
-    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+def test_canonical_seed_does_not_depend_on_the_gauge(scrambled_sites):
+    pauli_mps = mpo_to_pauli_mps(scrambled_sites)
     gauged = _with_complex_gauge(pauli_mps, seed=1)
     outcomes, _ = _random_outcomes(4, 200, seed=7)
 
@@ -226,6 +226,7 @@ def test_tnice_canonical_dual_equals_shadows_on_the_same_shots():
     observable = "IZII"
 
     tail, _ = hs.build_post_head_mpo(observable, cut)
+    tail = hs.tn_engine.operator_site_arrays(tail)
     assert (
         max(np.abs(site.imag).max() for site in mpo_to_pauli_mps(tail)) > 1e-3
     ), "this cut no longer exercises a complex gauge; pick another one"
@@ -271,8 +272,8 @@ def _random_outcomes(nqubits, n_rows, seed):
     return outcomes, weights
 
 
-def test_fit_keeps_reconstruction_small_at_high_lambda(scrambled_mpo):
-    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+def test_fit_keeps_reconstruction_small_at_high_lambda(scrambled_sites):
+    pauli_mps = mpo_to_pauli_mps(scrambled_sites)
     outcomes, weights = _random_outcomes(4, 500, seed=1)
 
     omega = tnice.fit_omega_mps(
@@ -281,8 +282,8 @@ def test_fit_keeps_reconstruction_small_at_high_lambda(scrambled_mpo):
     assert tnice.reconstruction_error(pauli_mps, omega) < 0.05
 
 
-def test_fit_lowers_the_second_moment_below_the_canonical_seed(scrambled_mpo):
-    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+def test_fit_lowers_the_second_moment_below_the_canonical_seed(scrambled_sites):
+    pauli_mps = mpo_to_pauli_mps(scrambled_sites)
     outcomes, weights = _random_outcomes(4, 2000, seed=2)
 
     seed_omega = shadows.canonical_omega_seed(pauli_mps)
@@ -300,8 +301,8 @@ def test_fit_lowers_the_second_moment_below_the_canonical_seed(scrambled_mpo):
     assert fitted_second_moment < seed_second_moment
 
 
-def test_fit_with_zero_sweeps_is_the_canonical_seed(scrambled_mpo):
-    pauli_mps = mpo_to_pauli_mps(scrambled_mpo)
+def test_fit_with_zero_sweeps_is_the_canonical_seed(scrambled_sites):
+    pauli_mps = mpo_to_pauli_mps(scrambled_sites)
     outcomes, weights = _random_outcomes(4, 50, seed=3)
 
     seed_omega = shadows.canonical_omega_seed(pauli_mps)

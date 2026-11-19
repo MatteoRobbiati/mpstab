@@ -84,7 +84,9 @@ def test_native_tensor_network_has_no_dmrg():
     hsmpo = HSMPO(
         HardwareEfficient(nqubits=4, nlayers=2), tn_engine=NativeTensorNetworkEngine()
     )
-    with pytest.raises(NotImplementedError, match="requires QuimbEngine"):
+    with pytest.raises(
+        NotImplementedError, match="NativeTensorNetworkEngine does not implement"
+    ):
         hsmpo.minimize_expectation(
             observables={"ZZZZ": 1.0}, bond_dims=[8], max_sweeps=2
         )

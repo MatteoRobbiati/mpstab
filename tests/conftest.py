@@ -59,3 +59,9 @@ def scrambled_mpo():
     generators = ["YYII", "IXZY", "ZIXY", "YZYX"]
     angles = [rng.uniform(0.3, 1.5) for _ in generators]
     return folded_mpo("ZZZI", generators, angles)
+
+
+@pytest.fixture
+def scrambled_sites(scrambled_mpo):
+    """:func:`scrambled_mpo` as the site arrays an engine exports."""
+    return QuimbEngine().operator_site_arrays(scrambled_mpo)

@@ -8,11 +8,13 @@ from typing import Any
 import numpy as np
 from qibo.gates.abstract import ParametrizedGate
 from quimb.tensor import (
+    DMRG2,
     CircuitMPS,
     MatrixProductOperator,
     MatrixProductState,
     MPO_identity,
     MPO_product_operator,
+    bonds,
 )
 
 from mpstab.engines.tensor_networks import _mps_kernels as kernels
@@ -504,3 +506,82 @@ class QuimbEngine(TensorNetworkEngine):
             operator, compress=True, max_bond=max_bond_dimension
         )
         return operator.apply(rotation, compress=True, max_bond=max_bond_dimension)
+
+    def squared_norm(self, state_circuit: MatrixProductState) -> float:
+        """``<psi|psi>`` of the MPS."""
+        return float(np.real(state_circuit.norm(squared=True)))
+
+    def bond_dimension(self, state_circuit: MatrixProductState) -> int:
+        """The largest bond dimension of the MPS."""
+        return state_circuit.max_bond()
+
+    def operator_site_arrays(self, operator: MatrixProductOperator) -> list:
+        """
+        The MPO's site tensors as numpy arrays ordered ``(left, right, k, b)``,
+        ``k`` the upper (output) and ``b`` the lower (input) index.
+        """
+        arrays = []
+        for site in range(operator.L):
+            tensor = operator[site]
+            left = list(bonds(operator[site - 1], tensor)) if site > 0 else []
+            right = (
+                list(bonds(tensor, operator[site + 1])) if site < operator.L - 1 else []
+            )
+            order = left + right + [operator.upper_ind(site), operator.lower_ind(site)]
+            array = np.asarray(tensor.transpose(*order).data, dtype=complex)
+            if not left:
+                array = array[None, ...]
+            if not right:
+                array = array[:, None, ...]
+            arrays.append(array)
+        return arrays
+
+    def pauli_sum_mpo(self, terms: dict) -> MatrixProductOperator:
+        """
+        The MPO of ``sum_P c_P P``.
+
+        Raises:
+            ValueError: if ``terms`` is empty.
+        """
+        if not terms:
+            raise ValueError("Cannot build the MPO of an empty Pauli sum.")
+        mpos = [c * self.pauli_mpo(p) for p, c in terms.items()]
+        total = mpos[0]
+        for mpo in mpos[1:]:
+            total = total + mpo
+        return total
+
+    def minimize_energy(
+        self,
+        operator: MatrixProductOperator,
+        initial_state: MatrixProductState,
+        bond_dims: list,
+        cutoff: float,
+        tol: float,
+        max_sweeps: int,
+        verbosity: int,
+    ) -> dict:
+        """Two-site DMRG with quimb's ``DMRG2``, on a copy of ``initial_state``."""
+        dmrg = DMRG2(
+            operator,
+            bond_dims=bond_dims,
+            cutoffs=cutoff,
+            p0=copy.deepcopy(initial_state),
+        )
+        converged = dmrg.solve(tol=tol, max_sweeps=max_sweeps, verbosity=verbosity)
+        return {
+            "state": dmrg.state,
+            "energy": float(np.real(dmrg.energy)),
+            "converged": converged,
+            "energy_history": [
+                float(np.real(e)) for e in getattr(dmrg, "energies", None) or []
+            ],
+        }
+
+    def circuit_truncation_fidelity(
+        self, nqubits: int, circuit, max_bond_dimension: int | None
+    ) -> float:
+        """quimb's ``CircuitMPS.fidelity_estimate`` after running ``circuit``."""
+        return _qibo_circuit_to_quimb(
+            nqubits=nqubits, qibo_circ=circuit, max_bond=max_bond_dimension
+        ).fidelity_estimate()

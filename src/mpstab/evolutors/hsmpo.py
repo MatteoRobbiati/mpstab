@@ -14,7 +14,6 @@ from mpstab.engines import (
     StimEngine,
     TensorNetworkEngine,
 )
-from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
 from mpstab.evolutors.optimization import minimize_expectation_dmrg
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
@@ -265,7 +264,7 @@ class HSMPO:
         )
 
         if return_fidelity:
-            return expval, self.original_circuit_mps.norm(squared=True)
+            return expval, self.tn_engine.squared_norm(self.original_circuit_mps)
         return expval
 
     def noisy_expectation(
@@ -396,7 +395,10 @@ class HSMPO:
         :data:`_PROGRESS_DELAY` seconds.
         """
         for generator, angle in _progress_bar(
-            rotations, state_mps, description, enabled=self.progress
+            rotations,
+            lambda: self.tn_engine.bond_dimension(state_mps),
+            description,
+            enabled=self.progress,
         ):
             self.tn_engine.pauli_rot(
                 state_circuit=state_mps,
@@ -435,11 +437,11 @@ class HSMPO:
         Truncation fidelity of running the whole circuit as a plain MPS, with no
         stabilizer help: the baseline the hybrid representation improves on.
         """
-        return _qibo_circuit_to_quimb(
-            nqubits=self.nqubits,
-            qibo_circ=self.initial_state + self.ansatz.circuit,
-            max_bond=self.max_bond_dimension,
-        ).fidelity_estimate()
+        return self.tn_engine.circuit_truncation_fidelity(
+            self.nqubits,
+            self.initial_state + self.ansatz.circuit,
+            self.max_bond_dimension,
+        )
 
     def truncation_fidelity(
         self,
@@ -457,7 +459,7 @@ class HSMPO:
         )
         mps = self.initial_mps()
         self._apply_rotations(mps, self._dress(magic_gates, clifford_circuit))
-        return mps.norm(squared=True)
+        return self.tn_engine.squared_norm(mps)
 
     def get_parameters(self) -> np.ndarray:
         """The circuit's current parameters."""
@@ -497,11 +499,9 @@ class HSMPO:
             ``num_sweeps`` and ``energy_history``.
 
         Raises:
-            NotImplementedError: with a tensor-network engine other than
-                :class:`~mpstab.engines.QuimbEngine`, or an unimplemented method.
+            NotImplementedError: with a tensor-network engine that does not
+                implement :meth:`~mpstab.engines.TensorNetworkEngine.minimize_energy`.
         """
-        if not isinstance(self.tn_engine, QuimbEngine):
-            raise NotImplementedError("DMRG optimization requires QuimbEngine.")
         if method.lower() != "dmrg":
             raise ValueError(f"Unknown method {method!r}, expected 'dmrg'.")
 
@@ -529,16 +529,16 @@ def _engine(engine, base: type, default: type):
 _PROGRESS_DELAY = 1.0
 
 
-def _progress_bar(rotations, state_mps, description: str, enabled: bool = True):
+def _progress_bar(rotations, bond, description: str, enabled: bool = True):
     """
-    Iterate over ``rotations``, drawing a progress bar with the bond dimension
-    of ``state_mps`` once the loop has run for :data:`_PROGRESS_DELAY` seconds.
+    Iterate over ``rotations``, drawing a progress bar once the loop has run
+    for :data:`_PROGRESS_DELAY` seconds, with the bond dimension ``bond()``
+    returns when it is not ``None``.
     """
     rotations = list(rotations)
     if not enabled or not rotations:
         yield from rotations
         return
-    bond = getattr(state_mps, "max_bond", None)
     every = max(1, len(rotations) // 200)  # refresh chi ~200 times at most
     with tqdm(
         total=len(rotations),
@@ -553,6 +553,8 @@ def _progress_bar(rotations, state_mps, description: str, enabled: bool = True):
     ) as bar:
         for step, rotation in enumerate(rotations, 1):
             yield rotation
-            if bond is not None and (step % every == 0 or step == len(rotations)):
-                bar.set_postfix_str(f"chi={bond()}", refresh=False)
+            if step % every == 0 or step == len(rotations):
+                chi = bond()
+                if chi is not None:
+                    bar.set_postfix_str(f"chi={chi}", refresh=False)
             bar.update()

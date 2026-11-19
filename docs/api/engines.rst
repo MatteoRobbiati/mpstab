@@ -100,6 +100,35 @@ Base Engine Classes::
 
 These abstract base classes define the required methods that any engine must implement.
 
+The evolutors never look inside an engine's states or operators: everything
+they need goes through these methods, so a new tensor-network engine only has
+to implement them. ``tests/test_engine_agnostic.py`` enforces this with an
+engine whose states and operators expose nothing.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - ``TensorNetworkEngine`` methods
+     - Needed for
+   * - ``build_circuit_mps``, ``pauli_mpo``, ``expval``, ``pauli_rot``,
+       ``squared_norm``
+     - Required: building and evolving the MPS, expectation values and
+       truncation fidelities.
+   * - ``pauli_expvals``, ``rotation_operator``, ``apply_rotation``,
+       ``copy_state``, ``bond_dimension``
+     - Optional, with a generic default an engine may override for speed.
+   * - ``conjugate_operator``, ``operator_site_arrays``
+     - Optional: the head/tail split of ``HSynthSMPO`` and its measurement
+       routes. Operators leave the engine only as numpy site arrays.
+   * - ``pauli_sum_mpo``, ``minimize_energy``
+     - Optional: DMRG (``HSMPO.minimize_expectation``).
+   * - ``circuit_truncation_fidelity``
+     - Optional: ``HSMPO.truncation_fidelity_pure_tn``.
+
+An optional method an engine does not implement raises ``NotImplementedError``
+only when the feature that needs it is used.
+
 See Also
 --------
 

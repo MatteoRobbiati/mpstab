@@ -66,15 +66,7 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
         """
         return state_circuit.pauli_rot(generator, angle)
 
-    def conjugate_operator(
-        self,
-        operator: PauliMPO,
-        generator: str,
-        angle: float,
-        max_bond_dimension: int,
-    ):
-        """Not supported: operator-side conjugation requires QuimbEngine."""
-        raise NotImplementedError(
-            "conjugate_operator is only implemented for QuimbEngine. Call "
-            "set_engines(tn_engine=QuimbEngine()) to use the head/tail split."
-        )
+    def squared_norm(self, state_circuit: CircuitMPS) -> float:
+        """``<psi|psi>``, the expectation value of the identity."""
+        identity = PauliMPO("I" * state_circuit.n_qubits)
+        return float(np.real(state_circuit.expval(identity)))

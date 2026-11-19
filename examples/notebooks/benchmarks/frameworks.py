@@ -121,8 +121,8 @@ def run_mpstab(circuit, observable, max_bond=None, light_cone=True, svd_cutoff=N
     return dict(
         value=float(np.real(value)),
         time=elapsed,
-        bond=int(state.max_bond()),
-        fidelity=float(np.real(state.norm(squared=True))),
+        bond=int(hsmpo.tn_engine.bond_dimension(state)),
+        fidelity=hsmpo.tn_engine.squared_norm(state),
         magic=len(hsmpo.magic_gates),
     )
 

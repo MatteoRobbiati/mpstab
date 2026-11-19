@@ -6,8 +6,11 @@ observable, which leaves an MPO. To measure that observable on a device it has
 to be turned back into Pauli strings with coefficients. This module does that
 change of basis and everything that follows directly from it.
 
-MPO site tensors carry an upper (output) index ``k{i}`` and a lower (input)
-index ``b{i}``. The recurring contraction is ``Tr[sigma O] = sum_{k,b} O[k,b]
+Every function takes the MPO as its site arrays, the engine-independent form
+:meth:`~mpstab.engines.TensorNetworkEngine.operator_site_arrays` exports: one
+numpy array per site ordered ``(left, right, k, b)``, with ``k`` the upper
+(output) and ``b`` the lower (input) index, and boundary bonds as singleton
+axes. The recurring contraction is ``Tr[sigma O] = sum_{k,b} O[k,b]
 sigma[b,k]``, hence the ``"kb,bk"`` index patterns below.
 """
 
@@ -16,31 +19,37 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-import quimb.tensor as qtn
 
 from mpstab.pauli import PAULI_ARRAY, PAULI_LABELS, conjugate
 
 
-def mpo_site_arrays(mpo) -> list:
+def operator_inner(left_sites, right_sites) -> complex:
     """
-    MPO site tensors as arrays ordered ``(left, right, k, b)``.
+    Hilbert-Schmidt inner product ``Tr[A^dag B]`` of two MPOs given as site
+    arrays, contracted site by site in ``O(n chi**3)``.
+    """
+    env = np.ones((1, 1), dtype=complex)
+    for a, b in zip(left_sites, right_sites):
+        env = np.einsum("lm,lrkb,mskb->rs", env, a.conj(), b, optimize=True)
+    return complex(env[0, 0])
 
-    Boundary bonds become singleton axes so every site has rank 4 and callers
-    need no special case for the first and last site.
+
+def operator_norm(sites) -> float:
+    """Frobenius norm ``sqrt(Tr[A^dag A])`` of an MPO given as site arrays."""
+    return float(np.sqrt(max(0.0, operator_inner(sites, sites).real)))
+
+
+def operator_distance(left_sites, right_sites) -> float:
     """
-    arrays = []
-    for site in range(mpo.L):
-        tensor = mpo[site]
-        left = list(qtn.bonds(mpo[site - 1], tensor)) if site > 0 else []
-        right = list(qtn.bonds(tensor, mpo[site + 1])) if site < mpo.L - 1 else []
-        order = left + right + [mpo.upper_ind(site), mpo.lower_ind(site)]
-        array = np.asarray(tensor.transpose(*order).data, dtype=complex)
-        if not left:
-            array = array[None, ...]
-        if not right:
-            array = array[:, None, ...]
-        arrays.append(array)
-    return arrays
+    Frobenius distance ``||A - B||_F`` of two MPOs given as site arrays, from
+    ``||A||**2 + ||B||**2 - 2 Re Tr[A^dag B]``.
+    """
+    squared = (
+        operator_inner(left_sites, left_sites).real
+        + operator_inner(right_sites, right_sites).real
+        - 2 * operator_inner(left_sites, right_sites).real
+    )
+    return float(np.sqrt(max(0.0, squared)))
 
 
 def mpo_to_pauli_mps(mpo) -> list:
@@ -56,7 +65,7 @@ def mpo_to_pauli_mps(mpo) -> list:
     """
     return [
         np.einsum("lrkb,ibk->ilr", array, PAULI_ARRAY, optimize=True) / 2
-        for array in mpo_site_arrays(mpo)
+        for array in mpo
     ]
 
 
@@ -66,7 +75,7 @@ def fold_fidelity(mpo, nqubits: int) -> float:
     string, since conjugation by a unitary preserves the norm, and lower by the
     weight the truncation discarded.
     """
-    return float(np.real(mpo.norm())) ** 2 / 2**nqubits
+    return float(operator_inner(mpo, mpo).real) / 2**nqubits
 
 
 def fold_truncation_l2(coefficient, mpo, nqubits: int) -> float:
