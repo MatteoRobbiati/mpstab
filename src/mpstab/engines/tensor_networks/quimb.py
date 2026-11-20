@@ -1,24 +1,25 @@
-"""Tensor-network engine backed by quimb, with cotengra contraction paths."""
+"""Tensor-network engine backed by quimb."""
 
 from __future__ import annotations
 
 import copy
 from typing import Any
 
-import cotengra as ctg
 import numpy as np
 from qibo.gates.abstract import ParametrizedGate
-from quimb.gates import I, X, Y, Z
 from quimb.tensor import (
+    DMRG2,
     CircuitMPS,
     MatrixProductOperator,
     MatrixProductState,
     MPO_identity,
     MPO_product_operator,
+    bonds,
 )
 
 from mpstab.engines.tensor_networks import _mps_kernels as kernels
 from mpstab.engines.tensor_networks.abstract import TensorNetworkEngine
+from mpstab.pauli import PAULI_MATRICES
 
 # jax and torch are optional quimb backends.
 try:
@@ -65,8 +66,6 @@ GATE_MAP = {
     "measure": "measure",
 }
 
-#: Pauli labels mapped to quimb's own single-qubit Pauli arrays.
-PAULI_GATES = {"I": I, "X": X, "Y": Y, "Z": Z}
 
 #: quimb's default singular-value cutoff (``"rsum2"`` mode) when compressing.
 _QUIMB_DEFAULT_CUTOFF = 1e-10
@@ -80,17 +79,11 @@ _PAULI_ATTR = "_mpstab_pauli"
 _GAUGE_ATTR = "_mpstab_gauge"
 
 
-class PauliRotation(tuple):
-    """
-    ``(generator, angle)`` for ``exp(-i angle/2 generator)``, as handed out by
-    :meth:`QuimbEngine.rotation_operator` on the numpy backend, where rotations
-    are applied by the windowed kernel rather than as an MPO.
-    """
-
-    __slots__ = ()
-
-    def __new__(cls, generator: str, angle: float):
-        return super().__new__(cls, (generator, angle))
+def _pauli_product_mpo(pauli_string: str):
+    """The bond-dimension-1 MPO of a Pauli string."""
+    return MPO_product_operator(
+        [PAULI_MATRICES[label.upper()] for label in pauli_string]
+    )
 
 
 class _CanonicalMPS:
@@ -258,25 +251,19 @@ class QuimbEngine(TensorNetworkEngine):
     """
     MPS evolution and MPO expectation values via quimb.
 
-    The only engine supporting operator-side conjugation, and so the only one
-    that can run :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`'s head/tail
-    split or DMRG optimization.
+    Besides evolving states, it conjugates operators, which
+    :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`'s head/tail split needs,
+    and its MPS feeds quimb's DMRG.
     """
 
     def __init__(
         self,
         backend: str = "numpy",
-        cache: bool = False,
-        cache_directory: str | None = "contractions_cache",
         svd_cutoff: float | None = None,
     ):
         """
         Args:
             backend: array backend, ``"numpy"``, ``"jax"`` or ``"torch"``.
-            cache: reuse contraction paths across calls via cotengra's
-                hyper-optimizer instead of contracting greedily.
-            cache_directory: where cotengra persists those paths. Created if
-                missing.
             svd_cutoff: singular-value cutoff when compressing the MPS after a
                 rotation. ``None`` keeps quimb's default (``1e-10``, relative),
                 and ``0.0`` truncates only through ``max_bond_dimension``. Many
@@ -286,16 +273,6 @@ class QuimbEngine(TensorNetworkEngine):
         self.svd_cutoff = svd_cutoff
         self.np = _array_module(backend)
         self.backend = backend
-        self.optimizer = (
-            ctg.ReusableHyperOptimizer(
-                directory=cache_directory,
-                minimize="flops",
-                max_repeats=128,
-                progbar=False,
-            )
-            if cache
-            else "greedy"
-        )
 
     def __getstate__(self):
         # The array module does not pickle, which sending the engine to another
@@ -315,19 +292,14 @@ class QuimbEngine(TensorNetworkEngine):
             mpo.apply_to_arrays(self.np.as_tensor)
         return mpo
 
-    def PauliExp(self, pauli_string: str, theta: float):
+    def _pauli_exp(self, pauli_string: str, theta: float):
         """
-        The MPO for ``exp(-i theta/2 P)``, from Euler's formula
+        The backend MPO for ``exp(-i theta/2 P)``, from Euler's formula
         ``cos(theta/2) I - i sin(theta/2) P``.
         """
-        identity = MPO_identity(len(pauli_string), phys_dim=2)
-        pauli = MPO_product_operator(
-            [PAULI_GATES[label.upper()] for label in pauli_string]
-        )
-
+        identity = self._to_backend(MPO_identity(len(pauli_string), phys_dim=2))
+        pauli = self._to_backend(_pauli_product_mpo(pauli_string))
         if self.backend == "torch":
-            self._to_backend(pauli)
-            self._to_backend(identity)
             theta = self.np.as_tensor(theta)
 
         return (self.np.cos(theta / 2) * identity).add_MPO(
@@ -337,16 +309,10 @@ class QuimbEngine(TensorNetworkEngine):
     def build_circuit_mps(
         self,
         n: int,
-        initial_state_amplitudes: Any,
         initial_state_circuit: Any,
         max_bond_dimension: int | None = None,
     ):
         """Build the MPS by running ``initial_state_circuit`` through quimb."""
-        if initial_state_circuit is None:
-            raise NotImplementedError(
-                "QuimbEngine builds its MPS from a qibo circuit; pass "
-                "initial_state_circuit rather than initial_state_amplitudes."
-            )
         return _qibo_circuit_to_quimb(
             nqubits=n,
             qibo_circ=initial_state_circuit,
@@ -365,9 +331,7 @@ class QuimbEngine(TensorNetworkEngine):
 
     def pauli_mpo(self, pauli_string: str | object):
         """Build the MPO for a Pauli string."""
-        mpo = MPO_product_operator(
-            [PAULI_GATES[label.upper()] for label in pauli_string]
-        )
+        mpo = _pauli_product_mpo(pauli_string)
         mpo.add_tag("MPO")
         setattr(mpo, _PAULI_ATTR, "".join(pauli_string).upper())
         return self._to_backend(mpo)
@@ -379,7 +343,7 @@ class QuimbEngine(TensorNetworkEngine):
         Expectation value of ``operator`` on ``state_circuit``, normalised.
 
         Truncation costs the state its unit norm, so the contraction is divided
-        by it; the norm is also kept on ``self.norm`` for callers that want it.
+        by it.
 
         A Pauli string from :meth:`pauli_mpo` is evaluated directly on the
         state's canonical form, over the sites between the string's support and
@@ -396,12 +360,12 @@ class QuimbEngine(TensorNetworkEngine):
         if self._fast and pauli is not None and len(pauli) == state_circuit.L:
             return self.pauli_expvals(state_circuit, [pauli])[0]
 
-        self.norm = state_circuit.norm(squared=True).real
+        norm = state_circuit.norm(squared=True).real
         ket = state_circuit.reindex({f"k{i}": f"b{i}" for i in range(state_circuit.L)})
         bra = state_circuit.H
         return (bra & operator & ket).contract(
-            backend=self.backend, optimize=self.optimizer
-        ).real / self.norm
+            backend=self.backend, optimize="greedy"
+        ).real / norm
 
     def pauli_expvals(self, state_circuit: MatrixProductState, paulis):
         """
@@ -422,7 +386,7 @@ class QuimbEngine(TensorNetworkEngine):
             return [self.expval(state_circuit, self.pauli_mpo(p)) for p in paulis]
 
         view = _CanonicalMPS(state_circuit)
-        self.norm = kernels.squared_norm(view, view.center)
+        norm = kernels.squared_norm(view, view.center)
         values = np.empty(len(paulis))
 
         windows = [kernels.bounds(pauli) for pauli in paulis]
@@ -435,7 +399,7 @@ class QuimbEngine(TensorNetworkEngine):
                 view.center = kernels.move_center(view, view.center, window[0])
             values[k] = kernels.pauli_expectation(view, view.center, paulis[k]).real
         view.commit()
-        return values / self.norm
+        return values / norm
 
     def pauli_rot(
         self,
@@ -452,12 +416,12 @@ class QuimbEngine(TensorNetworkEngine):
     def rotation_operator(self, generator: str, angle: float):
         """
         ``exp(-i angle/2 generator)`` in a form :meth:`apply_rotation` accepts:
-        a :class:`PauliRotation` on the numpy backend, applied by the windowed
-        kernel, and the backend MPO otherwise.
+        a ``(generator, angle)`` tuple on the numpy backend, applied by the
+        windowed kernel, and the backend MPO otherwise.
         """
         if self._fast:
-            return PauliRotation(generator.upper(), float(angle))
-        return self._to_backend(self.PauliExp(generator, angle))
+            return generator.upper(), float(angle)
+        return self._pauli_exp(generator, angle)
 
     def apply_rotation(
         self,
@@ -469,13 +433,13 @@ class QuimbEngine(TensorNetworkEngine):
         Apply a :meth:`rotation_operator` result to the state in place, then
         compress.
 
-        A :class:`PauliRotation` only touches the sites between the first and
+        A ``(generator, angle)`` tuple only touches the sites between the first and
         last non-identity letter of its generator, recompressing that window
         alone; an MPO goes through quimb's ``gate_with_mpo``, which recompresses
         the whole chain. Both truncate with the same rule.
         """
         cutoff = _QUIMB_DEFAULT_CUTOFF if self.svd_cutoff is None else self.svd_cutoff
-        if isinstance(rotation, PauliRotation):
+        if isinstance(rotation, tuple):
             generator, angle = rotation
             view = _CanonicalMPS(state_circuit)
             view.center = kernels.pauli_rotation(
@@ -535,10 +499,89 @@ class QuimbEngine(TensorNetworkEngine):
         :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.tail_truncation` to
         quantify it.
         """
-        rotation = self._to_backend(self.PauliExp(generator, angle))
-        rotation_dag = self._to_backend(self.PauliExp(generator, -angle))
+        rotation = self._pauli_exp(generator, angle)
+        rotation_dag = self._pauli_exp(generator, -angle)
 
         operator = rotation_dag.apply(
             operator, compress=True, max_bond=max_bond_dimension
         )
         return operator.apply(rotation, compress=True, max_bond=max_bond_dimension)
+
+    def squared_norm(self, state_circuit: MatrixProductState) -> float:
+        """``<psi|psi>`` of the MPS."""
+        return float(np.real(state_circuit.norm(squared=True)))
+
+    def bond_dimension(self, state_circuit: MatrixProductState) -> int:
+        """The largest bond dimension of the MPS."""
+        return state_circuit.max_bond()
+
+    def operator_site_arrays(self, operator: MatrixProductOperator) -> list:
+        """
+        The MPO's site tensors as numpy arrays ordered ``(left, right, k, b)``,
+        ``k`` the upper (output) and ``b`` the lower (input) index.
+        """
+        arrays = []
+        for site in range(operator.L):
+            tensor = operator[site]
+            left = list(bonds(operator[site - 1], tensor)) if site > 0 else []
+            right = (
+                list(bonds(tensor, operator[site + 1])) if site < operator.L - 1 else []
+            )
+            order = left + right + [operator.upper_ind(site), operator.lower_ind(site)]
+            array = np.asarray(tensor.transpose(*order).data, dtype=complex)
+            if not left:
+                array = array[None, ...]
+            if not right:
+                array = array[:, None, ...]
+            arrays.append(array)
+        return arrays
+
+    def pauli_sum_mpo(self, terms: dict) -> MatrixProductOperator:
+        """
+        The MPO of ``sum_P c_P P``.
+
+        Raises:
+            ValueError: if ``terms`` is empty.
+        """
+        if not terms:
+            raise ValueError("Cannot build the MPO of an empty Pauli sum.")
+        mpos = [c * self.pauli_mpo(p) for p, c in terms.items()]
+        total = mpos[0]
+        for mpo in mpos[1:]:
+            total = total + mpo
+        return total
+
+    def minimize_energy(
+        self,
+        operator: MatrixProductOperator,
+        initial_state: MatrixProductState,
+        bond_dims: list,
+        cutoff: float,
+        tol: float,
+        max_sweeps: int,
+        verbosity: int,
+    ) -> dict:
+        """Two-site DMRG with quimb's ``DMRG2``, on a copy of ``initial_state``."""
+        dmrg = DMRG2(
+            operator,
+            bond_dims=bond_dims,
+            cutoffs=cutoff,
+            p0=copy.deepcopy(initial_state),
+        )
+        converged = dmrg.solve(tol=tol, max_sweeps=max_sweeps, verbosity=verbosity)
+        return {
+            "state": dmrg.state,
+            "energy": float(np.real(dmrg.energy)),
+            "converged": converged,
+            "energy_history": [
+                float(np.real(e)) for e in getattr(dmrg, "energies", None) or []
+            ],
+        }
+
+    def circuit_truncation_fidelity(
+        self, nqubits: int, circuit, max_bond_dimension: int | None
+    ) -> float:
+        """quimb's ``CircuitMPS.fidelity_estimate`` after running ``circuit``."""
+        return _qibo_circuit_to_quimb(
+            nqubits=nqubits, qibo_circ=circuit, max_bond=max_bond_dimension
+        ).fidelity_estimate()

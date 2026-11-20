@@ -24,22 +24,9 @@ from mpstab.qpu.measurement.abstract import (
     MeasurementMethod,
     MeasurementPlan,
 )
-from mpstab.qpu.measurement.pauli import (
-    PauliMeasurementPlan,
-    PauliSampling,
-    QWCGroup,
-    allocate_shots_by_variance,
-    build_measurement_plan,
-    build_pauli_plan,
-    estimate_pauli,
-    group_qwc,
-)
-from mpstab.qpu.measurement.shadows import (
-    ClassicalShadows,
-    build_shadow_plan,
-    estimate_shadows,
-)
-from mpstab.qpu.measurement.tnice import TNICE, estimate_tnice
+from mpstab.qpu.measurement.pauli import PauliSampling
+from mpstab.qpu.measurement.shadows import ClassicalShadows
+from mpstab.qpu.measurement.tnice import TNICE
 
 #: The methods by name, for the string shorthand of :func:`resolve_method`.
 METHODS = {cls.name: cls for cls in (PauliSampling, ClassicalShadows, TNICE)}
@@ -88,21 +75,10 @@ def estimate(plan, frequencies, seed=None, **options) -> ExpectationResult:
 __all__ = [
     "ClassicalShadows",
     "ExpectationResult",
-    "METHODS",
     "MeasurementMethod",
     "MeasurementPlan",
-    "PauliMeasurementPlan",
     "PauliSampling",
-    "QWCGroup",
     "TNICE",
-    "allocate_shots_by_variance",
-    "build_measurement_plan",
-    "build_pauli_plan",
-    "build_shadow_plan",
     "estimate",
-    "estimate_pauli",
-    "estimate_shadows",
-    "estimate_tnice",
-    "group_qwc",
     "resolve_method",
 ]

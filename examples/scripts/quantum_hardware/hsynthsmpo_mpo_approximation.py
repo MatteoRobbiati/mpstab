@@ -20,12 +20,10 @@ gate-count-optimized) decomposition.
 """
 
 import numpy as np
-from qibo import set_backend
 
 from mpstab import HSynthSMPO
 from mpstab.models.ansatze import HardwareEfficient
 
-set_backend("numpy")
 np.random.seed(42)
 
 # ---------------------------------------------------------------------------

@@ -96,21 +96,19 @@ Here's the basic workflow for optimizing any Hamiltonian with DMRG:
    from mpstab.evolutors.hsmpo import HSMPO
    from mpstab.engines import QuimbEngine, StimEngine
 
-   # 1. Create ansatz and HSMPO
+   # 1. Create ansatz and HSMPO, with its engines
    ansatz = HardwareEfficient(nqubits=8, nlayers=3)
-   hsmpo = HSMPO(ansatz=ansatz)
-
-   # 2. Set engines
-   hsmpo.set_engines(
+   hsmpo = HSMPO(
+       ansatz=ansatz,
        stab_engine=StimEngine(),
-       tn_engine=QuimbEngine(backend="numpy")
+       tn_engine=QuimbEngine(backend="numpy"),
    )
 
-   # 3. Define Hamiltonian (any observable)
+   # 2. Define Hamiltonian (any observable)
    from qibo.hamiltonians import XXZ
    hamiltonian = XXZ(nqubits=8, delta=0.5)
 
-   # 4. Run DMRG optimization
+   # 3. Run DMRG optimization
    result = hsmpo.minimize_expectation(
        observables=hamiltonian,
        method="dmrg",
@@ -119,7 +117,7 @@ Here's the basic workflow for optimizing any Hamiltonian with DMRG:
        verbosity=1
    )
 
-   # 5. Extract results
+   # 4. Extract results
    ground_state_energy = result['energy']
    ground_state_mps = result['ground_state']
    converged = result['converged']

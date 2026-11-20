@@ -11,16 +11,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import ClassVar
 
-import stim
-
 from mpstab.qpu.synthesis.abstract import HeadSynthesis
-from mpstab.qpu.synthesis.utils import CLIFFORD_TABLEAUS, place_rotations
+from mpstab.qpu.synthesis.utils import place_rotations
 
 #: The inverse of each Clifford gate an extraction skeleton is made of.
 _EXTRACTION_INVERSE = {"H": "H", "SqrtX": "SqrtXd", "CNOT": "CNOT"}
 
 
-#: What :func:`build_extraction_head_and_residual` tries, keeping the cheapest:
+#: What :class:`ExtractionSynthesis` tries, keeping the cheapest:
 #: ``locality`` weighs how far apart the sites of the coming strings end up (it
 #: only matters with a connectivity), ``reorder`` lets a rotation overtake the
 #: ones it commutes with, ``lookahead`` is how many coming strings a CNOT is
@@ -208,15 +206,11 @@ def _extraction_skeleton(paulis, distances, locality, reorder, lookahead, discou
     return skeleton, estimated_cost
 
 
-def build_extraction_head_and_residual(
-    paulis: list[str],
-    angles: list[float],
-    connectivity=None,
-    strategies=EXTRACTION_STRATEGIES,
-):
+@dataclass(frozen=True)
+class ExtractionSynthesis(HeadSynthesis):
     """
     Synthesise a head circuit and its pure-Clifford residual by Clifford
-    extraction.
+    extraction. Deterministic.
 
     A rotation of a weight-``w`` string needs ``w - 1`` CNOTs to bring it onto
     one qubit, and the textbook circuit spends as many again to undo them.
@@ -229,52 +223,6 @@ def build_extraction_head_and_residual(
     Every strategy of ``strategies`` is run and the cheapest head kept, cost
     being the two-qubit gates the device would need: with a ``connectivity`` a
     CNOT between distant qubits is charged the SWAPs that route it.
-
-    Args:
-        paulis: dressed Pauli axis strings (qubit-0-leftmost), in circuit order.
-        angles: matching rotation angles.
-        connectivity: ``None`` (all-to-all), ``"line"``, or the edges
-            ``[(q0, q1), ...]`` of the device coupling graph, in the qubit
-            numbering of the strings.
-        strategies: the settings to try, see :data:`EXTRACTION_STRATEGIES`.
-
-    Returns:
-        ``(head, residual_tableau, residual_gates)``, the same shape as
-        :func:`~mpstab.qpu.synthesis.rustiq.build_head_and_residual`. Deterministic.
-    """
-    if not paulis:
-        return [], stim.Tableau(0), []
-
-    nqubits = len(paulis[0])
-    distances = connectivity_distances(connectivity, nqubits)
-    best = None
-    tried = set()
-    for strategy in strategies:
-        if distances is None:  # locality has no meaning: skip the duplicates
-            strategy = {**strategy, "locality": 0.0}
-        key = tuple(sorted(strategy.items()))
-        if key in tried:
-            continue
-        tried.add(key)
-        skeleton, cost = _extraction_skeleton(paulis, distances, **strategy)
-        if best is None or cost < best[0]:
-            best = (cost, skeleton)
-    skeleton = best[1]
-
-    head = place_rotations(skeleton, paulis, angles, nqubits)
-    residual = [
-        (_EXTRACTION_INVERSE[name], qubits) for name, qubits in reversed(skeleton)
-    ]
-    residual_tableau = stim.Tableau(nqubits)
-    for name, qubits in residual:
-        residual_tableau.append(CLIFFORD_TABLEAUS[name], qubits)
-    return head, residual_tableau, residual
-
-
-@dataclass(frozen=True)
-class ExtractionSynthesis(HeadSynthesis):
-    """
-    Clifford-extraction synthesis, see :func:`build_extraction_head_and_residual`.
 
     Args:
         connectivity: ``None`` (all-to-all), ``"line"``, or the edges
@@ -296,7 +244,24 @@ class ExtractionSynthesis(HeadSynthesis):
             connectivity = tuple(tuple(edge) for edge in connectivity)
             object.__setattr__(self, "connectivity", connectivity)
 
-    def synthesize(self, paulis, angles):
-        return build_extraction_head_and_residual(
-            paulis, angles, connectivity=self.connectivity, strategies=self.strategies
-        )
+    def _synthesize(self, paulis, angles, nqubits):
+        distances = connectivity_distances(self.connectivity, nqubits)
+        best = None
+        tried = set()
+        for strategy in self.strategies:
+            if distances is None:  # locality has no meaning: skip the duplicates
+                strategy = {**strategy, "locality": 0.0}
+            key = tuple(sorted(strategy.items()))
+            if key in tried:
+                continue
+            tried.add(key)
+            skeleton, cost = _extraction_skeleton(paulis, distances, **strategy)
+            if best is None or cost < best[0]:
+                best = (cost, skeleton)
+        skeleton = best[1]
+
+        head = place_rotations(skeleton, paulis, angles, nqubits)
+        residual = [
+            (_EXTRACTION_INVERSE[name], qubits) for name, qubits in reversed(skeleton)
+        ]
+        return head, residual

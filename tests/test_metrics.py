@@ -74,10 +74,9 @@ def test_meyer_wallach_mps_partial_entanglement():
     [_ghz(4), _kicked_ising(6, 3, 1.2), _hardware_efficient(5, 3, seed=1)],
     ids=["ghz", "kicked_ising", "hardware_efficient"],
 )
-def test_meyer_wallach_mps_matches_dense(circuit, tn_engine):
+def test_meyer_wallach_mps_matches_dense(circuit):
     dense = meyer_wallach_entanglement(circuit.copy()().state())
     hsmpo = HSMPO(ansatz=circuit.copy())
-    hsmpo.set_engines(tn_engine=tn_engine)
     assert meyer_wallach_mps(hsmpo) == pytest.approx(dense, abs=1e-10)
 
 

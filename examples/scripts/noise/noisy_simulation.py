@@ -17,7 +17,7 @@ Run with ``uv run python examples/scripts/noise/noisy_simulation.py``.
 import time
 
 import numpy as np
-from qibo import gates, set_backend
+from qibo import gates
 
 from mpstab import HSMPO
 from mpstab.hamiltonians import pauli_string_to_hamiltonian
@@ -47,7 +47,6 @@ def exact_noisy_expectation(circuit, noise, observable):
 
 
 def main():
-    set_backend("numpy")
     circuit = KickedIsing(
         nqubits=NQUBITS, n_steps=2, theta_h=0.7, theta_z=0.3, theta_j=-0.5 * np.pi
     ).circuit

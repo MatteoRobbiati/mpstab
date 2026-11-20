@@ -1,4 +1,4 @@
-"""Circuit transpilation, Clifford replacement and noise-model helpers."""
+"""Circuit transpilation and Clifford-replacement helpers."""
 
 import random
 from copy import deepcopy
@@ -7,31 +7,38 @@ from typing import List, Optional
 import networkx as nx
 import numpy as np
 from qibo import Circuit, gates
-from qibo.noise import NoiseModel, PauliError, ReadoutError
 from qibo.transpiler.optimizer import Preprocessing
 from qibo.transpiler.pipeline import Passes
 from qibo.transpiler.placer import Random
 from qibo.transpiler.router import ShortestPaths
 from qibo.transpiler.unroller import NativeGates, Unroller
 
+DEFAULT_NATIVE_GATES = (gates.GPI2, gates.RZ, gates.Z, gates.CZ)
+
+# Clifford angles a non-Clifford gate may be snapped to, per gate family.
+_PAULI_ROTATIONS = ("rx", "ry", "rz", "rxx", "ryy", "rzz")
+_ROTATION_CLIFFORD_ANGLES = np.arange(-2, 3) * np.pi / 2.0
+_GPI2_CLIFFORD_ANGLES = np.arange(4) * np.pi / 2.0
+
 
 def hardware_compatible_circuit(
     circuit: Circuit,
-    native_gates: Optional[List] = [gates.GPI2, gates.RZ, gates.Z, gates.CZ],
+    native_gates: Optional[List] = DEFAULT_NATIVE_GATES,
     connectivity: Optional[nx.Graph] = None,
-):
-
-    natives = NativeGates(0).from_gatelist(native_gates)
-    unroller = Unroller(natives)
-
+) -> Circuit:
+    """
+    Unroll ``circuit`` into ``native_gates`` and, given a ``connectivity``
+    graph, place and route it on that topology too.
+    """
+    unroller = Unroller(NativeGates(0).from_gatelist(list(native_gates)))
     if connectivity is None:
-        circuit = unroller(circuit)
-        return circuit
-    else:
-        custom_passes = [Preprocessing(), Random(), ShortestPaths(), unroller]
-        custom_pipeline = Passes(custom_passes, connectivity=connectivity)
-        transpiled_circ, final_layout = custom_pipeline(circuit)
-        return transpiled_circ
+        return unroller(circuit)
+    pipeline = Passes(
+        [Preprocessing(), Random(), ShortestPaths(), unroller],
+        connectivity=connectivity,
+    )
+    transpiled, _ = pipeline(circuit)
+    return transpiled
 
 
 def get_closest_angle(old_angle, candidates):
@@ -39,77 +46,36 @@ def get_closest_angle(old_angle, candidates):
     differences = np.abs(
         np.arctan2(np.sin(candidates - old_angle), np.cos(candidates - old_angle))
     )
-    closest_index = np.argmin(differences)
-    return candidates[closest_index]
+    return candidates[np.argmin(differences)]
 
 
 def replace_non_clifford_gate(gate, replacement_method, candidates=None):
-    """Replace a non-Clifford RX/RY/RZ, RXX/RYY/RZZ or GPI2 gate with a Clifford one."""
-    # Pauli-rotation branch: Clifford exactly at multiples of pi/2.
-    if gate.name in ("rx", "ry", "rz", "rxx", "ryy", "rzz"):
-        if candidates is None:
-            candidates = np.arange(-2, 3) * np.pi / 2.0
-        old_angle = gate.parameters[0]
-        if replacement_method == "random":
-            new_angle = random.choice(candidates)
-        elif replacement_method == "closest":
-            new_angle = get_closest_angle(old_angle, candidates)
-        else:
-            raise ValueError(f"Unknown method {replacement_method!r}")
-        new_gate = deepcopy(gate)
-        new_gate.parameters = [new_angle]
-        return new_gate
+    """
+    Replace a non-Clifford RX/RY/RZ, RXX/RYY/RZZ or GPI2 gate with a Clifford one.
 
-    # GPI2 branch
-    elif isinstance(gate, gates.GPI2):
-        # only multiples of π/2 are legal Clifford GPI2 angles
-        if candidates is None:
-            candidates = np.arange(4) * (np.pi / 2.0)  # [0, π/2, π, 3π/2]
-        # extract the current angle; assuming you stored it as gate.angle
-        old_angle = gate.parameters[0]
-        if replacement_method == "random":
-            new_angle = random.choice(candidates)
-        elif replacement_method == "closest":
-            new_angle = get_closest_angle(old_angle, candidates)
+    Args:
+        gate: the gate to replace.
+        replacement_method: ``"closest"`` Clifford angle, or a ``"random"`` one.
+        candidates: the Clifford angles to choose from. Defaults to the
+            multiples of pi/2 legal for the gate.
+    """
+    if candidates is None:
+        if gate.name in _PAULI_ROTATIONS:
+            candidates = _ROTATION_CLIFFORD_ANGLES
+        elif isinstance(gate, gates.GPI2):
+            candidates = _GPI2_CLIFFORD_ANGLES
         else:
-            raise ValueError(f"Unknown method {replacement_method!r}")
-        # re-instantiate a fresh GPI2 at the chosen Clifford angle
-        new_gate = deepcopy(gate)
-        new_gate.parameters = [new_angle]
-        return new_gate
+            raise NotImplementedError(
+                f"replace_non_clifford_gate does not support gate type {gate.name}"
+            )
 
+    if replacement_method == "random":
+        new_angle = random.choice(candidates)
+    elif replacement_method == "closest":
+        new_angle = get_closest_angle(gate.parameters[0], candidates)
     else:
-        raise NotImplementedError(
-            f"replace_non_clifford_gate does not support gate type {gate.name}"
-        )
+        raise ValueError(f"Unknown method {replacement_method!r}")
 
-
-def build_noise_model(
-    nqubits: int,
-    local_pauli_noise_sigma: float,
-    readout_bit_flip_prob: float = None,
-):
-    """Costruct noise model as a local Pauli noise channel + readout noise."""
-    noise_model = NoiseModel()
-    for q in range(nqubits):
-        noise_model.add(
-            PauliError(
-                [
-                    ("X", np.abs(np.random.normal(0, local_pauli_noise_sigma))),
-                    ("Y", np.abs(np.random.normal(0, local_pauli_noise_sigma))),
-                    ("Z", np.abs(np.random.normal(0, local_pauli_noise_sigma))),
-                ]
-            ),
-            qubits=q,
-        )
-
-    if readout_bit_flip_prob is not None:
-        single_readout_matrix = np.array(
-            [
-                [1 - readout_bit_flip_prob, readout_bit_flip_prob],
-                [readout_bit_flip_prob, 1 - readout_bit_flip_prob],
-            ]
-        )
-        readout_noise = ReadoutError(single_readout_matrix)
-        noise_model.add(readout_noise, gates.M)
-    return noise_model
+    new_gate = deepcopy(gate)
+    new_gate.parameters = [new_angle]
+    return new_gate

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
+
 from mpstab.engines.tensor_networks.abstract import TensorNetworkEngine
 from mpstab.engines.tensor_networks.native.circuit_mps import CircuitMPS
 from mpstab.engines.tensor_networks.native.operators.observables import PauliMPO
@@ -13,7 +15,9 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
     """
     MPS evolution and expectation values on the in-package tensor network.
 
-    Supports state-side evolution and expectation values. Operator-side
+    A pure-Python example of the :class:`TensorNetworkEngine` interface, written
+    to be read rather than to be fast: use
+    :class:`~mpstab.engines.QuimbEngine` for real workloads. Supports state-side evolution and expectation values. Operator-side
     conjugation, and so the whole head/tail split of
     :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`, needs
     :class:`~mpstab.engines.QuimbEngine`.
@@ -22,14 +26,20 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
     def build_circuit_mps(
         self,
         n: int,
-        initial_state_amplitudes: Any,
         initial_state_circuit: Any,
         max_bond_dimension: int | None = None,
     ):
-        """Build a :class:`CircuitMPS` from the per-site amplitudes."""
+        """
+        Build a :class:`CircuitMPS` in the product state a qibo circuit of
+        one-qubit gates prepares, simulating each qubit on its own.
+        """
+        amplitudes = []
+        for qubit in range(n):
+            light_circuit, _ = initial_state_circuit.light_cone(qubit)
+            amplitudes.append(light_circuit().state())
         return CircuitMPS(
             n=n,
-            initial_state=initial_state_amplitudes,
+            initial_state=np.array(amplitudes),
             max_bond_dimension=max_bond_dimension,
         )
 
@@ -56,15 +66,7 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
         """
         return state_circuit.pauli_rot(generator, angle)
 
-    def conjugate_operator(
-        self,
-        operator: PauliMPO,
-        generator: str,
-        angle: float,
-        max_bond_dimension: int,
-    ):
-        """Not supported: operator-side conjugation requires QuimbEngine."""
-        raise NotImplementedError(
-            "conjugate_operator is only implemented for QuimbEngine. Call "
-            "set_engines(tn_engine=QuimbEngine()) to use the head/tail split."
-        )
+    def squared_norm(self, state_circuit: CircuitMPS) -> float:
+        """``<psi|psi>``, the expectation value of the identity."""
+        identity = PauliMPO("I" * state_circuit.n_qubits)
+        return float(np.real(state_circuit.expval(identity)))

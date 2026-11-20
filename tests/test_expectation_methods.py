@@ -34,7 +34,7 @@ from mpstab.qpu import (
 )
 from mpstab.qpu.measurement.pauli import _antihermitian_norm
 from mpstab.qpu.synthesis import (
-    build_cnot_ladder_head_and_residual,
+    CnotLadderSynthesis,
     count_two_qubit_gates,
     head_to_qibo_circuit,
 )
@@ -92,7 +92,7 @@ def _resynthesis_with_trailing_residual(hs, cut_index, n_trailing=3):
     exercise the fold on its own in an environment without rustiq installed.
     """
     dressed = hs._dressed_rotations()[:cut_index]
-    head, _, _ = build_cnot_ladder_head_and_residual(
+    head, _, _ = CnotLadderSynthesis().synthesize(
         [pauli for pauli, _ in dressed], [angle for _, angle in dressed]
     )
     split = len(head)

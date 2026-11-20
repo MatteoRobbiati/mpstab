@@ -3,19 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from itertools import product
 from typing import Iterable, Sequence, Union
 
 import numpy as np
 from qibo import Circuit, gates
 
 from mpstab.hamiltonians import pauli_terms
-from mpstab.noise.events import (
-    CoherentRotation,
-    NoiseEvent,
-    PauliChannel,
-    _all_paulis,
-    from_qibo_noise_model,
-)
+from mpstab.noise.events import CoherentRotation, NoiseEvent, PauliChannel
 from mpstab.pauli import pauli_matrix, validate_pauli_string
 
 
@@ -55,13 +50,14 @@ class PauliError:
 
     @property
     def width(self) -> int:
+        """Qubits each label acts on: 1 per qubit of the gate, or the whole gate."""
         return len(next(iter(self.probs), "X"))
 
     def scaled(self, factor: float) -> PauliError:
         return PauliError({label: factor * p for label, p in self.probs.items()})
 
     def _events(self, index: int, qubits: tuple[int, ...], nqubits: int):
-        for support in _supports(self.width, qubits, "PauliError"):
+        for support in _supports(self, qubits):
             yield PauliChannel(index, support, dict(self.probs))
 
 
@@ -91,12 +87,16 @@ class DepolarizingError:
         if not 0 <= self.lam <= 4 / 3:
             raise ValueError(f"DepolarizingError lam={self.lam} outside [0, 4/3].")
 
+    #: Always acts on the whole gate.
+    width = None
+
     def scaled(self, factor: float) -> DepolarizingError:
         return DepolarizingError(factor * self.lam)
 
     def _events(self, index: int, qubits: tuple[int, ...], nqubits: int):
         k = len(qubits)
-        probs = {label: self.lam / 4**k for label in _all_paulis(k)[1:]}
+        labels = ("".join(p) for p in product("IXYZ", repeat=k))
+        probs = {label: self.lam / 4**k for label in labels if set(label) != {"I"}}
         yield PauliChannel(index, qubits, probs)
 
 
@@ -126,11 +126,16 @@ class CoherentError:
     def __post_init__(self):
         validate_pauli_string(self.generator)
 
+    @property
+    def width(self) -> int:
+        """Qubits the generator acts on: 1 per qubit of the gate, or the whole gate."""
+        return len(self.generator)
+
     def scaled(self, factor: float) -> CoherentError:
         return CoherentError(self.generator, factor * self.angle)
 
     def _events(self, index: int, qubits: tuple[int, ...], nqubits: int):
-        for support in _supports(len(self.generator), qubits, "CoherentError"):
+        for support in _supports(self, qubits):
             labels = ["I"] * nqubits
             for q, p in zip(support, self.generator):
                 labels[q] = p
@@ -173,14 +178,16 @@ class ReadoutError:
 Error = Union[PauliError, DepolarizingError, CoherentError, ReadoutError]
 
 
-def _supports(width: int, qubits: tuple[int, ...], name: str):
-    if width == 1:
+def _supports(error, qubits: tuple[int, ...]):
+    """The qubit tuples ``error`` acts on after a gate on ``qubits``."""
+    if error.width == 1:
         return [(q,) for q in qubits]
-    if width == len(qubits):
+    if error.width == len(qubits):
         return [qubits]
     raise ValueError(
-        f"{name} of width {width} cannot act on a {len(qubits)}-qubit gate: use "
-        "single-qubit labels or labels as wide as the gate."
+        f"{type(error).__name__} of width {error.width} cannot act on a "
+        f"{len(qubits)}-qubit gate: use single-qubit labels or labels as wide as "
+        "the gate."
     )
 
 
@@ -197,7 +204,7 @@ class _Rule:
             return ()
         qubits = tuple(gate.qubits)
         if self.qubits is not None:
-            if _acts_jointly(self.error):
+            if self.error.width != 1:  # spans the whole gate
                 if not set(qubits) <= self.qubits:
                     return ()
             else:
@@ -205,14 +212,6 @@ class _Rule:
         if not qubits:
             return ()
         return self.error._events(index, qubits, nqubits)
-
-
-def _acts_jointly(error: Error) -> bool:
-    """Whether ``error`` spans the whole gate rather than each qubit separately."""
-    if isinstance(error, DepolarizingError):
-        return True
-    width = error.width if isinstance(error, PauliError) else len(error.generator)
-    return width > 1
 
 
 @dataclass
@@ -246,7 +245,7 @@ class NoiseModel:
         print(f"{ideal:+.4f} -> {noisy.mean:+.4f} +- {noisy.stderr:.4f}")
     """
 
-    rules: list = field(default_factory=list)
+    rules: list[_Rule] = field(default_factory=list)
 
     def add(
         self,
@@ -277,8 +276,7 @@ class NoiseModel:
         ):
             raise TypeError(
                 f"{type(error).__name__} is not a mpstab error; use PauliError, "
-                "DepolarizingError, CoherentError or ReadoutError, or "
-                "NoiseModel.from_qibo."
+                "DepolarizingError, CoherentError or ReadoutError."
             )
         if isinstance(error, ReadoutError) and gate is not None:
             raise ValueError(
@@ -298,39 +296,19 @@ class NoiseModel:
         )
         return self
 
-    @classmethod
-    def from_qibo(cls, noise_model) -> NoiseModel:
-        """
-        Wrap a qibo ``NoiseModel`` (Pauli and depolarizing errors only).
-
-        qibo's own ``apply`` decides where the channels go, so placement follows
-        qibo's rules exactly.
-        """
-        model = cls()
-        model.rules.append(noise_model)
-        return model
-
     def scaled(self, factor: float) -> NoiseModel:
         """
         A copy with every probability and coherent angle multiplied by ``factor``,
         for noise-strength sweeps such as zero-noise extrapolation.
         """
-        rules = []
-        for rule in self.rules:
-            if not isinstance(rule, _Rule):
-                raise NotImplementedError(
-                    "A model from a qibo NoiseModel cannot be scaled."
-                )
-            rules.append(_Rule(rule.error.scaled(factor), rule.gate, rule.qubits))
-        return NoiseModel(rules)
+        return NoiseModel(
+            [_Rule(r.error.scaled(factor), r.gate, r.qubits) for r in self.rules]
+        )
 
     def events(self, circuit: Circuit) -> list[NoiseEvent]:
         """The model resolved on ``circuit``: one event per inserted error."""
         events = []
         for rule in self.rules:
-            if not isinstance(rule, _Rule):
-                events += from_qibo_noise_model(rule, circuit)
-                continue
             for index, gate in enumerate(circuit.queue):
                 if isinstance(gate, gates.M):
                     continue
@@ -344,7 +322,7 @@ class NoiseModel:
         """
         factors = np.ones(nqubits)
         for rule in self.rules:
-            if isinstance(rule, _Rule) and isinstance(rule.error, ReadoutError):
+            if isinstance(rule.error, ReadoutError):
                 qubits = range(nqubits) if rule.qubits is None else rule.qubits
                 for q in qubits:
                     if not 0 <= q < nqubits:

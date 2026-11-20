@@ -1,6 +1,6 @@
 """
 Tests for the Clifford-extraction head synthesis
-(:func:`mpstab.qpu.synthesis.extraction.build_extraction_head_and_residual`).
+(:class:`mpstab.qpu.synthesis.extraction.ExtractionSynthesis`).
 
 The head and its residual must together be the product of the rotations, on
 random Pauli strings and for every strategy and connectivity; and the
@@ -15,15 +15,16 @@ import stim
 from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import HardwareEfficient, ParametricKickedIsing
 from mpstab.qpu.synthesis import (
-    CLIFFORD_TABLEAUS,
-    EXTRACTION_STRATEGIES,
+    CnotLadderSynthesis,
     ExtractionSynthesis,
-    build_cnot_ladder_head_and_residual,
-    build_extraction_head_and_residual,
-    connectivity_distances,
     count_two_qubit_gates,
     head_to_qibo_circuit,
 )
+from mpstab.qpu.synthesis.extraction import (
+    EXTRACTION_STRATEGIES,
+    connectivity_distances,
+)
+from mpstab.qpu.synthesis.utils import CLIFFORD_TABLEAUS
 
 
 def _random_rotations(nqubits, n_rotations, seed):
@@ -43,7 +44,7 @@ def _state(gates, nqubits):
 def _overlap_with_rotations(paulis, angles, head, residual_gates):
     """|<exact product of the rotations | residual . head>| on |0...0>."""
     nqubits = len(paulis[0])
-    exact, _, _ = build_cnot_ladder_head_and_residual(paulis, angles)
+    exact, _, _ = CnotLadderSynthesis().synthesize(paulis, angles)
     return abs(np.vdot(_state(exact, nqubits), _state(head + residual_gates, nqubits)))
 
 
@@ -53,8 +54,8 @@ def _overlap_with_rotations(paulis, angles, head, residual_gates):
 )
 def test_head_and_residual_are_the_rotations(seed, connectivity):
     paulis, angles = _random_rotations(6, 14, seed)
-    head, tableau, residual = build_extraction_head_and_residual(
-        paulis, angles, connectivity=connectivity
+    head, tableau, residual = ExtractionSynthesis(connectivity=connectivity).synthesize(
+        paulis, angles
     )
     assert _overlap_with_rotations(paulis, angles, head, residual) == pytest.approx(
         1.0, abs=1e-9
@@ -69,9 +70,9 @@ def test_head_and_residual_are_the_rotations(seed, connectivity):
 @pytest.mark.parametrize("strategy", EXTRACTION_STRATEGIES)
 def test_every_strategy_is_exact(strategy):
     paulis, angles = _random_rotations(5, 12, seed=7)
-    head, _, residual = build_extraction_head_and_residual(
-        paulis, angles, connectivity="line", strategies=(strategy,)
-    )
+    head, _, residual = ExtractionSynthesis(
+        connectivity="line", strategies=(strategy,)
+    ).synthesize(paulis, angles)
     assert _overlap_with_rotations(paulis, angles, head, residual) == pytest.approx(
         1.0, abs=1e-9
     )
@@ -79,8 +80,8 @@ def test_every_strategy_is_exact(strategy):
 
 def test_one_rotation_per_pauli_and_fewer_cnots_than_the_ladder():
     paulis, angles = _random_rotations(6, 20, seed=3)
-    head, _, _ = build_extraction_head_and_residual(paulis, angles)
-    ladder, _, _ = build_cnot_ladder_head_and_residual(paulis, angles)
+    head, _, _ = ExtractionSynthesis().synthesize(paulis, angles)
+    ladder, _, _ = CnotLadderSynthesis().synthesize(paulis, angles)
     assert sum(1 for gate in head if len(gate) == 3) == len(paulis)
     # w - 1 CNOTs per weight-w rotation instead of 2 * (w - 1)
     assert count_two_qubit_gates(head) <= count_two_qubit_gates(ladder) // 2
@@ -88,13 +89,13 @@ def test_one_rotation_per_pauli_and_fewer_cnots_than_the_ladder():
 
 def test_synthesis_is_deterministic():
     paulis, angles = _random_rotations(6, 14, seed=1)
-    first = build_extraction_head_and_residual(paulis, angles, connectivity="line")
-    second = build_extraction_head_and_residual(paulis, angles, connectivity="line")
+    first = ExtractionSynthesis(connectivity="line").synthesize(paulis, angles)
+    second = ExtractionSynthesis(connectivity="line").synthesize(paulis, angles)
     assert first[0] == second[0] and first[2] == second[2]
 
 
 def test_empty_head():
-    assert build_extraction_head_and_residual([], []) == ([], stim.Tableau(0), [])
+    assert ExtractionSynthesis().synthesize([], []) == ([], stim.Tableau(0), [])
 
 
 def test_connectivity_distances():

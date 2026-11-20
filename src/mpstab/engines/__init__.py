@@ -1,10 +1,16 @@
 """
 The computational engines a surrogate runs on.
 
-A stabilizers engine backpropagates Pauli observables through Clifford gates; a
-tensor-network engine evolves the MPS and contracts expectation values. Each
-comes in a pure-Python ``Native`` flavour and one backed by an external simulator
-(stim, quimb).
+A stabilizers engine backpropagates Pauli observables through Clifford gates
+(:class:`StimEngine`, backed by stim); a tensor-network engine evolves the MPS
+and contracts expectation values (:class:`QuimbEngine`, backed by quimb). The
+abstract classes are the interface a custom engine implements.
+
+:class:`NativeStabilizersEngine` and :class:`NativeTensorNetworkEngine` are
+pure-Python implementations of that interface, kept as readable examples of
+how each engine works. They are slower than stim and quimb and cover less: no
+DMRG and no operator-side conjugation, so no head/tail split in
+:class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`.
 """
 
 from mpstab.engines.stabilizers.abstract import StabilizersEngine

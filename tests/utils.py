@@ -54,20 +54,6 @@ def ghz_circuit(nqubits):
     return circ
 
 
-def folded_mpo(base: str, generators, angles, max_bond=None):
-    """A Pauli MPO conjugated by Pauli rotations, as a tail fold builds it."""
-    engine = QuimbEngine()
-    mpo = engine.pauli_mpo(base)
-    for generator, angle in zip(generators, angles):
-        mpo = engine.conjugate_operator(mpo, generator, angle, max_bond)
-    return mpo
-
-
-def dense_expectation(state: np.ndarray, pauli: str) -> float:
-    """``<state|pauli|state>`` on a dense statevector, qubit 0 leftmost."""
-    return float(np.real(np.vdot(state, pauli_matrix(pauli) @ state)))
-
-
 def expectation_with_qibo(mpstab_ansatz, observable_str):
     """
     Take an mpstab ansatz and an observable string and compute the
@@ -117,3 +103,46 @@ def construct_symbolic_hamiltonian(
     return hamiltonians.SymbolicHamiltonian(
         nqubits=nqubits, form=ham_form, backend=qibo_backend
     )
+
+
+def dense_expectation(state, pauli: str) -> float:
+    """``<state|pauli|state>`` on a dense statevector."""
+    state = np.asarray(state)
+    return float(np.real(np.vdot(state, pauli_matrix(pauli) @ state)))
+
+
+def rotation_unitary(generator: str, angle: float) -> np.ndarray:
+    """Dense ``exp(-i angle/2 G)`` for a Pauli string ``G``."""
+    return np.cos(angle / 2) * np.eye(2 ** len(generator)) - 1j * np.sin(
+        angle / 2
+    ) * pauli_matrix(generator)
+
+
+def small_entangled_circuit(nqubits: int = 4) -> Circuit:
+    """H layer + CZ chain + seeded RY layer: yields multi-qubit dressed rotations."""
+    set_rng_seed()
+    circ = Circuit(nqubits)
+    for q in range(nqubits):
+        circ.add(gates.H(q))
+    for q in range(nqubits - 1):
+        circ.add(gates.CZ(q, q + 1))
+    for q in range(nqubits):
+        circ.add(gates.RY(q, theta=float(np.random.uniform(0.1, 1.2))))
+    return circ
+
+
+def folded_mpo(base: str, generators, angles, max_bond=None):
+    """A Pauli MPO conjugated by Pauli rotations, as HSynthSMPO folds a tail."""
+    engine = QuimbEngine()
+    mpo = engine.pauli_mpo(base)
+    for generator, angle in zip(generators, angles):
+        mpo = engine.conjugate_operator(mpo, generator, angle, max_bond)
+    return mpo
+
+
+def magic_gates(ansatz):
+    """The ansatz's non-Clifford gates, with nothing replaced by a Clifford."""
+    (gates_, _), _ = ansatz.partitionate_circuit(
+        replacement_probability=0.0, replacement_method="closest"
+    )
+    return gates_

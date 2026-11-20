@@ -39,8 +39,7 @@ class NoisyExpectation:
             the lower strata are exact. Zero when nothing was sampled.
         n_patterns: distinct rotation sign patterns evaluated on the MPS.
         fidelities: truncation fidelity of the MPS of each evaluated pattern,
-            shape ``(n_patterns,)``; ``nan`` for an engine that does not expose
-            a norm.
+            shape ``(n_patterns,)``.
         stratum_weights: ``(Pr(k = 0), Pr(k = 1), Pr(k >= 2))``, counting only
             the faults that can affect the observable.
         n_samples: fault configurations sampled for the ``k >= 2`` stratum.
@@ -105,7 +104,7 @@ def noisy_expectation(
         print(f"{result.mean:.4f} +- {result.stderr:.4f}")
     """
     constant, terms = pauli_terms(observable, compiled.nqubits)
-    dressed = [compiled.dress_observable(pauli) for pauli in terms]
+    dressed = compiled.dress_observables(terms)
     if light_cone:
         compiled = compiled.restricted_to([pauli for pauli, _ in dressed])
     observable_flips = compiled.observable_flips([pauli for pauli, _ in dressed])
@@ -304,7 +303,5 @@ def _evaluate_patterns(
         if paulis:
             expvals = engine.pauli_expvals(state, paulis)
             values[row] = np.real(np.asarray(expvals, dtype=complex)) * signs
-        fidelities[row] = (
-            np.real(state.norm(squared=True)) if hasattr(state, "norm") else np.nan
-        )
+        fidelities[row] = engine.squared_norm(state)
     return values, fidelities

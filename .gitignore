@@ -69,7 +69,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+_build/
 
 # PyBuilder
 .pybuilder/
@@ -171,3 +171,9 @@ planned_runs/
 
 # Unpublished examples, kept locally only
 /old/
+
+# Local scratch: benchmark output, throwaway notebooks, tool state
+.benchmarks/
+benchmark_results/
+Untitled*.ipynb
+.claude/

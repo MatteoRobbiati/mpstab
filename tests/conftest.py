@@ -30,30 +30,18 @@ def stim_engine():
 
 
 @pytest.fixture
-def native_stab_engine():
-    return NativeStabilizersEngine()
-
-
-@pytest.fixture
 def quimb_engine():
     return QuimbEngine()
 
 
-@pytest.fixture
-def native_tn_engine():
-    return NativeTensorNetworkEngine()
-
-
-@pytest.fixture(
-    params=[NativeStabilizersEngine, StimEngine], ids=["native_stab", "stim"]
-)
+@pytest.fixture(params=[StimEngine, NativeStabilizersEngine], ids=["stim", "native"])
 def stab_engine(request):
     """Each stabilizers engine in turn."""
     return request.param()
 
 
 @pytest.fixture(
-    params=[QuimbEngine, NativeTensorNetworkEngine], ids=["quimb", "native_tn"]
+    params=[QuimbEngine, NativeTensorNetworkEngine], ids=["quimb", "native"]
 )
 def tn_engine(request):
     """Each tensor-network engine in turn."""
@@ -71,3 +59,9 @@ def scrambled_mpo():
     generators = ["YYII", "IXZY", "ZIXY", "YZYX"]
     angles = [rng.uniform(0.3, 1.5) for _ in generators]
     return folded_mpo("ZZZI", generators, angles)
+
+
+@pytest.fixture
+def scrambled_sites(scrambled_mpo):
+    """:func:`scrambled_mpo` as the site arrays an engine exports."""
+    return QuimbEngine().operator_site_arrays(scrambled_mpo)
