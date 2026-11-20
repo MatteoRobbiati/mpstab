@@ -31,11 +31,8 @@ Each section shows a short piece of the circuit the class builds, on a few
 qubits and for one step or layer. Clifford gates are yellow and magic gates
 blue; CNOT, CZ and SWAP have their usual symbols. Brackets above the wires
 mark the parts of the circuit, and angles set by a constructor field carry the
-field's symbol. The figures are drawn by
-``docs/scripts/draw_ansatze.py``.
-
-.. image:: ../_static/ansatze/legend.svg
-   :align: center
+field's symbol (the colour legend is under the first figure). The figures are
+drawn by ``docs/scripts/draw_ansatze.py``.
 
 Summary
 -------
@@ -154,10 +151,13 @@ uniformly in :math:`[-\pi, \pi)` from numpy's global generator, so a generic
 rotation is a magic gate. There are ``nqubits * nlayers`` magic gates, which
 ``nlayers`` sets. With ``entangling=False`` the circuit makes a product state.
 
-.. figure:: ../_static/ansatze/hardware_efficient.svg
+.. themed-figure:: ../_static/ansatze/hardware_efficient.svg
    :align: center
 
    ``HardwareEfficient(nqubits=4, nlayers=1)``: one layer.
+
+.. themed-figure:: ../_static/ansatze/legend.svg
+   :align: center
 
 HardwareEfficientBrickwork
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -169,7 +169,7 @@ ring and creates long-range entanglement. A final layer of ``RY`` rotations
 ends the circuit. ``nlayers`` sets both the number of random rotations (magic)
 and the depth of the brickwork (entanglement).
 
-.. figure:: ../_static/ansatze/hardware_efficient_brickwork.svg
+.. themed-figure:: ../_static/ansatze/hardware_efficient_brickwork.svg
    :align: center
 
    ``HardwareEfficientBrickwork(nqubits=4, nlayers=1)``: the whole circuit.
@@ -186,7 +186,7 @@ Every RBS is decomposed into ``CNOT`` gates and two ``RY`` rotations of random
 angle :math:`\pm\theta`, the magic gates. The state stays in the
 sector with Hamming weight ``nqubits // 2``. ``nqubits`` must be even.
 
-.. figure:: ../_static/ansatze/hamming_weight_preserving.svg
+.. themed-figure:: ../_static/ansatze/hamming_weight_preserving.svg
    :align: center
 
    ``HammingWeightPreserving(nqubits=4)``: the half-filling state and the
@@ -214,7 +214,7 @@ adds one magic gate. ``nlayers`` sets how far the forward evolution spreads
 the perturbation before the echo refocuses it. The :math:`R_Z(\pi/4)` gates are
 fixed :math:`T` gates, so the circuit holds some magic at every ``b``.
 
-.. figure:: ../_static/ansatze/floquet_ansatz.svg
+.. themed-figure:: ../_static/ansatze/floquet_ansatz.svg
    :align: center
 
    ``FloquetAnsatz(nqubits=4, nlayers=1, target_qubit=1)``: the whole echo.
@@ -239,7 +239,7 @@ so ``theta_h``, ``theta_z`` and ``theta_j`` set both the magic and the
 entangling power. At the default ``theta_j = -pi/2`` the couplings are Clifford
 and only the kicks are magic.
 
-.. figure:: ../_static/ansatze/kicked_ising.svg
+.. themed-figure:: ../_static/ansatze/kicked_ising.svg
    :align: center
 
    ``KickedIsing(nqubits=4, n_steps=1)`` at generic angles: each angle is one gate.
@@ -268,7 +268,7 @@ ansatz in which the two resources are tuned separately:
 
 The deviations change the entanglement only perturbatively.
 
-.. figure:: ../_static/ansatze/parametric_kicked_ising.svg
+.. themed-figure:: ../_static/ansatze/parametric_kicked_ising.svg
    :align: center
 
    ``ParametricKickedIsing(nqubits=4, n_steps=1)`` with all three deviations
@@ -297,7 +297,7 @@ Two optional sources of randomness, both reproducible through ``seed``:
 Without a ramp, at ``bond_density = 1`` and ``disorder = 0``, the circuit is
 exactly ``ParametricKickedIsing``.
 
-.. figure:: ../_static/ansatze/ramped_kicked_ising.svg
+.. themed-figure:: ../_static/ansatze/ramped_kicked_ising.svg
    :align: center
 
    ``RampedKickedIsing(nqubits=4, n_steps=2, delta_h=0.4, delta_h_last=0.1,
@@ -314,7 +314,7 @@ the IQM Star, where the hub's state can stay in the resonator for a whole step.
 Its knobs are those of ``RampedKickedIsing``. ``bond_density`` thins out the
 hub-leaf bonds.
 
-.. figure:: ../_static/ansatze/star_kicked_ising.svg
+.. themed-figure:: ../_static/ansatze/star_kicked_ising.svg
    :align: center
 
    ``StarKickedIsing(nqubits=5, n_steps=1)``: every leaf is coupled to the hub.
@@ -333,7 +333,7 @@ by a Hamiltonian, transpiled to native gates. The magic comes from the angles,
 so from ``dt``, ``J`` and ``h``. The entangling power per step is set by
 ``J * dt``, and the total by ``n_steps``.
 
-.. figure:: ../_static/ansatze/trotter_ising.svg
+.. themed-figure:: ../_static/ansatze/trotter_ising.svg
    :align: center
 
    ``TrotterIsing(nqubits=4, n_steps=1, transpile=False)``: one Trotter step,
@@ -364,27 +364,27 @@ high-level gates and transpiled to native gates on construction (pass
 The figures show the raw circuits (``transpile=False``) on three qubits or
 three counting qubits; HSMPO runs on their transpiled form.
 
-.. figure:: ../_static/ansatze/qft.svg
+.. themed-figure:: ../_static/ansatze/qft.svg
    :align: center
 
    ``QFT(nqubits=3)``.
 
-.. figure:: ../_static/ansatze/qft_phase_kernel.svg
+.. themed-figure:: ../_static/ansatze/qft_phase_kernel.svg
    :align: center
 
    ``QFTPhaseKernel(nqubits=3)``, with the kernel angles :math:`c_j`.
 
-.. figure:: ../_static/ansatze/grover.svg
+.. themed-figure:: ../_static/ansatze/grover.svg
    :align: center
 
    ``Grover(nqubits=3, n_iterations=1)``: the oracle marks :math:`|111\rangle`.
 
-.. figure:: ../_static/ansatze/qpe.svg
+.. themed-figure:: ../_static/ansatze/qpe.svg
    :align: center
 
    ``QPE(n_counting=3)``: three counting qubits and the eigenstate qubit.
 
-.. figure:: ../_static/ansatze/qae.svg
+.. themed-figure:: ../_static/ansatze/qae.svg
    :align: center
 
    ``QAE(n_counting=3)``: three counting qubits and the work qubit.

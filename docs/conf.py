@@ -38,3 +38,32 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 # nbsphinx configuration: don't fail if a notebook isn't executed
 nbsphinx_allow_errors = True
 nbsphinx_execute = "never"  # Change to 'always' if you want RTD to run the code
+
+
+# ---------------------------------------------------------------------------
+# ``themed-figure``: a figure whose image has a dark-theme twin
+# ``<name>_dark.<ext>`` (written by ``docs/scripts/draw_ansatze.py``). Both
+# images go in the same figure, one shown per Furo theme, so the caption is
+# written once.
+# ---------------------------------------------------------------------------
+from docutils import nodes  # noqa: E402
+from docutils.parsers.rst.directives.images import Figure  # noqa: E402
+
+
+class ThemedFigure(Figure):
+    def run(self):
+        result = super().run()
+        for image in result[0].findall(nodes.image):
+            dark = image.deepcopy()
+            stem, ext = os.path.splitext(image["uri"])
+            dark["uri"] = f"{stem}_dark{ext}"
+            image["classes"].append("only-light")
+            dark["classes"].append("only-dark")
+            image.parent.insert(image.parent.index(image) + 1, dark)
+            break
+        return result
+
+
+def setup(app):
+    app.add_directive("themed-figure", ThemedFigure)
+    app.add_css_file("custom.css")
