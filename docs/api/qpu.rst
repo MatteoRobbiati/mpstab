@@ -37,6 +37,15 @@ residual.
    :members:
    :show-inheritance:
 
+Original head
+-------------
+
+The alternative to a synthesis: the original circuit up to the cut, selected
+with ``HQSMPO(..., head="original")``.
+
+.. automodule:: mpstab.qpu.original_head
+   :members:
+
 Measurement
 -----------
 
