@@ -95,10 +95,10 @@ class _CanonicalMPS:
     exact array object held by each site, and trusted only while the MPS holds
     exactly those arrays and no other tensor. The cached arrays are read-only,
     so anything else that changes the MPS has to replace them, and the next
-    view then re-canonicalizes from scratch. ``deepcopy`` preserves the
-    array identities, so copies keep their cached gauge, but numpy hands the
-    copies back writable: write into a deep copy's arrays and the gauge goes
-    stale.
+    view then re-canonicalizes from scratch. ``deepcopy`` keeps the cached
+    gauge pointing at the copy's arrays, but numpy hands those copies back
+    writable, so a writable array also invalidates the cache: a deep copy is
+    re-canonicalized once, whether or not anything wrote into it.
 
     Arrays are loaded lazily, and only the ones a kernel changed are written
     back, so the cost of an operation scales with the sites it touches.
@@ -112,9 +112,13 @@ class _CanonicalMPS:
         if gauge is not None:
             center, tids, arrays, inds = gauge
             # Exactly L tensors: an extra one (``gate_(..., contract=False)``)
-            # changes the state while leaving the site arrays untouched.
+            # changes the state while leaving the site arrays untouched. And
+            # still read-only: a deep copy's arrays are writable, so they may
+            # have been written into.
             if len(tids) == self.L == len(tensor_map) and all(
-                tid in tensor_map and tensor_map[tid].data is array
+                tid in tensor_map
+                and tensor_map[tid].data is array
+                and not array.flags.writeable
                 for tid, array in zip(tids, arrays)
             ):
                 self.center, self.tids, self.inds = center, tids, inds
@@ -553,6 +557,11 @@ class QuimbEngine(TensorNetworkEngine):
         orthogonality center of the cached canonical form, no full contraction
         needed; other backends return quimb's backend scalar, so it stays
         differentiable.
+
+        On the numpy backend, when the state has no valid cached canonical form
+        (a fresh state, or one changed outside the engine), it is
+        canonicalized in place first: its tensors are transposed and
+        gauge-transformed, the state itself is unchanged.
         """
         if not self._fast:
             return state_circuit.norm(squared=True)
