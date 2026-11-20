@@ -1,8 +1,8 @@
 Publications
 ============
 
-Papers on ``mpstab``, each with its BibTeX entry. If you
-use ``mpstab`` in your work, please cite the paper that presents it.
+A list of papers based on ``mpstab``, each with its BibTeX entry. If you use
+``mpstab`` in your work, please consider citing them.
 
 - **MPStab: an hybrid stabilizers tensor-network quantum circuit simulator**.
   Giulio Crognaletti, Mattia Robbiano, Michele Grossi, Matteo Robbiati (2026),
