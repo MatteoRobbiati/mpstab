@@ -12,8 +12,6 @@ frequencies. One module each:
   Pauli strings, grouped into qubit-wise-commuting settings.
 - :class:`~mpstab.qpu.measurement.shadows.ClassicalShadows` (``"shadows"``):
   random Pauli bases, contracted with the observable MPO.
-- :class:`~mpstab.qpu.measurement.tnice.TNICE` (``"tnice"``): the same data as
-  ``"shadows"``, estimated with the MPS-optimised dual of TN-ICE.
 
 :mod:`~mpstab.qpu.measurement.pauli_expansion` turns the observable MPO into
 Pauli strings and variances, for the methods above.
@@ -26,10 +24,9 @@ from mpstab.qpu.measurement.abstract import (
 )
 from mpstab.qpu.measurement.pauli import PauliSampling
 from mpstab.qpu.measurement.shadows import ClassicalShadows
-from mpstab.qpu.measurement.tnice import TNICE
 
 #: The methods by name, for the string shorthand of :func:`resolve_method`.
-METHODS = {cls.name: cls for cls in (PauliSampling, ClassicalShadows, TNICE)}
+METHODS = {cls.name: cls for cls in (PauliSampling, ClassicalShadows)}
 
 
 def resolve_method(method, **options) -> MeasurementMethod:
@@ -66,8 +63,10 @@ def estimate(plan, frequencies, seed=None, **options) -> ExpectationResult:
         plan: a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`.
         frequencies: one ``{bitstring: count}`` dict per circuit, in
             ``plan.circuits`` order.
-        seed: ``"tnice"`` only: RNG seed for the train/test split.
-        options: options of the method, e.g. ``n_sweeps`` for ``"tnice"``.
+        seed: forwarded to the method's ``estimate``; the built-in methods
+            ignore it, since their estimates involve no randomness.
+        options: options of the method, e.g. ``tail_handling`` for
+            ``"shadows"``.
     """
     return resolve_method(plan.method, **options).estimate(plan, frequencies, seed=seed)
 
@@ -78,7 +77,6 @@ __all__ = [
     "MeasurementMethod",
     "MeasurementPlan",
     "PauliSampling",
-    "TNICE",
     "estimate",
     "resolve_method",
 ]

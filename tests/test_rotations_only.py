@@ -1,5 +1,5 @@
 """
-`HSMPO.rotations_only` / `HSynthSMPO.rotations_only`: a lazy constructor that
+`HSMPO.rotations_only` / `HQSMPO.rotations_only`: a lazy constructor that
 skips the eager MPS precompute in `__post_init__`, for when only the dressed
 rotations or a resynthesized circuit are needed.
 """
@@ -11,8 +11,8 @@ import pytest
 from utils import small_entangled_circuit
 
 from mpstab.engines import QuimbEngine, StimEngine
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.evolutors.hsmpo import HSMPO
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 
 
@@ -49,7 +49,7 @@ def test_rotations_only_skips_mps_precompute():
 
 def test_rotations_only_accepts_plain_qibo_circuit():
     circuit = small_entangled_circuit(4)
-    lazy = HSynthSMPO.rotations_only(circuit)
+    lazy = HQSMPO.rotations_only(circuit)
 
     assert isinstance(lazy.ansatz, CircuitAnsatz)
     assert lazy.nqubits == 4
@@ -59,8 +59,8 @@ def test_rotations_only_accepts_plain_qibo_circuit():
 def test_rotations_only_dressed_rotations_match_full_construction():
     ansatz = HardwareEfficient(nqubits=5, nlayers=3)
 
-    full = HSynthSMPO(ansatz)
-    lazy = HSynthSMPO.rotations_only(ansatz)
+    full = HQSMPO(ansatz)
+    lazy = HQSMPO.rotations_only(ansatz)
 
     assert lazy._dressed_rotations() == full._dressed_rotations()
 

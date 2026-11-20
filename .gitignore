@@ -166,7 +166,7 @@ benchmarks/results/
 *DS_Store*
 Thumbs.db
 
-# Circuits saved by HSynthSMPO.plan() when no out_folder is given
+# Circuits saved by HQSMPO.plan() when no out_folder is given
 planned_runs/
 
 # Unpublished examples, kept locally only

@@ -34,20 +34,20 @@ class MeasurementPlan:
     - ``"pauli"``: ``(groups, coefficients)``, one :class:`~mpstab.qpu.measurement.pauli.QWCGroup` per circuit
       in the same order, plus the ``{pauli_string: c_P}`` map the groups came
       from.
-    - ``"shadows"`` and ``"tnice"``: ``(mpo_terms, bases)``, where ``mpo_terms``
+    - ``"shadows"``: ``(mpo_terms, bases)``, where ``mpo_terms``
       holds ``(label, coefficient, sign, mpo)`` per Hamiltonian term, the
       folded tail ``mpo`` as its site arrays
       (:meth:`~mpstab.engines.TensorNetworkEngine.operator_site_arrays`), and
       ``bases`` has one basis string per circuit.
 
     Attributes:
-        retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
+        retained_weight: ``"pauli"`` only, ``None`` for ``"shadows"``
             (which sample nothing): the ``|coefficient|``-weighted average, over
             Hamiltonian terms, of each term's
             :attr:`~mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight`
             -- the fraction of the tail-folded observable's Frobenius weight
             that ``n_string_samples`` actually covered.
-        bond_truncation_l2: ``"pauli"`` only, ``None`` for ``"shadows"``/``"tnice"``
+        bond_truncation_l2: ``"pauli"`` only, ``None`` for ``"shadows"``
             (whose ``truncation_l2`` already is this quantity): the bias
             estimate of folding the tail at a finite bond dimension,
             ``sum_terms |coefficient| * sqrt(1 - ||O'||_F**2 / 2**n)``, from the
@@ -100,10 +100,10 @@ class ExpectationResult:
         truncation_l1: heuristic discarded-Pauli-mass estimate (see
             :func:`~mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate`
             -- an extrapolation, not a rigorous bound); ``None`` for the
-            ``"shadows"``/``"tnice"`` routes, whose bond truncation has no
+            ``"shadows"`` route, whose bond truncation has no
             L1/L2 split.
         truncation_l2: typical-case truncation estimate -- Pauli-set truncation
-            for ``"pauli"``, MPO bond truncation for ``"shadows"``/``"tnice"``.
+            for ``"pauli"``, MPO bond truncation for ``"shadows"``.
         n_settings: number of distinct circuits the shots came from.
         n_shots: total shots used.
         retained_weight: ``"pauli"`` only, ``None`` otherwise -- see
@@ -197,8 +197,8 @@ class MeasurementMethod(ABC):
     expectation value (:meth:`estimate`).
 
     Subclasses are frozen dataclasses holding their own options, passed as
-    ``method`` to :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.plan` and
-    :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut`.
+    ``method`` to :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.plan` and
+    :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut`.
     """
 
     #: Short name, stored as :attr:`MeasurementPlan.method`.
@@ -221,14 +221,14 @@ class MeasurementMethod(ABC):
         Fold the tail of every term and fix the circuits and shots.
 
         Args:
-            model: the :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO` whose
+            model: the :class:`~mpstab.evolutors.hqsmpo.HQSMPO` whose
                 tail is folded.
             terms: the observable's ``{pauli_string: coefficient}``.
             constant: the observable's identity offset, added back on
                 estimation.
             cut_index: the split point.
             resynthesis: the head, a
-                :class:`~mpstab.evolutors.hsynthsmpo.ResynthesizedHead`.
+                :class:`~mpstab.evolutors.hqsmpo.ResynthesizedHead`.
             max_bond_dimension: bond cap for every tail fold, ``None`` for an
                 exact fold.
             n_shots: a fixed shot budget, or ``None`` to size it from

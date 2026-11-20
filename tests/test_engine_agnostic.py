@@ -15,7 +15,7 @@ from utils import small_entangled_circuit
 
 from mpstab import HSMPO
 from mpstab.engines import QuimbEngine, TensorNetworkEngine
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient, KickedIsing
 from mpstab.models.metrics import meyer_wallach_mps, stabilizer_renyi_entropy_mps
 from mpstab.noise import DepolarizingError, NoiseModel
@@ -134,9 +134,9 @@ def test_dmrg():
     ] == pytest.approx(expected, abs=1e-8)
 
 
-def test_hsynthsmpo_simulation_and_tail_truncation():
+def test_hqsmpo_simulation_and_tail_truncation():
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    reference, opaque = _pair(ansatz, cls=HSynthSMPO, max_bond_dimension=2)
+    reference, opaque = _pair(ansatz, cls=HQSMPO, max_bond_dimension=2)
     expected = reference.expectation_at_cut("ZZZZ", 2, method="simulation")
     result = opaque.expectation_at_cut("ZZZZ", 2, method="simulation")
     assert result.value == pytest.approx(expected.value)
@@ -156,7 +156,7 @@ def test_hsynthsmpo_simulation_and_tail_truncation():
 )
 def test_device_routes(method):
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    reference, opaque = _pair(ansatz, cls=HSynthSMPO, head_synthesis="cnot_ladder")
+    reference, opaque = _pair(ansatz, cls=HQSMPO, head_synthesis="cnot_ladder")
     plans = [
         model.plan(
             {"ZZZZ": 1.0, "XIXI": 0.5},
