@@ -220,14 +220,15 @@ evaluations per step, about 390 hours in total.
 Reproducing the benchmarks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The scripts are in ``examples/scripts/gradient/``:
+The scripts are in ``examples/scripts/gradient/``; each one documents its
+options and dependencies at the top:
 
-* ``gradient_frameworks.py``: PennyLane and qiboml
-  (:doc:`../tutorials/scripts/gradient_frameworks`);
-* ``gradient_paulipropagation.py``: PauliPropagation, through juliacall
-  (:doc:`../tutorials/scripts/gradient_paulipropagation`), e.g.
-  ``--nlayers 10 --bonds 4 8 16 32 64``;
+* ``gradient_frameworks.py``: PennyLane and qiboml;
+* ``gradient_paulipropagation.py``: PauliPropagation.jl, through juliacall,
+  e.g. ``--nlayers 10 --bonds 4 8 16 32 64``;
 * ``vqe_heisenberg_bethe.py``: the 40-qubit VQE;
+* ``vqe_training.py``: a VQE trained with the analytic gradient and with the
+  parameter-shift rule, side by side;
 * ``gradient_vs_psr.py``: mpstab's analytic gradient against its own
   parameter-shift rule.
 

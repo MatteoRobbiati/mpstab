@@ -213,12 +213,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/ground_states.html">Ground states with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/scripts/vqe_training.html">VQE trained with the analytic gradient</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/scripts/gradient_frameworks.html">Gradients against PennyLane and qiboml</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/scripts/gradient_paulipropagation.html">Gradients against PauliPropagation.jl</a></li>
 </ul>
 </li>
 </ul>
@@ -472,14 +469,15 @@ evaluations per step, about 390 hours in total.</p>
 </section>
 <section id="reproducing-the-benchmarks">
 <h3>Reproducing the benchmarks<a class="headerlink" href="#reproducing-the-benchmarks" title="Link to this heading">¶</a></h3>
-<p>The scripts are in <code class="docutils literal notranslate"><span class="pre">examples/scripts/gradient/</span></code>:</p>
+<p>The scripts are in <code class="docutils literal notranslate"><span class="pre">examples/scripts/gradient/</span></code>; each one documents its
+options and dependencies at the top:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">gradient_frameworks.py</span></code>: PennyLane and qiboml
-(<a class="reference internal" href="../tutorials/scripts/gradient_frameworks.html"><span class="doc">Gradients against PennyLane and qiboml</span></a>);</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">gradient_paulipropagation.py</span></code>: PauliPropagation, through juliacall
-(<a class="reference internal" href="../tutorials/scripts/gradient_paulipropagation.html"><span class="doc">Gradients against PauliPropagation.jl</span></a>), e.g.
-<code class="docutils literal notranslate"><span class="pre">--nlayers</span> <span class="pre">10</span> <span class="pre">--bonds</span> <span class="pre">4</span> <span class="pre">8</span> <span class="pre">16</span> <span class="pre">32</span> <span class="pre">64</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gradient_frameworks.py</span></code>: PennyLane and qiboml;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gradient_paulipropagation.py</span></code>: PauliPropagation.jl, through juliacall,
+e.g. <code class="docutils literal notranslate"><span class="pre">--nlayers</span> <span class="pre">10</span> <span class="pre">--bonds</span> <span class="pre">4</span> <span class="pre">8</span> <span class="pre">16</span> <span class="pre">32</span> <span class="pre">64</span></code>;</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">vqe_heisenberg_bethe.py</span></code>: the 40-qubit VQE;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vqe_training.py</span></code>: a VQE trained with the analytic gradient and with the
+parameter-shift rule, side by side;</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">gradient_vs_psr.py</span></code>: mpstab’s analytic gradient against its own
 parameter-shift rule.</p></li>
 </ul>
