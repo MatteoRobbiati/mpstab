@@ -1,0 +1,7 @@
+/* Centre the theme-dependent circuit figures: Furo shows them with
+   display: block, which drops the inline centring of the figure. */
+figure .only-light,
+figure .only-dark {
+  margin-left: auto;
+  margin-right: auto;
+}

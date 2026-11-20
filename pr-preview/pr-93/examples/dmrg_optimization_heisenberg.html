@@ -1,0 +1,739 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="DMRG: pure quimb against HSMPO" href="scripts/dmrg_j1j2_comparison.html"><link rel="prev" title="HSMPO Ground State Optimization with DMRG" href="optimization.html">
+        <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>DMRG Optimization of the XXZ Model - Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=71654716" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../_static/mpstab_logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">Documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Examples</a><input aria-label="Toggle navigation of Examples" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">A quick introduction to HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="noise.html">Noisy simulation with <code class="docutils literal notranslate"><span class="pre">mpstab.noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced_noise.html">Device-level noise: relaxation, crosstalk and idling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts/noisy_simulation.html">Noisy simulation against density matrices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">DMRG Optimization of the XXZ Model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api/evolutors.html">Evolutors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/qpu.html">QPU</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/examples/dmrg_optimization_heisenberg.ipynb.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="DMRG-Optimization-of-the-XXZ-Model">
+<h1>DMRG Optimization of the XXZ Model<a class="headerlink" href="#DMRG-Optimization-of-the-XXZ-Model" title="Link to this heading">¶</a></h1>
+<p>In this notebook, we’ll demonstrate how to use <strong>mpstab</strong> with DMRG (Density Matrix Renormalization Group) to optimize complex Hamiltonian systems. We’ll focus on finding the ground state of the anisotropic XXZ model - a highly correlated quantum system - on systems with 6-35 qubits.</p>
+<section id="Overview">
+<h2>Overview<a class="headerlink" href="#Overview" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>DMRG</strong> is a powerful variational algorithm that directly optimizes Matrix Product States (MPS) tensors</p></li>
+<li><p><strong>XXZ Model</strong>: Defined by the Hamiltonian with anisotropy <span class="math">\(\Delta=2\)</span>:</p></li>
+</ul>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[H = \sum_{i=1}^{n-1} (X_i X_{i+1} + Y_i Y_{i+1} + \Delta Z_i Z_{i+1})
+
+\]</div>
+</div>
+<ul class="simple">
+<li><p><strong>Key Advantage</strong>: Unlike VQE which optimizes circuit parameters, DMRG optimizes the quantum state representation directly</p></li>
+<li><p><strong>High Correlations</strong>: The XXZ model exhibits strong quantum correlations, making it computationally challenging</p></li>
+</ul>
+<section id="Import-Required-Libraries">
+<h3>Import Required Libraries<a class="headerlink" href="#Import-Required-Libraries" title="Link to this heading">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span><span class="p">,</span> <span class="n">hamiltonians</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo.symbols</span><span class="w"> </span><span class="kn">import</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuimbEngine</span><span class="p">,</span> <span class="n">StimEngine</span>
+
+<span class="c1"># Set random seed for reproducibility</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Define-the-XXZ-Hamiltonian">
+<h3>Define the XXZ Hamiltonian<a class="headerlink" href="#Define-the-XXZ-Hamiltonian" title="Link to this heading">¶</a></h3>
+<p>The <strong>anisotropic XXZ model</strong> is a highly correlated model with strong quantum entanglement and phase transitions.</p>
+<p><strong>Mathematical Definition</strong> with anisotropy <span class="math">\(\Delta = 2\)</span>:</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[H = \sum_{i=1}^{n-1} \left(X_i X_{i+1} + Y_i Y_{i+1} + \Delta Z_i Z_{i+1}\right)
+
+\]</div>
+</div>
+<p><strong>Physical Significance:</strong></p>
+<ul class="simple">
+<li><p>Exhibits strong quantum correlations and entanglement</p></li>
+<li><p>The anisotropy parameter <span class="math">\(\Delta\)</span> controls the ratio of longitudinal to transverse interactions</p></li>
+<li><p>With <span class="math">\(\Delta &gt; 1\)</span>, the model shows complex phase structure and strong quantum effects</p></li>
+<li><p>Requires larger bond dimensions for accurate DMRG representation</p></li>
+<li><p>Ground state is difficult to compute classically due to high entanglement</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">create_xxz_hamiltonian</span><span class="p">(</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create the anisotropic XXZ Hamiltonian for n qubits with anisotropy delta.&quot;&quot;&quot;</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nqubits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">X</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">X</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">Y</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">Y</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">delta</span> <span class="o">*</span> <span class="n">Z</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">Z</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">hamiltonians</span><span class="o">.</span><span class="n">SymbolicHamiltonian</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">H</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Initialize-Quantum-Circuits">
+<h3>Initialize Quantum Circuits<a class="headerlink" href="#Initialize-Quantum-Circuits" title="Link to this heading">¶</a></h3>
+<p>We’ll use the <strong>Hardware Efficient (HE) ansatz</strong>, which is a common choice for NISQ algorithms. It alternates rotation layers (RY, RZ) with entangling CNOT layers.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">create_hardware_efficient_ansatz</span><span class="p">(</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">nlayers</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a Hardware Efficient ansatz circuit.&quot;&quot;&quot;</span>
+    <span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nlayers</span><span class="p">):</span>
+        <span class="c1"># Single qubit rotations</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nqubits</span><span class="p">):</span>
+            <span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">RY</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">0.3</span><span class="p">))</span>
+            <span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">RZ</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">0.4</span><span class="p">))</span>
+        <span class="c1"># Entangling layer</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nqubits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">q</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">circuit</span>
+
+<span class="c1"># Create ansatz for different system sizes</span>
+<span class="n">test_circuit</span> <span class="o">=</span> <span class="n">create_hardware_efficient_ansatz</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">test_circuit</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Circuit depth = 17
+Total number of gates = 69
+Number of qubits = 8
+Most common gates:
+ry: 24
+rz: 24
+cx: 21
+</pre></div></div>
+</div>
+</section>
+<section id="DMRG-Optimization-with-HSMPO">
+<h3>DMRG Optimization with HSMPO<a class="headerlink" href="#DMRG-Optimization-with-HSMPO" title="Link to this heading">¶</a></h3>
+<p><strong>mpstab</strong> implements the Hybrid Stabilizer-MPO (HSMPO) formalism, which:</p>
+<ol class="arabic simple">
+<li><p>Decomposes the circuit into Clifford stabilizer operations and Magic gates</p></li>
+<li><p>Represents the state as an MPO that efficiently captures the non-Clifford resources</p></li>
+<li><p>Uses DMRG to directly optimize the MPS tensors</p></li>
+</ol>
+<p>This approach is much more efficient than circuit-based VQE for finding ground states!</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">optimize_xxz_dmrg</span><span class="p">(</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">nlayers</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">bond_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span> <span class="n">max_sweeps</span><span class="o">=</span><span class="mi">15</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Optimize XXZ Hamiltonian using DMRG via HSMPO.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Create ansatz and HSMPO</span>
+    <span class="n">ansatz</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="n">nlayers</span><span class="p">)</span>
+    <span class="n">hsmpo</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">)</span>
+
+    <span class="c1"># Set engines</span>
+    <span class="n">hsmpo</span><span class="o">.</span><span class="n">set_engines</span><span class="p">(</span><span class="n">stab_engine</span><span class="o">=</span><span class="n">StimEngine</span><span class="p">(),</span> <span class="n">tn_engine</span><span class="o">=</span><span class="n">QuimbEngine</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="s2">&quot;numpy&quot;</span><span class="p">))</span>
+
+    <span class="c1"># Create Hamiltonian</span>
+    <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">create_xxz_hamiltonian</span><span class="p">(</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="n">delta</span><span class="p">)</span>
+
+    <span class="c1"># Run DMRG</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">hsmpo</span><span class="o">.</span><span class="n">minimize_expectation</span><span class="p">(</span>
+        <span class="n">observables</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
+        <span class="n">method</span><span class="o">=</span><span class="s2">&quot;dmrg&quot;</span><span class="p">,</span>
+        <span class="n">bond_dims</span><span class="o">=</span><span class="n">bond_dims</span><span class="p">,</span>
+        <span class="n">max_sweeps</span><span class="o">=</span><span class="n">max_sweeps</span><span class="p">,</span>
+        <span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="n">hsmpo</span><span class="p">,</span> <span class="n">hamiltonian</span>
+
+<span class="c1"># Optimize for 6 qubits (validation)</span>
+<span class="n">result_6q</span><span class="p">,</span> <span class="n">hsmpo_6q</span><span class="p">,</span> <span class="n">ham_6q</span> <span class="o">=</span> <span class="n">optimize_xxz_dmrg</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">bond_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span> <span class="n">max_sweeps</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;6-Qubit XXZ Optimization (Validation):&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  DMRG Ground State Energy: </span><span class="si">{</span><span class="n">result_6q</span><span class="p">[</span><span class="s1">&#39;energy&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.8f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Exact Ground State Energy: </span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="n">ham_6q</span><span class="o">.</span><span class="n">eigenvalues</span><span class="p">())</span><span class="si">:</span><span class="s2">.8f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Converged: </span><span class="si">{</span><span class="n">result_6q</span><span class="p">[</span><span class="s1">&#39;converged&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Accuracy: </span><span class="si">{</span><span class="nb">abs</span><span class="p">(</span><span class="n">result_6q</span><span class="p">[</span><span class="s1">&#39;energy&#39;</span><span class="p">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">min</span><span class="p">(</span><span class="n">ham_6q</span><span class="o">.</span><span class="n">eigenvalues</span><span class="p">()))</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+[Qibo 0.3.2|WARNING|2026-04-20 09:51:01]: Calculating the dense form of a symbolic Hamiltonian. This operation is memory inefficient.
+/Users/robbiati/Documents/tac/lib/python3.12/site-packages/qibo/backends/abstract.py:423: RuntimeWarning: divide by zero encountered in matmul
+  return self.engine.matmul(array_1, array_2, **kwargs)
+/Users/robbiati/Documents/tac/lib/python3.12/site-packages/qibo/backends/abstract.py:423: RuntimeWarning: overflow encountered in matmul
+  return self.engine.matmul(array_1, array_2, **kwargs)
+/Users/robbiati/Documents/tac/lib/python3.12/site-packages/qibo/backends/abstract.py:423: RuntimeWarning: invalid value encountered in matmul
+  return self.engine.matmul(array_1, array_2, **kwargs)
+[Qibo 0.3.2|WARNING|2026-04-20 09:51:01]: Calculating the dense form of a symbolic Hamiltonian. This operation is memory inefficient.
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+6-Qubit XXZ Optimization (Validation):
+  DMRG Ground State Energy: -13.57771544
+  Exact Ground State Energy: -13.57771544
+  Converged: True
+  Accuracy: 1.07e-14
+</pre></div></div>
+</div>
+</section>
+<section id="Scaling-to-Large-Systems">
+<h3>Scaling to Large Systems<a class="headerlink" href="#Scaling-to-Large-Systems" title="Link to this heading">¶</a></h3>
+<p>Now let’s see how DMRG performs on larger systems. We’ll optimize a 35-qubit XXZ model with increasing bond dimensions to understand the energy improvement as we increase the MPS expressiveness.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="c1"># Optimize for 35 qubits with different bond dimension scales</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Optimizing 35-Qubit XXZ System with Bond Dimension Scaling...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">bond_dim_scales</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">]</span>
+<span class="n">energies_35q</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">elapsed_times_35q</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">for</span> <span class="n">bd</span> <span class="ow">in</span> <span class="n">bond_dim_scales</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Running with BD=</span><span class="si">{</span><span class="n">bd</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">result_35q</span><span class="p">,</span> <span class="n">hsmpo_35q</span><span class="p">,</span> <span class="n">ham_35q</span> <span class="o">=</span> <span class="n">optimize_xxz_dmrg</span><span class="p">(</span>
+        <span class="n">nqubits</span><span class="o">=</span><span class="mi">35</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">bond_dims</span><span class="o">=</span><span class="p">[</span><span class="n">bd</span><span class="p">],</span> <span class="n">max_sweeps</span><span class="o">=</span><span class="mi">3</span>
+    <span class="p">)</span>
+    <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
+    <span class="n">energies_35q</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result_35q</span><span class="p">[</span><span class="s1">&#39;energy&#39;</span><span class="p">])</span>
+    <span class="n">elapsed_times_35q</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elapsed_time</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;E=</span><span class="si">{</span><span class="n">result_35q</span><span class="p">[</span><span class="s1">&#39;energy&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, t=</span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">35-Qubit XXZ Optimization Complete&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Bond Dimensions: </span><span class="si">{</span><span class="n">bond_dim_scales</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final Energy (BD=</span><span class="si">{</span><span class="n">bond_dim_scales</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">energies_35q</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.8f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+Optimizing 35-Qubit XXZ System with Bond Dimension Scaling...
+
+  Running with BD=5... E=-84.789587, t=11.1s
+  Running with BD=10... E=-84.812962, t=11.3s
+  Running with BD=20... E=-84.813325, t=13.6s
+  Running with BD=30... E=-84.813315, t=12.7s
+  Running with BD=40... E=-84.813328, t=13.4s
+  Running with BD=50... E=-84.813331, t=12.7s
+
+35-Qubit XXZ Optimization Complete
+Bond Dimensions: [5, 10, 20, 30, 40, 50]
+Final Energy (BD=50): -84.81333118
+</pre></div></div>
+</div>
+</section>
+<section id="Energy-Scaling-with-Bond-Dimension">
+<h3>Energy Scaling with Bond Dimension<a class="headerlink" href="#Energy-Scaling-with-Bond-Dimension" title="Link to this heading">¶</a></h3>
+<p>Let’s visualize how the ground state energy improves as we increase bond dimensions for this highly correlated system.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot energy scaling with bond dimension for 35-qubit system</span>
+<span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+<span class="c1"># Energy vs bond dimension</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">bond_dim_scales</span><span class="p">,</span> <span class="n">energies_35q</span><span class="p">,</span> <span class="s1">&#39;o-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:blue&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;DMRG Energy&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Bond Dimension&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Energy&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;35-Qubit XXZ: Energy vs Bond Dimension&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+
+<span class="c1"># Computational time vs bond dimension</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">bond_dim_scales</span><span class="p">,</span> <span class="n">elapsed_times_35q</span><span class="p">,</span> <span class="s1">&#39;s-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;tab:red&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Bond Dimension&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Wall-clock time (s)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Computational Cost Scaling&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_dmrg_optimization_heisenberg_12_0.png" src="../_images/examples_dmrg_optimization_heisenberg_12_0.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Summary">
+<h2>Summary<a class="headerlink" href="#Summary" title="Link to this heading">¶</a></h2>
+<p>This notebook demonstrates DMRG optimization for finding ground states of quantum Hamiltonians using <strong>mpstab</strong>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;KEY RESULTS SUMMARY&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">6-Qubit System (Validation):&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  DMRG:     </span><span class="si">{</span><span class="n">result_6q</span><span class="p">[</span><span class="s1">&#39;energy&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.8f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Exact:    </span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="n">ham_6q</span><span class="o">.</span><span class="n">eigenvalues</span><span class="p">())</span><span class="si">:</span><span class="s2">.8f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Error:    </span><span class="si">{</span><span class="nb">abs</span><span class="p">(</span><span class="n">result_6q</span><span class="p">[</span><span class="s1">&#39;energy&#39;</span><span class="p">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">min</span><span class="p">(</span><span class="n">ham_6q</span><span class="o">.</span><span class="n">eigenvalues</span><span class="p">()))</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">35-Qubit System (Scaling Analysis):&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bond_dim_scales</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  BD=</span><span class="si">{</span><span class="n">bd</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">:  E=</span><span class="si">{</span><span class="n">energies_35q</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, t=</span><span class="si">{</span><span class="n">elapsed_times_35q</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;KEY INSIGHTS&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;- 6-qubit system validates DMRG against exact eigenvalues&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;- XXZ model exhibits strong correlations requiring larger bond dims&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;- Energy decreases (improves) with larger bond dimensions&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;- Computational cost increases polynomially with bond dimension&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;- DMRG scales to 35+ qubits efficiently even for highly correlated systems&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+[Qibo 0.3.2|WARNING|2026-04-20 09:54:09]: Calculating the dense form of a symbolic Hamiltonian. This operation is memory inefficient.
+[Qibo 0.3.2|WARNING|2026-04-20 09:54:09]: Calculating the dense form of a symbolic Hamiltonian. This operation is memory inefficient.
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+============================================================
+KEY RESULTS SUMMARY
+============================================================
+
+6-Qubit System (Validation):
+  DMRG:     -13.57771544
+  Exact:    -13.57771544
+  Error:    1.07e-14
+
+35-Qubit System (Scaling Analysis):
+  BD= 5:  E=-84.789587, t= 11.13s
+  BD=10:  E=-84.812962, t= 11.29s
+  BD=20:  E=-84.813325, t= 13.57s
+  BD=30:  E=-84.813315, t= 12.66s
+  BD=40:  E=-84.813328, t= 13.36s
+  BD=50:  E=-84.813331, t= 12.67s
+
+============================================================
+KEY INSIGHTS
+============================================================
+- 6-qubit system validates DMRG against exact eigenvalues
+- XXZ model exhibits strong correlations requiring larger bond dims
+- Energy decreases (improves) with larger bond dimensions
+- Computational cost increases polynomially with bond dimension
+- DMRG scales to 35+ qubits efficiently even for highly correlated systems
+</pre></div></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="scripts/dmrg_j1j2_comparison.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">DMRG: pure quimb against HSMPO</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="optimization.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">HSMPO Ground State Optimization with DMRG</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Matteo Robbiati, Giulio Crognaletti, Mattia Robbiano, Roberto Di Lauro, Michele Grossi
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">DMRG Optimization of the XXZ Model</a><ul>
+<li><a class="reference internal" href="#Overview">Overview</a><ul>
+<li><a class="reference internal" href="#Import-Required-Libraries">Import Required Libraries</a></li>
+<li><a class="reference internal" href="#Define-the-XXZ-Hamiltonian">Define the XXZ Hamiltonian</a></li>
+<li><a class="reference internal" href="#Initialize-Quantum-Circuits">Initialize Quantum Circuits</a></li>
+<li><a class="reference internal" href="#DMRG-Optimization-with-HSMPO">DMRG Optimization with HSMPO</a></li>
+<li><a class="reference internal" href="#Scaling-to-Large-Systems">Scaling to Large Systems</a></li>
+<li><a class="reference internal" href="#Energy-Scaling-with-Bond-Dimension">Energy Scaling with Bond Dimension</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#Summary">Summary</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/katex.min.js?v=5cc8ed51"></script>
+    <script src="../_static/auto-render.min.js?v=af98beb9"></script>
+    <script src="../_static/katex_autorenderer.js?v=bebc588a"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>
