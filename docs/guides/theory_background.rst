@@ -5,7 +5,7 @@ The fundamental challenge in quantum circuit simulation is the **exponential gro
 
 Specialized simulators overcome this limitation by exploiting structure in quantum circuits. ``mpstab`` implements the **Hybrid Stabilizer-Matrix Product Operators (HSMPO)** method, which combines stabilizer simulation and tensor networks to enable efficient simulation of circuits with a mix of Clifford and non-Clifford operations.
 
-.. image:: ../classical_combo.png
+.. image:: ../_static/images/classical_combo.png
    :align: center
    :width: 600px
    :alt: HSMPO decomposition illustration
