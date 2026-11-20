@@ -54,7 +54,10 @@ jobs:
 
       - name: Build docs
         if: github.event.action != 'closed'
-        run: uv run sphinx-build -b html docs docs/_build/html
+        # .nojekyll: otherwise Pages runs Jekyll, which drops _static and _images.
+        run: |
+          uv run sphinx-build -b html docs docs/_build/html
+          touch docs/_build/html/.nojekyll
 
       - name: Upload the built site
         if: github.event.action != 'closed'
