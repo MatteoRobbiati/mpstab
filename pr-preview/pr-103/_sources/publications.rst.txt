@@ -1,7 +1,7 @@
 Publications
 ============
 
-Papers that present ``mpstab`` or use it, each with its BibTeX entry. If you
+Papers on ``mpstab``, each with its BibTeX entry. If you
 use ``mpstab`` in your work, please cite the paper that presents it.
 
 - **MPStab: an hybrid stabilizers tensor-network quantum circuit simulator**.
