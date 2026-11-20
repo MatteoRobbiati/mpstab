@@ -8,7 +8,7 @@ By combining the efficiency of Clifford stabilizers with the expressiveness of T
 .. figure:: _static/images/mpstab_pipeline_light.svg
    :figclass: only-light
    :align: center
-   :width: 100%
+   :width: 75%
    :alt: The mpstab pipeline
 
    The ``mpstab`` pipeline. a) The circuit is split into Clifford and magic operations: the stabilizers engine evolves the magic generators through the Clifford part, and the tensor network engine turns them into MPOs. b) The tensor network engine applies these MPOs to the initial state. c) The stabilizers engine backpropagates the observable through the Clifford circuit, and the result is contracted with the evolved state.
@@ -16,7 +16,7 @@ By combining the efficiency of Clifford stabilizers with the expressiveness of T
 .. figure:: _static/images/mpstab_pipeline_dark.svg
    :figclass: only-dark
    :align: center
-   :width: 100%
+   :width: 75%
    :alt: The mpstab pipeline
 
    The ``mpstab`` pipeline. a) The circuit is split into Clifford and magic operations: the stabilizers engine evolves the magic generators through the Clifford part, and the tensor network engine turns them into MPOs. b) The tensor network engine applies these MPOs to the initial state. c) The stabilizers engine backpropagates the observable through the Clifford circuit, and the result is contracted with the evolved state.

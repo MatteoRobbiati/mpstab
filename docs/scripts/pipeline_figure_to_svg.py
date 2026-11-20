@@ -21,24 +21,24 @@ import fitz
 IMAGES = Path(__file__).resolve().parents[1] / "_static" / "images"
 SOURCE = IMAGES / "mpstab_pipeline.pdf"
 
-DARK_INK = "#e6e6e6"
+DARK_INK = "#a9acb2"
 DARK_PALETTE = {
     "#000000": DARK_INK,
     "#211715": DARK_INK,
     # panel backgrounds
-    "#fffef2": "#2b2a1f",
-    "#f2f5ff": "#20253a",
-    "#fff3f2": "#36242a",
-    "#fff3f3": "#3d282d",
-    "#e3e9ff": "#2c3654",
-    "#eaeaea": "#3a3a3d",
-    "#ffffff": "#26262a",
+    "#fffef2": "#1d1d18",
+    "#f2f5ff": "#191c27",
+    "#fff3f2": "#221b1d",
+    "#fff3f3": "#271d20",
+    "#e3e9ff": "#212739",
+    "#eaeaea": "#26272b",
+    "#ffffff": "#1e1f22",
     # gates and states
-    "#fdffae": "#77752c",
-    "#ffaeb0": "#8a3e44",
-    "#aec0ff": "#41569c",
-    "#cbffd0": "#2f6e3c",
-    "#ebccff": "#664388",
+    "#fdffae": "#5e5c2c",
+    "#ffaeb0": "#6c383c",
+    "#aec0ff": "#3a4a80",
+    "#cbffd0": "#2c5834",
+    "#ebccff": "#523a6c",
 }
 
 IMAGE = re.compile(
