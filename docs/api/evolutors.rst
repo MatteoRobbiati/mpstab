@@ -52,6 +52,8 @@ number of parameters (one forward pass and one backward pass), instead of the tw
 shifted circuits per parameter of the parameter-shift rule. Gradient-based
 training of the circuit parameters is in :mod:`mpstab.evolutors.optimization`
 (:meth:`~mpstab.HSMPO.optimize_parameters`).
+How the gradient is computed, and benchmarks against other frameworks, are in
+the :doc:`../guides/analytic_gradients` guide.
 
 .. automodule:: mpstab.evolutors.gradient
    :members:
