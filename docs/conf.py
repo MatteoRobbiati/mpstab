@@ -29,6 +29,7 @@ napoleon_use_ivar = True
 # Furo Theme Settings
 html_theme = "furo"
 html_title = "Documentation"
+html_static_path = ["_static"]  # custom.css (see themed-figure below)
 html_logo = "mpstab_logo.png"
 
 # Exclude build directory and notebook checkpoints
