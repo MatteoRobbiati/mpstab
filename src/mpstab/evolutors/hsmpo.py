@@ -1,11 +1,12 @@
 """The hybrid stabilizer-MPO surrogate of a quantum circuit."""
 
-from dataclasses import MISSING, dataclass, fields
+from dataclasses import MISSING, dataclass, fields, replace
 from typing import List, Tuple, Union
 
 import numpy as np
 import stim
 from qibo import Circuit
+from tqdm.auto import tqdm
 
 from mpstab.engines import (
     QuimbEngine,
@@ -13,13 +14,13 @@ from mpstab.engines import (
     StimEngine,
     TensorNetworkEngine,
 )
-from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
 from mpstab.evolutors.optimization import minimize_expectation_dmrg
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
-from mpstab.pauli import conjugate
-from mpstab.pauli import light_cone as pauli_light_cone
+from mpstab.noise.compile import compile_noise
+from mpstab.noise.mc_noise_estimator import noisy_expectation
+from mpstab.pauli import conjugate, pauli_light_cone
 
 
 @dataclass
@@ -193,44 +194,18 @@ class HSMPO:
         ``magic_gates``, conjugated by the first ``breakpoint`` gates of
         ``clifford_circuit``.
 
-        With a :class:`~mpstab.engines.StimEngine` the Clifford circuit is
-        simulated once, a segment at a time, so dressing every gate costs one
-        pass over the circuit. Other engines backpropagate each generator
-        through its own prefix, which is quadratic in the circuit length.
+        The stabilizers engine does the dressing
+        (:meth:`~mpstab.engines.StabilizersEngine.backpropagate_at`).
         """
-        if not isinstance(self.stab_engine, StimEngine):
-            rotations = []
-            for breakpoint_index, gate in magic_gates:
-                prefix = self._clifford_subcircuit(clifford_circuit, breakpoint_index)
-                generator, sign = self.stab_engine.backpropagate(
-                    gate_generator(gate, self.nqubits), prefix
-                )
-                rotations.append((generator, sign * gate_angle(gate)))
-            return rotations
-
-        instructions = self.stab_engine.instructions(clifford_circuit)
-        simulator = stim.TableauSimulator()
-        simulator.do(stim.Circuit(f"I {self.nqubits - 1}"))
-
-        rotations: List[Tuple[str, float]] = []
-        simulated = 0
-        inverse = None
-        for breakpoint_index, gate in magic_gates:
-            if breakpoint_index < simulated:
-                raise ValueError("Magic gates must be listed in circuit order.")
-            if breakpoint_index > simulated or inverse is None:
-                # Every Clifford gate up to this magic gate, in one stim call.
-                segment = filter(None, instructions[simulated:breakpoint_index])
-                simulator.do(stim.Circuit("\n".join(segment)))
-                simulated = breakpoint_index
-                # current_inverse_tableau() is U^dag for the Clifford prefix U.
-                inverse = simulator.current_inverse_tableau()
-            rotations.append(
-                self._conjugate_rotation(
-                    (gate_generator(gate, self.nqubits), gate_angle(gate)), inverse
-                )
-            )
-        return rotations
+        dressed = self.stab_engine.backpropagate_at(
+            [gate_generator(gate, self.nqubits) for _, gate in magic_gates],
+            [breakpoint_index for breakpoint_index, _ in magic_gates],
+            clifford_circuit,
+        )
+        return [
+            (generator, sign * gate_angle(gate))
+            for (generator, sign), (_, gate) in zip(dressed, magic_gates)
+        ]
 
     def _evolve_original(self):
         """
@@ -301,11 +276,6 @@ class HSMPO:
             :class:`~mpstab.noise.NoisyExpectation`, with the value in ``mean``
             and its standard error in ``stderr``.
         """
-        from dataclasses import replace
-
-        from mpstab.noise.compile import compile_noise
-        from mpstab.noise.estimator import noisy_expectation
-
         constant, terms = noise.readout_observable(observable, self.nqubits)
         compiled = compile_noise(self, noise.events(self.ansatz.circuit))
         result = noisy_expectation(
@@ -350,7 +320,7 @@ class HSMPO:
             return_partitions: also return the magic gates, the Clifford-only
                 circuit, the sampled full circuit and the evolved MPS.
             light_cone: skip the dressed rotations that cannot affect the
-                observable (:func:`~mpstab.pauli.light_cone`). This is exact,
+                observable (:func:`~mpstab.pauli.pauli_light_cone`). This is exact,
                 and with a bond-dimension cap it also spares those rotations'
                 truncation error.
 
@@ -399,7 +369,10 @@ class HSMPO:
         :data:`_PROGRESS_DELAY` seconds.
         """
         for generator, angle in _progress_bar(
-            rotations, state_mps, description, enabled=self.progress
+            rotations,
+            lambda: self.tn_engine.bond_dimension(state_mps),
+            description,
+            enabled=self.progress,
         ):
             self.tn_engine.pauli_rot(
                 state_circuit=state_mps,
@@ -438,11 +411,11 @@ class HSMPO:
         Truncation fidelity of running the whole circuit as a plain MPS, with no
         stabilizer help: the baseline the hybrid representation improves on.
         """
-        return _qibo_circuit_to_quimb(
-            nqubits=self.nqubits,
-            qibo_circ=self.initial_state + self.ansatz.circuit,
-            max_bond=self.max_bond_dimension,
-        ).fidelity_estimate()
+        return self.tn_engine.circuit_truncation_fidelity(
+            self.nqubits,
+            self.initial_state + self.ansatz.circuit,
+            self.max_bond_dimension,
+        )
 
     def truncation_fidelity(
         self,
@@ -500,11 +473,9 @@ class HSMPO:
             ``num_sweeps`` and ``energy_history``.
 
         Raises:
-            NotImplementedError: with a tensor-network engine other than
-                :class:`~mpstab.engines.QuimbEngine`, or an unimplemented method.
+            NotImplementedError: with a tensor-network engine that does not
+                implement :meth:`~mpstab.engines.TensorNetworkEngine.minimize_energy`.
         """
-        if not isinstance(self.tn_engine, QuimbEngine):
-            raise NotImplementedError("DMRG optimization requires QuimbEngine.")
         if method.lower() != "dmrg":
             raise ValueError(f"Unknown method {method!r}, expected 'dmrg'.")
 
@@ -532,18 +503,16 @@ def _engine(engine, base: type, default: type):
 _PROGRESS_DELAY = 1.0
 
 
-def _progress_bar(rotations, state_mps, description: str, enabled: bool = True):
+def _progress_bar(rotations, bond, description: str, enabled: bool = True):
     """
-    Iterate over ``rotations``, drawing a progress bar with the bond dimension
-    of ``state_mps`` once the loop has run for :data:`_PROGRESS_DELAY` seconds.
+    Iterate over ``rotations``, drawing a progress bar once the loop has run
+    for :data:`_PROGRESS_DELAY` seconds, with the bond dimension ``bond()``
+    returns when it is not ``None``.
     """
     rotations = list(rotations)
     if not enabled or not rotations:
         yield from rotations
         return
-    from tqdm.auto import tqdm
-
-    bond = getattr(state_mps, "max_bond", None)
     every = max(1, len(rotations) // 200)  # refresh chi ~200 times at most
     with tqdm(
         total=len(rotations),
@@ -558,6 +527,8 @@ def _progress_bar(rotations, state_mps, description: str, enabled: bool = True):
     ) as bar:
         for step, rotation in enumerate(rotations, 1):
             yield rotation
-            if bond is not None and (step % every == 0 or step == len(rotations)):
-                bar.set_postfix_str(f"chi={bond()}", refresh=False)
+            if step % every == 0 or step == len(rotations):
+                chi = bond()
+                if chi is not None:
+                    bar.set_postfix_str(f"chi={chi}", refresh=False)
             bar.update()

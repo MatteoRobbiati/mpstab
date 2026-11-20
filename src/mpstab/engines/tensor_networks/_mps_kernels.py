@@ -20,7 +20,7 @@ from __future__ import annotations
 import numpy as np
 import scipy.linalg
 
-from mpstab.pauli import PAULI_MATRICES as _PAULI_2x2
+from mpstab.pauli import PAULI_MATRICES
 
 
 def bounds(pauli: str) -> tuple[int, int] | None:
@@ -255,8 +255,8 @@ def pauli_rotation(
 
 #: ``P (x) I`` and ``I (x) P^T`` on the vectorized index ``2 * out + in`` of an
 #: operator site: left and right multiplication by ``P``.
-_LEFT_PAULI = {label: np.kron(m, np.eye(2)) for label, m in _PAULI_2x2.items()}
-_RIGHT_PAULI = {label: np.kron(np.eye(2), m.T) for label, m in _PAULI_2x2.items()}
+_LEFT_PAULI = {label: np.kron(m, np.eye(2)) for label, m in PAULI_MATRICES.items()}
+_RIGHT_PAULI = {label: np.kron(np.eye(2), m.T) for label, m in PAULI_MATRICES.items()}
 
 
 def operator_conjugation(

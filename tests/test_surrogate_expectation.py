@@ -13,6 +13,7 @@ from utils import (
     set_rng_seed,
 )
 
+import mpstab.evolutors.hsmpo as hsmpo_module
 from mpstab.engines import StimEngine
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
@@ -145,8 +146,6 @@ def test_expectation_from_partition_light_cone_is_exact(observable):
 
 
 def test_progress_bar_shows_and_can_be_disabled(capsys, monkeypatch):
-    import mpstab.evolutors.hsmpo as hsmpo_module
-
     monkeypatch.setattr(hsmpo_module, "_PROGRESS_DELAY", 0)  # show it at once
     HSMPO(ansatz=HardwareEfficient(nqubits=4, nlayers=2))
     assert "building MPS" in capsys.readouterr().err

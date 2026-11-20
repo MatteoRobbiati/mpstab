@@ -9,8 +9,9 @@ from typing import Iterable, Sequence, Union
 import numpy as np
 from qibo import Circuit, gates
 
+from mpstab.hamiltonians import pauli_terms
 from mpstab.noise.events import CoherentRotation, KrausChannel, NoiseEvent, PauliChannel
-from mpstab.pauli import PAULI_MATRICES, validate_pauli_string
+from mpstab.pauli import pauli_matrix, validate_pauli_string
 
 # -- Errors acting after gates ----------------------------------------------------
 
@@ -25,9 +26,10 @@ class PauliError:
     two-qubit gate) act jointly on its qubits, in the gate's qubit order, which
     is how correlated noise is written.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        probs: probability of each non-identity Pauli label.
+
+    Example::
 
         from mpstab.noise import PauliError
 
@@ -72,9 +74,10 @@ class DepolarizingError:
     qubits and spectators (:meth:`NoiseModel.add_idle`,
     :meth:`NoiseModel.add_crosstalk`) it acts on each qubit alone.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        lam: depolarizing strength, in ``[0, 4/3]``.
+
+    Example::
 
         from mpstab.noise import DepolarizingError
 
@@ -112,9 +115,11 @@ class CoherentError:
     dimension: :meth:`twirled` is the stochastic Pauli error the same rotation
     becomes under randomized compiling, which costs none.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        generator: Pauli label of the rotation, one qubit or as wide as the gate.
+        angle: rotation angle.
+
+    Example::
 
         from mpstab.noise import CoherentError
 
@@ -162,10 +167,12 @@ class KrausError:
     Pauli faults, and the off-diagonal part of its process matrix, evaluated
     as transition amplitudes (:class:`~mpstab.noise.events.KrausChannel`).
 
-    Examples
-    --------
-    A phase-damping channel::
+    Attributes:
+        operators: the Kraus operators, each ``2**k x 2**k``.
 
+    Example::
+
+        # A phase-damping channel.
         import numpy as np
         from mpstab.noise import KrausError
 
@@ -207,9 +214,10 @@ class AmplitudeDampingError:
     Amplitude damping ``|1> -> |0>`` with probability ``gamma`` on each qubit
     of the gate: energy relaxation (T1), which is not unital.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        gamma: damping probability, in ``[0, 1]``.
+
+    Example::
 
         from mpstab.noise import AmplitudeDampingError
 
@@ -253,9 +261,13 @@ class ThermalRelaxationError:
     ``exp(-time / (2 t1))`` down to ``exp(-time / t2)``, so ``t2 <= 2 t1``.
     :meth:`scaled` scales ``time``.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        t1: energy relaxation time.
+        t2: dephasing time, at most ``2 * t1``.
+        time: duration of the error, in the units of ``t1`` and ``t2``.
+        excited_population: equilibrium population of ``|1>``, in ``[0, 1]``.
+
+    Example::
 
         from mpstab.noise import ThermalRelaxationError
 
@@ -329,9 +341,12 @@ class ReadoutError:
     subterms. Add it with no gate, optionally restricted to some qubits;
     errors on the same qubit compose.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        p0: probability of reading a ``0`` as ``1``, in ``[0, 1]``.
+        p1: probability of reading a ``1`` as ``0``, in ``[0, 1]``; ``p0`` if
+            not given.
+
+    Example::
 
         from mpstab.noise import NoiseModel, ReadoutError
 
@@ -361,9 +376,10 @@ class StatePreparationError:
     ``p``, so ``|0>`` is prepared as ``|1>``. Add it with no gate, optionally
     restricted to some qubits; it acts on the initial state, before any gate.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        p: flip probability of each qubit, in ``[0, 1]``.
+
+    Example::
 
         from mpstab.noise import NoiseModel, StatePreparationError
 
@@ -610,9 +626,10 @@ class NoiseModel:
     gives the same noisy circuit as a qibo density-matrix circuit, for exact
     reference values.
 
-    Examples
-    --------
-    ::
+    Attributes:
+        rules: the rules added so far, in order.
+
+    Example::
 
         from qibo import gates
         from mpstab import HSMPO
@@ -651,23 +668,22 @@ class NoiseModel:
         """
         Put ``error`` after every gate of type ``gate`` (all gates if ``None``).
 
-        Parameters
-        ----------
-        error : PauliError, DepolarizingError, CoherentError, KrausError, \
-AmplitudeDampingError, ThermalRelaxationError, ReadoutError or \
-StatePreparationError
-            The error to insert. Readout and preparation errors take no gate.
-        gate : qibo gate class or sequence of them, optional
-            Only gates of these types get the error. Measurements never do.
-        qubits : int or sequence of int, optional
-            Restrict the error to these qubits. A single-qubit error acts only
-            on the gate's qubits in this set; an error spanning the whole gate
-            applies only to gates entirely inside it.
+        Args:
+            error: the error to insert. Readout and preparation errors take no
+                gate.
+            gate: qibo gate class, or sequence of them; only gates of these
+                types get the error. Measurements never do.
+            qubits: restrict the error to these qubits. A single-qubit error
+                acts only on the gate's qubits in this set; an error spanning
+                the whole gate applies only to gates entirely inside it.
 
-        Returns
-        -------
-        NoiseModel
+        Returns:
             ``self``, so calls can be chained.
+
+        Raises:
+            TypeError: if ``error`` is not an mpstab error.
+            ValueError: if a :class:`ReadoutError` or a
+                :class:`StatePreparationError` is given a ``gate``.
         """
         self._check(error, _GATE_ERRORS + _UNANCHORED_ERRORS)
         if isinstance(error, _UNANCHORED_ERRORS):
@@ -697,19 +713,13 @@ StatePreparationError
         spectator; a two-qubit one acts on each ``(gate qubit, spectator)``
         edge, in that order, as ``ZZ`` crosstalk from a driven qubit does.
 
-        Parameters
-        ----------
-        error : PauliError, DepolarizingError, CoherentError, KrausError, \
-AmplitudeDampingError or ThermalRelaxationError
-            The error, on one qubit or on two.
-        coupling : iterable of (int, int)
-            The coupling graph, as qubit pairs.
-        gate : qibo gate class or sequence of them, optional
-            Only gates of these types cause the crosstalk.
+        Args:
+            error: the error, on one qubit or on two.
+            coupling: the coupling graph, as qubit pairs.
+            gate: qibo gate class, or sequence of them; only gates of these
+                types cause the crosstalk.
 
-        Returns
-        -------
-        NoiseModel
+        Returns:
             ``self``, so calls can be chained.
         """
         self._check(error, _GATE_ERRORS)
@@ -730,25 +740,17 @@ AmplitudeDampingError or ThermalRelaxationError
         Moments are an in-order layering of the gate queue: a gate lands one
         moment after the last gate on any of its qubits, and never before the
         gate queued ahead of it, so a circuit queued layer by layer gets its
-        layers as moments. A
-        single-qubit error acts on every idle qubit of every moment, before
-        its first gate and after its last one included. A two-qubit error,
+        layers as moments. A single-qubit error acts on every idle qubit of
+        every moment, before its first gate and after its last one included. A two-qubit error,
         such as an always-on ``ZZ`` coupling, acts on each ``coupling`` edge
         whose two qubits are both idle.
 
-        Parameters
-        ----------
-        error : PauliError, DepolarizingError, CoherentError, KrausError, \
-AmplitudeDampingError or ThermalRelaxationError
-            The error, on one qubit or on two.
-        qubits : int or sequence of int, optional
-            Restrict the error to these qubits.
-        coupling : iterable of (int, int), optional
-            The coupling graph, needed by two-qubit errors.
+        Args:
+            error: the error, on one qubit or on two.
+            qubits: restrict the error to these qubits.
+            coupling: the coupling graph, needed by two-qubit errors.
 
-        Returns
-        -------
-        NoiseModel
+        Returns:
             ``self``, so calls can be chained.
         """
         self._check(error, _GATE_ERRORS)
@@ -820,8 +822,6 @@ AmplitudeDampingError or ThermalRelaxationError
         term with ``w`` non-identity factors on asymmetric qubits into its
         ``2**w`` subterms, the empty one adding to the constant.
         """
-        from mpstab.hamiltonians import pauli_terms
-
         constant, terms = pauli_terms(observable, nqubits)
         scale, offset = self.readout_maps(nqubits)
         result: dict[str, float] = {}
@@ -875,9 +875,7 @@ def _qibo_gate(event: NoiseEvent):
     if isinstance(event, KrausChannel):
         return gates.KrausChannel(event.qubits, list(event.kraus))
     support = [q for q, p in enumerate(event.generator) if p != "I"]
-    matrix = np.array([[1.0]])
-    for q in support:
-        matrix = np.kron(matrix, PAULI_MATRICES[event.generator[q]])
+    matrix = pauli_matrix("".join(event.generator[q] for q in support))
     unitary = (
         np.cos(event.angle / 2) * np.eye(len(matrix))
         - 1j * np.sin(event.angle / 2) * matrix
