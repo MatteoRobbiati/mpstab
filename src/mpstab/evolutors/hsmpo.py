@@ -14,7 +14,8 @@ from mpstab.engines import (
     TensorNetworkEngine,
 )
 from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
-from mpstab.evolutors.optimization import minimize_expectation_dmrg
+from mpstab.evolutors.gradient import analytic_gradient
+from mpstab.evolutors.optimization import minimize_expectation_dmrg, minimize_parameters
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
@@ -192,6 +193,19 @@ class HSMPO:
         Dressed ``(generator, signed_angle)`` of each ``(breakpoint, gate)`` in
         ``magic_gates``, conjugated by the first ``breakpoint`` gates of
         ``clifford_circuit``.
+        """
+        return [
+            (generator, sign * gate_angle(gate))
+            for (generator, sign), (_, gate) in zip(
+                self._dress_generators(magic_gates, clifford_circuit), magic_gates
+            )
+        ]
+
+    def _dress_generators(self, magic_gates, clifford_circuit) -> List[Tuple[str, int]]:
+        """
+        Dressed ``(generator, sign)`` of each ``(breakpoint, gate)`` in
+        ``magic_gates``: the gate's generator conjugated by the first
+        ``breakpoint`` gates of ``clifford_circuit`` is ``sign * generator``.
 
         With a :class:`~mpstab.engines.StimEngine` the Clifford circuit is
         simulated once, a segment at a time, so dressing every gate costs one
@@ -199,20 +213,21 @@ class HSMPO:
         through its own prefix, which is quadratic in the circuit length.
         """
         if not isinstance(self.stab_engine, StimEngine):
-            rotations = []
+            dressed = []
             for breakpoint_index, gate in magic_gates:
                 prefix = self._clifford_subcircuit(clifford_circuit, breakpoint_index)
-                generator, sign = self.stab_engine.backpropagate(
-                    gate_generator(gate, self.nqubits), prefix
+                dressed.append(
+                    self.stab_engine.backpropagate(
+                        gate_generator(gate, self.nqubits), prefix
+                    )
                 )
-                rotations.append((generator, sign * gate_angle(gate)))
-            return rotations
+            return dressed
 
         instructions = self.stab_engine.instructions(clifford_circuit)
         simulator = stim.TableauSimulator()
         simulator.do(stim.Circuit(f"I {self.nqubits - 1}"))
 
-        rotations: List[Tuple[str, float]] = []
+        dressed: List[Tuple[str, int]] = []
         simulated = 0
         inverse = None
         for breakpoint_index, gate in magic_gates:
@@ -225,12 +240,8 @@ class HSMPO:
                 simulated = breakpoint_index
                 # current_inverse_tableau() is U^dag for the Clifford prefix U.
                 inverse = simulator.current_inverse_tableau()
-            rotations.append(
-                self._conjugate_rotation(
-                    (gate_generator(gate, self.nqubits), gate_angle(gate)), inverse
-                )
-            )
-        return rotations
+            dressed.append(conjugate(gate_generator(gate, self.nqubits), inverse))
+        return dressed
 
     def _evolve_original(self):
         """
@@ -264,6 +275,120 @@ class HSMPO:
         if return_fidelity:
             return expval, self.tn_engine.squared_norm(self.original_circuit_mps)
         return expval
+
+    def gradient(
+        self,
+        observable: Observable,
+        parameters: List[int] | None = None,
+        light_cone: bool = True,
+        method: str = "adjoint",
+        costate_bond: int | None = None,
+    ) -> np.ndarray:
+        """
+        Gradient of :meth:`expectation` with respect to the circuit parameters,
+        analytically, instead of the two shifted circuits per parameter of the
+        parameter-shift rule: its cost does not grow with the number of
+        parameters. See
+        :func:`~mpstab.evolutors.gradient.analytic_gradient`, which also
+        reports the rotations applied and the truncation fidelities.
+
+        Args:
+            observable: a Pauli string or any other format
+                :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+            parameters: indices into :meth:`get_parameters` to differentiate,
+                all of them by default.
+            light_cone: drop the rotations that cannot affect the observable
+                first, which is exact.
+            method: ``"adjoint"`` (default), one forward pass and one
+                backward pass of a costate of twice the bond dimension; or
+                ``"flips"``, one shifted tail per parameter, with no costate to
+                truncate.
+            costate_bond: bond cap of the adjoint costate, twice
+                ``max_bond_dimension`` by default; ``max_bond_dimension``
+                itself is about twice as fast, for twice the error.
+
+        Returns:
+            One derivative per requested parameter.
+
+        Raises:
+            ValueError: if a requested parameter's gate sits at a Clifford
+                angle, so that it was absorbed into the tableau and has no
+                rotation to differentiate.
+        """
+        return analytic_gradient(
+            self, observable, parameters, light_cone, method, costate_bond
+        ).values
+
+    def value_and_gradient(
+        self,
+        observable: Observable,
+        light_cone: bool = True,
+        method: str = "adjoint",
+        costate_bond: int | None = None,
+    ) -> Tuple[float, np.ndarray]:
+        """
+        :meth:`expectation` and :meth:`gradient` together, from one pass of the
+        circuit: what a training step needs.
+
+        The value is evaluated on the chain the gradient uses, restricted to
+        the observable's light cone, so it is exact like :meth:`expectation`
+        but needs no cached MPS: it follows the circuit's parameters at the
+        last partition (:meth:`set_parameters`).
+
+        Args:
+            observable, light_cone, method, costate_bond: as in
+                :meth:`gradient`.
+
+        Returns:
+            ``(value, gradient)``, one derivative per parameter.
+        """
+        result = analytic_gradient(
+            self, observable, None, light_cone, method, costate_bond
+        )
+        return result.value, result.values
+
+    def optimize_parameters(
+        self,
+        observable: Observable,
+        method: str = "adam",
+        max_steps: int = 200,
+        learning_rate: float = 0.05,
+        tol: float = 1e-6,
+        callback=None,
+        **gradient_options,
+    ) -> dict:
+        """
+        Minimize ``observable`` over the circuit parameters, a VQE on the
+        surrogate, with the analytic gradient. Unlike
+        :meth:`minimize_expectation`, which optimizes the MPS itself, this
+        returns parameters of the circuit, to run anywhere.
+
+        Args:
+            observable: the Hamiltonian, in any format
+                :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+            method: ``"adam"`` or ``"lbfgs"``.
+            max_steps: maximum number of gradient evaluations.
+            learning_rate: Adam's step size.
+            tol: stop once the largest derivative is below it.
+            callback: called as ``callback(step, energy, parameters)``.
+            gradient_options: forwarded to :meth:`gradient`, e.g.
+                ``costate_bond``.
+
+        Returns:
+            A dict with ``energy``, ``parameters``, ``energy_history``,
+            ``num_steps`` and ``converged``. The instance is left at the best
+            parameters found.
+        """
+        return minimize_parameters(
+            self,
+            observable,
+            method=method,
+            max_steps=max_steps,
+            learning_rate=learning_rate,
+            tol=tol,
+            callback=callback,
+            **gradient_options,
+        )
 
     def noisy_expectation(
         self,

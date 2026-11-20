@@ -64,7 +64,7 @@ form.
     simulator = HSMPO(ansatz=ansatz, max_bond_dimension=32)
     result = simulator.expectation("ZZZZZ")
 
-See :doc:`../guides/using_ansatze` for detailed examples.
+See :doc:`../user_guide/using_ansatze` for detailed examples.
 
 Entanglement Metrics & Analysis
 --------------------------------
@@ -117,6 +117,6 @@ stabilizer_renyi_entropy_mps  Sampled stabilizer Renyi entropy of an HSMPO
 Related Documentation
 -----------------------
 
-- :doc:`../guides/using_ansatze` - Ansätze usage guide
-- :doc:`../guides/fidelity_and_approximation` - Understanding approximations
+- :doc:`../user_guide/using_ansatze` - Ansätze usage guide
+- :doc:`../methods/fidelity_and_approximation` - Understanding approximations
 - :doc:`../tutorials/introduction` - Practical examples

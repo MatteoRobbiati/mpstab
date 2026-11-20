@@ -21,26 +21,32 @@ Among our core features:
    :caption: Getting Started
 
    installation
-   guides/theory_background
-   guides/quickstart
+   quickstart
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Methods
+
+   methods/theory_background
+   methods/fidelity_and_approximation
+   methods/analytic_gradients
+   methods/clifford_extraction_synthesis
+   methods/rustiq_resynthesis
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User guide
+
+   user_guide/qibo_backend_provider
+   user_guide/working_with_engines
+   user_guide/using_ansatze
+   user_guide/dmrg_optimization
 
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials
 
    tutorials/index
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Guides
-
-   guides/dmrg_optimization
-   guides/qibo_backend_provider
-   guides/working_with_engines
-   guides/using_ansatze
-   guides/fidelity_and_approximation
-   guides/rustiq_resynthesis
-   guides/clifford_extraction_synthesis
 
 .. toctree::
    :maxdepth: 2

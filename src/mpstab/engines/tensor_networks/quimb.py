@@ -54,6 +54,12 @@ GATE_MAP = {
 #: quimb's default singular-value cutoff (``"rsum2"`` mode) when compressing.
 _QUIMB_DEFAULT_CUTOFF = 1e-10
 
+#: Relative cutoff for compressions meant to be exact up to roundoff.
+_EXACT_CUTOFF = 1e-14
+
+#: Pauli strings stacked into one block-diagonal MPO before compressing it.
+_PAULI_SUM_CHUNK = 64
+
 #: Attribute marking an MPO built by :meth:`QuimbEngine.pauli_mpo` with the
 #: Pauli string it represents. quimb's ``copy`` drops it, so any arithmetic on
 #: the MPO (``2 * mpo``, a conjugation) falls back to a generic contraction.
@@ -257,6 +263,28 @@ def _qibo_circuit_to_quimb(nqubits: int, qibo_circ, **circuit_kwargs) -> Circuit
     return circuit
 
 
+def _pauli_sum_mpo(paulis: list[str], coefficients) -> MatrixProductOperator:
+    """
+    ``sum_t c_t P_t`` as an MPO: block-diagonal site tensors, one block per
+    string, compressed once to its exact rank.
+    """
+    nqubits = len(paulis[0])
+    coefficients = np.asarray(coefficients, dtype=complex)
+    sites = [np.stack([PAULI_MATRICES[p[j]] for p in paulis]) for j in range(nqubits)]
+    sites[0] = sites[0] * coefficients[:, None, None]  # (term, up, down)
+    if nqubits == 1:
+        return MatrixProductOperator([sites[0].sum(axis=0)])
+    arrays = [sites[0]]
+    for site in sites[1:-1]:
+        block = np.zeros((len(paulis), *site.shape), dtype=complex)
+        block[np.arange(len(paulis)), np.arange(len(paulis))] = site
+        arrays.append(block)  # (left, right, up, down)
+    arrays.append(sites[-1])
+    operator = MatrixProductOperator(arrays)
+    operator.compress(cutoff=_EXACT_CUTOFF)
+    return operator
+
+
 def _array_module(backend: str):
     """The array module of a quimb backend: numpy, ``jax.numpy`` or torch."""
     if backend == "numpy":
@@ -436,11 +464,15 @@ class QuimbEngine(TensorNetworkEngine):
         return values / norm
 
     def pauli_transitions(
-        self, bra_state: MatrixProductState, ket_state: MatrixProductState, paulis
+        self,
+        bra_state: MatrixProductState,
+        ket_state: MatrixProductState,
+        paulis,
+        normalize: bool = True,
     ):
         """
-        Normalized transition amplitudes ``<bra|P|ket>`` of many Pauli strings
-        between two states, each divided by the norms of both states.
+        Transition amplitudes ``<bra|P|ket>`` of many Pauli strings between
+        two states, with ``normalize`` divided by the norms of both states.
 
         Returns:
             A complex array on the numpy backend, a list of backend scalars
@@ -448,8 +480,13 @@ class QuimbEngine(TensorNetworkEngine):
         """
         paulis = list(paulis)
         if not self._fast:
-            norm = np.sqrt(
-                bra_state.norm(squared=True).real * ket_state.norm(squared=True).real
+            norm = (
+                np.sqrt(
+                    bra_state.norm(squared=True).real
+                    * ket_state.norm(squared=True).real
+                )
+                if normalize
+                else 1.0
             )
             ket = ket_state.reindex({f"k{i}": f"b{i}" for i in range(ket_state.L)})
             return [
@@ -470,12 +507,39 @@ class QuimbEngine(TensorNetworkEngine):
 
         bra_sites, bra_norm = sites(bra_state)
         ket_sites, ket_norm = sites(ket_state)
-        norm = np.sqrt(bra_norm * ket_norm)
-        values = np.array(
-            [kernels.pauli_transition(bra_sites, ket_sites, p) for p in paulis],
-            dtype=complex,
+        values = kernels.pauli_transitions(bra_sites, ket_sites, paulis)
+        return values / np.sqrt(bra_norm * ket_norm) if normalize else values
+
+    def apply_pauli_sum(
+        self,
+        state_circuit: MatrixProductState,
+        paulis,
+        coefficients,
+        max_bond_dimension: int | None,
+    ) -> MatrixProductState:
+        """
+        A new state ``sum_t c_t P_t |state>``.
+
+        The terms are stacked into block-diagonal MPOs of
+        :data:`_PAULI_SUM_CHUNK` terms each, compressed exactly and summed (a
+        sum of local strings keeps a small bond), and the result is applied to
+        the state and compressed to ``max_bond_dimension``.
+        """
+        paulis, coefficients = list(paulis), list(coefficients)
+        operator = None
+        for start in range(0, len(paulis), _PAULI_SUM_CHUNK):
+            chunk = slice(start, start + _PAULI_SUM_CHUNK)
+            block = _pauli_sum_mpo(paulis[chunk], coefficients[chunk])
+            if operator is None:
+                operator = block
+            else:
+                operator = operator.add_MPO(block)
+                operator.compress(cutoff=_EXACT_CUTOFF)
+        operator = self._to_backend(operator)
+        options = {} if self.svd_cutoff is None else {"cutoff": self.svd_cutoff}
+        return operator.apply(
+            state_circuit, compress=True, max_bond=max_bond_dimension, **options
         )
-        return values / norm
 
     def pauli_rot(
         self,
@@ -545,6 +609,34 @@ class QuimbEngine(TensorNetworkEngine):
         norm = kernels.squared_norm(view, view.center)
         view.commit()
         return norm
+
+    @property
+    def truncation_cutoff(self) -> float:
+        """The relative singular-value cutoff rotations are compressed with."""
+        return _QUIMB_DEFAULT_CUTOFF if self.svd_cutoff is None else self.svd_cutoff
+
+    def site_arrays(self, state_circuit: MatrixProductState):
+        """
+        The state as the form :mod:`._mps_kernels` works on: a list of
+        ``(left, phys, right)`` arrays in mixed canonical form, and the
+        orthogonality center. numpy backend only.
+
+        The arrays are read-only and shared with the state; the kernels never
+        write into an array, they replace it in the list.
+        """
+        view = _CanonicalMPS(state_circuit)
+        arrays = [view[i] for i in range(view.L)]
+        view.commit()
+        return arrays, view.center
+
+    @staticmethod
+    def state_from_arrays(arrays) -> MatrixProductState:
+        """An MPS from ``(left, phys, right)`` site arrays, two sites or more."""
+        L = len(arrays)
+        data = [arrays[0][0].T]  # (1, p, r) -> (r, p)
+        data += [array.transpose(0, 2, 1) for array in arrays[1 : L - 1]]
+        data.append(arrays[-1][:, :, 0])  # (l, p, 1) -> (l, p)
+        return MatrixProductState(data, shape="lrp")
 
     def copy_state(self, state_circuit: MatrixProductState):
         """
