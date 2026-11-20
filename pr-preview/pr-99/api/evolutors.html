@@ -225,6 +225,7 @@
 <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/analytic_gradients.html">Analytic gradients</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/using_ansatze.html">Using Ansätze</a></li>
@@ -1403,7 +1404,9 @@ needing only the working truncation, with no exact reference built.</p>
 number of parameters (one forward pass and one backward pass), instead of the two
 shifted circuits per parameter of the parameter-shift rule. Gradient-based
 training of the circuit parameters is in <a class="reference internal" href="#module-mpstab.evolutors.optimization" title="mpstab.evolutors.optimization"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.evolutors.optimization</span></code></a>
-(<code class="xref py py-meth docutils literal notranslate"><span class="pre">optimize_parameters()</span></code>).</p>
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">optimize_parameters()</span></code>).
+How the gradient is computed, and benchmarks against other frameworks, are in
+the <a class="reference internal" href="../guides/analytic_gradients.html"><span class="doc">Analytic gradients</span></a> guide.</p>
 <p id="module-mpstab.evolutors.gradient">Analytic gradients of the HSMPO surrogate, from the sign-flip rule of its faults.</p>
 <p>In the Clifford frame the state is <code class="docutils literal notranslate"><span class="pre">|psi&gt;</span> <span class="pre">=</span> <span class="pre">R_R</span> <span class="pre">...</span> <span class="pre">R_1</span> <span class="pre">|init&gt;</span></code>, with dressed
 rotations <code class="docutils literal notranslate"><span class="pre">R_j</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">phi_j/2</span> <span class="pre">G_j)</span></code>, and the observable is

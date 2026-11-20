@@ -35,6 +35,7 @@ Among our core features:
    :caption: Guides
 
    guides/dmrg_optimization
+   guides/analytic_gradients
    guides/qibo_backend_provider
    guides/working_with_engines
    guides/using_ansatze
