@@ -54,7 +54,7 @@ Among our core features:
    :maxdepth: 1
    :caption: About
 
-   citing
+   publications
 
 Indices and tables
 ==================
