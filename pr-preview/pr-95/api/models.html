@@ -1,0 +1,1504 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Publications" href="../publications.html"><link rel="prev" title="Paulis &amp; Observables" href="pauli.html">
+        <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Models &amp; Methods - Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=71654716" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../_static/mpstab_logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">Documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/introduction.html">A quick introduction to HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/noise.html">Noisy simulation with <code class="docutils literal notranslate"><span class="pre">mpstab.noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/advanced_noise.html">Device-level noise: relaxation, crosstalk and idling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/noisy_simulation.html">Noisy simulation against density matrices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/hqsmpo.html">HQSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="evolutors.html">Evolutors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qpu.html">QPU</a></li>
+<li class="toctree-l1"><a class="reference internal" href="noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/api/models.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="models-methods">
+<h1>Models &amp; Methods<a class="headerlink" href="#models-methods" title="Link to this heading">¶</a></h1>
+<p>The models subpackage contains quantum circuit templates (ansätze) and analysis tools.</p>
+<section id="ansatze-quantum-circuit-templates">
+<h2>Ansätze: Quantum Circuit Templates<a class="headerlink" href="#ansatze-quantum-circuit-templates" title="Link to this heading">¶</a></h2>
+<p>Ansätze are pre-built quantum circuit patterns used as templates for quantum algorithms.</p>
+<p id="module-mpstab.models.ansatze">Circuit templates to simulate: variational patterns and textbook algorithms.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Ansatz">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">Ansatz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#Ansatz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.Ansatz" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Abstract ansatz to generate quantum states.</p>
+<p>Every ansatz names the fields that set its two resources, so a sweep knows
+which knob to turn:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">magic_parameters</span></code>: fields that set how far the circuit is from a
+Clifford circuit, i.e. how many magic gates HSMPO keeps and how large
+their angles are;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">entanglement_parameters</span></code>: fields that set which qubits interact and
+for how long, i.e. how fast the bond dimension of the state can grow.</p></li>
+</ul>
+<p>A field may appear in both: a generic rotation angle sets the magic and,
+through the couplings, also the entangling power.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Ansatz.circuit">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">circuit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Circuit</span></span><a class="headerlink" href="#mpstab.models.ansatze.Ansatz.circuit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Ansatz.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#mpstab.models.ansatze.Ansatz.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Ansatz.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#mpstab.models.ansatze.Ansatz.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Ansatz.nparams">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">nparams</span></span><a class="headerlink" href="#mpstab.models.ansatze.Ansatz.nparams" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Ansatz.nqubits">
+<span class="sig-name descname"><span class="pre">nqubits</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#mpstab.models.ansatze.Ansatz.nqubits" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Ansatz.partitionate_circuit">
+<span class="sig-name descname"><span class="pre">partitionate_circuit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">replacement_probability</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'closest'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#Ansatz.partitionate_circuit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.Ansatz.partitionate_circuit" title="Link to this definition">¶</a></dt>
+<dd><p>Split the circuit into a Clifford part and the magic gates left over.</p>
+<p>Each non-Clifford gate is replaced by the nearest Clifford one with
+probability <code class="docutils literal notranslate"><span class="pre">replacement_probability</span></code>, and kept as a magic gate
+otherwise. Every magic gate is recorded with the number of Clifford gates
+preceding it, which is where it has to be reinserted later.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>replacement_probability</strong> – chance of replacing each non-Clifford gate.
+The default 0 keeps every non-Clifford gate as magic.</p></li>
+<li><p><strong>replacement_method</strong> – <code class="docutils literal notranslate"><span class="pre">&quot;closest&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;random&quot;</span></code> Clifford angle.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">((magic_gates,</span> <span class="pre">clifford_circuit),</span> <span class="pre">full_circuit)</span></code>, where
+<code class="docutils literal notranslate"><span class="pre">magic_gates</span></code> is a list of <code class="docutils literal notranslate"><span class="pre">(breakpoint_index,</span> <span class="pre">gate)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">full_circuit</span></code> is the sampled circuit including its magic gates.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.CircuitAnsatz">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">CircuitAnsatz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">qibo_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Circuit</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#CircuitAnsatz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.CircuitAnsatz" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mpstab.models.ansatze.Ansatz" title="mpstab.models.ansatze.Ansatz"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ansatz</span></code></a></p>
+<p>A simple wrapper that converts a Qibo Circuit into an Ansatz object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input_circuit</strong> (<em>Circuit</em>) – The Qibo circuit to wrap.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.CircuitAnsatz.nqubits">
+<span class="sig-name descname"><span class="pre">nqubits</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#mpstab.models.ansatze.CircuitAnsatz.nqubits" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.CircuitAnsatz.qibo_circuit">
+<span class="sig-name descname"><span class="pre">qibo_circuit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Circuit</span></span><a class="headerlink" href="#mpstab.models.ansatze.CircuitAnsatz.qibo_circuit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.FloquetAnsatz">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">FloquetAnsatz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlayers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.2566370614359172</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.5707963267948966</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_qubit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decompose_rzz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#FloquetAnsatz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.FloquetAnsatz" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mpstab.models.ansatze.Ansatz" title="mpstab.models.ansatze.Ansatz"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ansatz</span></code></a></p>
+<p>Floquet echo: U = (FL)^t · Rz(theta) on qubit q · (FL^t)†.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nlayers</strong> (<em>int</em>) – number of Floquet layers.</p></li>
+<li><p><strong>b</strong> (<em>float</em>) – parameter controlling the magic in the circuit;</p></li>
+<li><p><strong>theta</strong> (<em>float</em>) – controls the signal;</p></li>
+<li><p><strong>target_qubit</strong> (<em>int</em>) – this is the qubit, in the circuit, on which we perform
+the final local measurement (and the one on which we apply H and RZ).</p></li>
+<li><p><strong>decompose_rzz</strong> (<em>bool</em>) – if <code class="docutils literal notranslate"><span class="pre">True</span></code>, RZZ is decomposed into CNOTs and RZ.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.FloquetAnsatz.b">
+<span class="sig-name descname"><span class="pre">b</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.2566370614359172</span></span><a class="headerlink" href="#mpstab.models.ansatze.FloquetAnsatz.b" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.FloquetAnsatz.decompose_rzz">
+<span class="sig-name descname"><span class="pre">decompose_rzz</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#mpstab.models.ansatze.FloquetAnsatz.decompose_rzz" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.FloquetAnsatz.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('nlayers',</span> <span class="pre">'b')</span></span><a class="headerlink" href="#mpstab.models.ansatze.FloquetAnsatz.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.FloquetAnsatz.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('b',</span> <span class="pre">'theta')</span></span><a class="headerlink" href="#mpstab.models.ansatze.FloquetAnsatz.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.FloquetAnsatz.nlayers">
+<span class="sig-name descname"><span class="pre">nlayers</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></span><a class="headerlink" href="#mpstab.models.ansatze.FloquetAnsatz.nlayers" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.FloquetAnsatz.partitionate_circuit">
+<span class="sig-name descname"><span class="pre">partitionate_circuit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">replacement_probability</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'closest'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#FloquetAnsatz.partitionate_circuit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.FloquetAnsatz.partitionate_circuit" title="Link to this definition">¶</a></dt>
+<dd><p>Partitionate the full Floquet circuit U = H · half_sandwich · RZ · (half_sandwich)†,
+but only <em>sweep</em> the half_sandwich for magic gates.
+Returns ((magic_gates, clifford_only_circuit), full_circuit).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.FloquetAnsatz.target_qubit">
+<span class="sig-name descname"><span class="pre">target_qubit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span><a class="headerlink" href="#mpstab.models.ansatze.FloquetAnsatz.target_qubit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.FloquetAnsatz.theta">
+<span class="sig-name descname"><span class="pre">theta</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.5707963267948966</span></span><a class="headerlink" href="#mpstab.models.ansatze.FloquetAnsatz.theta" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Grover">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">Grover</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transpile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">native_gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">marked_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_iterations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#Grover"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.Grover" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_CompiledAnsatz</span></code></p>
+<p>Grover search: H^n then n_iterations x (oracle + diffuser).</p>
+<p>The oracle phase-flips <code class="docutils literal notranslate"><span class="pre">marked_state</span></code> (default <span class="math">\(|1\dots1\rangle\)</span>) via a
+multi-controlled-Z; the diffuser is the standard inversion-about-the-mean.
+See <code class="xref py py-func docutils literal notranslate"><span class="pre">_multi_controlled_z()</span></code> for the oracle-correctness caveat at
+<code class="docutils literal notranslate"><span class="pre">nqubits</span> <span class="pre">&gt;</span> <span class="pre">3</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>marked_state</strong> – Integer in [0, 2^nqubits). Default 2^nqubits - 1.</p></li>
+<li><p><strong>n_iterations</strong> – Grover iterations. Default round(pi/4 * sqrt(2^nqubits)).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Grover.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('n_iterations',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.Grover.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Grover.marked_state">
+<span class="sig-name descname"><span class="pre">marked_state</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#mpstab.models.ansatze.Grover.marked_state" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.Grover.n_iterations">
+<span class="sig-name descname"><span class="pre">n_iterations</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#mpstab.models.ansatze.Grover.n_iterations" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HammingWeightPreserving">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">HammingWeightPreserving</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlayers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#HammingWeightPreserving"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.HammingWeightPreserving" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mpstab.models.ansatze.Ansatz" title="mpstab.models.ansatze.Ansatz"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ansatz</span></code></a></p>
+<p>Hamming-weight-preserving ansatz built from decomposed RBS gates.</p>
+<p>Each RBS gate rotates within the <span class="math">\(\{|01\rangle, |10\rangle\}\)</span>
+subspace of a qubit pair, leaving <span class="math">\(|00\rangle\)</span> and <span class="math">\(|11\rangle\)</span>
+unchanged:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>RBS(θ)|01⟩ =  cos(θ)|01⟩ + sin(θ)|10⟩
+RBS(θ)|10⟩ = -sin(θ)|01⟩ + cos(θ)|10⟩
+</pre></div>
+</div>
+<p>RBS is decomposed into gates mpstab supports natively:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>CNOT(ctrl=q1, tgt=q0)
+RY(q1,  θ)              ← magic gate
+CNOT(ctrl=q0, tgt=q1)
+RY(q1, -θ)              ← magic gate
+CNOT(ctrl=q0, tgt=q1)
+CNOT(ctrl=q1, tgt=q0)
+</pre></div>
+</div>
+<p>The circuit always starts with n//2 X gates to prepare the half-filling
+state <span class="math">\(|1\dots10\dots0\rangle\)</span>, giving a fixed Hamming weight of n//2.</p>
+<p>Within each layer the connectivity pattern mirrors <cite>hw_preserving</cite> from
+Qibo examples: four <cite>connect_qubits</cite> passes with jump sizes 1 and 2 and
+different starting offsets to explore both nearest- and next-nearest-
+neighbour correlations with circular boundary conditions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nqubits</strong> – Number of qubits (must be even).</p></li>
+<li><p><strong>nlayers</strong> – Number of RBS layers.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HammingWeightPreserving.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('nlayers',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.HammingWeightPreserving.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HammingWeightPreserving.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('nlayers',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.HammingWeightPreserving.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HammingWeightPreserving.nlayers">
+<span class="sig-name descname"><span class="pre">nlayers</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span><a class="headerlink" href="#mpstab.models.ansatze.HammingWeightPreserving.nlayers" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HardwareEfficient">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">HardwareEfficient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlayers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entangling</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#HardwareEfficient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.HardwareEfficient" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mpstab.models.ansatze.Ansatz" title="mpstab.models.ansatze.Ansatz"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ansatz</span></code></a></p>
+<p>Layers of random RY rotations, each followed by a ring of CZ gates.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HardwareEfficient.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('nlayers',</span> <span class="pre">'entangling')</span></span><a class="headerlink" href="#mpstab.models.ansatze.HardwareEfficient.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HardwareEfficient.entangling">
+<span class="sig-name descname"><span class="pre">entangling</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#mpstab.models.ansatze.HardwareEfficient.entangling" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HardwareEfficient.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('nlayers',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.HardwareEfficient.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HardwareEfficient.nlayers">
+<span class="sig-name descname"><span class="pre">nlayers</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span><a class="headerlink" href="#mpstab.models.ansatze.HardwareEfficient.nlayers" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HardwareEfficientBrickwork">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">HardwareEfficientBrickwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlayers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#HardwareEfficientBrickwork"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.HardwareEfficientBrickwork" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mpstab.models.ansatze.Ansatz" title="mpstab.models.ansatze.Ansatz"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ansatz</span></code></a></p>
+<p>Hardware Efficient ansatz with a full brickwork entanglement pattern.</p>
+<p>Each layer applies two sublayers of single-qubit RY+RZ rotations interleaved
+with CZ entanglement:</p>
+<blockquote>
+<div><p>sublayer 1: RY+RZ on all qubits → CZ on even bonds (0-1, 2-3, …)
+sublayer 2: RY+RZ on all qubits → CZ on odd bonds (1-2, 3-4, …) + CZ(0, n-1)</p>
+</div></blockquote>
+<p>A final layer of RY rotations closes the circuit.  The ring-closing CZ(0, n-1)
+in the odd sublayer creates long-range entanglement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nqubits</strong> – Number of qubits.</p></li>
+<li><p><strong>nlayers</strong> – Number of full brickwork layers.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HardwareEfficientBrickwork.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('nlayers',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.HardwareEfficientBrickwork.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HardwareEfficientBrickwork.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('nlayers',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.HardwareEfficientBrickwork.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.HardwareEfficientBrickwork.nlayers">
+<span class="sig-name descname"><span class="pre">nlayers</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span><a class="headerlink" href="#mpstab.models.ansatze.HardwareEfficientBrickwork.nlayers" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.KickedIsing">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">KickedIsing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_z</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1.5707963267948966</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#KickedIsing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.KickedIsing" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_KickedIsingBase</span></code></p>
+<p>Build a kicked Ising circuit on an open chain.</p>
+<p>Each of the <code class="docutils literal notranslate"><span class="pre">n_steps</span></code> steps applies the kicks <span class="math">\(R_X(\theta_h)\)</span> and
+then <span class="math">\(R_Z(\theta_z)\)</span> on every qubit, followed by the couplings
+<span class="math">\(R_{ZZ}(\theta_J)\)</span> on the even bonds and then on the odd bonds. Every
+coupling is written as <code class="docutils literal notranslate"><span class="pre">CNOT</span> <span class="pre">·</span> <span class="pre">RZ(theta_j)</span> <span class="pre">·</span> <span class="pre">CNOT</span></code>, the form HSMPO splits
+into Clifford and magic gates, so the circuit needs no transpilation. At the
+default <code class="docutils literal notranslate"><span class="pre">theta_j</span> <span class="pre">=</span> <span class="pre">-pi/2</span></code> the couplings are Clifford and only the kicks are
+magic, so the MPS bond dimension grows with the number of steps.</p>
+<p>Every angle that is not a multiple of <span class="math">\(\pi/2\)</span> is a magic gate as a
+whole; <a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing" title="mpstab.models.ansatze.ParametricKickedIsing"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParametricKickedIsing</span></code></a> separates the Clifford part of each
+angle from the magic one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nqubits</strong> – number of qubits in the chain.</p></li>
+<li><p><strong>n_steps</strong> – number of kick-and-couple steps.</p></li>
+<li><p><strong>theta_h</strong> – angle of the transverse kicks <span class="math">\(R_X\)</span>.</p></li>
+<li><p><strong>theta_z</strong> – angle of the longitudinal kicks <span class="math">\(R_Z\)</span>.</p></li>
+<li><p><strong>theta_j</strong> – angle of the <span class="math">\(R_{ZZ}\)</span> couplings.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.KickedIsing.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('n_steps',</span> <span class="pre">'theta_h',</span> <span class="pre">'theta_j')</span></span><a class="headerlink" href="#mpstab.models.ansatze.KickedIsing.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.KickedIsing.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('theta_h',</span> <span class="pre">'theta_z',</span> <span class="pre">'theta_j')</span></span><a class="headerlink" href="#mpstab.models.ansatze.KickedIsing.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.KickedIsing.theta_h">
+<span class="sig-name descname"><span class="pre">theta_h</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.8</span></span><a class="headerlink" href="#mpstab.models.ansatze.KickedIsing.theta_h" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.KickedIsing.theta_j">
+<span class="sig-name descname"><span class="pre">theta_j</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">-1.5707963267948966</span></span><a class="headerlink" href="#mpstab.models.ansatze.KickedIsing.theta_j" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.KickedIsing.theta_z">
+<span class="sig-name descname"><span class="pre">theta_z</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span><a class="headerlink" href="#mpstab.models.ansatze.KickedIsing.theta_z" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.ParametricKickedIsing">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">ParametricKickedIsing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_z</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clifford_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.5707963267948966</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clifford_j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1.5707963267948966</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#ParametricKickedIsing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.ParametricKickedIsing" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_KickedIsingBase</span></code></p>
+<p>Build a kicked Ising circuit parametrised by its distance from a Clifford point.</p>
+<p>It is the circuit of <a class="reference internal" href="#mpstab.models.ansatze.KickedIsing" title="mpstab.models.ansatze.KickedIsing"><code class="xref py py-class docutils literal notranslate"><span class="pre">KickedIsing</span></code></a> with the angles</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[\theta_h = \theta_h^C + \delta_h, \qquad
+\theta_J = \theta_J^C + \delta_J, \qquad
+\theta_z = \delta_z,
+
+\]</div>
+</div>
+<p>where <span class="math">\(\theta_h^C\)</span> and <span class="math">\(\theta_J^C\)</span> are multiples of
+<span class="math">\(\pi/2\)</span>, so that at <span class="math">\(\delta = 0\)</span> the whole circuit is Clifford.
+The defaults <span class="math">\(\theta_h^C = \pi/2\)</span>, <span class="math">\(\theta_J^C = -\pi/2\)</span> are
+the self-dual point, where the entanglement grows at the maximal speed.</p>
+<p>Every rotation is written as its Clifford part followed by the deviation,
+<span class="math">\(R(\theta^C + \delta) = R(\delta)\,R(\theta^C)\)</span>, as two separate
+gates. HSMPO then puts <span class="math">\(R(\theta^C)\)</span> in the stabilizer part and keeps
+only the small rotation <span class="math">\(R(\delta)\)</span> as a magic gate, instead of
+treating the whole <span class="math">\(R(\theta^C + \delta)\)</span> as magic. The two groups of
+fields therefore tune the two resources separately:</p>
+<ul class="simple">
+<li><p>the deviations <code class="docutils literal notranslate"><span class="pre">delta_h</span></code>, <code class="docutils literal notranslate"><span class="pre">delta_j</span></code>, <code class="docutils literal notranslate"><span class="pre">delta_z</span></code> set the magic: the
+number of magic gates (a deviation equal to zero adds no gate) and the
+size of their angles;</p></li>
+<li><p>the Clifford skeleton <code class="docutils literal notranslate"><span class="pre">clifford_h</span></code>, <code class="docutils literal notranslate"><span class="pre">clifford_j</span></code> and <code class="docutils literal notranslate"><span class="pre">n_steps</span></code> set
+the entanglement: which Clifford circuit the stabilizer part evolves,
+hence how fast the entanglement grows. The deviations change it only
+perturbatively.</p></li>
+</ul>
+<p>Each of the <code class="docutils literal notranslate"><span class="pre">n_steps</span></code> steps applies the kicks <span class="math">\(R_X\)</span> and then
+<span class="math">\(R_Z\)</span> on every qubit, followed by the couplings <span class="math">\(R_{ZZ}\)</span> on the
+even bonds and then on the odd bonds, each coupling written as
+<code class="docutils literal notranslate"><span class="pre">CNOT</span> <span class="pre">·</span> <span class="pre">RZ</span> <span class="pre">·</span> <span class="pre">CNOT</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nqubits</strong> – number of qubits in the chain.</p></li>
+<li><p><strong>n_steps</strong> – number of kick-and-couple steps.</p></li>
+<li><p><strong>delta_h</strong> – deviation of the transverse kicks <span class="math">\(R_X\)</span> from <code class="docutils literal notranslate"><span class="pre">clifford_h</span></code>.</p></li>
+<li><p><strong>delta_j</strong> – deviation of the <span class="math">\(R_{ZZ}\)</span> couplings from <code class="docutils literal notranslate"><span class="pre">clifford_j</span></code>.</p></li>
+<li><p><strong>delta_z</strong> – angle of the longitudinal kicks <span class="math">\(R_Z\)</span> (Clifford point: 0).</p></li>
+<li><p><strong>clifford_h</strong> – Clifford angle of the transverse kicks, a multiple of pi/2.</p></li>
+<li><p><strong>clifford_j</strong> – Clifford angle of the couplings, a multiple of pi/2.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.ParametricKickedIsing.clifford_h">
+<span class="sig-name descname"><span class="pre">clifford_h</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.5707963267948966</span></span><a class="headerlink" href="#mpstab.models.ansatze.ParametricKickedIsing.clifford_h" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.ParametricKickedIsing.clifford_j">
+<span class="sig-name descname"><span class="pre">clifford_j</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">-1.5707963267948966</span></span><a class="headerlink" href="#mpstab.models.ansatze.ParametricKickedIsing.clifford_j" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.ParametricKickedIsing.delta_h">
+<span class="sig-name descname"><span class="pre">delta_h</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></span><a class="headerlink" href="#mpstab.models.ansatze.ParametricKickedIsing.delta_h" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.ParametricKickedIsing.delta_j">
+<span class="sig-name descname"><span class="pre">delta_j</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span><a class="headerlink" href="#mpstab.models.ansatze.ParametricKickedIsing.delta_j" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.ParametricKickedIsing.delta_z">
+<span class="sig-name descname"><span class="pre">delta_z</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span><a class="headerlink" href="#mpstab.models.ansatze.ParametricKickedIsing.delta_z" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.ParametricKickedIsing.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('n_steps',</span> <span class="pre">'clifford_h',</span> <span class="pre">'clifford_j')</span></span><a class="headerlink" href="#mpstab.models.ansatze.ParametricKickedIsing.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.ParametricKickedIsing.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('delta_h',</span> <span class="pre">'delta_j',</span> <span class="pre">'delta_z')</span></span><a class="headerlink" href="#mpstab.models.ansatze.ParametricKickedIsing.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.ParametricKickedIsing.theta_h">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">theta_h</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#mpstab.models.ansatze.ParametricKickedIsing.theta_h" title="Link to this definition">¶</a></dt>
+<dd><p>Total angle of the transverse kicks.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.ParametricKickedIsing.theta_j">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">theta_j</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#mpstab.models.ansatze.ParametricKickedIsing.theta_j" title="Link to this definition">¶</a></dt>
+<dd><p>Total angle of the couplings.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QAE">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">QAE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transpile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">native_gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_counting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_A</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#QAE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.QAE" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_CompiledAnsatz</span></code></p>
+<p>Canonical Quantum Amplitude Estimation.</p>
+<p><code class="docutils literal notranslate"><span class="pre">n_counting</span></code> counting qubits + 1 work qubit. State preparation is
+A = R_Y(2*theta_A) on the work qubit (amplitude a = sin^2(theta_A)). The
+controlled Grover powers are modelled by controlled phases (CU1) with
+binary-scaled angles, closed with an inverse QFT on the counting register.
+<code class="docutils literal notranslate"><span class="pre">nqubits</span></code> is <code class="docutils literal notranslate"><span class="pre">n_counting</span> <span class="pre">+</span> <span class="pre">1</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_counting</strong> – Number of counting qubits.</p></li>
+<li><p><strong>theta_A</strong> – Angle controlling the amplitude. Default 0.4 rad.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QAE.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('n_counting',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.QAE.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QAE.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('theta_A',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.QAE.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QAE.n_counting">
+<span class="sig-name descname"><span class="pre">n_counting</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></span><a class="headerlink" href="#mpstab.models.ansatze.QAE.n_counting" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QAE.nqubits">
+<span class="sig-name descname"><span class="pre">nqubits</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#mpstab.models.ansatze.QAE.nqubits" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QAE.theta_A">
+<span class="sig-name descname"><span class="pre">theta_A</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.4</span></span><a class="headerlink" href="#mpstab.models.ansatze.QAE.theta_A" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QFT">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">QFT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transpile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">native_gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#QFT"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.QFT" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_CompiledAnsatz</span></code></p>
+<p>Quantum Fourier Transform (H, controlled-phase and SWAP).</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QFTPhaseKernel">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">QFTPhaseKernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transpile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">native_gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeffs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#QFTPhaseKernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.QFTPhaseKernel" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_CompiledAnsatz</span></code></p>
+<p>QFT followed by a diagonal RZ phase kernel (no closing inverse QFT).</p>
+<p>The trailing RZ layer’s magic rotations get Clifford-backpropagated through
+the QFT’s H/CU1/SWAP structure – a stronger HSMPO test than a single
+trailing CZ chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coeffs</strong> – Per-qubit RZ angles. Default: binary-weighted <code class="docutils literal notranslate"><span class="pre">2*pi/2^(j+1)</span></code>.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QFTPhaseKernel.coeffs">
+<span class="sig-name descname"><span class="pre">coeffs</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#mpstab.models.ansatze.QFTPhaseKernel.coeffs" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QFTPhaseKernel.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('coeffs',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.QFTPhaseKernel.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QPE">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">QPE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transpile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">native_gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_counting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.375</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#QPE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.QPE" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_CompiledAnsatz</span></code></p>
+<p>Quantum Phase Estimation for U = diag(1, e^{2 pi i phase}).</p>
+<p>Layout: <code class="docutils literal notranslate"><span class="pre">n_counting</span></code> counting qubits + 1 eigenstate qubit (prepared in
+<span class="math">\(|1\rangle\)</span>). Controlled-U^{2^k} is a controlled phase (CU1); the counting register
+is closed with an inverse QFT. <code class="docutils literal notranslate"><span class="pre">nqubits</span></code> is derived as <code class="docutils literal notranslate"><span class="pre">n_counting</span> <span class="pre">+</span> <span class="pre">1</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_counting</strong> – Number of counting qubits.</p></li>
+<li><p><strong>phase</strong> – True phase in [0, 1); accuracy ~ 1/2^n_counting.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QPE.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('n_counting',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.QPE.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QPE.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('phase',)</span></span><a class="headerlink" href="#mpstab.models.ansatze.QPE.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QPE.n_counting">
+<span class="sig-name descname"><span class="pre">n_counting</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></span><a class="headerlink" href="#mpstab.models.ansatze.QPE.n_counting" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QPE.nqubits">
+<span class="sig-name descname"><span class="pre">nqubits</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#mpstab.models.ansatze.QPE.nqubits" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.QPE.phase">
+<span class="sig-name descname"><span class="pre">phase</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.375</span></span><a class="headerlink" href="#mpstab.models.ansatze.QPE.phase" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.RampedKickedIsing">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">RampedKickedIsing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_z</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clifford_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.5707963267948966</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clifford_j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1.5707963267948966</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_h_last</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_z_last</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond_density</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disorder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#RampedKickedIsing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.RampedKickedIsing" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing" title="mpstab.models.ansatze.ParametricKickedIsing"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParametricKickedIsing</span></code></a></p>
+<p>Build a <a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing" title="mpstab.models.ansatze.ParametricKickedIsing"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParametricKickedIsing</span></code></a> circuit whose magic changes from step to step.</p>
+<p>The deviation of the transverse kicks goes from <code class="docutils literal notranslate"><span class="pre">delta_h</span></code> at the first
+step to <code class="docutils literal notranslate"><span class="pre">delta_h_last</span></code> at the last one, geometrically when the two have
+the same sign and linearly otherwise; likewise the longitudinal kicks, from
+<code class="docutils literal notranslate"><span class="pre">delta_z</span></code> to <code class="docutils literal notranslate"><span class="pre">delta_z_last</span></code>. With the magic concentrated in the first
+steps, a head/tail split leaves the large rotations to the head and only
+small angles to the tail; <code class="docutils literal notranslate"><span class="pre">delta_h</span> <span class="pre">&lt;</span> <span class="pre">delta_h_last</span></code> is the opposite
+profile, as a control. Without <code class="docutils literal notranslate"><span class="pre">delta_h_last</span></code> and <code class="docutils literal notranslate"><span class="pre">delta_z_last</span></code>, at
+<code class="docutils literal notranslate"><span class="pre">bond_density</span> <span class="pre">=</span> <span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">disorder</span> <span class="pre">=</span> <span class="pre">0</span></code>, the circuit is exactly
+<a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing" title="mpstab.models.ansatze.ParametricKickedIsing"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParametricKickedIsing</span></code></a>.</p>
+<p>Two optional sources of randomness, drawn from <code class="docutils literal notranslate"><span class="pre">numpy.random.RandomState(seed)</span></code>
+(from numpy’s global generator when <code class="docutils literal notranslate"><span class="pre">seed</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>), in circuit order:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">disorder</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> gives every kick its own deviation,
+<span class="math">\(\delta_h (1 + \mathrm{disorder} \cdot u)\)</span> with <span class="math">\(u\)</span> uniform
+in <span class="math">\([-1, 1]\)</span>, so different seeds are disorder realisations of the
+same magic profile;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bond_density</span> <span class="pre">&lt;</span> <span class="pre">1</span></code> keeps each coupling of each step with that
+probability and drops the others. At <span class="math">\(\delta_J = 0\)</span> the couplings
+are Clifford, so this lowers the entanglement without changing the magic.</p></li>
+</ul>
+<p>No number is drawn when <code class="docutils literal notranslate"><span class="pre">disorder</span> <span class="pre">=</span> <span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">bond_density</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
+<p>The ramp and the disorder add magic knobs to those of
+<a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing" title="mpstab.models.ansatze.ParametricKickedIsing"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParametricKickedIsing</span></code></a>; <code class="docutils literal notranslate"><span class="pre">bond_density</span></code> adds an entanglement knob.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nqubits</strong> – number of qubits.</p></li>
+<li><p><strong>n_steps</strong> – number of kick-and-couple steps.</p></li>
+<li><p><strong>delta_h</strong> – deviation of the transverse kicks at the first step.</p></li>
+<li><p><strong>delta_h_last</strong> – deviation of the transverse kicks at the last step
+(<code class="docutils literal notranslate"><span class="pre">None</span></code>: <code class="docutils literal notranslate"><span class="pre">delta_h</span></code> at every step).</p></li>
+<li><p><strong>delta_j</strong> – deviation of the <span class="math">\(R_{ZZ}\)</span> couplings from <code class="docutils literal notranslate"><span class="pre">clifford_j</span></code>.</p></li>
+<li><p><strong>delta_z</strong> – angle of the longitudinal kicks at the first step.</p></li>
+<li><p><strong>delta_z_last</strong> – angle of the longitudinal kicks at the last step
+(<code class="docutils literal notranslate"><span class="pre">None</span></code>: <code class="docutils literal notranslate"><span class="pre">delta_z</span></code> at every step).</p></li>
+<li><p><strong>clifford_h</strong> – Clifford angle of the transverse kicks, a multiple of pi/2.</p></li>
+<li><p><strong>clifford_j</strong> – Clifford angle of the couplings, a multiple of pi/2.</p></li>
+<li><p><strong>bond_density</strong> – probability of keeping each coupling, in <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1]</span></code>.</p></li>
+<li><p><strong>disorder</strong> – relative spread of the transverse deviations across the kicks.</p></li>
+<li><p><strong>seed</strong> – seed of the random draws.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.RampedKickedIsing.bond_density">
+<span class="sig-name descname"><span class="pre">bond_density</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.0</span></span><a class="headerlink" href="#mpstab.models.ansatze.RampedKickedIsing.bond_density" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.RampedKickedIsing.delta_h_last">
+<span class="sig-name descname"><span class="pre">delta_h_last</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#mpstab.models.ansatze.RampedKickedIsing.delta_h_last" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.RampedKickedIsing.delta_z_last">
+<span class="sig-name descname"><span class="pre">delta_z_last</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#mpstab.models.ansatze.RampedKickedIsing.delta_z_last" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.RampedKickedIsing.disorder">
+<span class="sig-name descname"><span class="pre">disorder</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span><a class="headerlink" href="#mpstab.models.ansatze.RampedKickedIsing.disorder" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.RampedKickedIsing.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('n_steps',</span> <span class="pre">'clifford_h',</span> <span class="pre">'clifford_j',</span> <span class="pre">'bond_density')</span></span><a class="headerlink" href="#mpstab.models.ansatze.RampedKickedIsing.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.RampedKickedIsing.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('delta_h',</span> <span class="pre">'delta_j',</span> <span class="pre">'delta_z',</span> <span class="pre">'delta_h_last',</span> <span class="pre">'delta_z_last',</span> <span class="pre">'disorder')</span></span><a class="headerlink" href="#mpstab.models.ansatze.RampedKickedIsing.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.RampedKickedIsing.seed">
+<span class="sig-name descname"><span class="pre">seed</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#mpstab.models.ansatze.RampedKickedIsing.seed" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.StarKickedIsing">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">StarKickedIsing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_z</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clifford_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.5707963267948966</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clifford_j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1.5707963267948966</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_h_last</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_z_last</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond_density</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disorder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#StarKickedIsing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.StarKickedIsing" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing" title="mpstab.models.ansatze.RampedKickedIsing"><code class="xref py py-class docutils literal notranslate"><span class="pre">RampedKickedIsing</span></code></a></p>
+<p>Build a <a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing" title="mpstab.models.ansatze.RampedKickedIsing"><code class="xref py py-class docutils literal notranslate"><span class="pre">RampedKickedIsing</span></code></a> circuit on a star: a central-spin model.</p>
+<p>The kicks are those of <a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing" title="mpstab.models.ansatze.RampedKickedIsing"><code class="xref py py-class docutils literal notranslate"><span class="pre">RampedKickedIsing</span></code></a>; the couplings of each
+step are <span class="math">\(R_{ZZ}\)</span> between the hub (qubit 0) and every leaf, leaf 1
+first, each written as <code class="docutils literal notranslate"><span class="pre">CNOT</span> <span class="pre">·</span> <span class="pre">RZ</span> <span class="pre">·</span> <span class="pre">CNOT</span></code>. The hub is an ordinary logical
+qubit; the label 0 is a convention. The circuit suits devices with a central
+element, such as an IQM Star: there the compiler can move the hub’s state
+into the computational resonator once per step and apply all its CZ gates
+from it, instead of moving a qubit in and out for nearly every CZ as a
+chain needs (on a 10-qubit IQM Star, 6 steps: about 20 MOVE gates against
+about 100 for the chain).</p>
+<p>Args: as <a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing" title="mpstab.models.ansatze.RampedKickedIsing"><code class="xref py py-class docutils literal notranslate"><span class="pre">RampedKickedIsing</span></code></a>; <code class="docutils literal notranslate"><span class="pre">bond_density</span></code> applies to the
+hub-leaf couplings.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TranspiledAnsatz">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">TranspiledAnsatz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">native_gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Circuit</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#TranspiledAnsatz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.TranspiledAnsatz" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_CompiledAnsatz</span></code></p>
+<p>Any circuit, transpiled into the native gates of a given quantum device
+presenting a given connectivity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>original_circuit</strong> – The circuit to be transpiled.</p></li>
+<li><p><strong>native_gates</strong> – Optional[List]: list of native gates of the used device.
+Default is [gates.GPI2, gates.RZ, gates.Z, gates.CZ].</p></li>
+<li><p><strong>connectivity</strong> – Optional[nx.Graph]: graph representing the topology of the
+used device. Default is None and in this case the transpilation
+does not take into account any connectivity constraint.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TranspiledAnsatz.nqubits">
+<span class="sig-name descname"><span class="pre">nqubits</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#mpstab.models.ansatze.TranspiledAnsatz.nqubits" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TranspiledAnsatz.original_circuit">
+<span class="sig-name descname"><span class="pre">original_circuit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Circuit</span></span><a class="headerlink" href="#mpstab.models.ansatze.TranspiledAnsatz.original_circuit" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TranspiledAnsatz.transpile">
+<span class="sig-name descname"><span class="pre">transpile</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#mpstab.models.ansatze.TranspiledAnsatz.transpile" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TrotterIsing">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.ansatze.</span></span><span class="sig-name descname"><span class="pre">TrotterIsing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transpile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">native_gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/ansatze.html#TrotterIsing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.ansatze.TrotterIsing" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_CompiledAnsatz</span></code></p>
+<p>First-order Trotter evolution of the 1D transverse-field Ising model.</p>
+<blockquote>
+<div><p>H = -J sum_j Z_j Z_{j+1} - h sum_j X_j   (open boundaries)</p>
+</div></blockquote>
+<p>Each step applies ZZ rotations (via RZZ) then transverse-field RX rotations,
+producing a long structured sequence of magic rotations between Cliffords.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_steps</strong> – Number of Trotter steps.</p></li>
+<li><p><strong>dt</strong> – Time step.</p></li>
+<li><p><strong>J</strong> – Coupling strength.</p></li>
+<li><p><strong>h</strong> – Transverse field strength.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TrotterIsing.J">
+<span class="sig-name descname"><span class="pre">J</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.0</span></span><a class="headerlink" href="#mpstab.models.ansatze.TrotterIsing.J" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TrotterIsing.dt">
+<span class="sig-name descname"><span class="pre">dt</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.2</span></span><a class="headerlink" href="#mpstab.models.ansatze.TrotterIsing.dt" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TrotterIsing.entanglement_parameters">
+<span class="sig-name descname"><span class="pre">entanglement_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('n_steps',</span> <span class="pre">'dt',</span> <span class="pre">'J')</span></span><a class="headerlink" href="#mpstab.models.ansatze.TrotterIsing.entanglement_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TrotterIsing.h">
+<span class="sig-name descname"><span class="pre">h</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.5</span></span><a class="headerlink" href="#mpstab.models.ansatze.TrotterIsing.h" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TrotterIsing.magic_parameters">
+<span class="sig-name descname"><span class="pre">magic_parameters</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('dt',</span> <span class="pre">'J',</span> <span class="pre">'h')</span></span><a class="headerlink" href="#mpstab.models.ansatze.TrotterIsing.magic_parameters" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.models.ansatze.TrotterIsing.n_steps">
+<span class="sig-name descname"><span class="pre">n_steps</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></span><a class="headerlink" href="#mpstab.models.ansatze.TrotterIsing.n_steps" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<p><strong>Available Ansätze</strong>: see <a class="reference internal" href="../guides/ansatze_catalogue.html"><span class="doc">Ansatz Catalogue</span></a> for the full list,
+with the physical description of each ansatz and the parameters that tune its
+magic and its entanglement (also exposed as the <code class="docutils literal notranslate"><span class="pre">magic_parameters</span></code> and
+<code class="docutils literal notranslate"><span class="pre">entanglement_parameters</span></code> class attributes).</p>
+<p>The circuit-library ansätze (<code class="docutils literal notranslate"><span class="pre">QFT</span></code>, <code class="docutils literal notranslate"><span class="pre">QFTPhaseKernel</span></code>, <code class="docutils literal notranslate"><span class="pre">Grover</span></code>, <code class="docutils literal notranslate"><span class="pre">QPE</span></code>,
+<code class="docutils literal notranslate"><span class="pre">QAE</span></code>, <code class="docutils literal notranslate"><span class="pre">TrotterIsing</span></code>) are written with high-level gates (<code class="docutils literal notranslate"><span class="pre">CU1</span></code>, <code class="docutils literal notranslate"><span class="pre">SWAP</span></code>,
+<code class="docutils literal notranslate"><span class="pre">TOFFOLI</span></code>, <code class="docutils literal notranslate"><span class="pre">RZZ</span></code>, …) and, by default, transpiled to a native gate set on
+construction so every non-Clifford gate becomes an <code class="docutils literal notranslate"><span class="pre">rz</span></code> rotation that HSMPO
+understands — no manual decomposition needed. Pass <code class="docutils literal notranslate"><span class="pre">transpile=False</span></code> to keep the
+raw high-level circuit (e.g. for inspection); HSMPO itself requires the transpiled
+form.</p>
+<p><strong>Key Methods</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">partitionate_circuit(replacement_probability,</span> <span class="pre">replacement_method)</span></code>: Partition circuit</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nparams</span></code>: Number of circuit parameters</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">circuit</span></code>: Access the underlying QiboCircuit</p></li>
+</ul>
+<p><strong>Example Usage</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+
+<span class="c1"># Create ansatz</span>
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="c1"># Use with HSMPO</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">max_bond_dimension</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="s2">&quot;ZZZZZ&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="../guides/using_ansatze.html"><span class="doc">Using Ansätze</span></a> for detailed examples.</p>
+</section>
+<section id="entanglement-metrics-analysis">
+<h2>Entanglement Metrics &amp; Analysis<a class="headerlink" href="#entanglement-metrics-analysis" title="Link to this heading">¶</a></h2>
+<p>Tools for analyzing entanglement and state properties.</p>
+<p id="module-mpstab.models.metrics">State metrics: the stabilizer Renyi entropy, a measure of how much magic a state
+carries, and the Meyer-Wallach global entanglement.</p>
+<p>Only the HSMPO estimators live here. For a dense statevector, Qibo already
+provides both metrics, <code class="xref py py-func docutils literal notranslate"><span class="pre">qibo.quantum_info.stabilizer_renyi_entropy()</span></code> and
+<code class="xref py py-func docutils literal notranslate"><span class="pre">qibo.quantum_info.meyer_wallach_entanglement()</span></code>, and the estimators follow
+the same conventions so the two can be compared directly.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.models.metrics.meyer_wallach_mps">
+<span class="sig-prename descclassname"><span class="pre">mpstab.models.metrics.</span></span><span class="sig-name descname"><span class="pre">meyer_wallach_mps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hsmpo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="evolutors.html#mpstab.evolutors.hsmpo.HSMPO" title="mpstab.evolutors.hsmpo.HSMPO"><span class="pre">HSMPO</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/mpstab/models/metrics.html#meyer_wallach_mps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.metrics.meyer_wallach_mps" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the Meyer-Wallach global entanglement of the state an HSMPO represents.</p>
+<p>Evaluates the average single-qubit linear entropy</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[Q(\psi) = 2 \left(1 - \frac{1}{n} \sum_{k=0}^{n-1}
+\mathrm{Tr}\,\rho_k^2\right),
+
+\]</div>
+</div>
+<p>with <span class="math">\(\rho_k\)</span> the reduced state of qubit <span class="math">\(k\)</span>. The value is 0 for
+product states and 1 when every qubit is maximally entangled with the rest.
+For a dense statevector, use <code class="xref py py-func docutils literal notranslate"><span class="pre">qibo.quantum_info.meyer_wallach_entanglement()</span></code>
+instead.</p>
+<p>The HSMPO state is <span class="math">\(C|\psi_{\mathrm{MPS}}\rangle\)</span>, with <span class="math">\(C\)</span> the
+cached Clifford circuit, so the single-qubit reduced states cannot be read off
+the MPS sites. The function rebuilds each purity from the qubit’s Bloch vector,</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[\mathrm{Tr}\,\rho_k^2 = \frac{1}{2} \left(1 + \langle X_k\rangle^2
++ \langle Y_k\rangle^2 + \langle Z_k\rangle^2\right),
+
+\]</div>
+</div>
+<p>which turns <span class="math">\(Q\)</span> into</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[Q = 1 - \frac{1}{n} \sum_{k=0}^{n-1} \sum_{P \in \{X, Y, Z\}}
+\langle P_k\rangle^2 .
+
+\]</div>
+</div>
+<p>It backpropagates every <span class="math">\(\langle P_k\rangle\)</span> through <span class="math">\(C\)</span> and
+contracts it against the cached MPS. That costs <span class="math">\(3n\)</span> contractions, and
+the result is exact up to the MPS truncation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>hsmpo</strong> – the hybrid stabilizer MPO, with its MPS cache already evolved.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The Meyer-Wallach <span class="math">\(Q\)</span> of the circuit’s output state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.models.metrics.stabilizer_renyi_entropy_mps">
+<span class="sig-prename descclassname"><span class="pre">mpstab.models.metrics.</span></span><span class="sig-name descname"><span class="pre">stabilizer_renyi_entropy_mps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hsmpo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="evolutors.html#mpstab.evolutors.hsmpo.HSMPO" title="mpstab.evolutors.hsmpo.HSMPO"><span class="pre">HSMPO</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/mpstab/models/metrics.html#stabilizer_renyi_entropy_mps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.metrics.stabilizer_renyi_entropy_mps" title="Link to this definition">¶</a></dt>
+<dd><p>Estimate the stabilizer Rényi entropy of the state an HSMPO represents.</p>
+<p>Samples <code class="docutils literal notranslate"><span class="pre">n_samples</span></code> Pauli strings <span class="math">\(P_k\)</span> uniformly from the
+<span class="math">\(4^n\)</span> of them and replaces the exact Pauli sum with its Monte Carlo
+estimate,</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[M_\alpha \approx \frac{1}{1 - \alpha}
+\log_2\left(\frac{4^n}{K} \sum_{k=1}^{K}
+\frac{|\langle P_k\rangle|^{2\alpha}}{2^n}\right),
+
+\]</div>
+</div>
+<p>with <span class="math">\(K\)</span> the number of samples. The estimate of the sum is unbiased;
+its logarithm is not, and the bias shrinks as <span class="math">\(K\)</span> grows. The result is
+the total <span class="math">\(M_\alpha\)</span> in bits, the convention of
+<code class="xref py py-func docutils literal notranslate"><span class="pre">qibo.quantum_info.stabilizer_renyi_entropy()</span></code> with <code class="docutils literal notranslate"><span class="pre">base=2</span></code>, which
+gives the exact value for a dense statevector; divide by <code class="docutils literal notranslate"><span class="pre">hsmpo.nqubits</span></code>
+for the entropy per qubit. Each <span class="math">\(\langle P_k\rangle\)</span> is backpropagated
+through the cached Clifford circuit and contracted against the cached MPS, so
+the MPS is never rebuilt.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hsmpo</strong> – the hybrid stabilizer MPO, with its MPS cache already evolved.</p></li>
+<li><p><strong>alpha</strong> – Rényi order <span class="math">\(\alpha\)</span>, an integer of at least 2.</p></li>
+<li><p><strong>n_samples</strong> – number of Pauli strings to sample. More samples lower the
+variance, but with uniform sampling most strings have a vanishing
+expectation value, so the relative variance grows exponentially
+with the number of qubits.</p></li>
+<li><p><strong>seed</strong> – seed of the random generator, for reproducible samples.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The estimated stabilizer Rényi entropy <span class="math">\(M_\alpha\)</span>, in bits.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – if <code class="docutils literal notranslate"><span class="pre">alpha</span></code> is below 2, or if the estimated Pauli sum is
+    not positive.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p><strong>Available Functions</strong>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">stabilizer_renyi_entropy_mps(hsmpo,</span> <span class="pre">alpha,</span> <span class="pre">n_samples,</span> <span class="pre">seed)</span></code>: sampled stabilizer Renyi
+entropy of the state an HSMPO represents</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">meyer_wallach_mps(hsmpo)</span></code>: Meyer-Wallach global entanglement of the state an HSMPO represents</p></li>
+</ul>
+<p>For a dense statevector, use Qibo’s <code class="docutils literal notranslate"><span class="pre">qibo.quantum_info.stabilizer_renyi_entropy</span></code> and
+<code class="docutils literal notranslate"><span class="pre">qibo.quantum_info.meyer_wallach_entanglement</span></code>; the HSMPO versions follow the same conventions.</p>
+</section>
+<section id="module-mpstab.models.utils">
+<span id="additional-utilities"></span><h2>Additional Utilities<a class="headerlink" href="#module-mpstab.models.utils" title="Link to this heading">¶</a></h2>
+<p>Circuit transpilation and Clifford-replacement helpers.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.models.utils.get_closest_angle">
+<span class="sig-prename descclassname"><span class="pre">mpstab.models.utils.</span></span><span class="sig-name descname"><span class="pre">get_closest_angle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidates</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/utils.html#get_closest_angle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.utils.get_closest_angle" title="Link to this definition">¶</a></dt>
+<dd><p>Return the closest angle to <cite>old_angle</cite> among some <cite>candidates</cite>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.models.utils.hardware_compatible_circuit">
+<span class="sig-prename descclassname"><span class="pre">mpstab.models.utils.</span></span><span class="sig-name descname"><span class="pre">hardware_compatible_circuit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Circuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">native_gates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(&lt;class</span> <span class="pre">'qibo.gates.gates.GPI2'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'qibo.gates.gates.RZ'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'qibo.gates.gates.Z'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'qibo.gates.gates.CZ'&gt;)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectivity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Graph</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Circuit</span></span></span><a class="reference internal" href="../_modules/mpstab/models/utils.html#hardware_compatible_circuit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.utils.hardware_compatible_circuit" title="Link to this definition">¶</a></dt>
+<dd><p>Unroll <code class="docutils literal notranslate"><span class="pre">circuit</span></code> into <code class="docutils literal notranslate"><span class="pre">native_gates</span></code> and, given a <code class="docutils literal notranslate"><span class="pre">connectivity</span></code>
+graph, place and route it on that topology too.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.models.utils.replace_non_clifford_gate">
+<span class="sig-prename descclassname"><span class="pre">mpstab.models.utils.</span></span><span class="sig-name descname"><span class="pre">replace_non_clifford_gate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/utils.html#replace_non_clifford_gate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.utils.replace_non_clifford_gate" title="Link to this definition">¶</a></dt>
+<dd><p>Replace a non-Clifford RX/RY/RZ, RXX/RYY/RZZ or GPI2 gate with a Clifford one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gate</strong> – the gate to replace.</p></li>
+<li><p><strong>replacement_method</strong> – <code class="docutils literal notranslate"><span class="pre">&quot;closest&quot;</span></code> Clifford angle, or a <code class="docutils literal notranslate"><span class="pre">&quot;random&quot;</span></code> one.</p></li>
+<li><p><strong>candidates</strong> – the Clifford angles to choose from. Defaults to the
+multiples of pi/2 legal for the gate.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="quick-reference">
+<h2>Quick Reference<a class="headerlink" href="#quick-reference" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class/Function</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>HardwareEfficient</p></td>
+<td><p>Standard VQA circuit pattern</p></td>
+</tr>
+<tr class="row-odd"><td><p>CircuitAnsatz</p></td>
+<td><p>Wrap Qibo circuits as ansätze</p></td>
+</tr>
+<tr class="row-even"><td><p>TranspiledAnsatz</p></td>
+<td><p>Wrap + transpile to native gates</p></td>
+</tr>
+<tr class="row-odd"><td><p>QFT</p></td>
+<td><p>Quantum Fourier Transform</p></td>
+</tr>
+<tr class="row-even"><td><p>QFTPhaseKernel</p></td>
+<td><p>QFT + diagonal RZ phase kernel</p></td>
+</tr>
+<tr class="row-odd"><td><p>Grover</p></td>
+<td><p>Grover search</p></td>
+</tr>
+<tr class="row-even"><td><p>QPE</p></td>
+<td><p>Quantum Phase Estimation</p></td>
+</tr>
+<tr class="row-odd"><td><p>QAE</p></td>
+<td><p>Quantum Amplitude Estimation</p></td>
+</tr>
+<tr class="row-even"><td><p>TrotterIsing</p></td>
+<td><p>Trotterized transverse-field Ising evolution</p></td>
+</tr>
+<tr class="row-odd"><td><p>meyer_wallach_mps</p></td>
+<td><p>Meyer-Wallach entanglement of an HSMPO state</p></td>
+</tr>
+<tr class="row-even"><td><p>stabilizer_renyi_entropy_mps</p></td>
+<td><p>Sampled stabilizer Renyi entropy of an HSMPO
+state</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="related-documentation">
+<h2>Related Documentation<a class="headerlink" href="#related-documentation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../guides/using_ansatze.html"><span class="doc">Using Ansätze</span></a> - Ansätze usage guide</p></li>
+<li><p><a class="reference internal" href="../guides/fidelity_and_approximation.html"><span class="doc">Fidelity and Approximation</span></a> - Understanding approximations</p></li>
+<li><p><a class="reference internal" href="../examples/introduction.html"><span class="doc">A quick introduction to HSMPO</span></a> - Practical examples</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../publications.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Publications</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="pauli.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Paulis &amp; Observables</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Matteo Robbiati, Giulio Crognaletti, Mattia Robbiano, Roberto Di Lauro, Michele Grossi
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Models &amp; Methods</a><ul>
+<li><a class="reference internal" href="#ansatze-quantum-circuit-templates">Ansätze: Quantum Circuit Templates</a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Ansatz"><code class="docutils literal notranslate"><span class="pre">Ansatz</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Ansatz.circuit"><code class="docutils literal notranslate"><span class="pre">Ansatz.circuit</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Ansatz.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">Ansatz.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Ansatz.magic_parameters"><code class="docutils literal notranslate"><span class="pre">Ansatz.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Ansatz.nparams"><code class="docutils literal notranslate"><span class="pre">Ansatz.nparams</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Ansatz.nqubits"><code class="docutils literal notranslate"><span class="pre">Ansatz.nqubits</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Ansatz.partitionate_circuit"><code class="docutils literal notranslate"><span class="pre">Ansatz.partitionate_circuit()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.CircuitAnsatz"><code class="docutils literal notranslate"><span class="pre">CircuitAnsatz</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.CircuitAnsatz.nqubits"><code class="docutils literal notranslate"><span class="pre">CircuitAnsatz.nqubits</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.CircuitAnsatz.qibo_circuit"><code class="docutils literal notranslate"><span class="pre">CircuitAnsatz.qibo_circuit</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.FloquetAnsatz"><code class="docutils literal notranslate"><span class="pre">FloquetAnsatz</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.FloquetAnsatz.b"><code class="docutils literal notranslate"><span class="pre">FloquetAnsatz.b</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.FloquetAnsatz.decompose_rzz"><code class="docutils literal notranslate"><span class="pre">FloquetAnsatz.decompose_rzz</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.FloquetAnsatz.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">FloquetAnsatz.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.FloquetAnsatz.magic_parameters"><code class="docutils literal notranslate"><span class="pre">FloquetAnsatz.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.FloquetAnsatz.nlayers"><code class="docutils literal notranslate"><span class="pre">FloquetAnsatz.nlayers</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.FloquetAnsatz.partitionate_circuit"><code class="docutils literal notranslate"><span class="pre">FloquetAnsatz.partitionate_circuit()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.FloquetAnsatz.target_qubit"><code class="docutils literal notranslate"><span class="pre">FloquetAnsatz.target_qubit</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.FloquetAnsatz.theta"><code class="docutils literal notranslate"><span class="pre">FloquetAnsatz.theta</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Grover"><code class="docutils literal notranslate"><span class="pre">Grover</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Grover.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">Grover.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Grover.marked_state"><code class="docutils literal notranslate"><span class="pre">Grover.marked_state</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.Grover.n_iterations"><code class="docutils literal notranslate"><span class="pre">Grover.n_iterations</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HammingWeightPreserving"><code class="docutils literal notranslate"><span class="pre">HammingWeightPreserving</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HammingWeightPreserving.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">HammingWeightPreserving.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HammingWeightPreserving.magic_parameters"><code class="docutils literal notranslate"><span class="pre">HammingWeightPreserving.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HammingWeightPreserving.nlayers"><code class="docutils literal notranslate"><span class="pre">HammingWeightPreserving.nlayers</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HardwareEfficient"><code class="docutils literal notranslate"><span class="pre">HardwareEfficient</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HardwareEfficient.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">HardwareEfficient.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HardwareEfficient.entangling"><code class="docutils literal notranslate"><span class="pre">HardwareEfficient.entangling</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HardwareEfficient.magic_parameters"><code class="docutils literal notranslate"><span class="pre">HardwareEfficient.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HardwareEfficient.nlayers"><code class="docutils literal notranslate"><span class="pre">HardwareEfficient.nlayers</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HardwareEfficientBrickwork"><code class="docutils literal notranslate"><span class="pre">HardwareEfficientBrickwork</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HardwareEfficientBrickwork.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">HardwareEfficientBrickwork.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HardwareEfficientBrickwork.magic_parameters"><code class="docutils literal notranslate"><span class="pre">HardwareEfficientBrickwork.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.HardwareEfficientBrickwork.nlayers"><code class="docutils literal notranslate"><span class="pre">HardwareEfficientBrickwork.nlayers</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.KickedIsing"><code class="docutils literal notranslate"><span class="pre">KickedIsing</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.KickedIsing.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">KickedIsing.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.KickedIsing.magic_parameters"><code class="docutils literal notranslate"><span class="pre">KickedIsing.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.KickedIsing.theta_h"><code class="docutils literal notranslate"><span class="pre">KickedIsing.theta_h</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.KickedIsing.theta_j"><code class="docutils literal notranslate"><span class="pre">KickedIsing.theta_j</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.KickedIsing.theta_z"><code class="docutils literal notranslate"><span class="pre">KickedIsing.theta_z</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing.clifford_h"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing.clifford_h</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing.clifford_j"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing.clifford_j</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing.delta_h"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing.delta_h</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing.delta_j"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing.delta_j</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing.delta_z"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing.delta_z</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing.magic_parameters"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing.theta_h"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing.theta_h</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.ParametricKickedIsing.theta_j"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing.theta_j</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QAE"><code class="docutils literal notranslate"><span class="pre">QAE</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QAE.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">QAE.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QAE.magic_parameters"><code class="docutils literal notranslate"><span class="pre">QAE.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QAE.n_counting"><code class="docutils literal notranslate"><span class="pre">QAE.n_counting</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QAE.nqubits"><code class="docutils literal notranslate"><span class="pre">QAE.nqubits</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QAE.theta_A"><code class="docutils literal notranslate"><span class="pre">QAE.theta_A</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QFT"><code class="docutils literal notranslate"><span class="pre">QFT</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QFTPhaseKernel"><code class="docutils literal notranslate"><span class="pre">QFTPhaseKernel</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QFTPhaseKernel.coeffs"><code class="docutils literal notranslate"><span class="pre">QFTPhaseKernel.coeffs</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QFTPhaseKernel.magic_parameters"><code class="docutils literal notranslate"><span class="pre">QFTPhaseKernel.magic_parameters</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QPE"><code class="docutils literal notranslate"><span class="pre">QPE</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QPE.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">QPE.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QPE.magic_parameters"><code class="docutils literal notranslate"><span class="pre">QPE.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QPE.n_counting"><code class="docutils literal notranslate"><span class="pre">QPE.n_counting</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QPE.nqubits"><code class="docutils literal notranslate"><span class="pre">QPE.nqubits</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.QPE.phase"><code class="docutils literal notranslate"><span class="pre">QPE.phase</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing"><code class="docutils literal notranslate"><span class="pre">RampedKickedIsing</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing.bond_density"><code class="docutils literal notranslate"><span class="pre">RampedKickedIsing.bond_density</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing.delta_h_last"><code class="docutils literal notranslate"><span class="pre">RampedKickedIsing.delta_h_last</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing.delta_z_last"><code class="docutils literal notranslate"><span class="pre">RampedKickedIsing.delta_z_last</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing.disorder"><code class="docutils literal notranslate"><span class="pre">RampedKickedIsing.disorder</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">RampedKickedIsing.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing.magic_parameters"><code class="docutils literal notranslate"><span class="pre">RampedKickedIsing.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.RampedKickedIsing.seed"><code class="docutils literal notranslate"><span class="pre">RampedKickedIsing.seed</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.StarKickedIsing"><code class="docutils literal notranslate"><span class="pre">StarKickedIsing</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TranspiledAnsatz"><code class="docutils literal notranslate"><span class="pre">TranspiledAnsatz</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TranspiledAnsatz.nqubits"><code class="docutils literal notranslate"><span class="pre">TranspiledAnsatz.nqubits</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TranspiledAnsatz.original_circuit"><code class="docutils literal notranslate"><span class="pre">TranspiledAnsatz.original_circuit</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TranspiledAnsatz.transpile"><code class="docutils literal notranslate"><span class="pre">TranspiledAnsatz.transpile</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TrotterIsing"><code class="docutils literal notranslate"><span class="pre">TrotterIsing</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TrotterIsing.J"><code class="docutils literal notranslate"><span class="pre">TrotterIsing.J</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TrotterIsing.dt"><code class="docutils literal notranslate"><span class="pre">TrotterIsing.dt</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TrotterIsing.entanglement_parameters"><code class="docutils literal notranslate"><span class="pre">TrotterIsing.entanglement_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TrotterIsing.h"><code class="docutils literal notranslate"><span class="pre">TrotterIsing.h</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TrotterIsing.magic_parameters"><code class="docutils literal notranslate"><span class="pre">TrotterIsing.magic_parameters</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.ansatze.TrotterIsing.n_steps"><code class="docutils literal notranslate"><span class="pre">TrotterIsing.n_steps</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#entanglement-metrics-analysis">Entanglement Metrics &amp; Analysis</a><ul>
+<li><a class="reference internal" href="#mpstab.models.metrics.meyer_wallach_mps"><code class="docutils literal notranslate"><span class="pre">meyer_wallach_mps()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.metrics.stabilizer_renyi_entropy_mps"><code class="docutils literal notranslate"><span class="pre">stabilizer_renyi_entropy_mps()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-mpstab.models.utils">Additional Utilities</a><ul>
+<li><a class="reference internal" href="#mpstab.models.utils.get_closest_angle"><code class="docutils literal notranslate"><span class="pre">get_closest_angle()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.utils.hardware_compatible_circuit"><code class="docutils literal notranslate"><span class="pre">hardware_compatible_circuit()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.utils.replace_non_clifford_gate"><code class="docutils literal notranslate"><span class="pre">replace_non_clifford_gate()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#quick-reference">Quick Reference</a></li>
+<li><a class="reference internal" href="#related-documentation">Related Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/katex.min.js?v=5cc8ed51"></script>
+    <script src="../_static/auto-render.min.js?v=af98beb9"></script>
+    <script src="../_static/katex_autorenderer.js?v=bebc588a"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>
