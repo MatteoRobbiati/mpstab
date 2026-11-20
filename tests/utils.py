@@ -1,5 +1,4 @@
 import random
-from functools import reduce
 
 import numpy as np
 from qibo import Circuit, gates, hamiltonians
@@ -8,7 +7,7 @@ from qibo.symbols import X, Y, Z
 
 from mpstab.engines import QuimbEngine
 from mpstab.hamiltonians import pauli_string_to_hamiltonian
-from mpstab.pauli import PAULI_MATRICES
+from mpstab.pauli import pauli_matrix
 
 DEFAULT_REPLACEMENT_PROBABILITY = 0.75
 DEFAULT_MAX_BD = 128
@@ -104,11 +103,6 @@ def construct_symbolic_hamiltonian(
     return hamiltonians.SymbolicHamiltonian(
         nqubits=nqubits, form=ham_form, backend=qibo_backend
     )
-
-
-def pauli_matrix(pauli: str) -> np.ndarray:
-    """Dense matrix of a Pauli string, qubit 0 leftmost."""
-    return reduce(np.kron, [PAULI_MATRICES[label] for label in pauli])
 
 
 def dense_expectation(state, pauli: str) -> float:

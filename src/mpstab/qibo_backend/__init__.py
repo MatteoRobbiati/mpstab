@@ -2,6 +2,8 @@
 
 from qibo.config import raise_error
 
+from mpstab.qibo_backend.mpstab import MPStabBackend
+
 
 class MetaBackend:
     """Backend loader qibo calls to obtain an mpstab backend."""
@@ -23,8 +25,6 @@ class MetaBackend:
             raise_error(
                 ValueError, f"Backend {backend_name} is not supported. Use 'mpstab'."
             )
-
-        from mpstab.qibo_backend.mpstab import MPStabBackend
 
         return MPStabBackend(
             stab_engine=kwargs.get("stab_engine"), tn_engine=kwargs.get("tn_engine")

@@ -25,11 +25,9 @@ class NoiseEvent:
     rejects any it does not know: a new kind of event is added as a subclass
     plus a branch there.
 
-    Parameters
-    ----------
-    after_gate : int
-        Index in ``ansatz.circuit.queue`` of the gate the event follows, or
-        ``-1`` for the initial state.
+    Attributes:
+        after_gate: index in ``ansatz.circuit.queue`` of the gate the event
+            follows, or ``-1`` for the initial state.
     """
 
     after_gate: int
@@ -43,24 +41,21 @@ class PauliChannel(NoiseEvent):
     With probability ``probs[P]`` the Pauli string ``P`` acts on ``qubits``,
     and with the remaining probability nothing happens.
 
-    Parameters
-    ----------
-    after_gate : int
-        Index of the gate the channel follows, or ``-1`` for the initial state.
-    qubits : tuple of int
-        The qubits the channel acts on, in the order the Pauli labels use.
-    probs : dict of str to float
-        Probability of each non-identity Pauli string on ``qubits``, one label
-        per qubit. They must sum to at most 1.
+    Attributes:
+        after_gate: index of the gate the channel follows, or ``-1`` for the
+            initial state.
+        qubits: the qubits the channel acts on, in the order the Pauli labels
+            use.
+        probs: probability of each non-identity Pauli string on ``qubits``, one
+            label per qubit. They must sum to at most 1.
 
-    Examples
-    --------
-    A correlated two-qubit channel after the first gate::
+    Example:
+        A correlated two-qubit channel after the first gate::
 
-        from mpstab.noise.events import PauliChannel
+            from mpstab.noise.events import PauliChannel
 
-        channel = PauliChannel(after_gate=0, qubits=(0, 1), probs={"ZZ": 0.01, "XI": 0.002})
-        print(channel.no_fault_probability)
+            channel = PauliChannel(after_gate=0, qubits=(0, 1), probs={"ZZ": 0.01, "XI": 0.002})
+            print(channel.no_fault_probability)
     """
 
     qubits: tuple[int, ...]
@@ -95,15 +90,14 @@ class PauliChannel(NoiseEvent):
         """
         The channel's terms as ``(pauli, probability)``, padded to ``nqubits``.
 
-        Parameters
-        ----------
-        nqubits : int
-            Width of the circuit.
+        Args:
+            nqubits: width of the circuit.
 
-        Returns
-        -------
-        list of (str, float)
-            One entry per term, in ``probs`` order.
+        Returns:
+            One ``(pauli, probability)`` entry per term, in ``probs`` order.
+
+        Raises:
+            ValueError: if the channel acts on a qubit outside the circuit.
         """
         if max(self.qubits, default=-1) >= nqubits:
             raise ValueError(
@@ -125,22 +119,18 @@ class CoherentRotation(NoiseEvent):
     A coherent error ``exp(-i angle/2 generator)``, such as ZZ crosstalk or an
     over-rotation.
 
-    Parameters
-    ----------
-    after_gate : int
-        Index of the gate the rotation follows, or ``-1`` for the initial state.
-    generator : str
-        Full-width Pauli string, one label per qubit of the circuit.
-    angle : float
-        Rotation angle.
+    Attributes:
+        after_gate: index of the gate the rotation follows, or ``-1`` for the
+            initial state.
+        generator: full-width Pauli string, one label per qubit of the circuit.
+        angle: rotation angle.
 
-    Examples
-    --------
-    ZZ crosstalk between qubits 1 and 2 of a 4-qubit circuit, after gate 3::
+    Example:
+        ZZ crosstalk between qubits 1 and 2 of a 4-qubit circuit, after gate 3::
 
-        from mpstab.noise.events import CoherentRotation
+            from mpstab.noise.events import CoherentRotation
 
-        crosstalk = CoherentRotation(after_gate=3, generator="IZZI", angle=0.02)
+            crosstalk = CoherentRotation(after_gate=3, generator="IZZI", angle=0.02)
     """
 
     generator: str
@@ -162,21 +152,17 @@ class KrausChannel(NoiseEvent):
     otherwise non-Pauli, and the estimator evaluates them as transition
     amplitudes between two sign patterns of the rotation chain.
 
-    Parameters
-    ----------
-    after_gate : int
-        Index of the gate the channel follows, or ``-1`` for the initial state.
-    qubits : tuple of int
-        The qubits the channel acts on. ``qubits[0]`` is the most significant
-        factor of the Kraus matrices, as in qibo.
-    kraus : tuple of numpy.ndarray
-        Kraus operators, each ``2**k x 2**k`` for ``k = len(qubits)``. They
-        must satisfy ``sum_k K_k^dag K_k = I``.
+    Attributes:
+        after_gate: index of the gate the channel follows, or ``-1`` for the
+            initial state.
+        qubits: the qubits the channel acts on. ``qubits[0]`` is the most
+            significant factor of the Kraus matrices, as in qibo.
+        kraus: Kraus operators, each ``2**k x 2**k`` for ``k = len(qubits)``.
+            They must satisfy ``sum_k K_k^dag K_k = I``.
 
-    Examples
-    --------
-    Amplitude damping of qubit 0 after the first gate::
+    Example::
 
+        # Amplitude damping of qubit 0 after the first gate.
         import numpy as np
         from mpstab.noise.events import KrausChannel
 

@@ -61,9 +61,7 @@ import stim
 
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.hamiltonians import Observable, pauli_terms
-from mpstab.pauli import conjugate
-from mpstab.pauli import light_cone as pauli_light_cone
-from mpstab.pauli import validate_pauli_string
+from mpstab.pauli import conjugate, pauli_light_cone, validate_pauli_string
 from mpstab.qpu.execution import QiboSimulator, execute_plan, save_circuits
 from mpstab.qpu.measurement import (
     ExpectationResult,
@@ -71,7 +69,12 @@ from mpstab.qpu.measurement import (
     MeasurementPlan,
     resolve_method,
 )
-from mpstab.qpu.measurement.pauli_expansion import fold_fidelity, fold_truncation_l2
+from mpstab.qpu.measurement.pauli_expansion import (
+    fold_fidelity,
+    fold_truncation_l2,
+    operator_distance,
+    operator_norm,
+)
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
     HeadSynthesis,
@@ -143,8 +146,11 @@ class HSynthSMPO(HSMPO):
     into a resynthesised head and an MPO tail, with the head measured from a
     finite shot budget.
 
-    Requires :class:`~mpstab.engines.QuimbEngine` for the tail, the only engine
-    that can conjugate an operator.
+    The tail needs a tensor-network engine that can conjugate an operator and
+    export it as site arrays
+    (:meth:`~mpstab.engines.TensorNetworkEngine.conjugate_operator`,
+    :meth:`~mpstab.engines.TensorNetworkEngine.operator_site_arrays`), such
+    as :class:`~mpstab.engines.QuimbEngine`.
 
     Args:
         head_synthesis: how the head is resynthesised, a
@@ -314,7 +320,11 @@ class HSynthSMPO(HSMPO):
                 )
             )
             if max_bond_dimension is not None:
-                truncation_l2 += fold_truncation_l2(coefficient, operator, self.nqubits)
+                truncation_l2 += fold_truncation_l2(
+                    coefficient,
+                    self.tn_engine.operator_site_arrays(operator),
+                    self.nqubits,
+                )
 
         return ExpectationResult(
             value=float(np.real(value)),
@@ -323,7 +333,7 @@ class HSynthSMPO(HSMPO):
             truncation_l2=float(truncation_l2),
             n_settings=0,
             n_shots=0,
-            state_fidelity=float(np.real(state_mps.norm(squared=True))),
+            state_fidelity=self.tn_engine.squared_norm(state_mps),
         )
 
     def tail_truncation(
@@ -386,15 +396,17 @@ class HSynthSMPO(HSMPO):
         operator_approx, sign = self.build_post_head_mpo(
             observable, cut_index, max_bond_dimension, residual=residual
         )
-        fidelity_estimate = fold_fidelity(operator_approx, self.nqubits)
+        approx_sites = self.tn_engine.operator_site_arrays(operator_approx)
+        fidelity_estimate = fold_fidelity(approx_sites, self.nqubits)
         if not exact:
             return TailTruncation(fidelity_estimate, None, None)
 
         operator_exact, _ = self.build_post_head_mpo(
             observable, cut_index, reference_max_bond, residual=residual
         )
-        exact_norm = float(np.real(operator_exact.norm()))
-        difference_norm = float(np.real((operator_approx - operator_exact).norm()))
+        exact_sites = self.tn_engine.operator_site_arrays(operator_exact)
+        exact_norm = operator_norm(exact_sites)
+        difference_norm = operator_distance(approx_sites, exact_sites)
         relative_frobenius_error = (
             difference_norm / exact_norm if exact_norm != 0 else 0.0
         )

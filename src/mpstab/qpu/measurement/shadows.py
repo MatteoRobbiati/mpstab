@@ -294,6 +294,8 @@ class ClassicalShadows(MeasurementMethod):
             operator, sign = model.build_post_head_mpo(
                 pauli, cut_index, max_bond_dimension, residual=residual
             )
+            # From here on the tail is plain arrays, whatever the engine.
+            operator = model.tn_engine.operator_site_arrays(operator)
             mpo_terms.append((pauli, coefficient, sign, operator))
             if max_bond_dimension is not None:
                 truncation_l2 += fold_truncation_l2(coefficient, operator, nqubits)

@@ -15,6 +15,9 @@ more information about the quantum hardware and, then, recover a compiled and tr
 model is particularly relevant in contexts where one wants to have control of the number of gates executed
 on a real quantum device.
 
+The :doc:`ansatze_catalogue` lists every ansatz with its physical description and
+the parameters that tune its magic and its entanglement.
+
 CircuitAnsatz
 ~~~~~~~~~~~~~~
 

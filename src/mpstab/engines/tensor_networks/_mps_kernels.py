@@ -20,7 +20,7 @@ from __future__ import annotations
 import numpy as np
 import scipy.linalg
 
-from mpstab.pauli import PAULI_MATRICES as _PAULI_2x2
+from mpstab.pauli import PAULI_MATRICES
 
 
 def bounds(pauli: str) -> tuple[int, int] | None:
@@ -124,7 +124,7 @@ def pauli_rotation(
     a, b = window
     if a == b:
         # A physical-index unitary keeps every isometry an isometry.
-        gate = cos * _PAULI_2x2["I"] - 1j * sin * _PAULI_2x2[generator[a]]
+        gate = cos * PAULI_MATRICES["I"] - 1j * sin * PAULI_MATRICES[generator[a]]
         A[a] = np.einsum("pq,lqr->lpr", gate, A[a])
         return center
 

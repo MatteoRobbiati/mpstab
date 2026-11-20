@@ -11,15 +11,19 @@ release = "0.0.1"
 
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",  # For Google/NumPy style docstrings
+    "sphinx.ext.napoleon",  # For Google-style docstrings
     "sphinx.ext.viewcode",
     "nbsphinx",  # For Jupyter Notebook support
     "sphinx_copybutton",  # Adds "copy" button to code blocks
     "sphinxcontrib.katex",  # For fast math rendering
 ]
 
-# Render Google-style "Attributes:" sections as :ivar: fields, so dataclass
-# fields are not documented twice (once by napoleon, once by :undoc-members:).
+# Docstrings are written in Google style only.
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
+# Render "Attributes:" sections as :ivar: fields instead of separate
+# attribute directives, so dataclass fields (also picked up by autodoc's
+# :undoc-members:) are not documented twice.
 napoleon_use_ivar = True
 
 # Furo Theme Settings

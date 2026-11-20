@@ -33,6 +33,7 @@ first difference.
 
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
 import numpy as np
@@ -47,28 +48,23 @@ class NoisyExpectation:
     """
     Result of :func:`noisy_expectation`.
 
-    Attributes
-    ----------
-    mean : float
-        The noisy expectation value.
-    stderr : float
-        Its standard error, from the sampled ``k >= 2`` stratum only: the
-        lower strata are exact. Zero when nothing was sampled.
-    n_patterns : int
-        Distinct rotation sign patterns evaluated on the MPS as expectation
-        values.
-    fidelities : numpy.ndarray
-        Truncation fidelity of the MPS of each of those patterns, shape
-        ``(n_patterns,)``; ``nan`` for an engine that does not expose a norm.
-    stratum_weights : tuple of float
-        Total weight of the configurations with ``k = 0``, ``k = 1`` and
-        ``k >= 2`` locations doing something, counting only the faults and
-        coherences that can affect the observable. For Pauli noise these are
-        probabilities summing to 1; coherences count with ``|chi|``.
-    n_samples : int
-        Configurations sampled for the ``k >= 2`` stratum.
-    n_transitions : int
-        Transition amplitudes evaluated for coherences, exact and sampled.
+    Attributes:
+        mean: the noisy expectation value.
+        stderr: its standard error, from the sampled ``k >= 2`` stratum only:
+            the lower strata are exact. Zero when nothing was sampled.
+        n_patterns: distinct rotation sign patterns evaluated on the MPS as
+            expectation values.
+        fidelities: truncation fidelity of the MPS of each of those patterns,
+            shape ``(n_patterns,)``; ``nan`` for an engine that does not expose
+            a norm.
+        stratum_weights: total weight of the configurations with ``k = 0``,
+            ``k = 1`` and ``k >= 2`` locations doing something, counting only
+            the faults and coherences that can affect the observable. For Pauli
+            noise these are probabilities summing to 1; coherences count with
+            ``|chi|``.
+        n_samples: configurations sampled for the ``k >= 2`` stratum.
+        n_transitions: transition amplitudes evaluated for coherences, exact
+            and sampled.
     """
 
     mean: float
@@ -91,43 +87,34 @@ def noisy_expectation(
     """
     Expectation value of ``observable`` on the noisy circuit.
 
-    Parameters
-    ----------
-    compiled : CompiledNoise
-        The noisy circuit, from :func:`~mpstab.noise.compile_noise`.
-    observable : Observable
-        A Pauli string or any other format
-        :func:`~mpstab.hamiltonians.pauli_terms` accepts.
-    n_samples : int, optional
-        Configurations to sample for the ``k >= 2`` stratum. With ``0`` that
-        stratum is dropped, which biases the mean by at most
-        ``stratum_weights[2]`` times the sum of the absolute coefficients.
-    seed : int, optional
-        Seed of the sampler.
-    light_cone : bool, optional
-        Restrict the circuit to the light cone first. This is exact, and it
-        leaves fewer rotations per pattern and fewer faults, so a smaller
-        ``k >= 2`` weight and a smaller standard error. Turn it off only to
-        compare against the unrestricted computation.
-    n_workers : int, optional
-        Processes evaluating the sign patterns of Pauli faults. The distinct
-        patterns are split into contiguous blocks, so the result is identical
-        for any value; each extra process costs a start-up of about a second,
-        so it pays off only when there are many patterns or the MPS is large.
-        Transition amplitudes are evaluated in this process.
+    Args:
+        compiled: the noisy circuit, from :func:`~mpstab.noise.compile_noise`.
+        observable: a Pauli string or any other format
+            :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+        n_samples: configurations to sample for the ``k >= 2`` stratum. With
+            ``0`` that stratum is dropped, which biases the mean by at most
+            ``stratum_weights[2]`` times the sum of the absolute coefficients.
+        seed: seed of the sampler.
+        light_cone: restrict the circuit to the observable's light cone first.
+            This is exact, and it leaves fewer rotations per pattern and fewer
+            faults, so a smaller ``k >= 2`` weight and a smaller standard error.
+            Turn it off only to compare against the unrestricted computation.
+        n_workers: processes evaluating the sign patterns of Pauli faults. The
+            distinct patterns are split into contiguous blocks, so the result is
+            identical for any value; each extra process costs a start-up of
+            about a second, so it pays off only when there are many patterns or
+            the MPS is large. Transition amplitudes are evaluated in this
+            process.
 
-    Returns
-    -------
-    NoisyExpectation
+    Returns:
+        The :class:`NoisyExpectation`.
 
-    Examples
-    --------
-    ::
+    Example::
 
         from qibo import Circuit, gates
         from mpstab import HSMPO
         from mpstab.noise.compile import compile_noise
-        from mpstab.noise.estimator import noisy_expectation
+        from mpstab.noise.mc_noise_estimator import noisy_expectation
         from mpstab.noise.events import PauliChannel
 
         circuit = Circuit(2)
@@ -142,7 +129,7 @@ def noisy_expectation(
         print(f"{result.mean:.4f} +- {result.stderr:.4f}")
     """
     constant, terms = pauli_terms(observable, compiled.nqubits)
-    dressed = [compiled.dress_observable(pauli) for pauli in terms]
+    dressed = compiled.dress_observables(terms)
     if light_cone:
         compiled = compiled.restricted_to([pauli for pauli, _ in dressed])
     observable_flips = compiled.observable_flips([pauli for pauli, _ in dressed])
@@ -422,8 +409,6 @@ def _pattern_values(compiled, patterns, dressed, n_workers: int = 1):
     if n_workers == 1:
         values, fidelities = _evaluate_patterns(*args, unique)
     else:
-        from concurrent.futures import ProcessPoolExecutor
-
         blocks = np.array_split(unique, n_workers)
         with ProcessPoolExecutor(max_workers=n_workers) as pool:
             results = list(
@@ -524,9 +509,7 @@ def _evaluate_patterns(
         if paulis:
             expvals = engine.pauli_expvals(state, paulis)
             values[row] = np.real(np.asarray(expvals, dtype=complex)) * signs
-        fidelities[row] = (
-            np.real(state.norm(squared=True)) if hasattr(state, "norm") else np.nan
-        )
+        fidelities[row] = engine.squared_norm(state)
     return values, fidelities
 
 

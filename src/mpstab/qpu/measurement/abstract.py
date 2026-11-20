@@ -35,7 +35,9 @@ class MeasurementPlan:
       in the same order, plus the ``{pauli_string: c_P}`` map the groups came
       from.
     - ``"shadows"`` and ``"tnice"``: ``(mpo_terms, bases)``, where ``mpo_terms``
-      holds ``(label, coefficient, sign, mpo)`` per Hamiltonian term and
+      holds ``(label, coefficient, sign, mpo)`` per Hamiltonian term, the
+      folded tail ``mpo`` as its site arrays
+      (:meth:`~mpstab.engines.TensorNetworkEngine.operator_site_arrays`), and
       ``bases`` has one basis string per circuit.
 
     Attributes:

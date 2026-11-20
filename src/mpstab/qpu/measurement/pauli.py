@@ -225,6 +225,7 @@ class PauliSampling(MeasurementMethod):
             operator, sign = model.build_post_head_mpo(
                 pauli, cut_index, max_bond_dimension
             )
+            operator = model.tn_engine.operator_site_arrays(operator)
             if truncated:
                 bond_truncation_l2 += fold_truncation_l2(
                     coefficient, operator, model.nqubits
