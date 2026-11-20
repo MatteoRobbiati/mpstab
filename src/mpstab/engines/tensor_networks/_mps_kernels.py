@@ -191,3 +191,19 @@ def pauli_expectation(A: list[np.ndarray], center: int, pauli: str) -> complex:
 def squared_norm(A: list[np.ndarray], center: int) -> float:
     """``<psi|psi>``, which in mixed canonical form lives on the center alone."""
     return float(np.vdot(A[center], A[center]).real)
+
+
+def pauli_transition(
+    bra: list[np.ndarray], ket: list[np.ndarray], pauli: str
+) -> complex:
+    """
+    Unnormalized ``<bra|P|ket>`` between two MPS, by a full left-to-right
+    sweep: the two states have different gauges, so nothing outside the
+    support contracts away.
+    """
+    env = np.ones((1, 1))
+    for j in range(len(ket)):
+        ket_j = apply_pauli(ket[j], pauli[j])
+        env = np.tensordot(env, ket_j, axes=(1, 0))  # (bra_l, phys, ket_r)
+        env = np.tensordot(bra[j].conj(), env, axes=([0, 1], [0, 1]))
+    return complex(env[0, 0])

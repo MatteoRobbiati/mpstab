@@ -401,6 +401,48 @@ class QuimbEngine(TensorNetworkEngine):
         view.commit()
         return values / norm
 
+    def pauli_transitions(
+        self, bra_state: MatrixProductState, ket_state: MatrixProductState, paulis
+    ):
+        """
+        Normalized transition amplitudes ``<bra|P|ket>`` of many Pauli strings
+        between two states, each divided by the norms of both states.
+
+        Returns:
+            A complex array on the numpy backend, a list of backend scalars
+            otherwise.
+        """
+        paulis = list(paulis)
+        if not self._fast:
+            norm = np.sqrt(
+                bra_state.norm(squared=True).real * ket_state.norm(squared=True).real
+            )
+            ket = ket_state.reindex({f"k{i}": f"b{i}" for i in range(ket_state.L)})
+            return [
+                (bra_state.H & self.pauli_mpo(p) & ket).contract(
+                    backend=self.backend, optimize="greedy"
+                )
+                / norm
+                for p in paulis
+            ]
+
+        def sites(state):
+            # One view at a time: the two may be the same state.
+            view = _CanonicalMPS(state)
+            norm = kernels.squared_norm(view, view.center)
+            arrays = [view[i] for i in range(view.L)]
+            view.commit()
+            return arrays, norm
+
+        bra_sites, bra_norm = sites(bra_state)
+        ket_sites, ket_norm = sites(ket_state)
+        norm = np.sqrt(bra_norm * ket_norm)
+        values = np.array(
+            [kernels.pauli_transition(bra_sites, ket_sites, p) for p in paulis],
+            dtype=complex,
+        )
+        return values / norm
+
     def pauli_rot(
         self,
         state_circuit: MatrixProductState,
