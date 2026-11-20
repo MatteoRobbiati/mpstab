@@ -1,5 +1,5 @@
 
-<img width="260" height="120" alt="image" src="./docs/mpstab_logo.png" />
+<img width="260" height="120" alt="image" src="./docs/_static/images/mpstab_logo.png" />
 
 ---
 

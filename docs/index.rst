@@ -5,6 +5,22 @@ mpstab: a cutting-edge quantum circuit simulator
 
 By combining the efficiency of Clifford stabilizers with the expressiveness of Tensor Networks, ``mpstab`` allows researchers to simulate circuits that are "mostly Clifford" but contain non-trivial non-stabilizer resources. The hybrid stabilizer-MPO representation was introduced in `this work from Mello, Santini and Collura  <https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604>`_.
 
+.. figure:: _static/images/mpstab_pipeline_light.svg
+   :figclass: only-light
+   :align: center
+   :width: 100%
+   :alt: The mpstab pipeline
+
+   The ``mpstab`` pipeline. a) The circuit is split into Clifford and magic operations: the stabilizers engine evolves the magic generators through the Clifford part, and the tensor network engine turns them into MPOs. b) The tensor network engine applies these MPOs to the initial state. c) The stabilizers engine backpropagates the observable through the Clifford circuit, and the result is contracted with the evolved state.
+
+.. figure:: _static/images/mpstab_pipeline_dark.svg
+   :figclass: only-dark
+   :align: center
+   :width: 100%
+   :alt: The mpstab pipeline
+
+   The ``mpstab`` pipeline. a) The circuit is split into Clifford and magic operations: the stabilizers engine evolves the magic generators through the Clifford part, and the tensor network engine turns them into MPOs. b) The tensor network engine applies these MPOs to the initial state. c) The stabilizers engine backpropagates the observable through the Clifford circuit, and the result is contracted with the evolved state.
+
 Core Features
 -------------
 

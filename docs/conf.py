@@ -29,7 +29,7 @@ napoleon_use_ivar = True
 # Furo Theme Settings
 html_theme = "furo"
 html_title = "Documentation"
-html_logo = "mpstab_logo.png"
+html_logo = "_static/images/mpstab_logo.png"
 
 # Exclude build directory and notebook checkpoints
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
