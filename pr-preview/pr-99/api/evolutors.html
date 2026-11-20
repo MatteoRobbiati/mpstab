@@ -221,6 +221,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/scripts/gradient_frameworks.html">Gradients against PennyLane and qiboml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/gradient_paulipropagation.html">Gradients against PauliPropagation.jl</a></li>
 </ul>
 </li>
 </ul>
@@ -378,7 +379,8 @@ truncation error.</p></li>
 <span class="sig-name descname"><span class="pre">gradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SymbolicHamiltonian</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">light_cone</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'adjoint'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">costate_bond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="../_modules/mpstab/evolutors/hsmpo.html#HSMPO.gradient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.hsmpo.HSMPO.gradient" title="Link to this definition">¶</a></dt>
 <dd><p>Gradient of <a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.expectation" title="mpstab.evolutors.hsmpo.HSMPO.expectation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation()</span></code></a> with respect to the circuit parameters,
 analytically, instead of the two shifted circuits per parameter of the
-parameter-shift rule. See
+parameter-shift rule: its cost does not grow with the number of
+parameters. See
 <a class="reference internal" href="#mpstab.evolutors.gradient.analytic_gradient" title="mpstab.evolutors.gradient.analytic_gradient"><code class="xref py py-func docutils literal notranslate"><span class="pre">analytic_gradient()</span></code></a>, which also
 reports the rotations applied and the truncation fidelities.</p>
 <dl class="field-list simple">
@@ -390,10 +392,10 @@ reports the rotations applied and the truncation fidelities.</p>
 all of them by default.</p></li>
 <li><p><strong>light_cone</strong> – drop the rotations that cannot affect the observable
 first, which is exact.</p></li>
-<li><p><strong>method</strong> – <code class="docutils literal notranslate"><span class="pre">&quot;adjoint&quot;</span></code> (default), one backward pass of a costate,
-about twice the cost of <a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.expectation" title="mpstab.evolutors.hsmpo.HSMPO.expectation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation()</span></code></a> whatever the number
-of parameters; or <code class="docutils literal notranslate"><span class="pre">&quot;flips&quot;</span></code>, one shifted tail per parameter,
-with no costate to truncate.</p></li>
+<li><p><strong>method</strong> – <code class="docutils literal notranslate"><span class="pre">&quot;adjoint&quot;</span></code> (default), one forward pass and one
+backward pass of a costate of twice the bond dimension; or
+<code class="docutils literal notranslate"><span class="pre">&quot;flips&quot;</span></code>, one shifted tail per parameter, with no costate to
+truncate.</p></li>
 <li><p><strong>costate_bond</strong> – bond cap of the adjoint costate, twice
 <code class="docutils literal notranslate"><span class="pre">max_bond_dimension</span></code> by default; <code class="docutils literal notranslate"><span class="pre">max_bond_dimension</span></code>
 itself is about twice as fast, for twice the error.</p></li>
@@ -524,6 +526,35 @@ and its standard error in <code class="docutils literal notranslate"><span class
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">nqubits</span></span><a class="headerlink" href="#mpstab.evolutors.hsmpo.HSMPO.nqubits" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.evolutors.hsmpo.HSMPO.optimize_parameters">
+<span class="sig-name descname"><span class="pre">optimize_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SymbolicHamiltonian</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'adam'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">gradient_options</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/mpstab/evolutors/hsmpo.html#HSMPO.optimize_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.hsmpo.HSMPO.optimize_parameters" title="Link to this definition">¶</a></dt>
+<dd><p>Minimize <code class="docutils literal notranslate"><span class="pre">observable</span></code> over the circuit parameters, a VQE on the
+surrogate, with the analytic gradient. Unlike
+<a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.minimize_expectation" title="mpstab.evolutors.hsmpo.HSMPO.minimize_expectation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">minimize_expectation()</span></code></a>, which optimizes the MPS itself, this
+returns parameters of the circuit, to run anywhere.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observable</strong> – the Hamiltonian, in any format
+<a class="reference internal" href="pauli.html#mpstab.hamiltonians.pauli_terms" title="mpstab.hamiltonians.pauli_terms"><code class="xref py py-func docutils literal notranslate"><span class="pre">pauli_terms()</span></code></a> accepts.</p></li>
+<li><p><strong>method</strong> – <code class="docutils literal notranslate"><span class="pre">&quot;adam&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;lbfgs&quot;</span></code>.</p></li>
+<li><p><strong>max_steps</strong> – maximum number of gradient evaluations.</p></li>
+<li><p><strong>learning_rate</strong> – Adam’s step size.</p></li>
+<li><p><strong>tol</strong> – stop once the largest derivative is below it.</p></li>
+<li><p><strong>callback</strong> – called as <code class="docutils literal notranslate"><span class="pre">callback(step,</span> <span class="pre">energy,</span> <span class="pre">parameters)</span></code>.</p></li>
+<li><p><strong>gradient_options</strong> – forwarded to <a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.gradient" title="mpstab.evolutors.hsmpo.HSMPO.gradient"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code></a>, e.g.
+<code class="docutils literal notranslate"><span class="pre">costate_bond</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">energy</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">energy_history</span></code>,
+<code class="docutils literal notranslate"><span class="pre">num_steps</span></code> and <code class="docutils literal notranslate"><span class="pre">converged</span></code>. The instance is left at the best
+parameters found.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="mpstab.evolutors.hsmpo.HSMPO.progress">
 <span class="sig-name descname"><span class="pre">progress</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#mpstab.evolutors.hsmpo.HSMPO.progress" title="Link to this definition">¶</a></dt>
@@ -594,6 +625,34 @@ the untruncated state because <span class="math">\(\Psi\)</span> is normalised.<
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">truncation_fidelity_pure_tn</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#mpstab.evolutors.hsmpo.HSMPO.truncation_fidelity_pure_tn" title="Link to this definition">¶</a></dt>
 <dd><p>Truncation fidelity of running the whole circuit as a plain MPS, with no
 stabilizer help: the baseline the hybrid representation improves on.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.evolutors.hsmpo.HSMPO.value_and_gradient">
+<span class="sig-name descname"><span class="pre">value_and_gradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SymbolicHamiltonian</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">light_cone</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'adjoint'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">costate_bond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/mpstab/evolutors/hsmpo.html#HSMPO.value_and_gradient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.hsmpo.HSMPO.value_and_gradient" title="Link to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.expectation" title="mpstab.evolutors.hsmpo.HSMPO.expectation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation()</span></code></a> and <a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.gradient" title="mpstab.evolutors.hsmpo.HSMPO.gradient"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code></a> together, from one pass of the
+circuit: what a training step needs.</p>
+<p>The value is evaluated on the chain the gradient uses, restricted to
+the observable’s light cone, so it is exact like <a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.expectation" title="mpstab.evolutors.hsmpo.HSMPO.expectation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation()</span></code></a>
+but needs no cached MPS: it follows the circuit’s parameters at the
+last partition (<a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.set_parameters" title="mpstab.evolutors.hsmpo.HSMPO.set_parameters"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_parameters()</span></code></a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observable</strong> – as in
+<a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.gradient" title="mpstab.evolutors.hsmpo.HSMPO.gradient"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code></a>.</p></li>
+<li><p><strong>light_cone</strong> – as in
+<a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.gradient" title="mpstab.evolutors.hsmpo.HSMPO.gradient"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code></a>.</p></li>
+<li><p><strong>method</strong> – as in
+<a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.gradient" title="mpstab.evolutors.hsmpo.HSMPO.gradient"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code></a>.</p></li>
+<li><p><strong>costate_bond</strong> – as in
+<a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.gradient" title="mpstab.evolutors.hsmpo.HSMPO.gradient"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">(value,</span> <span class="pre">gradient)</span></code>, one derivative per parameter.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -1345,9 +1404,11 @@ needing only the working truncation, with no exact reference built.</p>
 </section>
 <section id="gradients">
 <h2>Gradients<a class="headerlink" href="#gradients" title="Link to this heading">¶</a></h2>
-<p>Analytic gradients of the HSMPO surrogate, at about twice the cost of one
-expectation value whatever the number of parameters, instead of the two shifted
-circuits per parameter of the parameter-shift rule.</p>
+<p>Analytic gradients of the HSMPO surrogate, whose cost does not grow with the
+number of parameters (one forward pass and one backward pass), instead of the two
+shifted circuits per parameter of the parameter-shift rule. Gradient-based
+training of the circuit parameters is in <a class="reference internal" href="#module-mpstab.evolutors.optimization" title="mpstab.evolutors.optimization"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.evolutors.optimization</span></code></a>
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">optimize_parameters()</span></code>).</p>
 <p id="module-mpstab.evolutors.gradient">Analytic gradients of the HSMPO surrogate, from the sign-flip rule of its faults.</p>
 <p>In the Clifford frame the state is <code class="docutils literal notranslate"><span class="pre">|psi&gt;</span> <span class="pre">=</span> <span class="pre">R_R</span> <span class="pre">...</span> <span class="pre">R_1</span> <span class="pre">|init&gt;</span></code>, with dressed
 rotations <code class="docutils literal notranslate"><span class="pre">R_j</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">phi_j/2</span> <span class="pre">G_j)</span></code>, and the observable is
@@ -1375,7 +1436,7 @@ the XOR of fault and parameter rows), and the parameters of the head that
 still need shifted circuits.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="mpstab.evolutors.gradient.AnalyticGradient">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.evolutors.gradient.</span></span><span class="sig-name descname"><span class="pre">AnalyticGradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_rotations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fidelities</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/evolutors/gradient.html#AnalyticGradient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.gradient.AnalyticGradient" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.evolutors.gradient.</span></span><span class="sig-name descname"><span class="pre">AnalyticGradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_rotations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fidelities</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/evolutors/gradient.html#AnalyticGradient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.gradient.AnalyticGradient" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Result of <a class="reference internal" href="#mpstab.evolutors.gradient.analytic_gradient" title="mpstab.evolutors.gradient.analytic_gradient"><code class="xref py py-func docutils literal notranslate"><span class="pre">analytic_gradient()</span></code></a>.</p>
 <dl class="py attribute">
@@ -1386,6 +1447,18 @@ parameter, in the order requested.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.evolutors.gradient.AnalyticGradient.value">
+<span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#mpstab.evolutors.gradient.AnalyticGradient.value" title="Link to this definition">¶</a></dt>
+<dd><p>The expectation value itself, on the same (light-cone-restricted)
+chain, so a training step needs no separate evaluation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1505,7 +1578,48 @@ the state’s truncation then dominates.</p></li>
 </section>
 <section id="module-mpstab.evolutors.optimization">
 <span id="optimization"></span><h2>Optimization<a class="headerlink" href="#module-mpstab.evolutors.optimization" title="Link to this heading">¶</a></h2>
-<p>DMRG ground-state optimization of an HSMPO’s MPS.</p>
+<p>Optimization of an HSMPO: DMRG over its MPS, and gradient-based training of
+its circuit parameters with a fused adjoint kernel.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.evolutors.optimization.adjoint_kernel">
+<span class="sig-prename descclassname"><span class="pre">mpstab.evolutors.optimization.</span></span><span class="sig-name descname"><span class="pre">adjoint_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">engine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">costate_bond</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/evolutors/optimization.html#adjoint_kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.optimization.adjoint_kernel" title="Link to this definition">¶</a></dt>
+<dd><p>The expectation value and its derivative with respect to each rotation
+angle of a dressed-rotation chain, in one forward and one backward pass.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">psi_j</span></code> the state after rotation <code class="docutils literal notranslate"><span class="pre">j</span></code>, <code class="docutils literal notranslate"><span class="pre">T_j</span></code> the rest of the
+chain and <code class="docutils literal notranslate"><span class="pre">O</span> <span class="pre">=</span> <span class="pre">sum_t</span> <span class="pre">w_t</span> <span class="pre">P_t</span></code>, the derivative with respect to the angle
+of rotation <code class="docutils literal notranslate"><span class="pre">j</span></code> is <code class="docutils literal notranslate"><span class="pre">Im</span> <span class="pre">&lt;lambda_j|</span> <span class="pre">G_j</span> <span class="pre">|psi_j&gt;</span> <span class="pre">/</span> <span class="pre">&lt;psi|psi&gt;</span></code>, with the
+costate <code class="docutils literal notranslate"><span class="pre">lambda_j</span> <span class="pre">=</span> <span class="pre">T_j^dag</span> <span class="pre">O</span> <span class="pre">|psi&gt;</span></code>. The forward pass keeps every
+<code class="docutils literal notranslate"><span class="pre">psi_j</span></code>; the backward pass applies the inverse rotations to the
+costate and takes one transition amplitude per rotation in <code class="docutils literal notranslate"><span class="pre">sites</span></code>.</p>
+<p>Everything runs on the windowed kernels of <code class="xref py py-mod docutils literal notranslate"><span class="pre">_mps_kernels</span></code>, on plain
+lists of site arrays: a checkpoint is a shallow copy of the list, since the
+kernels replace arrays rather than write into them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>engine</strong> – a <code class="xref py py-class docutils literal notranslate"><span class="pre">QuimbEngine</span></code> on the numpy backend.</p></li>
+<li><p><strong>initial_state</strong> – the initial MPS, left untouched.</p></li>
+<li><p><strong>generators</strong> – the chain, <code class="docutils literal notranslate"><span class="pre">exp(-i</span> <span class="pre">angle/2</span> <span class="pre">generator)</span></code> in order.</p></li>
+<li><p><strong>angles</strong> – the chain, <code class="docutils literal notranslate"><span class="pre">exp(-i</span> <span class="pre">angle/2</span> <span class="pre">generator)</span></code> in order.</p></li>
+<li><p><strong>sites</strong> – increasing indices of the rotations to differentiate.</p></li>
+<li><p><strong>observables</strong> – the dressed observable <code class="docutils literal notranslate"><span class="pre">sum_t</span> <span class="pre">w_t</span> <span class="pre">P_t</span></code>.</p></li>
+<li><p><strong>weights</strong> – the dressed observable <code class="docutils literal notranslate"><span class="pre">sum_t</span> <span class="pre">w_t</span> <span class="pre">P_t</span></code>.</p></li>
+<li><p><strong>max_bond</strong> – bond cap of the state.</p></li>
+<li><p><strong>costate_bond</strong> – bond cap of the costate.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the normalized
+expectation value, the derivative per rotation (zero outside
+<code class="docutils literal notranslate"><span class="pre">sites</span></code>), the rotations applied, and the truncation fidelities of
+the state and of the costate.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">(value,</span> <span class="pre">derivatives,</span> <span class="pre">n_rotations,</span> <span class="pre">fidelities)</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="mpstab.evolutors.optimization.build_pauli_mpo">
 <span class="sig-prename descclassname"><span class="pre">mpstab.evolutors.optimization.</span></span><span class="sig-name descname"><span class="pre">build_pauli_mpo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tn_engine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">terms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/evolutors/optimization.html#build_pauli_mpo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.optimization.build_pauli_mpo" title="Link to this definition">¶</a></dt>
@@ -1544,6 +1658,41 @@ a gradual <code class="docutils literal notranslate"><span class="pre">[10,</spa
 <dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">ground_state</span></code>, <code class="docutils literal notranslate"><span class="pre">energy</span></code>, <code class="docutils literal notranslate"><span class="pre">converged</span></code>, <code class="docutils literal notranslate"><span class="pre">num_sweeps</span></code>
 and <code class="docutils literal notranslate"><span class="pre">energy_history</span></code>. Energies include the Hamiltonian’s constant
 offset and identity terms.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.evolutors.optimization.minimize_parameters">
+<span class="sig-prename descclassname"><span class="pre">mpstab.evolutors.optimization.</span></span><span class="sig-name descname"><span class="pre">minimize_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hsmpo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SymbolicHamiltonian</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'adam'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">gradient_options</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/evolutors/optimization.html#minimize_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.optimization.minimize_parameters" title="Link to this definition">¶</a></dt>
+<dd><p>Minimize an observable over the circuit parameters of an HSMPO, with its
+analytic gradient (<code class="xref py py-meth docutils literal notranslate"><span class="pre">value_and_gradient()</span></code>).</p>
+<p>Each step only re-partitions the circuit at the new parameters and runs
+one gradient, whose forward pass also gives the energy: the cached MPS is
+rebuilt once, at the end, for the best parameters found.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hsmpo</strong> – the <a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO" title="mpstab.evolutors.hsmpo.HSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HSMPO</span></code></a> to train. Its
+parameters are left at the best ones found.</p></li>
+<li><p><strong>observable</strong> – the Hamiltonian, in any format
+<a class="reference internal" href="pauli.html#mpstab.hamiltonians.pauli_terms" title="mpstab.hamiltonians.pauli_terms"><code class="xref py py-func docutils literal notranslate"><span class="pre">pauli_terms()</span></code></a> accepts.</p></li>
+<li><p><strong>method</strong> – <code class="docutils literal notranslate"><span class="pre">&quot;adam&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;lbfgs&quot;</span></code> (scipy’s L-BFGS-B).</p></li>
+<li><p><strong>initial_parameters</strong> – where to start, the current parameters by default.</p></li>
+<li><p><strong>max_steps</strong> – maximum number of gradient evaluations.</p></li>
+<li><p><strong>learning_rate</strong> – Adam’s step size.</p></li>
+<li><p><strong>tol</strong> – stop once the largest derivative is below it (Adam), or with
+this gradient tolerance (L-BFGS).</p></li>
+<li><p><strong>callback</strong> – called as <code class="docutils literal notranslate"><span class="pre">callback(step,</span> <span class="pre">energy,</span> <span class="pre">parameters)</span></code> after each
+gradient evaluation.</p></li>
+<li><p><strong>gradient_options</strong> – forwarded to
+<a class="reference internal" href="#mpstab.evolutors.gradient.analytic_gradient" title="mpstab.evolutors.gradient.analytic_gradient"><code class="xref py py-func docutils literal notranslate"><span class="pre">analytic_gradient()</span></code></a>, e.g.
+<code class="docutils literal notranslate"><span class="pre">costate_bond</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">energy</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">energy_history</span></code>,
+<code class="docutils literal notranslate"><span class="pre">num_steps</span></code> and <code class="docutils literal notranslate"><span class="pre">converged</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1664,6 +1813,7 @@ offset and identity terms.</p>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.noisy_expectation"><code class="docutils literal notranslate"><span class="pre">HSMPO.noisy_expectation()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.nparams"><code class="docutils literal notranslate"><span class="pre">HSMPO.nparams</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.nqubits"><code class="docutils literal notranslate"><span class="pre">HSMPO.nqubits</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.optimize_parameters"><code class="docutils literal notranslate"><span class="pre">HSMPO.optimize_parameters()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.progress"><code class="docutils literal notranslate"><span class="pre">HSMPO.progress</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.rotations_only"><code class="docutils literal notranslate"><span class="pre">HSMPO.rotations_only()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.set_engines"><code class="docutils literal notranslate"><span class="pre">HSMPO.set_engines()</span></code></a></li>
@@ -1672,6 +1822,7 @@ offset and identity terms.</p>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.tn_engine"><code class="docutils literal notranslate"><span class="pre">HSMPO.tn_engine</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.truncation_fidelity"><code class="docutils literal notranslate"><span class="pre">HSMPO.truncation_fidelity()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.truncation_fidelity_pure_tn"><code class="docutils literal notranslate"><span class="pre">HSMPO.truncation_fidelity_pure_tn</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.value_and_gradient"><code class="docutils literal notranslate"><span class="pre">HSMPO.value_and_gradient()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1743,6 +1894,7 @@ offset and identity terms.</p>
 <li><a class="reference internal" href="#gradients">Gradients</a><ul>
 <li><a class="reference internal" href="#mpstab.evolutors.gradient.AnalyticGradient"><code class="docutils literal notranslate"><span class="pre">AnalyticGradient</span></code></a><ul>
 <li><a class="reference internal" href="#mpstab.evolutors.gradient.AnalyticGradient.values"><code class="docutils literal notranslate"><span class="pre">AnalyticGradient.values</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.evolutors.gradient.AnalyticGradient.value"><code class="docutils literal notranslate"><span class="pre">AnalyticGradient.value</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.gradient.AnalyticGradient.n_rotations"><code class="docutils literal notranslate"><span class="pre">AnalyticGradient.n_rotations</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.gradient.AnalyticGradient.fidelities"><code class="docutils literal notranslate"><span class="pre">AnalyticGradient.fidelities</span></code></a></li>
 </ul>
@@ -1751,8 +1903,10 @@ offset and identity terms.</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-mpstab.evolutors.optimization">Optimization</a><ul>
+<li><a class="reference internal" href="#mpstab.evolutors.optimization.adjoint_kernel"><code class="docutils literal notranslate"><span class="pre">adjoint_kernel()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.optimization.build_pauli_mpo"><code class="docutils literal notranslate"><span class="pre">build_pauli_mpo()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.optimization.minimize_expectation_dmrg"><code class="docutils literal notranslate"><span class="pre">minimize_expectation_dmrg()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.evolutors.optimization.minimize_parameters"><code class="docutils literal notranslate"><span class="pre">minimize_parameters()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-mpstab.evolutors.utils">Utilities</a><ul>

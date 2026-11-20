@@ -221,6 +221,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/scripts/gradient_frameworks.html">Gradients against PennyLane and qiboml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/gradient_paulipropagation.html">Gradients against PauliPropagation.jl</a></li>
 </ul>
 </li>
 </ul>
@@ -507,10 +508,32 @@ windowed kernel, and the backend MPO otherwise.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.site_arrays">
+<span class="sig-name descname"><span class="pre">site_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.site_arrays"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.site_arrays" title="Link to this definition">¶</a></dt>
+<dd><p>The state as the form <code class="xref py py-mod docutils literal notranslate"><span class="pre">_mps_kernels</span></code> works on: a list of
+<code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">phys,</span> <span class="pre">right)</span></code> arrays in mixed canonical form, and the
+orthogonality center. numpy backend only.</p>
+<p>The arrays are read-only and shared with the state; the kernels never
+write into an array, they replace it in the list.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm">
 <span class="sig-name descname"><span class="pre">squared_norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.squared_norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm" title="Link to this definition">¶</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">&lt;psi|psi&gt;</span></code>. On the numpy backend it is read off the orthogonality
 center of the cached canonical form, no full contraction needed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.state_from_arrays">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">state_from_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">MatrixProductState</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.state_from_arrays"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.state_from_arrays" title="Link to this definition">¶</a></dt>
+<dd><p>An MPS from <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">phys,</span> <span class="pre">right)</span></code> site arrays, two sites or more.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.truncation_cutoff">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">truncation_cutoff</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.truncation_cutoff" title="Link to this definition">¶</a></dt>
+<dd><p>The relative singular-value cutoff rotations are compressed with.</p>
 </dd></dl>
 
 </dd></dl>
@@ -649,7 +672,10 @@ torch backend.</p>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_rot"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_rot()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_transitions()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.rotation_operator"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.rotation_operator()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.site_arrays"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.site_arrays()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.squared_norm()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.state_from_arrays"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.state_from_arrays()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.truncation_cutoff"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.truncation_cutoff</span></code></a></li>
 </ul>
 </li>
 </ul>

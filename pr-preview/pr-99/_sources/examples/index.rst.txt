@@ -43,3 +43,4 @@ by theme. Notebooks are shown with the outputs they were saved with.
    free_fermions
    frameworks
    scripts/gradient_frameworks
+   scripts/gradient_paulipropagation

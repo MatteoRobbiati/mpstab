@@ -220,6 +220,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/gradient_frameworks.html">Gradients against PennyLane and qiboml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/gradient_paulipropagation.html">Gradients against PauliPropagation.jl</a></li>
 </ul>
 </li>
 </ul>
@@ -294,7 +295,7 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines.tensor_networks.quimb</span><span class="w"> </span><span class="kn">import</span> <span class="n">_qibo_circuit_to_quimb</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.gradient</span><span class="w"> </span><span class="kn">import</span> <span class="n">analytic_gradient</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize_expectation_dmrg</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize_expectation_dmrg</span><span class="p">,</span> <span class="n">minimize_parameters</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">gate_angle</span><span class="p">,</span> <span class="n">gate_generator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.hamiltonians</span><span class="w"> </span><span class="kn">import</span> <span class="n">Observable</span><span class="p">,</span> <span class="n">pauli_terms</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">Ansatz</span><span class="p">,</span> <span class="n">CircuitAnsatz</span>
@@ -582,7 +583,8 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Gradient of :meth:`expectation` with respect to the circuit parameters,</span>
 <span class="sd">        analytically, instead of the two shifted circuits per parameter of the</span>
-<span class="sd">        parameter-shift rule. See</span>
+<span class="sd">        parameter-shift rule: its cost does not grow with the number of</span>
+<span class="sd">        parameters. See</span>
 <span class="sd">        :func:`~mpstab.evolutors.gradient.analytic_gradient`, which also</span>
 <span class="sd">        reports the rotations applied and the truncation fidelities.</span>
 
@@ -593,10 +595,10 @@
 <span class="sd">                all of them by default.</span>
 <span class="sd">            light_cone: drop the rotations that cannot affect the observable</span>
 <span class="sd">                first, which is exact.</span>
-<span class="sd">            method: ``&quot;adjoint&quot;`` (default), one backward pass of a costate,</span>
-<span class="sd">                about twice the cost of :meth:`expectation` whatever the number</span>
-<span class="sd">                of parameters; or ``&quot;flips&quot;``, one shifted tail per parameter,</span>
-<span class="sd">                with no costate to truncate.</span>
+<span class="sd">            method: ``&quot;adjoint&quot;`` (default), one forward pass and one</span>
+<span class="sd">                backward pass of a costate of twice the bond dimension; or</span>
+<span class="sd">                ``&quot;flips&quot;``, one shifted tail per parameter, with no costate to</span>
+<span class="sd">                truncate.</span>
 <span class="sd">            costate_bond: bond cap of the adjoint costate, twice</span>
 <span class="sd">                ``max_bond_dimension`` by default; ``max_bond_dimension``</span>
 <span class="sd">                itself is about twice as fast, for twice the error.</span>
@@ -612,6 +614,83 @@
         <span class="k">return</span> <span class="n">analytic_gradient</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">light_cone</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">costate_bond</span>
         <span class="p">)</span><span class="o">.</span><span class="n">values</span></div>
+
+
+<div class="viewcode-block" id="HSMPO.value_and_gradient">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.value_and_gradient">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">value_and_gradient</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">,</span>
+        <span class="n">light_cone</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adjoint&quot;</span><span class="p">,</span>
+        <span class="n">costate_bond</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :meth:`expectation` and :meth:`gradient` together, from one pass of the</span>
+<span class="sd">        circuit: what a training step needs.</span>
+
+<span class="sd">        The value is evaluated on the chain the gradient uses, restricted to</span>
+<span class="sd">        the observable&#39;s light cone, so it is exact like :meth:`expectation`</span>
+<span class="sd">        but needs no cached MPS: it follows the circuit&#39;s parameters at the</span>
+<span class="sd">        last partition (:meth:`set_parameters`).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observable, light_cone, method, costate_bond: as in</span>
+<span class="sd">                :meth:`gradient`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``(value, gradient)``, one derivative per parameter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">analytic_gradient</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">light_cone</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">costate_bond</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">values</span></div>
+
+
+<div class="viewcode-block" id="HSMPO.optimize_parameters">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.optimize_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">optimize_parameters</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adam&quot;</span><span class="p">,</span>
+        <span class="n">max_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="n">learning_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">,</span>
+        <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">gradient_options</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Minimize ``observable`` over the circuit parameters, a VQE on the</span>
+<span class="sd">        surrogate, with the analytic gradient. Unlike</span>
+<span class="sd">        :meth:`minimize_expectation`, which optimizes the MPS itself, this</span>
+<span class="sd">        returns parameters of the circuit, to run anywhere.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observable: the Hamiltonian, in any format</span>
+<span class="sd">                :func:`~mpstab.hamiltonians.pauli_terms` accepts.</span>
+<span class="sd">            method: ``&quot;adam&quot;`` or ``&quot;lbfgs&quot;``.</span>
+<span class="sd">            max_steps: maximum number of gradient evaluations.</span>
+<span class="sd">            learning_rate: Adam&#39;s step size.</span>
+<span class="sd">            tol: stop once the largest derivative is below it.</span>
+<span class="sd">            callback: called as ``callback(step, energy, parameters)``.</span>
+<span class="sd">            gradient_options: forwarded to :meth:`gradient`, e.g.</span>
+<span class="sd">                ``costate_bond``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dict with ``energy``, ``parameters``, ``energy_history``,</span>
+<span class="sd">            ``num_steps`` and ``converged``. The instance is left at the best</span>
+<span class="sd">            parameters found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">minimize_parameters</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">observable</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+            <span class="n">max_steps</span><span class="o">=</span><span class="n">max_steps</span><span class="p">,</span>
+            <span class="n">learning_rate</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span>
+            <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+            <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">gradient_options</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="HSMPO.noisy_expectation">

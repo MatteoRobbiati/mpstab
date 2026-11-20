@@ -219,6 +219,7 @@
 <li class="toctree-l2"><a class="reference internal" href="examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/scripts/gradient_frameworks.html">Gradients against PennyLane and qiboml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/scripts/gradient_paulipropagation.html">Gradients against PauliPropagation.jl</a></li>
 </ul>
 </li>
 </ul>
@@ -289,6 +290,8 @@
         <li><a href="api/noise.html#mpstab.noise.model.NoiseModel.add_crosstalk">add_crosstalk() (mpstab.noise.model.NoiseModel method)</a>
 </li>
         <li><a href="api/noise.html#mpstab.noise.model.NoiseModel.add_idle">add_idle() (mpstab.noise.model.NoiseModel method)</a>
+</li>
+        <li><a href="api/evolutors.html#mpstab.evolutors.optimization.adjoint_kernel">adjoint_kernel() (in module mpstab.evolutors.optimization)</a>
 </li>
         <li><a href="api/qpu.html#mpstab.qpu.measurement.pauli.allocate_shots_by_variance">allocate_shots_by_variance() (in module mpstab.qpu.measurement.pauli)</a>
 </li>
@@ -703,6 +706,8 @@
         <li><a href="api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.minimize_expectation">minimize_expectation() (mpstab.evolutors.hsmpo.HSMPO method)</a>
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.optimization.minimize_expectation_dmrg">minimize_expectation_dmrg() (in module mpstab.evolutors.optimization)</a>
+</li>
+        <li><a href="api/evolutors.html#mpstab.evolutors.optimization.minimize_parameters">minimize_parameters() (in module mpstab.evolutors.optimization)</a>
 </li>
         <li>
     module
@@ -1131,6 +1136,8 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/noise.html#mpstab.noise.compile.CompiledNoise.observable_flips">observable_flips() (mpstab.noise.compile.CompiledNoise method)</a>
 </li>
+        <li><a href="api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.optimize_parameters">optimize_parameters() (mpstab.evolutors.hsmpo.HSMPO method)</a>
+</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/models.html#mpstab.models.ansatze.TranspiledAnsatz.original_circuit">original_circuit (mpstab.models.ansatze.TranspiledAnsatz attribute)</a>
@@ -1307,6 +1314,8 @@
 </li>
         <li><a href="api/qpu.html#mpstab.qpu.measurement.shadows.shots_to_outcomes">shots_to_outcomes() (in module mpstab.qpu.measurement.shadows)</a>
 </li>
+        <li><a href="api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.site_arrays">site_arrays() (mpstab.engines.tensor_networks.quimb.QuimbEngine method)</a>
+</li>
         <li><a href="api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm">squared_norm() (mpstab.engines.tensor_networks.quimb.QuimbEngine method)</a>
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.stab_engine">stab_engine (mpstab.evolutors.hsmpo.HSMPO attribute)</a>
@@ -1321,6 +1330,8 @@
           <li><a href="api/qpu.html#mpstab.qpu.measurement.abstract.ExpectationResult.state_fidelity">(mpstab.qpu.measurement.abstract.ExpectationResult attribute)</a>
 </li>
         </ul></li>
+        <li><a href="api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.state_from_arrays">state_from_arrays() (mpstab.engines.tensor_networks.quimb.QuimbEngine static method)</a>
+</li>
         <li><a href="api/noise.html#mpstab.noise.model.StatePreparationError">StatePreparationError (class in mpstab.noise.model)</a>
 </li>
         <li><a href="api/evolutors.html#id6">stderr (mpstab.evolutors.hqsmpo.ExpectationResult attribute)</a>, <a href="api/evolutors.html#mpstab.evolutors.hqsmpo.ExpectationResult.stderr">[1]</a>
@@ -1395,6 +1406,8 @@
 </li>
         <li><a href="api/models.html#mpstab.models.ansatze.TrotterIsing">TrotterIsing (class in mpstab.models.ansatze)</a>
 </li>
+        <li><a href="api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.truncation_cutoff">truncation_cutoff (mpstab.engines.tensor_networks.quimb.QuimbEngine property)</a>
+</li>
         <li><a href="api/qpu.html#mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate">truncation_error_estimate() (in module mpstab.qpu.measurement.pauli_expansion)</a>
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.truncation_fidelity">truncation_fidelity() (mpstab.evolutors.hsmpo.HSMPO method)</a>
@@ -1425,14 +1438,18 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/pauli.html#mpstab.pauli.validate_pauli_string">validate_pauli_string() (in module mpstab.pauli)</a>
 </li>
-        <li><a href="api/evolutors.html#id9">value (mpstab.evolutors.hqsmpo.ExpectationResult attribute)</a>, <a href="api/evolutors.html#mpstab.evolutors.hqsmpo.ExpectationResult.value">[1]</a>
+        <li><a href="api/evolutors.html#mpstab.evolutors.gradient.AnalyticGradient.value">value (mpstab.evolutors.gradient.AnalyticGradient attribute)</a>
 
         <ul>
+          <li><a href="api/evolutors.html#id9">(mpstab.evolutors.hqsmpo.ExpectationResult attribute)</a>, <a href="api/evolutors.html#mpstab.evolutors.hqsmpo.ExpectationResult.value">[1]</a>
+</li>
           <li><a href="api/qpu.html#mpstab.qpu.measurement.abstract.ExpectationResult.value">(mpstab.qpu.measurement.abstract.ExpectationResult attribute)</a>
 </li>
         </ul></li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.value_and_gradient">value_and_gradient() (mpstab.evolutors.hsmpo.HSMPO method)</a>
+</li>
         <li><a href="api/evolutors.html#mpstab.evolutors.gradient.AnalyticGradient.values">values (mpstab.evolutors.gradient.AnalyticGradient attribute)</a>
 </li>
     </ul></td>

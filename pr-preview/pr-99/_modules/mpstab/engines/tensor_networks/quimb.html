@@ -220,6 +220,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/gradient_frameworks.html">Gradients against PennyLane and qiboml</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/gradient_paulipropagation.html">Gradients against PauliPropagation.jl</a></li>
 </ul>
 </li>
 </ul>
@@ -919,6 +920,40 @@
         <span class="n">norm</span> <span class="o">=</span> <span class="n">kernels</span><span class="o">.</span><span class="n">squared_norm</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">view</span><span class="o">.</span><span class="n">center</span><span class="p">)</span>
         <span class="n">view</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">norm</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">truncation_cutoff</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The relative singular-value cutoff rotations are compressed with.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_QUIMB_DEFAULT_CUTOFF</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">svd_cutoff</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">svd_cutoff</span>
+
+<div class="viewcode-block" id="QuimbEngine.site_arrays">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.site_arrays">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">site_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_circuit</span><span class="p">:</span> <span class="n">MatrixProductState</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The state as the form :mod:`._mps_kernels` works on: a list of</span>
+<span class="sd">        ``(left, phys, right)`` arrays in mixed canonical form, and the</span>
+<span class="sd">        orthogonality center. numpy backend only.</span>
+
+<span class="sd">        The arrays are read-only and shared with the state; the kernels never</span>
+<span class="sd">        write into an array, they replace it in the list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">view</span> <span class="o">=</span> <span class="n">_CanonicalMPS</span><span class="p">(</span><span class="n">state_circuit</span><span class="p">)</span>
+        <span class="n">arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">view</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">view</span><span class="o">.</span><span class="n">L</span><span class="p">)]</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">view</span><span class="o">.</span><span class="n">center</span></div>
+
+
+<div class="viewcode-block" id="QuimbEngine.state_from_arrays">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.state_from_arrays">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">state_from_arrays</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MatrixProductState</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;An MPS from ``(left, phys, right)`` site arrays, two sites or more.&quot;&quot;&quot;</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">]</span>  <span class="c1"># (1, p, r) -&gt; (r, p)</span>
+        <span class="n">data</span> <span class="o">+=</span> <span class="p">[</span><span class="n">array</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">1</span> <span class="p">:</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># (l, p, 1) -&gt; (l, p)</span>
+        <span class="k">return</span> <span class="n">MatrixProductState</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;lrp&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="QuimbEngine.copy_state">
