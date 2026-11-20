@@ -1,18 +1,16 @@
 Publications
 ============
 
-MPStab: an hybrid stabilizers tensor-network quantum circuit simulator
-----------------------------------------------------------------------
+Papers that present ``mpstab`` or use it.
 
-*Giulio Crognaletti, Mattia Robbiano, Michele Grossi, Matteo Robbiati* (2026),
-`arXiv:2607.24258 <https://arxiv.org/abs/2607.24258>`_
-
-The paper that presents ``mpstab``.
+- **MPStab: an hybrid stabilizers tensor-network quantum circuit simulator**.
+  Giulio Crognaletti, Mattia Robbiano, Michele Grossi, Matteo Robbiati (2026),
+  `arXiv:2607.24258 <https://arxiv.org/abs/2607.24258>`_.
 
 Citation
 --------
 
-If you use ``mpstab`` in your work, please cite:
+If you use ``mpstab`` in your work, please cite the paper that presents it:
 
 .. code-block:: bibtex
 
