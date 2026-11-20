@@ -10,7 +10,7 @@ and ``R_k G_j = G_j R~_k`` with ``R~_k`` the rotation at angle ``-phi_k`` when
 
 where ``|psi~_j>`` is the chain with the angles of the later rotations
 anticommuting with ``G_j`` negated: the sign pattern a Pauli fault ``G_j``
-right after rotation ``j`` produces in :mod:`mpstab.noise`. It equals the
+right after rotation ``j`` produces in :mod:`mpstab.models.noise`. It equals the
 parameter-shift rule exactly, with one transition amplitude per term in place
 of two shifted circuits. Read backwards it is the adjoint method: with
 ``|psi_j>`` the state after rotation ``j`` and ``T_j`` the rest of the chain,

@@ -1,4 +1,4 @@
-"""Tests for mpstab.noise: Pauli, coherent and Kraus noise in the HSMPO frame."""
+"""Tests for mpstab.models.noise: Pauli, coherent and Kraus noise in the HSMPO frame."""
 
 import numpy as np
 import pytest
@@ -9,7 +9,7 @@ from utils import pauli_matrix
 from mpstab import HSMPO
 from mpstab.engines import QuimbEngine
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
-from mpstab.noise import (
+from mpstab.models.noise import (
     AmplitudeDampingError,
     CoherentError,
     DepolarizingError,
@@ -20,10 +20,15 @@ from mpstab.noise import (
     StatePreparationError,
     ThermalRelaxationError,
 )
-from mpstab.noise.compile import compile_noise
-from mpstab.noise.estimator import noisy_expectation
-from mpstab.noise.events import CoherentRotation, KrausChannel, NoiseEvent, PauliChannel
-from mpstab.noise.model import _qibo_gate
+from mpstab.models.noise.compile import compile_noise
+from mpstab.models.noise.estimator import noisy_expectation
+from mpstab.models.noise.events import (
+    CoherentRotation,
+    KrausChannel,
+    NoiseEvent,
+    PauliChannel,
+)
+from mpstab.models.noise.model import _qibo_gate
 
 OBSERVABLE = {"ZZIII": 0.7, "IXIXI": -0.4, "IIYZI": 0.3}
 
@@ -382,13 +387,13 @@ def test_two_qubit_rotations_replaced_by_cliffords():
 
 
 def _docstring_examples():
-    """Every ``::`` literal block in the docstrings of mpstab.noise."""
+    """Every ``::`` literal block in the docstrings of mpstab.models.noise."""
     import inspect
     import textwrap
 
-    import mpstab.noise as noise
+    import mpstab.models.noise as noise
     from mpstab import pauli
-    from mpstab.noise import compile, estimator, events
+    from mpstab.models.noise import compile, estimator, events
 
     blocks = []
     objects = [getattr(noise, name) for name in noise.__all__]
@@ -558,7 +563,7 @@ def test_readout_only_attenuates_terms():
 
 
 def test_parallel_patterns_match_serial():
-    from mpstab.noise import NoiseModel, PauliError
+    from mpstab.models.noise import NoiseModel, PauliError
 
     hsmpo = HSMPO(_kicked_ising(), max_bond_dimension=4)
     noise = NoiseModel().add(PauliError({"X": 0.01, "Z": 0.02}))

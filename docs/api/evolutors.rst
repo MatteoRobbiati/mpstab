@@ -88,4 +88,4 @@ For more practical examples, see:
 
 - :doc:`../guides/quickstart`
 - :doc:`../guides/fidelity_and_approximation`
-- :doc:`../examples/introduction`
+- :doc:`../tutorials/introduction`
