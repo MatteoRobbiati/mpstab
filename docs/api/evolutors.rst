@@ -47,9 +47,11 @@ device can run, and a tail folded into the observable. See
 Gradients
 ---------
 
-Analytic gradients of the HSMPO surrogate, at about twice the cost of one
-expectation value whatever the number of parameters, instead of the two shifted
-circuits per parameter of the parameter-shift rule.
+Analytic gradients of the HSMPO surrogate, whose cost does not grow with the
+number of parameters (one forward pass and one backward pass), instead of the two
+shifted circuits per parameter of the parameter-shift rule. Gradient-based
+training of the circuit parameters is in :mod:`mpstab.evolutors.optimization`
+(:meth:`~mpstab.HSMPO.optimize_parameters`).
 
 .. automodule:: mpstab.evolutors.gradient
    :members:

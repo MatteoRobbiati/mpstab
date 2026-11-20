@@ -37,6 +37,8 @@ from typing import Sequence
 import numpy as np
 import stim
 
+from mpstab.engines import QuimbEngine
+from mpstab.evolutors.optimization import adjoint_kernel
 from mpstab.evolutors.utils import gate_angle
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.pauli import anticommutation
@@ -53,6 +55,9 @@ class AnalyticGradient:
     values : numpy.ndarray
         The derivative of the expectation value with respect to each requested
         parameter, in the order requested.
+    value : float
+        The expectation value itself, on the same (light-cone-restricted)
+        chain, so a training step needs no separate evaluation.
     n_rotations : int
         Rotations applied to an MPS: the base chain plus every shifted tail.
     fidelities : numpy.ndarray
@@ -64,6 +69,7 @@ class AnalyticGradient:
     """
 
     values: np.ndarray
+    value: float
     n_rotations: int
     fidelities: np.ndarray
 
@@ -167,7 +173,7 @@ def analytic_gradient(
     rotations_of = {p: rotations_of_gate[id(gate)] for p, gate in enumerate(trainable)}
     _check_parameters(parameters, rotations_of, trainable)
 
-    _, terms = pauli_terms(observable, nqubits)
+    constant, terms = pauli_terms(observable, nqubits)
     observables = hsmpo.stab_engine.backpropagate_many(terms, hsmpo.clifford_circuit)
     weights = np.array([c * s for c, (_, s) in zip(terms.values(), observables)])
     observables = [pauli for pauli, _ in observables]
@@ -193,17 +199,49 @@ def analytic_gradient(
     chain = _Chain(hsmpo, generators, angles)
     derivatives = np.zeros(len(generators))
     fidelities = []
-    if sites and observables:
-        if method == "adjoint":
-            if costate_bond is None and hsmpo.max_bond_dimension is not None:
-                costate_bond = 2 * hsmpo.max_bond_dimension
-            fidelities = _adjoint(
-                chain, sites, observables, weights, costate_bond, derivatives
-            )
-        else:
-            _flips(chain, sites, observables, weights, derivatives)
+    engine = hsmpo.tn_engine
+    if costate_bond is None and hsmpo.max_bond_dimension is not None:
+        costate_bond = 2 * hsmpo.max_bond_dimension
+    if (
+        method == "adjoint"
+        and sites
+        and observables
+        and isinstance(engine, QuimbEngine)
+        and engine._fast
+        and nqubits > 1
+    ):
+        value, derivatives, n_rotations, fidelities = adjoint_kernel(
+            engine,
+            hsmpo.initial_mps(),
+            generators,
+            angles,
+            sites,
+            observables,
+            weights,
+            hsmpo.max_bond_dimension,
+            costate_bond,
+        )
     else:
-        chain.state(np.zeros(len(generators), dtype=bool))
+        base = chain.state(np.zeros(len(generators), dtype=bool))
+        value = 0.0
+        if observables:
+            value = float(
+                np.real(
+                    np.dot(
+                        weights,
+                        np.asarray(engine.pauli_expvals(base, observables), complex),
+                    )
+                )
+            )
+        if sites and observables:
+            if method == "adjoint":
+                fidelities = _adjoint(
+                    chain, sites, observables, weights, costate_bond, derivatives
+                )
+            else:
+                _flips(chain, sites, observables, weights, derivatives)
+        n_rotations = chain.n_rotations
+        fidelities = chain.fidelities + fidelities
 
     values = np.zeros(len(parameters))
     for i, p in enumerate(parameters):
@@ -212,8 +250,9 @@ def analytic_gradient(
                 values[i] += dressed[j][1] * derivatives[position[j]]
     return AnalyticGradient(
         values=values,
-        n_rotations=chain.n_rotations,
-        fidelities=np.array(chain.fidelities + fidelities),
+        value=constant + value,
+        n_rotations=n_rotations,
+        fidelities=np.array(fidelities),
     )
 
 
@@ -345,6 +384,8 @@ class _Chain:
 
     def state(self, pattern):
         """The final state of ``pattern``, which becomes the current one."""
+        if self.current is not None and np.array_equal(pattern, self.current):
+            return self.checkpoints[-1]
         start = (
             0
             if self.current is None

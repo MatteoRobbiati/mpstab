@@ -610,6 +610,34 @@ class QuimbEngine(TensorNetworkEngine):
         view.commit()
         return norm
 
+    @property
+    def truncation_cutoff(self) -> float:
+        """The relative singular-value cutoff rotations are compressed with."""
+        return _QUIMB_DEFAULT_CUTOFF if self.svd_cutoff is None else self.svd_cutoff
+
+    def site_arrays(self, state_circuit: MatrixProductState):
+        """
+        The state as the form :mod:`._mps_kernels` works on: a list of
+        ``(left, phys, right)`` arrays in mixed canonical form, and the
+        orthogonality center. numpy backend only.
+
+        The arrays are read-only and shared with the state; the kernels never
+        write into an array, they replace it in the list.
+        """
+        view = _CanonicalMPS(state_circuit)
+        arrays = [view[i] for i in range(view.L)]
+        view.commit()
+        return arrays, view.center
+
+    @staticmethod
+    def state_from_arrays(arrays) -> MatrixProductState:
+        """An MPS from ``(left, phys, right)`` site arrays, two sites or more."""
+        L = len(arrays)
+        data = [arrays[0][0].T]  # (1, p, r) -> (r, p)
+        data += [array.transpose(0, 2, 1) for array in arrays[1 : L - 1]]
+        data.append(arrays[-1][:, :, 0])  # (l, p, 1) -> (l, p)
+        return MatrixProductState(data, shape="lrp")
+
     def copy_state(self, state_circuit: MatrixProductState):
         """
         An independent copy of the state.

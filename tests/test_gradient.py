@@ -340,3 +340,48 @@ def test_pauli_transitions_match_dense_states():
     np.testing.assert_allclose(
         engine.pauli_transitions(states[0], states[1], paulis), expected, atol=1e-12
     )
+
+
+@pytest.mark.parametrize("method", METHODS)
+def test_value_and_gradient(method):
+    """The value comes from the gradient's own pass and equals expectation()."""
+    hsmpo = HSMPO(_generic_circuit(nlayers=2, seed=6))
+    value, gradient = hsmpo.value_and_gradient(OBSERVABLE, method=method)
+    assert value == pytest.approx(hsmpo.expectation(OBSERVABLE), abs=1e-10)
+    np.testing.assert_allclose(gradient, hsmpo.gradient(OBSERVABLE), atol=1e-10)
+
+
+@pytest.mark.parametrize("method", ["adam", "lbfgs"])
+def test_optimize_parameters_lowers_the_energy(method):
+    """A short VQE run lowers the energy and leaves the HSMPO at its result."""
+    np.random.seed(7)
+    hsmpo = HSMPO(HardwareEfficient(nqubits=6, nlayers=2))
+    hamiltonian = {
+        "ZZIIII": -1.0,
+        "IZZIII": -1.0,
+        "IIZZII": -1.0,
+        "IIIZZI": -1.0,
+        "IIIIZZ": -1.0,
+        "XIIIII": -0.5,
+        "IIIXII": -0.5,
+    }
+    initial = hsmpo.expectation(hamiltonian)
+    steps = []
+    result = hsmpo.optimize_parameters(
+        hamiltonian,
+        method=method,
+        max_steps=40,
+        callback=lambda step, energy, parameters: steps.append(energy),
+    )
+    assert result["energy"] < initial - 1.0
+    assert result["energy"] == pytest.approx(min(result["energy_history"]))
+    assert len(steps) == result["num_steps"] == len(result["energy_history"])
+    np.testing.assert_allclose(
+        np.array(hsmpo.get_parameters(), dtype=float).ravel(), result["parameters"]
+    )
+    assert hsmpo.expectation(hamiltonian) == pytest.approx(result["energy"], abs=1e-9)
+
+
+def test_optimize_parameters_unknown_method():
+    with pytest.raises(ValueError, match="Unknown method"):
+        HSMPO(_generic_circuit(nlayers=1)).optimize_parameters(OBSERVABLE, method="sgd")

@@ -15,7 +15,7 @@ from mpstab.engines import (
 )
 from mpstab.engines.tensor_networks.quimb import _qibo_circuit_to_quimb
 from mpstab.evolutors.gradient import analytic_gradient
-from mpstab.evolutors.optimization import minimize_expectation_dmrg
+from mpstab.evolutors.optimization import minimize_expectation_dmrg, minimize_parameters
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
@@ -287,7 +287,8 @@ class HSMPO:
         """
         Gradient of :meth:`expectation` with respect to the circuit parameters,
         analytically, instead of the two shifted circuits per parameter of the
-        parameter-shift rule. See
+        parameter-shift rule: its cost does not grow with the number of
+        parameters. See
         :func:`~mpstab.evolutors.gradient.analytic_gradient`, which also
         reports the rotations applied and the truncation fidelities.
 
@@ -298,10 +299,10 @@ class HSMPO:
                 all of them by default.
             light_cone: drop the rotations that cannot affect the observable
                 first, which is exact.
-            method: ``"adjoint"`` (default), one backward pass of a costate,
-                about twice the cost of :meth:`expectation` whatever the number
-                of parameters; or ``"flips"``, one shifted tail per parameter,
-                with no costate to truncate.
+            method: ``"adjoint"`` (default), one forward pass and one
+                backward pass of a costate of twice the bond dimension; or
+                ``"flips"``, one shifted tail per parameter, with no costate to
+                truncate.
             costate_bond: bond cap of the adjoint costate, twice
                 ``max_bond_dimension`` by default; ``max_bond_dimension``
                 itself is about twice as fast, for twice the error.
@@ -317,6 +318,77 @@ class HSMPO:
         return analytic_gradient(
             self, observable, parameters, light_cone, method, costate_bond
         ).values
+
+    def value_and_gradient(
+        self,
+        observable: Observable,
+        light_cone: bool = True,
+        method: str = "adjoint",
+        costate_bond: int | None = None,
+    ) -> Tuple[float, np.ndarray]:
+        """
+        :meth:`expectation` and :meth:`gradient` together, from one pass of the
+        circuit: what a training step needs.
+
+        The value is evaluated on the chain the gradient uses, restricted to
+        the observable's light cone, so it is exact like :meth:`expectation`
+        but needs no cached MPS: it follows the circuit's parameters at the
+        last partition (:meth:`set_parameters`).
+
+        Args:
+            observable, light_cone, method, costate_bond: as in
+                :meth:`gradient`.
+
+        Returns:
+            ``(value, gradient)``, one derivative per parameter.
+        """
+        result = analytic_gradient(
+            self, observable, None, light_cone, method, costate_bond
+        )
+        return result.value, result.values
+
+    def optimize_parameters(
+        self,
+        observable: Observable,
+        method: str = "adam",
+        max_steps: int = 200,
+        learning_rate: float = 0.05,
+        tol: float = 1e-6,
+        callback=None,
+        **gradient_options,
+    ) -> dict:
+        """
+        Minimize ``observable`` over the circuit parameters, a VQE on the
+        surrogate, with the analytic gradient. Unlike
+        :meth:`minimize_expectation`, which optimizes the MPS itself, this
+        returns parameters of the circuit, to run anywhere.
+
+        Args:
+            observable: the Hamiltonian, in any format
+                :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+            method: ``"adam"`` or ``"lbfgs"``.
+            max_steps: maximum number of gradient evaluations.
+            learning_rate: Adam's step size.
+            tol: stop once the largest derivative is below it.
+            callback: called as ``callback(step, energy, parameters)``.
+            gradient_options: forwarded to :meth:`gradient`, e.g.
+                ``costate_bond``.
+
+        Returns:
+            A dict with ``energy``, ``parameters``, ``energy_history``,
+            ``num_steps`` and ``converged``. The instance is left at the best
+            parameters found.
+        """
+        return minimize_parameters(
+            self,
+            observable,
+            method=method,
+            max_steps=max_steps,
+            learning_rate=learning_rate,
+            tol=tol,
+            callback=callback,
+            **gradient_options,
+        )
 
     def noisy_expectation(
         self,
