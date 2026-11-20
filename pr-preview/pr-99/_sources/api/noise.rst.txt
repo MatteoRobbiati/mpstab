@@ -6,19 +6,19 @@ Pauli-rotation errors, and general channels such as amplitude damping and
 thermal relaxation on the HSMPO surrogate; after gates, on the spectators of a
 gate (crosstalk), on idle qubits, at preparation and at readout.
 
-Describe the noise with a :class:`~mpstab.noise.NoiseModel`, adding errors
+Describe the noise with a :class:`~mpstab.models.noise.NoiseModel`, adding errors
 rule by rule as in qibo, then call :meth:`~mpstab.HSMPO.noisy_expectation`:
 
-- :meth:`~mpstab.noise.NoiseModel.add` puts an error after every matching gate,
+- :meth:`~mpstab.models.noise.NoiseModel.add` puts an error after every matching gate,
   or on the initial state and the measured bits for
-  :class:`~mpstab.noise.StatePreparationError` and
-  :class:`~mpstab.noise.ReadoutError`;
-- :meth:`~mpstab.noise.NoiseModel.add_crosstalk` puts it on the qubits coupled
+  :class:`~mpstab.models.noise.StatePreparationError` and
+  :class:`~mpstab.models.noise.ReadoutError`;
+- :meth:`~mpstab.models.noise.NoiseModel.add_crosstalk` puts it on the qubits coupled
   to a gate but not acted on by it;
-- :meth:`~mpstab.noise.NoiseModel.add_idle` puts it on the qubits left idle in
+- :meth:`~mpstab.models.noise.NoiseModel.add_idle` puts it on the qubits left idle in
   each moment, or on coupled pairs of them, as an always-on ``ZZ`` does.
 
-:meth:`~mpstab.noise.NoiseModel.apply` returns the same noisy circuit as a
+:meth:`~mpstab.models.noise.NoiseModel.apply` returns the same noisy circuit as a
 qibo density-matrix circuit, for exact reference values on small systems.
 
 A Pauli fault pulled into the Clifford frame leaves the tableau unchanged: it
@@ -48,7 +48,7 @@ becomes ``(1 - p0 - p1) P + (p1 - p0) I``.
     from qibo import gates
     from mpstab import HSMPO
     from mpstab.models.ansatze import KickedIsing
-    from mpstab.noise import (
+    from mpstab.models.noise import (
         CoherentError,
         DepolarizingError,
         NoiseModel,
@@ -83,12 +83,12 @@ becomes ``(1 - p0 - p1) P + (p1 - p0) I``.
     # Noise-strength sweeps, e.g. for zero-noise extrapolation:
     stronger = noise.scaled(2.0)
 
-.. automodule:: mpstab.noise.model
+.. automodule:: mpstab.models.noise.model
    :members: NoiseModel, PauliError, DepolarizingError, CoherentError, KrausError,
       AmplitudeDampingError, ThermalRelaxationError, StatePreparationError,
       ReadoutError
 
-.. autoclass:: mpstab.noise.NoisyExpectation
+.. autoclass:: mpstab.models.noise.NoisyExpectation
 
 Low-level interface
 -------------------
@@ -97,15 +97,15 @@ Low-level interface
 placed by gate index, compiles them into the Clifford frame and runs the
 fault-pattern estimator. The three steps are available on their own.
 
-.. automodule:: mpstab.noise.events
+.. automodule:: mpstab.models.noise.events
    :members:
    :show-inheritance:
 
-.. automodule:: mpstab.noise.compile
+.. automodule:: mpstab.models.noise.compile
    :members:
 
-.. automodule:: mpstab.noise.estimator
+.. automodule:: mpstab.models.noise.estimator
    :members: noisy_expectation
 
-See ``examples/scripts/noise/noisy_simulation.py`` for a comparison against exact
+The :doc:`../tutorials/noise` tutorial compares these values against an exact
 density-matrix simulation.
