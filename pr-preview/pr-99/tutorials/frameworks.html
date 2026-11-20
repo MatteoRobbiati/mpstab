@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="DMRG Optimization of Quantum Hamiltonians" href="../guides/dmrg_optimization.html"><link rel="prev" title="Free fermions: an exact check at 100 qubits" href="free_fermions.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Evolutors" href="../api/evolutors.html"><link rel="prev" title="Free fermions: an exact check at 100 qubits" href="free_fermions.html">
         <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
@@ -201,8 +201,22 @@
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../guides/quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/analytic_gradients.html">Analytic gradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="current">
@@ -219,17 +233,6 @@
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../guides/analytic_gradients.html">Analytic gradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../guides/working_with_engines.html">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../guides/using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../guides/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -918,12 +921,12 @@ PauliPropagation 1e-05: 719 ms per observable, largest error 3.6e-04
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="../guides/dmrg_optimization.html">
+          <a class="next-page" href="../api/evolutors.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">DMRG Optimization of Quantum Hamiltonians</div>
+                <div class="title">Evolutors</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

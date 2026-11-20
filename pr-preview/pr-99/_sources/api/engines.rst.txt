@@ -61,7 +61,7 @@ Engines are automatically selected based on your circuit type and parameters::
         max_bond_dimension=32  # Enables tensor network engine
     )
 
-For detailed guidance, see :doc:`../guides/working_with_engines`
+For detailed guidance, see :doc:`../user_guide/working_with_engines`
 
 Engine Interface
 ----------------
@@ -77,5 +77,5 @@ These abstract base classes define the required methods that any engine must imp
 See Also
 --------
 
-- :doc:`../guides/working_with_engines` - Engine selection guide
+- :doc:`../user_guide/working_with_engines` - Engine selection guide
 - :doc:`../tutorials/introduction` - Practical examples

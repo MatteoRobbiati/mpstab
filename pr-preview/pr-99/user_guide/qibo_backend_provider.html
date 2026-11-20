@@ -3,11 +3,11 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Quick Start Guide" href="quickstart.html"><link rel="prev" title="Installation" href="../installation.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Working with Engines" href="working_with_engines.html"><link rel="prev" title="Hardware Resynthesis with rustiq" href="../methods/rustiq_resynthesis.html">
         <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Theoretical Background, a snapshot - Documentation</title>
+        <title>MPSTAB as a Qibo Backend Provider - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -198,10 +198,24 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/analytic_gradients.html">Analytic gradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -218,17 +232,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
-<li class="toctree-l1"><a class="reference internal" href="analytic_gradients.html">Analytic gradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1"><a class="reference internal" href="working_with_engines.html">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
-<li class="toctree-l1"><a class="reference internal" href="clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -259,7 +262,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../_sources/guides/theory_background.rst.txt" title="View this page">
+  <a class="muted-link" href="../_sources/user_guide/qibo_backend_provider.rst.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -277,108 +280,79 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="theoretical-background-a-snapshot">
-<h1>Theoretical Background, a snapshot<a class="headerlink" href="#theoretical-background-a-snapshot" title="Link to this heading">¶</a></h1>
-<p>The fundamental challenge in quantum circuit simulation is the <strong>exponential growth</strong> of the Hilbert space: for a system of <span class="math">\(n\)</span> qubits, an exact representation requires <span class="math">\(2^n\)</span> complex amplitudes. Classical simulation techniques like statevector and density matrix methods face this exponential wall, making simulations with <span class="math">\(n &gt; 50\)</span> impractical on current hardware.</p>
-<p>Specialized simulators overcome this limitation by exploiting structure in quantum circuits. <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> implements the <strong>Hybrid Stabilizer-Matrix Product Operators (HSMPO)</strong> method, which combines stabilizer simulation and tensor networks to enable efficient simulation of circuits with a mix of Clifford and non-Clifford operations.</p>
-<a class="reference internal image-reference" href="../_images/classical_combo.png"><img alt="HSMPO decomposition illustration" class="align-center" src="../_images/classical_combo.png" style="width: 600px;" />
-</a>
-<p>As illustrated above, this hybrid approach decomposes the quantum state into a stabilizer backbone and a matrix product operator, allowing <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> to simulate larger systems than either approach alone could handle.</p>
-<section id="classical-simulation-approaches">
-<h2>Classical Simulation Approaches<a class="headerlink" href="#classical-simulation-approaches" title="Link to this heading">¶</a></h2>
-<p>Before understanding the hybrid HSMPO method, it is useful to review the two key classical simulation strategies it combines:</p>
-<p><strong>Stabilizer Simulation</strong></p>
-<p>Stabilizer formalism is based on the concept of <strong>stabilizer states</strong>—special quantum states that can be efficiently described by a stabilizer group. A stabilizer state <span class="math">\(|\phi\rangle\)</span> satisfies <span class="math">\(S_i |\phi\rangle = |\phi\rangle\)</span> for a set of commuting Pauli operators <span class="math">\(S_i\)</span>. The key insight is that stabilizer states can be represented using only <span class="math">\(\mathcal{O}(n^2)\)</span> bits of classical information (via the stabilizer generators), rather than the exponential <span class="math">\(2^n\)</span> amplitudes required for a general quantum state. Moreover, applying Clifford gates (gates that preserve the Clifford group structure) is efficient and can be tracked in <span class="math">\(\mathcal{O}(n^2)\)</span> time using the <strong>Gottesman-Knill theorem</strong>. However, stabilizer simulation is limited to Clifford circuits—applying non-Clifford gates breaks the stabilizer formalism.</p>
-<p><strong>Tensor Network Simulation</strong></p>
-<p>Tensor networks provide a complementary approach based on exploiting <strong>entanglement structure</strong>. A quantum state can be represented as a tensor network—a contraction of many smaller tensors connected by indices. When the entanglement in a quantum state is structured (e.g., limited to chains or trees), the state admits a compact tensor network representation. A <strong>Matrix Product State (MPS)</strong> or <strong>Matrix Product Operator (MPO)</strong> is a tensor network tailored for one-dimensional systems where entanglement is localized. These representations scale as <span class="math">\(\mathcal{O}(n \cdot \chi^2)\)</span> in memory, where <span class="math">\(\chi\)</span> is the bond dimension. For weakly entangled states, <span class="math">\(\chi\)</span> remains small, making simulation tractable. Unlike stabilizer simulation, tensor networks can represent arbitrary quantum states, including those generated by non-Clifford gates, but they require managing and truncating the bond dimension adaptively.</p>
-<p><strong>Hybrid Strengths</strong></p>
-<p>The HSMPO method leverages the complementary strengths of these two approaches: it uses stabilizers to handle Clifford operations efficiently while reserving the tensor network capacity for representing the non-Clifford complexity. This hybrid strategy enables simulation of circuits that are “mostly Clifford” with non-trivial entanglement, a common scenario in practical quantum algorithms.</p>
-</section>
-<section id="other-hybrid-techniques">
-<h2>Other Hybrid Techniques<a class="headerlink" href="#other-hybrid-techniques" title="Link to this heading">¶</a></h2>
-<p>The HSMPO approach is part of a broader landscape of hybrid classical simulation methods that combine structured representations with tensor networks. A notable complementary approach is <strong>Pauli propagation</strong>, implemented in the <a class="reference external" href="https://github.com/MSRudolph/PauliPropagation.jl">PauliPropagation.jl</a> package. Pauli propagation tracks the evolution of Pauli strings through a quantum circuit by propagating Pauli operators using commutation relations, rather than storing the full quantum state. This approach is particularly efficient for computing expectation values of Pauli observables and excels in circuits dominated by Clifford operations, with minimal memory overhead.</p>
-<p>Different hybrid methods make different trade-offs depending on the structure of the problem. HSMPO explicitly maintains both a stabilizer state and a tensor network representation, enabling simulation of circuits with moderate non-Clifford content through MPO truncation. Other approaches like Pauli propagation optimize for different circuit structures or measurement types. The choice of method depends on the specific characteristics of the circuits and observables being simulated.</p>
-</section>
-<section id="the-hsmpo-ansatz">
-<h2>The HSMPO Ansatz<a class="headerlink" href="#the-hsmpo-ansatz" title="Link to this heading">¶</a></h2>
-<p>In the HSMPO formalism, a quantum state <span class="math">\(|\Psi\rangle\)</span> of <span class="math">\(n\)</span> qubits is factorized into a product of two distinct mathematical objects:</p>
-<div class="math-wrapper docutils container">
-<div class="math">
-\[|\Psi\rangle = \mathcal{W} | \phi \rangle
-
-\]</div>
+          <section id="mpstab-as-a-qibo-backend-provider">
+<h1>MPSTAB as a Qibo Backend Provider<a class="headerlink" href="#mpstab-as-a-qibo-backend-provider" title="Link to this heading">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">mpstab</span></code> can be used as a custom backend provider for <a class="reference external" href="https://qibo.science/">Qibo</a>, an open-source (and full-stack!) quantum computing framework.
+This allows you to use MPSTAB’s efficient hybrid stabilizer-MPO simulation as a backend for any Qibo circuits and Hamiltonians.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently, <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> can be used to compute expectation values, and not for pure circuit execution. In the end, the main scope of this library
+is to provide a tool for expectation value calculation. We plan to implement sampling strategies in the future, and new features will be available when this will be done.</p>
 </div>
-<p>where:</p>
+<section id="what-is-a-backend-provider">
+<h2>What is a Backend Provider?<a class="headerlink" href="#what-is-a-backend-provider" title="Link to this heading">¶</a></h2>
+<p>In Qibo, a backend is responsible for executing quantum circuits and computing observables (Hamiltonians). By registering <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> as a backend, you can seamlessly integrate hybrid stabilizer-MPO simulation into Qibo workflows without modifying your Qibo code. You simply specify <code class="docutils literal notranslate"><span class="pre">&quot;mpstab&quot;</span></code> as the backend when constructing circuits or Hamiltonians.</p>
+</section>
+<section id="computing-hamiltonian-expectation-values">
+<h2>Computing Hamiltonian Expectation Values<a class="headerlink" href="#computing-hamiltonian-expectation-values" title="Link to this heading">¶</a></h2>
+<p>A powerful use case is computing expectation values of Hamiltonians using MPSTAB. Here’s an example with a Transfer Field Ising Model:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span><span class="p">,</span> <span class="n">construct_backend</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo.hamiltonians</span><span class="w"> </span><span class="kn">import</span> <span class="n">TFIM</span>
+
+<span class="c1"># Create the MPSTAB backend</span>
+<span class="n">mpstab_backend</span> <span class="o">=</span> <span class="n">construct_backend</span><span class="p">(</span><span class="s2">&quot;mpstab&quot;</span><span class="p">)</span>
+
+<span class="c1"># Create a test circuit</span>
+<span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+    <span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">RY</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">0.3</span><span class="p">))</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="c1"># Create a Hamiltonian with MPSTAB backend</span>
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">TFIM</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">mpstab_backend</span><span class="p">,</span> <span class="n">dense</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># Compute expectation value</span>
+<span class="n">expectation</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;TFIM&gt; = </span><span class="si">{</span><span class="n">expectation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="benefits-of-using-mpstab-as-a-backend">
+<h3>Benefits of Using MPSTAB as a Backend<a class="headerlink" href="#benefits-of-using-mpstab-as-a-backend" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><span class="math">\(| \phi \rangle\)</span> is a <strong>stabilizer state</strong> (the “backbone”). It is defined by a stabilizer group <span class="math">\(\mathcal{S}\)</span> of <span class="math">\(n\)</span> independent Pauli operators <span class="math">\(\{S_1, \dots, S_n\}\)</span> such that <span class="math">\(S_i | \phi \rangle = | \phi \rangle\)</span> for all <span class="math">\(S_i \in \mathcal{S}\)</span>.</p></li>
-<li><p><span class="math">\(\mathcal{W}\)</span> is a <strong>Matrix Product Operator (MPO)</strong>. This operator accounts for the “non-Cliffordness” of the state, mapping the stabilizer state into a more complex region of the Hilbert space that can represent universal quantum computation.</p></li>
+<li><p><strong>Efficient Clifford Simulation</strong>: Pure Clifford operations are handled with <span class="math">\(\mathcal{O}(n^2)\)</span> complexity using the Gottesman-Knill theorem. Note that Qibo currently supports a dedicated Clifford backend. If you plan to execute pure Clifford circuits with Qibo, we recommend using the dedicated backend.</p></li>
+<li><p><strong>Non-Clifford Support</strong>: Unlike pure stabilizer backends, MPSTAB can handle arbitrary quantum gates through adaptive bond dimension truncation.</p></li>
+<li><p><strong>Seamless Integration</strong>: Use MPSTAB wherever you would use any other Qibo backend—no code changes needed.</p></li>
 </ul>
-<p>At initialization, the system is typically in the state <span class="math">\(|0\rangle^{\otimes n}\)</span>, which corresponds to setting <span class="math">\(\mathcal{W} = \mathbb{I}\)</span> and <span class="math">\(|\phi\rangle = |0\rangle^{\otimes n}\)</span>.</p>
 </section>
-<section id="evolution-rules">
-<h2>Evolution Rules<a class="headerlink" href="#evolution-rules" title="Link to this heading">¶</a></h2>
-<p>The core strength of <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> lies in how it handles the evolution of this hybrid state under a unitary <span class="math">\(U\)</span>. The logic depends strictly on whether <span class="math">\(U\)</span> belongs to the <strong>Clifford group</strong> <span class="math">\(\mathcal{C}_n\)</span>:</p>
-<ol class="arabic">
-<li><p><strong>Clifford Evolution</strong> (<span class="math">\(U \in \mathcal{C}_n\)</span>):
-If the gate is a Clifford gate (such as <span class="math">\(H\)</span>, <span class="math">\(S\)</span>, or <span class="math">\(CNOT\)</span>), it is absorbed directly into the stabilizer part:</p>
-<div class="math-wrapper docutils container">
-<div class="math">
-\[| \phi' \rangle = U | \phi \rangle, \quad \mathcal{W}' = \mathcal{W}
+<section id="comparing-results-with-other-backends">
+<h3>Comparing Results with Other Backends<a class="headerlink" href="#comparing-results-with-other-backends" title="Link to this heading">¶</a></h3>
+<p>You can easily compare MPSTAB results with other Qibo backends like the numpy (statevector) backend:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">construct_backend</span><span class="p">,</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo.hamiltonians</span><span class="w"> </span><span class="kn">import</span> <span class="n">TFIM</span>
 
-\]</div>
-</div>
-<p>This update is performed efficiently using the <strong>Gottesman-Knill theorem</strong>, modifying the stabilizer generators <span class="math">\(S_i \to U S_i U^\dagger\)</span>. This operation is extremely fast, with a computational complexity of <span class="math">\(\mathcal{O}(n^2)\)</span>.</p>
-</li>
-<li><p><strong>Non-Clifford Evolution</strong> (<span class="math">\(U \notin \mathcal{C}_n\)</span>):
-If the gate is non-Clifford (such as a <span class="math">\(T\)</span> gate or a rotation <span class="math">\(R_y(\theta)\)</span>), it is “absorbed” into the MPO component:</p>
-<div class="math-wrapper docutils container">
-<div class="math">
-\[| \phi' \rangle = | \phi \rangle, \quad \mathcal{W}' = \mathcal{W} \cdot \tilde{U}
+<span class="c1"># Create backends</span>
+<span class="n">mpstab_backend</span> <span class="o">=</span> <span class="n">construct_backend</span><span class="p">(</span><span class="s2">&quot;mpstab&quot;</span><span class="p">)</span>
+<span class="n">numpy_backend</span> <span class="o">=</span> <span class="n">construct_backend</span><span class="p">(</span><span class="s2">&quot;numpy&quot;</span><span class="p">)</span>
 
-\]</div>
+<span class="c1"># Create circuit</span>
+<span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">RY</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+
+<span class="c1"># Compute with both backends</span>
+<span class="n">ham</span> <span class="o">=</span> <span class="n">TFIM</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">mpstab_backend</span><span class="p">,</span> <span class="n">dense</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">mpstab_result</span> <span class="o">=</span> <span class="n">ham</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
+
+<span class="n">ham_numpy</span> <span class="o">=</span> <span class="n">TFIM</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">numpy_backend</span><span class="p">,</span> <span class="n">dense</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">numpy_result</span> <span class="o">=</span> <span class="n">ham_numpy</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MPSTAB result: </span><span class="si">{</span><span class="n">mpstab_result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Numpy result: </span><span class="si">{</span><span class="n">numpy_result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Agreement: </span><span class="si">{</span><span class="nb">abs</span><span class="p">(</span><span class="n">mpstab_result</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">numpy_result</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">1e-6</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
 </div>
-<p>where <span class="math">\(\tilde{U}\)</span> is the MPO representation of the gate. In the <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> implementation (see <code class="docutils literal notranslate"><span class="pre">mpstab.evolutors.hsmpo</span></code>), this involves an MPO-MPO contraction followed by a truncation step to maintain a manageable bond dimension <span class="math">\(\chi\)</span>.</p>
-</li>
-</ol>
 </section>
-<section id="computational-complexity-and-costs">
-<h2>Computational Complexity and Costs<a class="headerlink" href="#computational-complexity-and-costs" title="Link to this heading">¶</a></h2>
-<p>The motivation for this hybrid approach becomes clear when comparing its costs to other simulation strategies:</p>
-<ul class="simple">
-<li><dl class="simple">
-<dt><strong>Statevector Simulation</strong>:</dt><dd><p>Requires storing <span class="math">\(2^n\)</span> complex coefficients. Applying a gate costs <span class="math">\(\mathcal{O}(2^n)\)</span> in both memory and time. This “exponential wall” makes simulations with <span class="math">\(n &gt; 45\)</span> virtually impossible on current hardware.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt><strong>Pure Stabilizer Simulation</strong>:</dt><dd><p>Requires only <span class="math">\(\mathcal{O}(n^2)\)</span> resources but is restricted to Clifford circuits, which cannot represent general quantum algorithms.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt><strong>HSMPO (mpstab)</strong>:</dt><dd><dl class="simple">
-<dt>The cost is primarily governed by the <strong>bond dimension</strong> <span class="math">\(\chi\)</span> of the MPO:</dt><dd><ul>
-<li><p><strong>Memory</strong>: Scales as <span class="math">\(\mathcal{O}(n \cdot \chi^2)\)</span>.</p></li>
-<li><p><strong>Execution</strong>: Clifford gates scale as <span class="math">\(\mathcal{O}(n^2)\)</span>, while non-Clifford updates (including contraction and truncation) scale as <span class="math">\(\mathcal{O}(n \cdot \chi^3)\)</span>.</p></li>
-</ul>
-</dd>
-</dl>
-</dd>
-</dl>
-</li>
-</ul>
-<p>As long as the circuit’s non-Clifford resources and entanglement allow for a compressed representation where <span class="math">\(\chi \ll 2^{n/2}\)</span>, <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> can simulate systems significantly larger than those reachable by statevector simulators.</p>
-</section>
-<section id="numerical-truncation-and-fidelity">
-<h2>Numerical Truncation and Fidelity<a class="headerlink" href="#numerical-truncation-and-fidelity" title="Link to this heading">¶</a></h2>
-<p>To maintain efficiency, <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> utilizes <strong>Singular Value Decomposition (SVD)</strong> to truncate the bond dimension of <span class="math">\(\mathcal{W}\)</span> after non-Clifford operations. Given a set of singular values <span class="math">\(\sigma_j\)</span>, the truncation is performed such that:</p>
-<div class="math-wrapper docutils container">
-<div class="math">
-\[\sum_{j=\chi+1}^{D} \sigma_j^2 < \epsilon
-
-\]</div>
-</div>
-<p>where <span class="math">\(\epsilon\)</span> is a precision parameter defined in the <code class="docutils literal notranslate"><span class="pre">EvolutionConfig</span></code>. This introduces a controlled approximation error, allowing users to track the <strong>fidelity lower bound</strong> (see <a class="reference internal" href="fidelity_and_approximation.html"><span class="doc">Fidelity and Approximation</span></a>) and balance accuracy against computational time.</p>
 </section>
 </section>
 
@@ -387,23 +361,23 @@ If the gate is non-Clifford (such as a <span class="math">\(T\)</span> gate or a
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="quickstart.html">
+          <a class="next-page" href="working_with_engines.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Quick Start Guide</div>
+                <div class="title">Working with Engines</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="../installation.html">
+          <a class="prev-page" href="../methods/rustiq_resynthesis.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Installation</div>
+                <div class="title">Hardware Resynthesis with rustiq</div>
                 
               </div>
             </a>
@@ -437,13 +411,13 @@ If the gate is non-Clifford (such as a <span class="math">\(T\)</span> gate or a
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Theoretical Background, a snapshot</a><ul>
-<li><a class="reference internal" href="#classical-simulation-approaches">Classical Simulation Approaches</a></li>
-<li><a class="reference internal" href="#other-hybrid-techniques">Other Hybrid Techniques</a></li>
-<li><a class="reference internal" href="#the-hsmpo-ansatz">The HSMPO Ansatz</a></li>
-<li><a class="reference internal" href="#evolution-rules">Evolution Rules</a></li>
-<li><a class="reference internal" href="#computational-complexity-and-costs">Computational Complexity and Costs</a></li>
-<li><a class="reference internal" href="#numerical-truncation-and-fidelity">Numerical Truncation and Fidelity</a></li>
+<li><a class="reference internal" href="#">MPSTAB as a Qibo Backend Provider</a><ul>
+<li><a class="reference internal" href="#what-is-a-backend-provider">What is a Backend Provider?</a></li>
+<li><a class="reference internal" href="#computing-hamiltonian-expectation-values">Computing Hamiltonian Expectation Values</a><ul>
+<li><a class="reference internal" href="#benefits-of-using-mpstab-as-a-backend">Benefits of Using MPSTAB as a Backend</a></li>
+<li><a class="reference internal" href="#comparing-results-with-other-backends">Comparing Results with Other Backends</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

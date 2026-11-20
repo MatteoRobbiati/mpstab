@@ -37,7 +37,7 @@ HQSMPO: Head/Tail Split
 
 Splits the dressed-rotation chain in two: a head resynthesized into a circuit a
 device can run, and a tail folded into the observable. See
-:doc:`../guides/rustiq_resynthesis`.
+:doc:`../methods/rustiq_resynthesis`.
 
 .. automodule:: mpstab.evolutors.hqsmpo
    :members:
@@ -53,7 +53,7 @@ shifted circuits per parameter of the parameter-shift rule. Gradient-based
 training of the circuit parameters is in :mod:`mpstab.evolutors.optimization`
 (:meth:`~mpstab.HSMPO.optimize_parameters`).
 How the gradient is computed, and benchmarks against other frameworks, are in
-the :doc:`../guides/analytic_gradients` guide.
+the :doc:`../methods/analytic_gradients` guide.
 
 .. automodule:: mpstab.evolutors.gradient
    :members:
@@ -88,6 +88,6 @@ Utilities
 
 For more practical examples, see:
 
-- :doc:`../guides/quickstart`
-- :doc:`../guides/fidelity_and_approximation`
+- :doc:`../quickstart`
+- :doc:`../methods/fidelity_and_approximation`
 - :doc:`../tutorials/introduction`

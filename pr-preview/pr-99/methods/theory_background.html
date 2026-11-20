@@ -3,11 +3,11 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Head Synthesis by Clifford Extraction" href="clifford_extraction_synthesis.html"><link rel="prev" title="Fidelity and Approximation" href="fidelity_and_approximation.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Fidelity and Approximation" href="fidelity_and_approximation.html"><link rel="prev" title="Quick Start Guide" href="../quickstart.html">
         <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Hardware Resynthesis with rustiq - Documentation</title>
+        <title>Theoretical Background, a snapshot - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -200,8 +200,22 @@
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="theory_background.html">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="analytic_gradients.html">Analytic gradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -218,17 +232,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
-<li class="toctree-l1"><a class="reference internal" href="analytic_gradients.html">Analytic gradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1"><a class="reference internal" href="working_with_engines.html">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Hardware Resynthesis with rustiq</a></li>
-<li class="toctree-l1"><a class="reference internal" href="clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -259,7 +262,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../_sources/guides/rustiq_resynthesis.rst.txt" title="View this page">
+  <a class="muted-link" href="../_sources/methods/theory_background.rst.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -277,83 +280,108 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="hardware-resynthesis-with-rustiq">
-<h1>Hardware Resynthesis with rustiq<a class="headerlink" href="#hardware-resynthesis-with-rustiq" title="Link to this heading">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> can resynthesize its dressed Pauli rotations into a circuit
-made of hardware-native gates, using the low-level <a class="reference external" href="https://github.com/smartiel/rustiq">rustiq</a> Pauli-network synthesis API. This is
-the circuit you would actually run on a real device; it is never used for the
-classical expectation value, which always applies the exact rotations (to the
-state MPS, or – for this feature – to a statevector for verification).</p>
-<p>Install the optional dependency (built from source; it ships no PyPI wheels):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="s2">&quot;mpstab[rustiq]&quot;</span>
-</pre></div>
+          <section id="theoretical-background-a-snapshot">
+<h1>Theoretical Background, a snapshot<a class="headerlink" href="#theoretical-background-a-snapshot" title="Link to this heading">¶</a></h1>
+<p>The fundamental challenge in quantum circuit simulation is the <strong>exponential growth</strong> of the Hilbert space: for a system of <span class="math">\(n\)</span> qubits, an exact representation requires <span class="math">\(2^n\)</span> complex amplitudes. Classical simulation techniques like statevector and density matrix methods face this exponential wall, making simulations with <span class="math">\(n &gt; 50\)</span> impractical on current hardware.</p>
+<p>Specialized simulators overcome this limitation by exploiting structure in quantum circuits. <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> implements the <strong>Hybrid Stabilizer-Matrix Product Operators (HSMPO)</strong> method, which combines stabilizer simulation and tensor networks to enable efficient simulation of circuits with a mix of Clifford and non-Clifford operations.</p>
+<a class="reference internal image-reference" href="../_images/classical_combo.png"><img alt="HSMPO decomposition illustration" class="align-center" src="../_images/classical_combo.png" style="width: 600px;" />
+</a>
+<p>As illustrated above, this hybrid approach decomposes the quantum state into a stabilizer backbone and a matrix product operator, allowing <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> to simulate larger systems than either approach alone could handle.</p>
+<section id="classical-simulation-approaches">
+<h2>Classical Simulation Approaches<a class="headerlink" href="#classical-simulation-approaches" title="Link to this heading">¶</a></h2>
+<p>Before understanding the hybrid HSMPO method, it is useful to review the two key classical simulation strategies it combines:</p>
+<p><strong>Stabilizer Simulation</strong></p>
+<p>Stabilizer formalism is based on the concept of <strong>stabilizer states</strong>—special quantum states that can be efficiently described by a stabilizer group. A stabilizer state <span class="math">\(|\phi\rangle\)</span> satisfies <span class="math">\(S_i |\phi\rangle = |\phi\rangle\)</span> for a set of commuting Pauli operators <span class="math">\(S_i\)</span>. The key insight is that stabilizer states can be represented using only <span class="math">\(\mathcal{O}(n^2)\)</span> bits of classical information (via the stabilizer generators), rather than the exponential <span class="math">\(2^n\)</span> amplitudes required for a general quantum state. Moreover, applying Clifford gates (gates that preserve the Clifford group structure) is efficient and can be tracked in <span class="math">\(\mathcal{O}(n^2)\)</span> time using the <strong>Gottesman-Knill theorem</strong>. However, stabilizer simulation is limited to Clifford circuits—applying non-Clifford gates breaks the stabilizer formalism.</p>
+<p><strong>Tensor Network Simulation</strong></p>
+<p>Tensor networks provide a complementary approach based on exploiting <strong>entanglement structure</strong>. A quantum state can be represented as a tensor network—a contraction of many smaller tensors connected by indices. When the entanglement in a quantum state is structured (e.g., limited to chains or trees), the state admits a compact tensor network representation. A <strong>Matrix Product State (MPS)</strong> or <strong>Matrix Product Operator (MPO)</strong> is a tensor network tailored for one-dimensional systems where entanglement is localized. These representations scale as <span class="math">\(\mathcal{O}(n \cdot \chi^2)\)</span> in memory, where <span class="math">\(\chi\)</span> is the bond dimension. For weakly entangled states, <span class="math">\(\chi\)</span> remains small, making simulation tractable. Unlike stabilizer simulation, tensor networks can represent arbitrary quantum states, including those generated by non-Clifford gates, but they require managing and truncating the bond dimension adaptively.</p>
+<p><strong>Hybrid Strengths</strong></p>
+<p>The HSMPO method leverages the complementary strengths of these two approaches: it uses stabilizers to handle Clifford operations efficiently while reserving the tensor network capacity for representing the non-Clifford complexity. This hybrid strategy enables simulation of circuits that are “mostly Clifford” with non-trivial entanglement, a common scenario in practical quantum algorithms.</p>
+</section>
+<section id="other-hybrid-techniques">
+<h2>Other Hybrid Techniques<a class="headerlink" href="#other-hybrid-techniques" title="Link to this heading">¶</a></h2>
+<p>The HSMPO approach is part of a broader landscape of hybrid classical simulation methods that combine structured representations with tensor networks. A notable complementary approach is <strong>Pauli propagation</strong>, implemented in the <a class="reference external" href="https://github.com/MSRudolph/PauliPropagation.jl">PauliPropagation.jl</a> package. Pauli propagation tracks the evolution of Pauli strings through a quantum circuit by propagating Pauli operators using commutation relations, rather than storing the full quantum state. This approach is particularly efficient for computing expectation values of Pauli observables and excels in circuits dominated by Clifford operations, with minimal memory overhead.</p>
+<p>Different hybrid methods make different trade-offs depending on the structure of the problem. HSMPO explicitly maintains both a stabilizer state and a tensor network representation, enabling simulation of circuits with moderate non-Clifford content through MPO truncation. Other approaches like Pauli propagation optimize for different circuit structures or measurement types. The choice of method depends on the specific characteristics of the circuits and observables being simulated.</p>
+</section>
+<section id="the-hsmpo-ansatz">
+<h2>The HSMPO Ansatz<a class="headerlink" href="#the-hsmpo-ansatz" title="Link to this heading">¶</a></h2>
+<p>In the HSMPO formalism, a quantum state <span class="math">\(|\Psi\rangle\)</span> of <span class="math">\(n\)</span> qubits is factorized into a product of two distinct mathematical objects:</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[|\Psi\rangle = \mathcal{W} | \phi \rangle
+
+\]</div>
 </div>
-<section id="why-foldable">
-<h2>Why “foldable”?<a class="headerlink" href="#why-foldable" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">rustiq.pauli_network_synthesis</span></code> can synthesize a sequence of Pauli
-rotations two ways:</p>
+<p>where:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">fix_clifford=False</span></code>: a circuit that implements the target unitary <strong>up
-to a trailing Clifford</strong> (cheaper);</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">fix_clifford=True</span></code>: the exact circuit, with no trailing ambiguity.</p></li>
+<li><p><span class="math">\(| \phi \rangle\)</span> is a <strong>stabilizer state</strong> (the “backbone”). It is defined by a stabilizer group <span class="math">\(\mathcal{S}\)</span> of <span class="math">\(n\)</span> independent Pauli operators <span class="math">\(\{S_1, \dots, S_n\}\)</span> such that <span class="math">\(S_i | \phi \rangle = | \phi \rangle\)</span> for all <span class="math">\(S_i \in \mathcal{S}\)</span>.</p></li>
+<li><p><span class="math">\(\mathcal{W}\)</span> is a <strong>Matrix Product Operator (MPO)</strong>. This operator accounts for the “non-Cliffordness” of the state, mapping the stabilizer state into a more complex region of the Hilbert space that can represent universal quantum computation.</p></li>
 </ul>
-<p>The first is always a gate-for-gate <em>prefix</em> of the second, so the exact
-circuit is <code class="docutils literal notranslate"><span class="pre">head</span> <span class="pre">+</span> <span class="pre">tail</span></code>, where <code class="docutils literal notranslate"><span class="pre">tail</span></code> is a <strong>pure-Clifford</strong> correction.
-Unlike Qiskit’s <code class="docutils literal notranslate"><span class="pre">rustiq</span></code> high-level-synthesis plugin (which resynthesizes
-the exact and up-to-Clifford circuits independently, leaving a residual that
-is generally <em>not</em> Clifford), this property lets <code class="docutils literal notranslate"><span class="pre">tail</span></code> be reabsorbed
-<em>exactly</em> into an observable with a Clifford simulator (<code class="docutils literal notranslate"><span class="pre">stim</span></code>, via
-<code class="docutils literal notranslate"><span class="pre">StimEngine</span></code>) – no dense matrices, no tensor-network truncation:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">target</span> <span class="o">=</span> <span class="n">tail</span> <span class="o">.</span> <span class="n">head</span>                 <span class="c1"># tail applied last</span>
-<span class="o">&lt;</span><span class="n">target</span><span class="o">|</span><span class="n">O</span><span class="o">|</span><span class="n">target</span><span class="o">&gt;</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">head</span> <span class="mi">0</span><span class="o">|</span> <span class="n">tail</span><span class="o">^</span><span class="n">dagger</span> <span class="o">.</span> <span class="n">O</span> <span class="o">.</span> <span class="n">tail</span> <span class="o">|</span> <span class="n">head</span> <span class="mi">0</span><span class="o">&gt;</span>
-</pre></div>
-</div>
-<p>so only <code class="docutils literal notranslate"><span class="pre">head</span></code> – the hardware-native circuit – needs to actually run.</p>
+<p>At initialization, the system is typically in the state <span class="math">\(|0\rangle^{\otimes n}\)</span>, which corresponds to setting <span class="math">\(\mathcal{W} = \mathbb{I}\)</span> and <span class="math">\(|\phi\rangle = |0\rangle^{\otimes n}\)</span>.</p>
 </section>
-<section id="basic-usage">
-<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Link to this heading">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hqsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HQSMPO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
+<section id="evolution-rules">
+<h2>Evolution Rules<a class="headerlink" href="#evolution-rules" title="Link to this heading">¶</a></h2>
+<p>The core strength of <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> lies in how it handles the evolution of this hybrid state under a unitary <span class="math">\(U\)</span>. The logic depends strictly on whether <span class="math">\(U\)</span> belongs to the <strong>Clifford group</strong> <span class="math">\(\mathcal{C}_n\)</span>:</p>
+<ol class="arabic">
+<li><p><strong>Clifford Evolution</strong> (<span class="math">\(U \in \mathcal{C}_n\)</span>):
+If the gate is a Clifford gate (such as <span class="math">\(H\)</span>, <span class="math">\(S\)</span>, or <span class="math">\(CNOT\)</span>), it is absorbed directly into the stabilizer part:</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[| \phi' \rangle = U | \phi \rangle, \quad \mathcal{W}' = \mathcal{W}
 
-<span class="n">ansatz</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="n">hs</span> <span class="o">=</span> <span class="n">HQSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="p">)</span>
-
-<span class="c1"># Resynthesize ALL dressed rotations into a hardware-native circuit, and</span>
-<span class="c1"># measure it with a finite shot budget -- there is no exact route.</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">expectation_at_cut</span><span class="p">(</span><span class="s2">&quot;Z&quot;</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span> <span class="n">cut_index</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">magic_gates</span><span class="p">),</span> <span class="n">n_shots</span><span class="o">=</span><span class="mi">20000</span><span class="p">)</span>
-
-<span class="c1"># The actual hardware-native circuit that gets run:</span>
-<span class="n">resynth</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">resynthesize_head</span><span class="p">(</span><span class="n">cut_index</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">magic_gates</span><span class="p">))</span>
-<span class="n">head_circuit</span> <span class="o">=</span> <span class="n">resynth</span><span class="o">.</span><span class="n">circuit</span>
-</pre></div>
+\]</div>
 </div>
+<p>This update is performed efficiently using the <strong>Gottesman-Knill theorem</strong>, modifying the stabilizer generators <span class="math">\(S_i \to U S_i U^\dagger\)</span>. This operation is extremely fast, with a computational complexity of <span class="math">\(\mathcal{O}(n^2)\)</span>.</p>
+</li>
+<li><p><strong>Non-Clifford Evolution</strong> (<span class="math">\(U \notin \mathcal{C}_n\)</span>):
+If the gate is non-Clifford (such as a <span class="math">\(T\)</span> gate or a rotation <span class="math">\(R_y(\theta)\)</span>), it is “absorbed” into the MPO component:</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[| \phi' \rangle = | \phi \rangle, \quad \mathcal{W}' = \mathcal{W} \cdot \tilde{U}
+
+\]</div>
+</div>
+<p>where <span class="math">\(\tilde{U}\)</span> is the MPO representation of the gate. In the <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> implementation (see <code class="docutils literal notranslate"><span class="pre">mpstab.evolutors.hsmpo</span></code>), this involves an MPO-MPO contraction followed by a truncation step to maintain a manageable bond dimension <span class="math">\(\chi\)</span>.</p>
+</li>
+</ol>
 </section>
-<section id="partial-cuts-gate-count-profiling">
-<h2>Partial cuts: gate-count profiling<a class="headerlink" href="#partial-cuts-gate-count-profiling" title="Link to this heading">¶</a></h2>
-<p>Resynthesizing only a prefix of the dressed rotations (<code class="docutils literal notranslate"><span class="pre">cut_index</span> <span class="pre">&lt;</span>
-<span class="pre">len(magic_gates)</span></code>) is useful for gate-count profiling – e.g. to see how
-resynthesis cost grows as more of the circuit is included:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">cut</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">magic_gates</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
-    <span class="n">resynth</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">resynthesize_head</span><span class="p">(</span><span class="n">cut</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">resynth</span><span class="o">.</span><span class="n">n_gates</span><span class="p">,</span> <span class="n">resynth</span><span class="o">.</span><span class="n">n_two_qubit_gates</span><span class="p">)</span>
-</pre></div>
+<section id="computational-complexity-and-costs">
+<h2>Computational Complexity and Costs<a class="headerlink" href="#computational-complexity-and-costs" title="Link to this heading">¶</a></h2>
+<p>The motivation for this hybrid approach becomes clear when comparing its costs to other simulation strategies:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><strong>Statevector Simulation</strong>:</dt><dd><p>Requires storing <span class="math">\(2^n\)</span> complex coefficients. Applying a gate costs <span class="math">\(\mathcal{O}(2^n)\)</span> in both memory and time. This “exponential wall” makes simulations with <span class="math">\(n &gt; 45\)</span> virtually impossible on current hardware.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>Pure Stabilizer Simulation</strong>:</dt><dd><p>Requires only <span class="math">\(\mathcal{O}(n^2)\)</span> resources but is restricted to Clifford circuits, which cannot represent general quantum algorithms.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><strong>HSMPO (mpstab)</strong>:</dt><dd><dl class="simple">
+<dt>The cost is primarily governed by the <strong>bond dimension</strong> <span class="math">\(\chi\)</span> of the MPO:</dt><dd><ul>
+<li><p><strong>Memory</strong>: Scales as <span class="math">\(\mathcal{O}(n \cdot \chi^2)\)</span>.</p></li>
+<li><p><strong>Execution</strong>: Clifford gates scale as <span class="math">\(\mathcal{O}(n^2)\)</span>, while non-Clifford updates (including contraction and truncation) scale as <span class="math">\(\mathcal{O}(n \cdot \chi^3)\)</span>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+</ul>
+<p>As long as the circuit’s non-Clifford resources and entanglement allow for a compressed representation where <span class="math">\(\chi \ll 2^{n/2}\)</span>, <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> can simulate systems significantly larger than those reachable by statevector simulators.</p>
+</section>
+<section id="numerical-truncation-and-fidelity">
+<h2>Numerical Truncation and Fidelity<a class="headerlink" href="#numerical-truncation-and-fidelity" title="Link to this heading">¶</a></h2>
+<p>To maintain efficiency, <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> utilizes <strong>Singular Value Decomposition (SVD)</strong> to truncate the bond dimension of <span class="math">\(\mathcal{W}\)</span> after non-Clifford operations. Given a set of singular values <span class="math">\(\sigma_j\)</span>, the truncation is performed such that:</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[\sum_{j=\chi+1}^{D} \sigma_j^2 < \epsilon
+
+\]</div>
 </div>
-<p>A partial cut leaves a pure-Clifford residual (<code class="docutils literal notranslate"><span class="pre">resynth.residual_tableau</span></code>): the
-<code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> route of <a class="reference internal" href="../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut" title="mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation_at_cut()</span></code></a>
-folds it into the sampled Pauli terms automatically before grouping (see the
-module docstring of <a class="reference internal" href="../api/evolutors.html#module-mpstab.evolutors.hqsmpo" title="mpstab.evolutors.hqsmpo"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.evolutors.hqsmpo</span></code></a>); the <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>
-route takes a <code class="docutils literal notranslate"><span class="pre">tail_handling</span></code> option
-(<code class="docutils literal notranslate"><span class="pre">ClassicalShadows(tail_handling=&quot;fold&quot;)</span></code>, or <code class="docutils literal notranslate"><span class="pre">tail_handling=&quot;fold&quot;</span></code> next to
-<code class="docutils literal notranslate"><span class="pre">method=&quot;shadows&quot;</span></code>):
-<code class="docutils literal notranslate"><span class="pre">&quot;append_to_head_circuit&quot;</span></code> (default) runs the residual as extra gates, while
-<code class="docutils literal notranslate"><span class="pre">&quot;fold&quot;</span></code> conjugates the Clifford-backpropagated observable and every tail
-generator through it, so the
-device runs the head alone. <code class="docutils literal notranslate"><span class="pre">&quot;fold&quot;</span></code> is exact and keeps the tail an MPO, but
-the residual spreads Pauli weight, which can raise the shadow variance by
-orders of magnitude – compare <code class="docutils literal notranslate"><span class="pre">shadow_variance_from_mpo</span></code> of the two tail
-operators against the residual’s two-qubit gate count before choosing. Rotations left out of the resynthesis entirely are
-still non-Clifford and get folded approximately into the tail MPO – see
-<a class="reference internal" href="fidelity_and_approximation.html"><span class="doc">Fidelity and Approximation</span></a> and <code class="docutils literal notranslate"><span class="pre">HQSMPO.tail_truncation</span></code>.</p>
+<p>where <span class="math">\(\epsilon\)</span> is a precision parameter defined in the <code class="docutils literal notranslate"><span class="pre">EvolutionConfig</span></code>. This introduces a controlled approximation error, allowing users to track the <strong>fidelity lower bound</strong> (see <a class="reference internal" href="fidelity_and_approximation.html"><span class="doc">Fidelity and Approximation</span></a>) and balance accuracy against computational time.</p>
 </section>
 </section>
 
@@ -362,23 +390,23 @@ still non-Clifford and get folded approximately into the tail MPO – see
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="clifford_extraction_synthesis.html">
+          <a class="next-page" href="fidelity_and_approximation.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Head Synthesis by Clifford Extraction</div>
+                <div class="title">Fidelity and Approximation</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="fidelity_and_approximation.html">
+          <a class="prev-page" href="../quickstart.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Fidelity and Approximation</div>
+                <div class="title">Quick Start Guide</div>
                 
               </div>
             </a>
@@ -412,10 +440,13 @@ still non-Clifford and get folded approximately into the tail MPO – see
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Hardware Resynthesis with rustiq</a><ul>
-<li><a class="reference internal" href="#why-foldable">Why “foldable”?</a></li>
-<li><a class="reference internal" href="#basic-usage">Basic usage</a></li>
-<li><a class="reference internal" href="#partial-cuts-gate-count-profiling">Partial cuts: gate-count profiling</a></li>
+<li><a class="reference internal" href="#">Theoretical Background, a snapshot</a><ul>
+<li><a class="reference internal" href="#classical-simulation-approaches">Classical Simulation Approaches</a></li>
+<li><a class="reference internal" href="#other-hybrid-techniques">Other Hybrid Techniques</a></li>
+<li><a class="reference internal" href="#the-hsmpo-ansatz">The HSMPO Ansatz</a></li>
+<li><a class="reference internal" href="#evolution-rules">Evolution Rules</a></li>
+<li><a class="reference internal" href="#computational-complexity-and-costs">Computational Complexity and Costs</a></li>
+<li><a class="reference internal" href="#numerical-truncation-and-fidelity">Numerical Truncation and Fidelity</a></li>
 </ul>
 </li>
 </ul>

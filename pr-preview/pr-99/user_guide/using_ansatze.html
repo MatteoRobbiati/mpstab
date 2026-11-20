@@ -3,11 +3,11 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Using Ansätze" href="using_ansatze.html"><link rel="prev" title="MPSTAB as a Qibo Backend Provider" href="qibo_backend_provider.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="DMRG Optimization of Quantum Hamiltonians" href="dmrg_optimization.html"><link rel="prev" title="Working with Engines" href="working_with_engines.html">
         <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Working with Engines - Documentation</title>
+        <title>Using Ansätze - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -200,8 +200,22 @@
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="theory_background.html">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/analytic_gradients.html">Analytic gradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -218,17 +232,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
-<li class="toctree-l1"><a class="reference internal" href="analytic_gradients.html">Analytic gradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
-<li class="toctree-l1"><a class="reference internal" href="clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -259,7 +262,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../_sources/guides/working_with_engines.rst.txt" title="View this page">
+  <a class="muted-link" href="../_sources/user_guide/using_ansatze.rst.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -277,134 +280,116 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="working-with-engines">
-<h1>Working with Engines<a class="headerlink" href="#working-with-engines" title="Link to this heading">¶</a></h1>
-<p>MPSTAB runs on two computational backends (engines): one for the stabilizer
-part of the circuit, one for the tensor network.</p>
-<p>By default HSMPO uses Stim for the stabilizer part and Quimb for the tensor
-network. Engines are passed at construction, or swapped later with
-<code class="docutils literal notranslate"><span class="pre">set_engines</span></code>:</p>
+          <section id="using-ansatze">
+<h1>Using Ansätze<a class="headerlink" href="#using-ansatze" title="Link to this heading">¶</a></h1>
+<p>Ansätze are pre-built quantum circuit patterns that serve as templates for quantum algorithms.
+Out HSMPO surrogate works around a provided ansatz, but, as you know from previous examples, a simple Qibo circuit works too.
+This is because we internally take care of constructing a proper ansatz around the provided circuit.</p>
+<section id="available-ansatze">
+<h2>Available Ansätze<a class="headerlink" href="#available-ansatze" title="Link to this heading">¶</a></h2>
+<p>In MPSTAB, we provide a few precomputed ansätze, for example Hardware Efficient or Floquet Dynamics inspired.
+More remarkably, we provide two, more abstract, models: a first general wrapper, which can be used to transform
+any Qibo circuit into an Mpstab ansatz (CircuitAnsatz), and a more complicated ansatz, which allows to provide
+more information about the quantum hardware and, then, recover a compiled and transpiled ansatz (TranspiledAnsatz). This second
+model is particularly relevant in contexts where one wants to have control of the number of gates executed
+on a real quantum device.</p>
+<section id="circuitansatz">
+<h3>CircuitAnsatz<a class="headerlink" href="#circuitansatz" title="Link to this heading">¶</a></h3>
+<p>Wrap any existing Qibo circuit as an ansatz:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuimbEngine</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">CircuitAnsatz</span>
 
-<span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+<span class="c1"># Create a custom circuit</span>
+<span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+    <span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+    <span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">RY</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">0.5</span><span class="p">))</span>
 <span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
-<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">circuit</span><span class="p">,</span> <span class="n">tn_engine</span><span class="o">=</span><span class="n">QuimbEngine</span><span class="p">(</span><span class="n">svd_cutoff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
-<span class="c1"># ...or later, which rebuilds the cached MPS:</span>
-<span class="n">simulator</span><span class="o">.</span><span class="n">set_engines</span><span class="p">(</span><span class="n">tn_engine</span><span class="o">=</span><span class="n">QuimbEngine</span><span class="p">())</span>
+<span class="c1"># Wrap as ansatz</span>
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">CircuitAnsatz</span><span class="p">(</span><span class="n">qibo_circuit</span><span class="o">=</span><span class="n">circuit</span><span class="p">)</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">)</span>
 </pre></div>
 </div>
-<section id="available-engines">
-<h2>Available Engines<a class="headerlink" href="#available-engines" title="Link to this heading">¶</a></h2>
-<section id="stabilizer-engines">
-<h3>Stabilizer Engines<a class="headerlink" href="#stabilizer-engines" title="Link to this heading">¶</a></h3>
-<p>Engines that handle the Clifford (stabilizer) part of the circuit:</p>
-<dl class="simple">
-<dt><strong>Stim Engine</strong></dt><dd><ul class="simple">
-<li><p>Speed: State-of-art Clifford simulator</p></li>
-<li><p>Coverage: Pure Clifford circuits</p></li>
-<li><p>Best for: High-performance stabilizer simulation</p></li>
-<li><p>External library: <a class="reference external" href="https://github.com/quantumlib/Stim">Stim</a></p></li>
-</ul>
-</dd>
-</dl>
+</section>
+<section id="circuit-library-ansatze">
+<h3>Circuit-library ansätze<a class="headerlink" href="#circuit-library-ansatze" title="Link to this heading">¶</a></h3>
+<p>MPSTAB ships a small library of textbook circuits — <code class="docutils literal notranslate"><span class="pre">QFT</span></code>, <code class="docutils literal notranslate"><span class="pre">QFTPhaseKernel</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Grover</span></code>, <code class="docutils literal notranslate"><span class="pre">QPE</span></code>, <code class="docutils literal notranslate"><span class="pre">QAE</span></code> and <code class="docutils literal notranslate"><span class="pre">TrotterIsing</span></code> — useful as HSMPO/HQSMPO
+benchmarks. They are written with high-level gates (<code class="docutils literal notranslate"><span class="pre">CU1</span></code>, <code class="docutils literal notranslate"><span class="pre">SWAP</span></code>,
+<code class="docutils literal notranslate"><span class="pre">TOFFOLI</span></code>, <code class="docutils literal notranslate"><span class="pre">RZZ</span></code>, …) and, by default, transpiled to a native gate set on
+construction, so every non-Clifford gate becomes an <code class="docutils literal notranslate"><span class="pre">rz</span></code> rotation that HSMPO
+can consume — you never hand-decompose anything:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">QFT</span><span class="p">,</span> <span class="n">TrotterIsing</span><span class="p">,</span> <span class="n">Grover</span>
+
+<span class="c1"># Quantum Fourier Transform on 6 qubits (transpiled by default)</span>
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">QFT</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">)</span>
+<span class="n">simulator</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="s2">&quot;Z&quot;</span> <span class="o">*</span> <span class="mi">6</span><span class="p">)</span>
+
+<span class="c1"># Trotterized transverse-field Ising evolution</span>
+<span class="n">ising</span> <span class="o">=</span> <span class="n">TrotterIsing</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+<span class="c1"># Grover search; QPE/QAE take ``n_counting`` and add one work qubit</span>
+<span class="n">grover</span> <span class="o">=</span> <span class="n">Grover</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Pass <code class="docutils literal notranslate"><span class="pre">transpile=False</span></code> to keep the raw high-level circuit for inspection
+(HSMPO itself requires the transpiled form). These pair naturally with
+<code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> and its cut-index split — see <a class="reference internal" href="../api/engines.html"><span class="doc">Engines</span></a>.</p>
+</section>
+</section>
+<section id="building-custom-ansatze">
+<h2>Building Custom Ansätze<a class="headerlink" href="#building-custom-ansatze" title="Link to this heading">¶</a></h2>
+<p>Extend the <code class="docutils literal notranslate"><span class="pre">Ansatz</span></code> class for custom patterns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">Ansatz</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MyCustomAnsatz</span><span class="p">(</span><span class="n">Ansatz</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom ansatz for specific problem.&quot;&quot;&quot;</span>
 
-<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">circuit</span><span class="p">)</span>
-<span class="c1"># By default we use Stim</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;ring&quot;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="n">pattern</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_circuit</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_circuit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Your circuit construction logic</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span>
+
+        <span class="c1"># Add gates based on pattern</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">==</span> <span class="s2">&quot;ring&quot;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">):</span>
+                <span class="n">next_q</span> <span class="o">=</span> <span class="p">(</span><span class="n">q</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">next_q</span><span class="p">))</span>
+
+<span class="c1"># Use with HSMPO</span>
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">MyCustomAnsatz</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;ring&quot;</span><span class="p">)</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
-<section id="tensor-network-engines">
-<h3>Tensor Network Engines<a class="headerlink" href="#tensor-network-engines" title="Link to this heading">¶</a></h3>
-<p>Engines that handle the non-Clifford effects via MPO:</p>
-<dl class="simple">
-<dt><strong>Quimb Engine</strong></dt><dd><ul class="simple">
-<li><p>Speed: Fast (optimized contractions)</p></li>
-<li><p>Memory: Efficient for large bond dimensions</p></li>
-<li><p>Best for: Large systems with moderate bond dimensions</p></li>
-<li><p>Backends: <code class="docutils literal notranslate"><span class="pre">QuimbEngine(backend=&quot;jax&quot;)</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;torch&quot;</span></code> for autodiff</p></li>
-<li><p>External library: <a class="reference external" href="https://quimb.readthedocs.io/">Quimb</a></p></li>
-</ul>
-</dd>
-</dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
-
-<span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">RY</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">0.5</span><span class="p">))</span>
-
-<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">circuit</span><span class="p">,</span> <span class="n">max_bond_dimension</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
-<span class="c1"># Uses Quimb tensor network engine by default</span>
-</pre></div>
-</div>
-</section>
-</section>
-<section id="engine-configuration">
-<h2>Engine Configuration<a class="headerlink" href="#engine-configuration" title="Link to this heading">¶</a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
-
-<span class="c1"># Define an ansatz or a Qibo circuit</span>
-<span class="n">ansatz</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-
-<span class="c1"># Basic HSMPO with the default engines</span>
-<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span>
-    <span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">,</span>
-    <span class="n">max_bond_dimension</span><span class="o">=</span><span class="mi">32</span>
-<span class="p">)</span>
-
-<span class="c1"># Access engine information</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Stabilizer engine: </span><span class="si">{</span><span class="n">simulator</span><span class="o">.</span><span class="n">stab_engine</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TN engine: </span><span class="si">{</span><span class="n">simulator</span><span class="o">.</span><span class="n">tn_engine</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
-<section id="tips-for-efficient-simulation">
-<h2>Tips for Efficient Simulation<a class="headerlink" href="#tips-for-efficient-simulation" title="Link to this heading">¶</a></h2>
-<ol class="arabic simple">
-<li><p><strong>Use Clifford circuits when possible</strong> - they’re orders of magnitude faster</p></li>
-<li><p><strong>Start with low bond dimensions</strong> - increase only if accuracy is insufficient</p></li>
-<li><p><strong>Profile your circuits</strong> - understand what gates are expensive</p></li>
-</ol>
-</section>
-<section id="example-adaptive-bond-dimension">
-<h2>Example: Adaptive Bond Dimension<a class="headerlink" href="#example-adaptive-bond-dimension" title="Link to this heading">¶</a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gates</span>
-
-<span class="c1"># Define an ansatz or a Qibo circuit</span>
-<span class="n">ansatz</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-
-<span class="c1"># Start with low bond dimension</span>
-<span class="k">for</span> <span class="n">max_bd</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">]:</span>
-    <span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">max_bond_dimension</span><span class="o">=</span><span class="n">max_bd</span><span class="p">)</span>
-    <span class="n">result</span><span class="p">,</span> <span class="n">fidelity</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="s2">&quot;Z&quot;</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span> <span class="n">return_fidelity</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;χ_max=</span><span class="si">{</span><span class="n">max_bd</span><span class="si">}</span><span class="s2">: result=</span><span class="si">{</span><span class="n">result</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, fidelity=</span><span class="si">{</span><span class="n">fidelity</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="c1"># Stop if accuracy is sufficient</span>
-    <span class="k">if</span> <span class="n">fidelity</span> <span class="o">&gt;</span> <span class="mf">0.99</span><span class="p">:</span>
-        <span class="k">break</span>
-</pre></div>
-</div>
+<section id="the-ansatz-partitioning">
+<h2>The ansatz partitioning<a class="headerlink" href="#the-ansatz-partitioning" title="Link to this heading">¶</a></h2>
+<p>An HSMPO surrogate is constructed grouping all the Clifford operations in the circuit and
+rewriting the representation of the unitary in terms of new - global - rotations. All this
+procedure, that is well described in the original HSMPO paper, requires a fine partitioning
+of the original quantum circuit, and a reconstruction of a series of operations alternately
+handled by the stabilizers and the tensor network engines. Our ansätze provide a built int
+method to partitionate and recover all these features of the provided circuit.</p>
 </section>
 <section id="further-reading">
 <h2>Further Reading<a class="headerlink" href="#further-reading" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><a class="reference external" href="https://quimb.readthedocs.io/">Quimb Documentation</a></p></li>
-<li><p><a class="reference external" href="https://quantumlib.org/reference/python/stim/">Stim Documentation</a></p></li>
-<li><p><a class="reference internal" href="../api/engines.html"><span class="doc">Engines</span></a></p></li>
+<li><p><a class="reference external" href="https://qibo.science/">Qibo Circuit Documentation</a></p></li>
+<li><p><a class="reference internal" href="../api/models.html"><span class="doc">Models &amp; Methods</span></a></p></li>
+<li><p>Research papers on ansatz design and VQA algorithms</p></li>
 </ul>
 </section>
 </section>
@@ -414,23 +399,23 @@ network. Engines are passed at construction, or swapped later with
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="using_ansatze.html">
+          <a class="next-page" href="dmrg_optimization.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Using Ansätze</div>
+                <div class="title">DMRG Optimization of Quantum Hamiltonians</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="qibo_backend_provider.html">
+          <a class="prev-page" href="working_with_engines.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">MPSTAB as a Qibo Backend Provider</div>
+                <div class="title">Working with Engines</div>
                 
               </div>
             </a>
@@ -464,15 +449,14 @@ network. Engines are passed at construction, or swapped later with
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Working with Engines</a><ul>
-<li><a class="reference internal" href="#available-engines">Available Engines</a><ul>
-<li><a class="reference internal" href="#stabilizer-engines">Stabilizer Engines</a></li>
-<li><a class="reference internal" href="#tensor-network-engines">Tensor Network Engines</a></li>
+<li><a class="reference internal" href="#">Using Ansätze</a><ul>
+<li><a class="reference internal" href="#available-ansatze">Available Ansätze</a><ul>
+<li><a class="reference internal" href="#circuitansatz">CircuitAnsatz</a></li>
+<li><a class="reference internal" href="#circuit-library-ansatze">Circuit-library ansätze</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#engine-configuration">Engine Configuration</a></li>
-<li><a class="reference internal" href="#tips-for-efficient-simulation">Tips for Efficient Simulation</a></li>
-<li><a class="reference internal" href="#example-adaptive-bond-dimension">Example: Adaptive Bond Dimension</a></li>
+<li><a class="reference internal" href="#building-custom-ansatze">Building Custom Ansätze</a></li>
+<li><a class="reference internal" href="#the-ansatz-partitioning">The ansatz partitioning</a></li>
 <li><a class="reference internal" href="#further-reading">Further Reading</a></li>
 </ul>
 </li>

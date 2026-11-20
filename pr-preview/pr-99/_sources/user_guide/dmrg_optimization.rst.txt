@@ -9,7 +9,7 @@ DMRG Optimization of Quantum Hamiltonians
    <p class="admonition-title">Advanced Topic</p>
    <p>
    This guide covers DMRG-based optimization for finding ground states of quantum Hamiltonians.
-   For an introduction to mpstab, see the <a href="quickstart.html">Quickstart</a> guide.
+   For an introduction to mpstab, see the <a href="../quickstart.html">Quickstart</a> guide.
    </p>
    </div>
 
@@ -188,4 +188,4 @@ See Also
 
 - :doc:`Working with Engines <working_with_engines>`
 - :doc:`Using Ansatze <using_ansatze>`
-- :doc:`Theory Background <theory_background>`
+- :doc:`Theory Background <../methods/theory_background>`

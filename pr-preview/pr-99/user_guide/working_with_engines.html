@@ -3,11 +3,11 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Evolutors" href="../api/evolutors.html"><link rel="prev" title="Hardware Resynthesis with rustiq" href="rustiq_resynthesis.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Using Ansätze" href="using_ansatze.html"><link rel="prev" title="MPSTAB as a Qibo Backend Provider" href="qibo_backend_provider.html">
         <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Head Synthesis by Clifford Extraction - Documentation</title>
+        <title>Working with Engines - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -200,8 +200,22 @@
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="theory_background.html">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/analytic_gradients.html">Analytic gradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -218,17 +232,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
-<li class="toctree-l1"><a class="reference internal" href="analytic_gradients.html">Analytic gradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1"><a class="reference internal" href="working_with_engines.html">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Head Synthesis by Clifford Extraction</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -259,7 +262,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../_sources/guides/clifford_extraction_synthesis.rst.txt" title="View this page">
+  <a class="muted-link" href="../_sources/user_guide/working_with_engines.rst.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -277,140 +280,135 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="head-synthesis-by-clifford-extraction">
-<h1>Head Synthesis by Clifford Extraction<a class="headerlink" href="#head-synthesis-by-clifford-extraction" title="Link to this heading">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> splits a circuit into a <em>head</em>, run on the device, and a
-<em>tail</em>, folded classically into the observable. The head is a list of dressed
-Pauli rotations, and has to become a circuit. This page explains the
-<code class="docutils literal notranslate"><span class="pre">&quot;extraction&quot;</span></code> synthesis, which needs no extra dependency and can be told
-the connectivity of the device.</p>
-<section id="the-problem">
-<h2>The problem<a class="headerlink" href="#the-problem" title="Link to this heading">¶</a></h2>
-<p>A dressed rotation is <code class="docutils literal notranslate"><span class="pre">exp(-i</span> <span class="pre">theta</span> <span class="pre">P</span> <span class="pre">/</span> <span class="pre">2)</span></code> with <code class="docutils literal notranslate"><span class="pre">P</span></code> a Pauli string, for
-instance <code class="docutils literal notranslate"><span class="pre">Z</span> <span class="pre">Z</span> <span class="pre">X</span> <span class="pre">I</span></code>. A device only rotates single qubits, so the string has
-to be brought onto one qubit first.</p>
-<p>The textbook circuit does it in three steps:</p>
-<ol class="arabic simple">
-<li><p>single-qubit gates turn every letter of <code class="docutils literal notranslate"><span class="pre">P</span></code> into <code class="docutils literal notranslate"><span class="pre">Z</span></code>;</p></li>
-<li><p>a chain of CNOTs collects the parity of the support on one qubit: each CNOT
-removes one site, so a string of weight <code class="docutils literal notranslate"><span class="pre">w</span></code> needs <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">-</span> <span class="pre">1</span></code> of them;</p></li>
-<li><p>an <code class="docutils literal notranslate"><span class="pre">RZ(theta)</span></code> on that qubit, then steps 2 and 1 <strong>undone</strong>.</p></li>
-</ol>
-<p>The undoing costs another <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">-</span> <span class="pre">1</span></code> CNOTs, for every rotation.</p>
-</section>
-<section id="the-idea-do-not-undo">
-<h2>The idea: do not undo<a class="headerlink" href="#the-idea-do-not-undo" title="Link to this heading">¶</a></h2>
-<p>The gates of steps 1 and 2 are Clifford gates. A Clifford gate can be moved
-past a Pauli rotation: the rotation stays a Pauli rotation, only its string
-changes. So instead of undoing them, we leave them where they are and
-<strong>update the strings of the rotations still to come</strong>.</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>textbook      V1  RZ  V1^-1   V2  RZ  V2^-1   V3  RZ  V3^-1
-extraction    V1  RZ          V2&#39; RZ          V3&#39; RZ           (V1 V2&#39; V3&#39;)^-1
+          <section id="working-with-engines">
+<h1>Working with Engines<a class="headerlink" href="#working-with-engines" title="Link to this heading">¶</a></h1>
+<p>MPSTAB runs on two computational backends (engines): one for the stabilizer
+part of the circuit, one for the tensor network.</p>
+<p>By default HSMPO uses Stim for the stabilizer part and Quimb for the tensor
+network. Engines are passed at construction, or swapped later with
+<code class="docutils literal notranslate"><span class="pre">set_engines</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuimbEngine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
 
-V  = the Clifford that brings a string onto one qubit
-V&#39; = the same, for the string as changed by the Cliffords before it
+<span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">circuit</span><span class="p">,</span> <span class="n">tn_engine</span><span class="o">=</span><span class="n">QuimbEngine</span><span class="p">(</span><span class="n">svd_cutoff</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
+<span class="c1"># ...or later, which rebuilds the cached MPS:</span>
+<span class="n">simulator</span><span class="o">.</span><span class="n">set_engines</span><span class="p">(</span><span class="n">tn_engine</span><span class="o">=</span><span class="n">QuimbEngine</span><span class="p">())</span>
 </pre></div>
 </div>
-<p>What is left at the end is one accumulated Clifford: the <em>residual</em>. It is
-never run. A Clifford turns a Pauli observable into another Pauli observable,
-so the residual is absorbed classically into what is measured, exactly as the
-Clifford part of the original circuit is.</p>
-<p>This is the idea of QuCLEAR (Liu et al., <a class="reference external" href="https://arxiv.org/abs/2408.13316">arXiv:2408.13316</a>): Clifford <em>extraction</em> (push them to the
-end) and <em>absorption</em> (handle them classically).</p>
-</section>
-<section id="which-cnots">
-<h2>Which CNOTs<a class="headerlink" href="#which-cnots" title="Link to this heading">¶</a></h2>
-<p>Bringing a string of weight <code class="docutils literal notranslate"><span class="pre">w</span></code> onto one qubit takes <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">-</span> <span class="pre">1</span></code> CNOTs, but
-there are many ways to choose them, and each choice changes the coming strings
-differently. A good choice makes them lighter, a bad one heavier. This choice
-is the whole difference between a short head and a long one.</p>
-<p>The rule used here is greedy. For the rotation in turn, among all the pairs
-(control, target) in its support, take the CNOT after which the next few
-strings touching those two qubits are</p>
-<ul class="simple">
-<li><p><strong>lightest</strong>: fewer sites, hence fewer CNOTs later;</p></li>
-<li><p><strong>most local</strong>: with a device connectivity, sites that are close on the
-chip, so that later CNOTs need no routing. A CNOT between distant qubits is
-itself charged the SWAPs that would route it.</p></li>
+<section id="available-engines">
+<h2>Available Engines<a class="headerlink" href="#available-engines" title="Link to this heading">¶</a></h2>
+<section id="stabilizer-engines">
+<h3>Stabilizer Engines<a class="headerlink" href="#stabilizer-engines" title="Link to this heading">¶</a></h3>
+<p>Engines that handle the Clifford (stabilizer) part of the circuit:</p>
+<dl class="simple">
+<dt><strong>Stim Engine</strong></dt><dd><ul class="simple">
+<li><p>Speed: State-of-art Clifford simulator</p></li>
+<li><p>Coverage: Pure Clifford circuits</p></li>
+<li><p>Best for: High-performance stabilizer simulation</p></li>
+<li><p>External library: <a class="reference external" href="https://github.com/quantumlib/Stim">Stim</a></p></li>
 </ul>
-<p>Two more degrees of freedom are used:</p>
-<ul class="simple">
-<li><p>rotations that commute may be reordered, the lightest first;</p></li>
-<li><p>no single setting of the rule is best on every circuit, so a handful are
-tried (<a class="reference internal" href="../api/qpu.html#mpstab.qpu.synthesis.extraction.EXTRACTION_STRATEGIES" title="mpstab.qpu.synthesis.extraction.EXTRACTION_STRATEGIES"><code class="xref py py-data docutils literal notranslate"><span class="pre">EXTRACTION_STRATEGIES</span></code></a>) and
-the cheapest head is kept. A synthesis takes a fraction of a second.</p></li>
-</ul>
-</section>
-<section id="usage">
-<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hqsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HQSMPO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParametricKickedIsing</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExtractionSynthesis</span><span class="p">,</span> <span class="n">PauliSampling</span>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
 
-<span class="n">hs</span> <span class="o">=</span> <span class="n">HQSMPO</span><span class="p">(</span>
-    <span class="n">ansatz</span><span class="o">=</span><span class="n">ParametricKickedIsing</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">delta_h</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span>
-    <span class="c1"># connectivity: None (all-to-all) | &quot;line&quot; | [(q0, q1), ...]</span>
-    <span class="n">head_synthesis</span><span class="o">=</span><span class="n">ExtractionSynthesis</span><span class="p">(</span><span class="n">connectivity</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">),</span>
+<span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">circuit</span><span class="p">)</span>
+<span class="c1"># By default we use Stim</span>
+</pre></div>
+</div>
+</section>
+<section id="tensor-network-engines">
+<h3>Tensor Network Engines<a class="headerlink" href="#tensor-network-engines" title="Link to this heading">¶</a></h3>
+<p>Engines that handle the non-Clifford effects via MPO:</p>
+<dl class="simple">
+<dt><strong>Quimb Engine</strong></dt><dd><ul class="simple">
+<li><p>Speed: Fast (optimized contractions)</p></li>
+<li><p>Memory: Efficient for large bond dimensions</p></li>
+<li><p>Best for: Large systems with moderate bond dimensions</p></li>
+<li><p>Backends: <code class="docutils literal notranslate"><span class="pre">QuimbEngine(backend=&quot;jax&quot;)</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;torch&quot;</span></code> for autodiff</p></li>
+<li><p>External library: <a class="reference external" href="https://quimb.readthedocs.io/">Quimb</a></p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
+
+<span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">RY</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">0.5</span><span class="p">))</span>
+
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">circuit</span><span class="p">,</span> <span class="n">max_bond_dimension</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+<span class="c1"># Uses Quimb tensor network engine by default</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="engine-configuration">
+<h2>Engine Configuration<a class="headerlink" href="#engine-configuration" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
+
+<span class="c1"># Define an ansatz or a Qibo circuit</span>
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="c1"># Basic HSMPO with the default engines</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span>
+    <span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">,</span>
+    <span class="n">max_bond_dimension</span><span class="o">=</span><span class="mi">32</span>
 <span class="p">)</span>
-<span class="n">cut_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">magic_gates</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
 
-<span class="n">head</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">resynthesize_head</span><span class="p">(</span><span class="n">cut_index</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">head</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">head</span><span class="o">.</span><span class="n">n_two_qubit_gates</span><span class="p">)</span>   <span class="c1"># the circuit is head.circuit</span>
-
-<span class="c1"># every hardware route uses that head and folds its residual</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">expectation_at_cut</span><span class="p">(</span><span class="s2">&quot;ZZIIII&quot;</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">PauliSampling</span><span class="p">(),</span> <span class="n">n_shots</span><span class="o">=</span><span class="mi">20000</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<span class="n">exact</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">expectation_at_cut</span><span class="p">(</span><span class="s2">&quot;ZZIIII&quot;</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;simulation&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
-<span class="k">assert</span> <span class="nb">abs</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">exact</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">result</span><span class="o">.</span><span class="n">total_error</span> <span class="o">+</span> <span class="mf">1e-6</span>
+<span class="c1"># Access engine information</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Stabilizer engine: </span><span class="si">{</span><span class="n">simulator</span><span class="o">.</span><span class="n">stab_engine</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TN engine: </span><span class="si">{</span><span class="n">simulator</span><span class="o">.</span><span class="n">tn_engine</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
-<section id="the-light-cone-of-the-observable">
-<h2>The light cone of the observable<a class="headerlink" href="#the-light-cone-of-the-observable" title="Link to this heading">¶</a></h2>
-<p>A second saving does not depend on the synthesis. Going backwards from the
-observable, a rotation matters only if its string anticommutes with the
-observable, or with a later rotation that matters. Every other rotation
-cancels against its own inverse in <code class="docutils literal notranslate"><span class="pre">&lt;psi|</span> <span class="pre">U^dag</span> <span class="pre">O</span> <span class="pre">U</span> <span class="pre">|psi&gt;</span></code>: it can be removed
-from the head, and need not be folded in the tail. This is exact, and costs
-only commutations of Pauli strings.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hs</span><span class="o">.</span><span class="n">light_cone</span> <span class="o">=</span> <span class="kc">True</span>                      <span class="c1"># used by every hardware route</span>
-<span class="n">kept</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">relevant_rotations</span><span class="p">(</span><span class="s2">&quot;IIZIII&quot;</span><span class="p">)</span>    <span class="c1"># indices of the rotations that matter</span>
-<span class="n">head</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">resynthesize_head</span><span class="p">(</span><span class="n">cut_index</span><span class="p">,</span> <span class="n">observable</span><span class="o">=</span><span class="s2">&quot;IIZIII&quot;</span><span class="p">)</span>
-<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kept</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">magic_gates</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>It pays for local observables and shallow circuits. For a sum of terms the
-head keeps the union of their light cones, so an observable covering the
-whole chain (a sum of <code class="docutils literal notranslate"><span class="pre">Z</span> <span class="pre">Z</span></code> over every bond) removes nothing.</p>
+<section id="tips-for-efficient-simulation">
+<h2>Tips for Efficient Simulation<a class="headerlink" href="#tips-for-efficient-simulation" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><strong>Use Clifford circuits when possible</strong> - they’re orders of magnitude faster</p></li>
+<li><p><strong>Start with low bond dimensions</strong> - increase only if accuracy is insufficient</p></li>
+<li><p><strong>Profile your circuits</strong> - understand what gates are expensive</p></li>
+</ol>
 </section>
-<section id="what-to-expect">
-<h2>What to expect<a class="headerlink" href="#what-to-expect" title="Link to this heading">¶</a></h2>
-<p>Two-qubit gates after compilation to a line of CZ-native qubits, 16 qubits,
-head = 80% of the rotations (in brackets, the whole original circuit). The
-last column also drops the rotations outside the light cone of a <code class="docutils literal notranslate"><span class="pre">Z</span></code> on the
-central qubit:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>                                    rustiq  original,  QuCLEAR  extraction  extraction
-                                            truncated                       + light cone
-kicked Ising, 8 steps       (240)     303      180       149        81          50
-parametric kicked Ising     (240)     630      180       173       164          92
-Trotter Ising, 8 steps      (240)     413      203       206       188         129
-random brickwork, 6 layers  (390)     954      282       306       399         291
+<section id="example-adaptive-bond-dimension">
+<h2>Example: Adaptive Bond Dimension<a class="headerlink" href="#example-adaptive-bond-dimension" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gates</span>
+
+<span class="c1"># Define an ansatz or a Qibo circuit</span>
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="c1"># Start with low bond dimension</span>
+<span class="k">for</span> <span class="n">max_bd</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">]:</span>
+    <span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">max_bond_dimension</span><span class="o">=</span><span class="n">max_bd</span><span class="p">)</span>
+    <span class="n">result</span><span class="p">,</span> <span class="n">fidelity</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="s2">&quot;Z&quot;</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span> <span class="n">return_fidelity</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;χ_max=</span><span class="si">{</span><span class="n">max_bd</span><span class="si">}</span><span class="s2">: result=</span><span class="si">{</span><span class="n">result</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, fidelity=</span><span class="si">{</span><span class="n">fidelity</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Stop if accuracy is sufficient</span>
+    <span class="k">if</span> <span class="n">fidelity</span> <span class="o">&gt;</span> <span class="mf">0.99</span><span class="p">:</span>
+        <span class="k">break</span>
 </pre></div>
 </div>
+</section>
+<section id="further-reading">
+<h2>Further Reading<a class="headerlink" href="#further-reading" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>It pays where the circuit has a Clifford structure to extract (the kicked
-Ising chain near its Clifford point): the head is far shorter than the
-original circuit cut at the same place.</p></li>
-<li><p>Where every gate is already a rotation (Trotter), there is nothing to
-extract, and the head is about as long as the original, slightly shorter.</p></li>
-<li><p>On a random brickwork the rule is still worse than the original circuit:
-compare the candidates and keep the shortest.</p></li>
-<li><p>The light cone helps most on shallow circuits: at 20 qubits and 4 steps of
-the kicked Ising chain, the same head goes from 42 to 10 two-qubit gates.</p></li>
+<li><p><a class="reference external" href="https://quimb.readthedocs.io/">Quimb Documentation</a></p></li>
+<li><p><a class="reference external" href="https://quantumlib.org/reference/python/stim/">Stim Documentation</a></p></li>
+<li><p><a class="reference internal" href="../api/engines.html"><span class="doc">Engines</span></a></p></li>
 </ul>
-<p>“Original, truncated” is the original circuit up to the cut, which is itself a
-valid head. It is the reference a synthesis has to beat. The light cone could
-be applied to it as well: the comparison of the last column with the others
-is not like for like.</p>
 </section>
 </section>
 
@@ -419,23 +417,23 @@ is not like for like.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="../api/evolutors.html">
+          <a class="next-page" href="using_ansatze.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Evolutors</div>
+                <div class="title">Using Ansätze</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="rustiq_resynthesis.html">
+          <a class="prev-page" href="qibo_backend_provider.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Hardware Resynthesis with rustiq</div>
+                <div class="title">MPSTAB as a Qibo Backend Provider</div>
                 
               </div>
             </a>
@@ -469,13 +467,16 @@ is not like for like.</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Head Synthesis by Clifford Extraction</a><ul>
-<li><a class="reference internal" href="#the-problem">The problem</a></li>
-<li><a class="reference internal" href="#the-idea-do-not-undo">The idea: do not undo</a></li>
-<li><a class="reference internal" href="#which-cnots">Which CNOTs</a></li>
-<li><a class="reference internal" href="#usage">Usage</a></li>
-<li><a class="reference internal" href="#the-light-cone-of-the-observable">The light cone of the observable</a></li>
-<li><a class="reference internal" href="#what-to-expect">What to expect</a></li>
+<li><a class="reference internal" href="#">Working with Engines</a><ul>
+<li><a class="reference internal" href="#available-engines">Available Engines</a><ul>
+<li><a class="reference internal" href="#stabilizer-engines">Stabilizer Engines</a></li>
+<li><a class="reference internal" href="#tensor-network-engines">Tensor Network Engines</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#engine-configuration">Engine Configuration</a></li>
+<li><a class="reference internal" href="#tips-for-efficient-simulation">Tips for Efficient Simulation</a></li>
+<li><a class="reference internal" href="#example-adaptive-bond-dimension">Example: Adaptive Bond Dimension</a></li>
+<li><a class="reference internal" href="#further-reading">Further Reading</a></li>
 </ul>
 </li>
 </ul>
