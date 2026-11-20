@@ -32,7 +32,6 @@ repository.
    :caption: Gradients and training
 
    vqe_gradients
-   scripts/vqe_training
 
 .. toctree::
    :maxdepth: 1
@@ -41,5 +40,3 @@ repository.
    echo
    free_fermions
    frameworks
-   scripts/gradient_frameworks
-   scripts/gradient_paulipropagation
