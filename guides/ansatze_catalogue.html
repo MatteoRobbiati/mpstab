@@ -11,6 +11,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -228,6 +229,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/pauli.html">Paulis &amp; Observables</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/models.html">Models &amp; Methods</a></li>
 </ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
+</ul>
 
 </div>
 </div>
@@ -296,9 +301,8 @@ the two groups of knobs are separate.</p>
 qubits and for one step or layer. Clifford gates are yellow and magic gates
 blue; CNOT, CZ and SWAP have their usual symbols. Brackets above the wires
 mark the parts of the circuit, and angles set by a constructor field carry the
-field’s symbol. The figures are drawn by
-<code class="docutils literal notranslate"><span class="pre">docs/scripts/draw_ansatze.py</span></code>.</p>
-<img alt="../_images/legend.svg" class="align-center" src="../_images/legend.svg" />
+field’s symbol (the colour legend is under the first figure). The figures are
+drawn by <code class="docutils literal notranslate"><span class="pre">docs/scripts/draw_ansatze.py</span></code>.</p>
 <section id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Link to this heading">¶</a></h2>
 <div class="table-wrapper colwidths-given docutils container">
@@ -436,9 +440,15 @@ uniformly in <span class="math">\([-\pi, \pi)\)</span> from numpy’s global gen
 rotation is a magic gate. There are <code class="docutils literal notranslate"><span class="pre">nqubits</span> <span class="pre">*</span> <span class="pre">nlayers</span></code> magic gates, which
 <code class="docutils literal notranslate"><span class="pre">nlayers</span></code> sets. With <code class="docutils literal notranslate"><span class="pre">entangling=False</span></code> the circuit makes a product state.</p>
 <figure class="align-center" id="id1">
-<img alt="../_images/hardware_efficient.svg" src="../_images/hardware_efficient.svg" />
+<img alt="../_images/hardware_efficient.svg" class="only-light" src="../_images/hardware_efficient.svg" />
+<img alt="../_images/hardware_efficient_dark.svg" class="only-dark" src="../_images/hardware_efficient_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">HardwareEfficient(nqubits=4,</span> <span class="pre">nlayers=1)</span></code>: one layer.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-center">
+<img alt="../_images/legend.svg" class="only-light" src="../_images/legend.svg" />
+<img alt="../_images/legend_dark.svg" class="only-dark" src="../_images/legend_dark.svg" />
 </figcaption>
 </figure>
 </section>
@@ -451,7 +461,8 @@ ring and creates long-range entanglement. A final layer of <code class="docutils
 ends the circuit. <code class="docutils literal notranslate"><span class="pre">nlayers</span></code> sets both the number of random rotations (magic)
 and the depth of the brickwork (entanglement).</p>
 <figure class="align-center" id="id2">
-<img alt="../_images/hardware_efficient_brickwork.svg" src="../_images/hardware_efficient_brickwork.svg" />
+<img alt="../_images/hardware_efficient_brickwork.svg" class="only-light" src="../_images/hardware_efficient_brickwork.svg" />
+<img alt="../_images/hardware_efficient_brickwork_dark.svg" class="only-dark" src="../_images/hardware_efficient_brickwork_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">HardwareEfficientBrickwork(nqubits=4,</span> <span class="pre">nlayers=1)</span></code>: the whole circuit.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
 </figcaption>
@@ -468,7 +479,8 @@ Every RBS is decomposed into <code class="docutils literal notranslate"><span cl
 angle <span class="math">\(\pm\theta\)</span>, the magic gates. The state stays in the
 sector with Hamming weight <code class="docutils literal notranslate"><span class="pre">nqubits</span> <span class="pre">//</span> <span class="pre">2</span></code>. <code class="docutils literal notranslate"><span class="pre">nqubits</span></code> must be even.</p>
 <figure class="align-center" id="id3">
-<img alt="../_images/hamming_weight_preserving.svg" src="../_images/hamming_weight_preserving.svg" />
+<img alt="../_images/hamming_weight_preserving.svg" class="only-light" src="../_images/hamming_weight_preserving.svg" />
+<img alt="../_images/hamming_weight_preserving_dark.svg" class="only-dark" src="../_images/hamming_weight_preserving_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">HammingWeightPreserving(nqubits=4)</span></code>: the half-filling state and the
 first two RBS gates of the layer.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
@@ -498,7 +510,8 @@ adds one magic gate. <code class="docutils literal notranslate"><span class="pre
 the perturbation before the echo refocuses it. The <span class="math">\(R_Z(\pi/4)\)</span> gates are
 fixed <span class="math">\(T\)</span> gates, so the circuit holds some magic at every <code class="docutils literal notranslate"><span class="pre">b</span></code>.</p>
 <figure class="align-center" id="id4">
-<img alt="../_images/floquet_ansatz.svg" src="../_images/floquet_ansatz.svg" />
+<img alt="../_images/floquet_ansatz.svg" class="only-light" src="../_images/floquet_ansatz.svg" />
+<img alt="../_images/floquet_ansatz_dark.svg" class="only-dark" src="../_images/floquet_ansatz_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">FloquetAnsatz(nqubits=4,</span> <span class="pre">nlayers=1,</span> <span class="pre">target_qubit=1)</span></code>: the whole echo.
 The fixed <span class="math">\(R_Z(\pi/4)\)</span> gates are magic at every <code class="docutils literal notranslate"><span class="pre">b</span></code>.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
@@ -525,7 +538,8 @@ so <code class="docutils literal notranslate"><span class="pre">theta_h</span></
 entangling power. At the default <code class="docutils literal notranslate"><span class="pre">theta_j</span> <span class="pre">=</span> <span class="pre">-pi/2</span></code> the couplings are Clifford
 and only the kicks are magic.</p>
 <figure class="align-center" id="id5">
-<img alt="../_images/kicked_ising.svg" src="../_images/kicked_ising.svg" />
+<img alt="../_images/kicked_ising.svg" class="only-light" src="../_images/kicked_ising.svg" />
+<img alt="../_images/kicked_ising_dark.svg" class="only-dark" src="../_images/kicked_ising_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">KickedIsing(nqubits=4,</span> <span class="pre">n_steps=1)</span></code> at generic angles: each angle is one gate.</span><a class="headerlink" href="#id5" title="Link to this image">¶</a></p>
 </figcaption>
@@ -556,7 +570,8 @@ grows at the maximal speed. At <code class="docutils literal notranslate"><span 
 </ul>
 <p>The deviations change the entanglement only perturbatively.</p>
 <figure class="align-center" id="id6">
-<img alt="../_images/parametric_kicked_ising.svg" src="../_images/parametric_kicked_ising.svg" />
+<img alt="../_images/parametric_kicked_ising.svg" class="only-light" src="../_images/parametric_kicked_ising.svg" />
+<img alt="../_images/parametric_kicked_ising_dark.svg" class="only-dark" src="../_images/parametric_kicked_ising_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing(nqubits=4,</span> <span class="pre">n_steps=1)</span></code> with all three deviations
 non-zero: each rotation is a yellow Clifford gate followed by a blue deviation.</span><a class="headerlink" href="#id6" title="Link to this image">¶</a></p>
@@ -584,7 +599,8 @@ lowers the entanglement without changing the magic.</p></li>
 <p>Without a ramp, at <code class="docutils literal notranslate"><span class="pre">bond_density</span> <span class="pre">=</span> <span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">disorder</span> <span class="pre">=</span> <span class="pre">0</span></code>, the circuit is
 exactly <code class="docutils literal notranslate"><span class="pre">ParametricKickedIsing</span></code>.</p>
 <figure class="align-center" id="id7">
-<img alt="../_images/ramped_kicked_ising.svg" src="../_images/ramped_kicked_ising.svg" />
+<img alt="../_images/ramped_kicked_ising.svg" class="only-light" src="../_images/ramped_kicked_ising.svg" />
+<img alt="../_images/ramped_kicked_ising_dark.svg" class="only-dark" src="../_images/ramped_kicked_ising_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">RampedKickedIsing(nqubits=4,</span> <span class="pre">n_steps=2,</span> <span class="pre">delta_h=0.4,</span> <span class="pre">delta_h_last=0.1,</span>
 <span class="pre">bond_density=0.8)</span></code>: the deviation shrinks from step 1 to step 2, and the
@@ -601,7 +617,8 @@ the IQM Star, where the hub’s state can stay in the resonator for a whole step
 Its knobs are those of <code class="docutils literal notranslate"><span class="pre">RampedKickedIsing</span></code>. <code class="docutils literal notranslate"><span class="pre">bond_density</span></code> thins out the
 hub-leaf bonds.</p>
 <figure class="align-center" id="id8">
-<img alt="../_images/star_kicked_ising.svg" src="../_images/star_kicked_ising.svg" />
+<img alt="../_images/star_kicked_ising.svg" class="only-light" src="../_images/star_kicked_ising.svg" />
+<img alt="../_images/star_kicked_ising_dark.svg" class="only-dark" src="../_images/star_kicked_ising_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">StarKickedIsing(nqubits=5,</span> <span class="pre">n_steps=1)</span></code>: every leaf is coupled to the hub.</span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
 </figcaption>
@@ -622,7 +639,8 @@ by a Hamiltonian, transpiled to native gates. The magic comes from the angles,
 so from <code class="docutils literal notranslate"><span class="pre">dt</span></code>, <code class="docutils literal notranslate"><span class="pre">J</span></code> and <code class="docutils literal notranslate"><span class="pre">h</span></code>. The entangling power per step is set by
 <code class="docutils literal notranslate"><span class="pre">J</span> <span class="pre">*</span> <span class="pre">dt</span></code>, and the total by <code class="docutils literal notranslate"><span class="pre">n_steps</span></code>.</p>
 <figure class="align-center" id="id9">
-<img alt="../_images/trotter_ising.svg" src="../_images/trotter_ising.svg" />
+<img alt="../_images/trotter_ising.svg" class="only-light" src="../_images/trotter_ising.svg" />
+<img alt="../_images/trotter_ising_dark.svg" class="only-dark" src="../_images/trotter_ising_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">TrotterIsing(nqubits=4,</span> <span class="pre">n_steps=1,</span> <span class="pre">transpile=False)</span></code>: one Trotter step,
 before the transpilation to native gates.</span><a class="headerlink" href="#id9" title="Link to this image">¶</a></p>
@@ -654,31 +672,36 @@ sets the magic, <code class="docutils literal notranslate"><span class="pre">n_c
 <p>The figures show the raw circuits (<code class="docutils literal notranslate"><span class="pre">transpile=False</span></code>) on three qubits or
 three counting qubits; HSMPO runs on their transpiled form.</p>
 <figure class="align-center" id="id10">
-<img alt="../_images/qft.svg" src="../_images/qft.svg" />
+<img alt="../_images/qft.svg" class="only-light" src="../_images/qft.svg" />
+<img alt="../_images/qft_dark.svg" class="only-dark" src="../_images/qft_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">QFT(nqubits=3)</span></code>.</span><a class="headerlink" href="#id10" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id11">
-<img alt="../_images/qft_phase_kernel.svg" src="../_images/qft_phase_kernel.svg" />
+<img alt="../_images/qft_phase_kernel.svg" class="only-light" src="../_images/qft_phase_kernel.svg" />
+<img alt="../_images/qft_phase_kernel_dark.svg" class="only-dark" src="../_images/qft_phase_kernel_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">QFTPhaseKernel(nqubits=3)</span></code>, with the kernel angles <span class="math">\(c_j\)</span>.</span><a class="headerlink" href="#id11" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id12">
-<img alt="../_images/grover.svg" src="../_images/grover.svg" />
+<img alt="../_images/grover.svg" class="only-light" src="../_images/grover.svg" />
+<img alt="../_images/grover_dark.svg" class="only-dark" src="../_images/grover_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">Grover(nqubits=3,</span> <span class="pre">n_iterations=1)</span></code>: the oracle marks <span class="math">\(|111\rangle\)</span>.</span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id13">
-<img alt="../_images/qpe.svg" src="../_images/qpe.svg" />
+<img alt="../_images/qpe.svg" class="only-light" src="../_images/qpe.svg" />
+<img alt="../_images/qpe_dark.svg" class="only-dark" src="../_images/qpe_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">QPE(n_counting=3)</span></code>: three counting qubits and the eigenstate qubit.</span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id14">
-<img alt="../_images/qae.svg" src="../_images/qae.svg" />
+<img alt="../_images/qae.svg" class="only-light" src="../_images/qae.svg" />
+<img alt="../_images/qae_dark.svg" class="only-dark" src="../_images/qae_dark.svg" />
 <figcaption>
 <p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">QAE(n_counting=3)</span></code>: three counting qubits and the work qubit.</span><a class="headerlink" href="#id14" title="Link to this image">¶</a></p>
 </figcaption>

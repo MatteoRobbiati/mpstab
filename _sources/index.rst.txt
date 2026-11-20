@@ -50,6 +50,12 @@ Among our core features:
    api/pauli
    api/models
 
+.. toctree::
+   :maxdepth: 1
+   :caption: About
+
+   publications
+
 Indices and tables
 ==================
 
