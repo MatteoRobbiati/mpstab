@@ -11,7 +11,8 @@ Run from the repository root::
 
     python docs/scripts/draw_ansatze.py
 
-The figures are written to ``docs/_static/ansatze/``.
+The figures are written to ``docs/_static/ansatze/``, each as ``name.svg``
+(light theme) and ``name_dark.svg`` (dark theme).
 """
 
 from pathlib import Path
@@ -30,9 +31,21 @@ OUT = Path(__file__).resolve().parents[1] / "_static" / "ansatze"
 # Pastel palette.
 YELLOW = "#FBE7A1"  # Clifford gate
 BLUE = "#A9C5F2"  # magic gate
-EDGE = "#3A3A3A"
-WIRE = "#6B6B6B"
-INK = "#2B2B2B"
+GATE_INK = "#2B2B2B"  # text inside the coloured boxes, in both themes
+
+# Colours of everything drawn on the page background. Every figure is saved
+# twice: ``name.svg`` on white for the light theme and ``name_dark.svg`` on a
+# transparent background for the dark theme, where the dark strokes become the
+# grey of the mpstab logo, with lines ``lw`` times thicker so they stay visible;
+# the text next to the wires (``text``) is a lighter grey, as thin glyphs need more contrast.
+LOGO_GREY = "#737373"
+THEMES = {
+    "light": {"edge": "#3A3A3A", "wire": "#6B6B6B", "ink": "#2B2B2B", "text": "#2B2B2B",
+              "oplus": "white", "bg": "white", "suffix": "", "lw": 1.0},
+    "dark": {"edge": LOGO_GREY, "wire": LOGO_GREY, "ink": LOGO_GREY, "text": "#9A9A9A",
+             "oplus": "none", "bg": "none", "suffix": "_dark", "lw": 1.6},
+}
+C = dict(THEMES["light"])  # current theme, set by ``save_themed``
 
 COL_W = 0.95  # column width
 BOX = 0.72  # side of a single-qubit box
@@ -89,32 +102,33 @@ def _rounded(ax, x, y_top, y_bottom, fill):
             y_top - y_bottom,
             boxstyle=f"round,pad=0.0,rounding_size={ROUND}",
             fc=fill,
-            ec=EDGE,
-            lw=1.0,
+            ec=C["edge"],
+            lw=1.0 * C["lw"],
             zorder=3,
         )
     )
 
 
 def _text(ax, x, y, text, size=8.5):
-    ax.text(x, y, text, ha="center", va="center", fontsize=size, color=INK, zorder=5)
+    """Text inside a gate box."""
+    ax.text(x, y, text, ha="center", va="center", fontsize=size, color=GATE_INK, zorder=5)
 
 
 def _dot(ax, x, y):
-    ax.add_patch(Circle((x, y), 0.08, fc=INK, ec=INK, zorder=5))
+    ax.add_patch(Circle((x, y), 0.08, fc=C["ink"], ec=C["ink"], zorder=5))
 
 
 def _oplus(ax, x, y):
     r = 0.19
-    ax.add_patch(Circle((x, y), r, fc="white", ec=INK, lw=1.1, zorder=5))
-    ax.plot([x - r, x + r], [y, y], color=INK, lw=1.1, zorder=6)
-    ax.plot([x, x], [y - r, y + r], color=INK, lw=1.1, zorder=6)
+    ax.add_patch(Circle((x, y), r, fc=C["oplus"], ec=C["ink"], lw=1.1 * C["lw"], zorder=5))
+    ax.plot([x - r, x + r], [y, y], color=C["ink"], lw=1.1 * C["lw"], zorder=6)
+    ax.plot([x, x], [y - r, y + r], color=C["ink"], lw=1.1 * C["lw"], zorder=6)
 
 
 def _cross(ax, x, y):
     d = 0.12
-    ax.plot([x - d, x + d], [y - d, y + d], color=INK, lw=1.4, zorder=5)
-    ax.plot([x - d, x + d], [y + d, y - d], color=INK, lw=1.4, zorder=5)
+    ax.plot([x - d, x + d], [y - d, y + d], color=C["ink"], lw=1.4 * C["lw"], zorder=5)
+    ax.plot([x - d, x + d], [y + d, y - d], color=C["ink"], lw=1.4 * C["lw"], zorder=5)
 
 
 def _label(name, theta, symbols):
@@ -147,7 +161,7 @@ def draw_gate(ax, g, x, ys, symbols, label=None):
         return
 
     # Controlled gates and SWAP: the usual symbols joined by a vertical line.
-    ax.plot([x, x], [ys[qubits[0]], ys[qubits[-1]]], color=INK, lw=1.1, zorder=2)
+    ax.plot([x, x], [ys[qubits[0]], ys[qubits[-1]]], color=C["ink"], lw=1.1 * C["lw"], zorder=2)
     if name in ("cx", "ccx"):
         for c in g.control_qubits:
             _dot(ax, x, ys[c])
@@ -167,8 +181,27 @@ def draw_gate(ax, g, x, ys, symbols, label=None):
         raise ValueError(f"no drawing for gate {name}")
 
 
-def draw(queue, nqubits, path, symbols=None, regions=(), labels=None, qubit_names=None):
-    """Draw ``queue`` on ``nqubits`` wires and save it to ``path``.
+def save_themed(plot, path, pad):
+    """Run ``plot()`` once per theme and save ``path`` and its ``_dark`` twin."""
+    OUT.mkdir(parents=True, exist_ok=True)
+    for theme in THEMES.values():
+        C.update(theme)
+        fig = plot()
+        name = Path(path).stem + theme["suffix"] + Path(path).suffix
+        fig.savefig(OUT / name, bbox_inches="tight", facecolor=theme["bg"],
+                    transparent=theme["bg"] == "none", pad_inches=pad,
+                    metadata={"Date": None})
+        plt.close(fig)
+    C.update(THEMES["light"])
+
+
+def draw(queue, nqubits, path, **kwargs):
+    """Draw ``queue`` on ``nqubits`` wires, in both themes (see ``_draw``)."""
+    save_themed(lambda: _draw(queue, nqubits, **kwargs), path, pad=0.06)
+
+
+def _draw(queue, nqubits, symbols=None, regions=(), labels=None, qubit_names=None):
+    """Draw ``queue`` on ``nqubits`` wires and return the figure.
 
     Args:
         symbols: angle value -> LaTeX symbol (its negative gets a minus sign).
@@ -195,21 +228,18 @@ def draw(queue, nqubits, path, symbols=None, regions=(), labels=None, qubit_name
         x0 = min(xs[first : last + 1]) - BOX / 2
         x1 = max(xs[first : last + 1]) + BOX / 2
         yb = 0.56
-        ax.plot([x0, x0, x1, x1], [yb - 0.08, yb, yb, yb - 0.08], color=WIRE, lw=0.9)
+        ax.plot([x0, x0, x1, x1], [yb - 0.08, yb, yb, yb - 0.08], color=C["wire"], lw=0.9 * C["lw"])
         ax.text((x0 + x1) / 2, yb + 0.22, text, ha="center", va="center",
-                fontsize=8.5, color=INK)
+                fontsize=8.5, color=C["text"])
 
     for q, y in enumerate(ys):
-        ax.plot([-0.2, width + 0.1], [y, y], color=WIRE, lw=1.0, zorder=1)
+        ax.plot([-0.2, width + 0.1], [y, y], color=C["wire"], lw=1.0 * C["lw"], zorder=1)
         name = qubit_names[q] if qubit_names else f"q_{{{q}}}"
-        ax.text(-0.3, y, f"${name}$", ha="right", va="center", fontsize=9.5, color=INK)
+        ax.text(-0.3, y, f"${name}$", ha="right", va="center", fontsize=9.5, color=C["text"])
 
     for i, (g, x) in enumerate(zip(queue, xs)):
         draw_gate(ax, g, x, ys, symbols, labels.get(i))
-
-    OUT.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT / path, bbox_inches="tight", facecolor="white", pad_inches=0.06)
-    plt.close(fig)
+    return fig
 
 
 # --------------------------------------------------------------------------- #
@@ -355,13 +385,16 @@ def library():
 
 
 def legend():
-    fig, ax = plt.subplots(figsize=(3.4, 0.32))
-    ax.axis("off")
-    handles = [Patch(fc=YELLOW, ec=EDGE, label="Clifford gate"),
-               Patch(fc=BLUE, ec=EDGE, label="magic gate")]
-    ax.legend(handles=handles, loc="center", ncol=2, frameon=False, fontsize=9)
-    fig.savefig(OUT / "legend.svg", bbox_inches="tight", facecolor="white", pad_inches=0.04)
-    plt.close(fig)
+    def plot():
+        fig, ax = plt.subplots(figsize=(3.4, 0.32))
+        ax.axis("off")
+        handles = [Patch(fc=YELLOW, ec=C["edge"], label="Clifford gate"),
+                   Patch(fc=BLUE, ec=C["edge"], label="magic gate")]
+        ax.legend(handles=handles, loc="center", ncol=2, frameon=False, fontsize=9,
+                  labelcolor=C["text"])
+        return fig
+
+    save_themed(plot, "legend.svg", pad=0.04)
 
 
 def _ramped_seed() -> int:
@@ -382,6 +415,7 @@ RAMPED_SEED = _ramped_seed()
 
 if __name__ == "__main__":
     plt.rcParams.update(FONT)
+    plt.rcParams["svg.hashsalt"] = "mpstab"  # stable ids: re-running gives the same files
     variational()
     floquet()
     kicked()

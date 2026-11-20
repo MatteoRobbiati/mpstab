@@ -6,7 +6,6 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-19T14:10:35.574390</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -40,7 +39,7 @@ z
     </g>
     <g id="text_1">
      <!-- Clifford gate -->
-     <g transform="translate(35.670234 14.233837) scale(0.09 -0.09)">
+     <g style="fill: #2b2b2b" transform="translate(35.670234 14.233837) scale(0.09 -0.09)">
       <defs>
        <path id="DejaVuSans-43" d="M 4122 4306 
 L 4122 3641 
@@ -308,7 +307,7 @@ z
     </g>
     <g id="text_2">
      <!-- magic gate -->
-     <g transform="translate(134.410078 14.233837) scale(0.09 -0.09)">
+     <g style="fill: #2b2b2b" transform="translate(134.410078 14.233837) scale(0.09 -0.09)">
       <defs>
        <path id="DejaVuSans-6d" d="M 3328 2828 
 Q 3544 3216 3844 3400 
