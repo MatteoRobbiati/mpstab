@@ -26,8 +26,11 @@ permissions:
   contents: write        # push to gh-pages
   pull-requests: write   # comment with the preview link
 
+# One group per pull request and one for main. github.ref is not enough: on the
+# "closed" event of a merged pull request it is the base branch (refs/heads/main),
+# so the run removing the preview would cancel the push run publishing main.
 concurrency:
-  group: docs-${{ github.ref }}
+  group: docs-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
