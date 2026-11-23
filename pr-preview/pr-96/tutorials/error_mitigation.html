@@ -1,0 +1,654 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Ground states with DMRG" href="ground_states.html"><link rel="prev" title="Device-level noise" href="advanced_noise.html">
+        <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Error mitigation with Clifford data regression - Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=71654716" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../_static/mpstab_logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">Documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="noise.html">Noisy simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced_noise.html">Device-level noise</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api/evolutors.html">Evolutors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/qpu.html">QPU</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/error_mitigation.html">Error Mitigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/tutorials/error_mitigation.ipynb.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="Error-mitigation-with-Clifford-data-regression">
+<h1>Error mitigation with Clifford data regression<a class="headerlink" href="#Error-mitigation-with-Clifford-data-regression" title="Link to this heading">¶</a></h1>
+<p>Noise biases every expectation value a quantum computer returns. <strong>Clifford data regression</strong> (CDR) learns how: it runs circuits that look like the target but whose noiseless values we can compute, and fits a map from noisy to noiseless values. The map then corrects the target’s noisy value.</p>
+<p>The circuits CDR learns from are the target with most of its non-Clifford gates swapped for Clifford ones. They hold little magic, which is exactly what mpstab simulates cheaply, so mpstab gives both their noiseless values and, given a noise model, their noisy ones.</p>
+<p>In this tutorial you will:</p>
+<ol class="arabic simple">
+<li><p>learn a noise map with <code class="docutils literal notranslate"><span class="pre">cdr</span></code> and use it to mitigate a noisy value;</p></li>
+<li><p>do better with variable-noise CDR, <code class="docutils literal notranslate"><span class="pre">vncdr</span></code>;</p></li>
+<li><p>see how much magic to leave in the training circuits;</p></li>
+<li><p>plug in your own device instead of a simulated noise model.</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gates</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">KickedIsing</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.error_mitigation</span><span class="w"> </span><span class="kn">import</span> <span class="n">cdr</span><span class="p">,</span> <span class="n">noisy_value</span><span class="p">,</span> <span class="n">training_circuits</span><span class="p">,</span> <span class="n">vncdr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoherentError</span><span class="p">,</span> <span class="n">DepolarizingError</span><span class="p">,</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">ReadoutError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">COLORS</span><span class="p">,</span> <span class="n">set_style</span>
+
+<span class="n">set_style</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<section id="The-circuit-and-its-noise">
+<h2>The circuit and its noise<a class="headerlink" href="#The-circuit-and-its-noise" title="Link to this heading">¶</a></h2>
+<p>Our target is a 12-qubit kicked Ising chain with three steps. Its kicks and couplings are all non-Clifford, so it holds plenty of magic. We measure the <span class="math">\(Z Z\)</span> correlation between the two central qubits.</p>
+<p>The noise model mimics a superconducting device: depolarizing noise after every gate, ten times stronger on the CNOTs, a residual coherent <span class="math">\(ZZ\)</span> coupling on the CNOTs and asymmetric readout errors.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">nqubits</span> <span class="o">=</span> <span class="mi">12</span>
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">KickedIsing</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">theta_h</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">theta_z</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">theta_j</span><span class="o">=-</span><span class="mf">1.3</span><span class="p">)</span>
+<span class="n">observable</span> <span class="o">=</span> <span class="s2">&quot;I&quot;</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">+</span> <span class="s2">&quot;ZZ&quot;</span> <span class="o">+</span> <span class="s2">&quot;I&quot;</span> <span class="o">*</span> <span class="mi">5</span>
+
+<span class="n">noise</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">NoiseModel</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">DepolarizingError</span><span class="p">(</span><span class="mf">2e-3</span><span class="p">),</span> <span class="n">gates</span><span class="o">.</span><span class="n">RX</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">DepolarizingError</span><span class="p">(</span><span class="mf">2e-2</span><span class="p">),</span> <span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">CoherentError</span><span class="p">(</span><span class="s2">&quot;ZZ&quot;</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">),</span> <span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ReadoutError</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">))</span>
+<span class="p">)</span>
+
+<span class="n">target</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">exact</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="n">observable</span><span class="p">)</span>
+<span class="n">noisy</span> <span class="o">=</span> <span class="n">noisy_value</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target</span><span class="o">.</span><span class="n">n_gates</span><span class="si">}</span><span class="s2"> gates, </span><span class="si">{</span><span class="n">target</span><span class="o">.</span><span class="n">n_magic_gates</span><span class="si">}</span><span class="s2"> of them magic&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;exact  &lt;ZZ&gt; = </span><span class="si">{</span><span class="n">exact</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;noisy  &lt;ZZ&gt; = </span><span class="si">{</span><span class="n">noisy</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">   (error </span><span class="si">{</span><span class="nb">abs</span><span class="p">(</span><span class="n">noisy</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">exact</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+171 gates, 105 of them magic
+exact  &lt;ZZ&gt; = +0.6653
+noisy  &lt;ZZ&gt; = +0.4399   (error 0.225)
+</pre></div></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">noisy_value</span></code> is a thin wrapper around <code class="docutils literal notranslate"><span class="pre">HSMPO.noisy_expectation</span></code>: it plays the role of the quantum computer here. The noise pulls the correlation well below its true value. Let’s correct it.</p>
+</section>
+<section id="Training-circuits">
+<h2>Training circuits<a class="headerlink" href="#Training-circuits" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">training_circuits</span></code> samples variants of the target: each non-Clifford gate is replaced by its nearest Clifford gate with probability <code class="docutils literal notranslate"><span class="pre">replacement_probability</span></code>, and kept otherwise. The few magic gates left make each training circuit a bit different, and keep it close to the target.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">circuits</span> <span class="o">=</span> <span class="n">training_circuits</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">replacement_probability</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">magic</span> <span class="o">=</span> <span class="p">[</span><span class="n">HSMPO</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">n_magic_gates</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">circuits</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;magic gates in five training circuits:&quot;</span><span class="p">,</span> <span class="n">magic</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;(target: </span><span class="si">{</span><span class="n">target</span><span class="o">.</span><span class="n">n_magic_gates</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+magic gates in five training circuits: [31, 16, 22, 26, 23] (target: 105)
+</pre></div></div>
+</div>
+</section>
+<section id="CDR:-one-noisy-value-per-circuit">
+<h2>CDR: one noisy value per circuit<a class="headerlink" href="#CDR:-one-noisy-value-per-circuit" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cdr</span></code> samples the training circuits, computes each one’s noiseless and noisy value with mpstab and fits the line <span class="math">\(\langle O \rangle_{\rm exact} = a\, \langle O \rangle_{\rm noisy} + b\)</span>. It returns a <code class="docutils literal notranslate"><span class="pre">MitigationNoiseMap</span></code>: call it on a noisy value to get the mitigated one. <code class="docutils literal notranslate"><span class="pre">n_workers</span></code> spreads the training circuits over processes.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+<span class="n">noise_map</span> <span class="o">=</span> <span class="n">cdr</span><span class="p">(</span>
+    <span class="n">ansatz</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span>
+    <span class="n">n_training_circuits</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">replacement_probability</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;trained in </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> s, fit a = </span><span class="si">{</span><span class="n">noise_map</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, b = </span><span class="si">{</span><span class="n">noise_map</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">mitigated_cdr</span> <span class="o">=</span> <span class="n">noise_map</span><span class="p">(</span><span class="n">noisy</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CDR    &lt;ZZ&gt; = </span><span class="si">{</span><span class="n">mitigated_cdr</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">   (error </span><span class="si">{</span><span class="nb">abs</span><span class="p">(</span><span class="n">mitigated_cdr</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">exact</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+trained in 5.9 s, fit a = 1.567, b = -0.0390
+CDR    &lt;ZZ&gt; = +0.6501   (error 0.015)
+</pre></div></div>
+</div>
+<p>The map keeps its training data, so we can look at what it learned. Each blue dot is a training circuit; the line is the fitted map. The noisy value of the target, projected onto the line, lands close to its exact value.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lims</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">0.15</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">])</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.5</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lims</span><span class="p">,</span> <span class="n">lims</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;gray&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;no noise&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">noise_map</span><span class="o">.</span><span class="n">noisy</span><span class="p">,</span> <span class="n">noise_map</span><span class="o">.</span><span class="n">exact</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;blue&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;training circuits&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lims</span><span class="p">,</span> <span class="n">noise_map</span><span class="p">(</span><span class="n">lims</span><span class="p">),</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;blue&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;CDR fit&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">exact</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;gray&quot;</span><span class="p">],</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;target, exact&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">noisy</span><span class="p">,</span> <span class="n">noisy</span><span class="p">],</span> <span class="p">[</span><span class="n">lims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mitigated_cdr</span><span class="p">],</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;orange&quot;</span><span class="p">],</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">noisy</span><span class="p">,</span> <span class="n">mitigated_cdr</span><span class="p">,</span> <span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;orange&quot;</span><span class="p">],</span> <span class="n">ms</span><span class="o">=</span><span class="mi">13</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;target, mitigated&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlim</span><span class="o">=</span><span class="n">lims</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="n">lims</span><span class="p">,</span> <span class="n">xlabel</span><span class="o">=</span><span class="s2">&quot;noisy value&quot;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">&quot;noiseless value&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;The CDR noise map&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_error_mitigation_10_0.png" src="../_images/tutorials_error_mitigation_10_0.png" />
+</div>
+</div>
+</section>
+<section id="Variable-noise-CDR">
+<h2>Variable-noise CDR<a class="headerlink" href="#Variable-noise-CDR" title="Link to this heading">¶</a></h2>
+<p>CDR assumes the noise acts on every circuit in the same, linear way. Variable-noise CDR adds information: it measures each circuit at several noise levels and learns the noiseless value as a linear combination of them, <span class="math">\(\langle O \rangle_{\rm exact} = \sum_\lambda c_\lambda \langle O \rangle_\lambda\)</span>. It is zero-noise extrapolation whose coefficients are learned rather than assumed.</p>
+<p>With a noise model, <code class="docutils literal notranslate"><span class="pre">amplification=&quot;scale&quot;</span></code> multiplies every error’s strength by the level; on hardware you would fold the circuit instead (<code class="docutils literal notranslate"><span class="pre">amplification=&quot;fold&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">fold_circuit</span></code> yourself).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">levels</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+<span class="n">vn_map</span> <span class="o">=</span> <span class="n">vncdr</span><span class="p">(</span>
+    <span class="n">ansatz</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">noise_levels</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span>
+    <span class="n">n_training_circuits</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">replacement_probability</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;trained in </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> s, coefficients </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">vn_map</span><span class="o">.</span><span class="n">params</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">noisy_levels</span> <span class="o">=</span> <span class="p">[</span><span class="n">noisy_value</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">]</span>
+<span class="n">mitigated_vn</span> <span class="o">=</span> <span class="n">vn_map</span><span class="p">(</span><span class="n">noisy_levels</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;vnCDR  &lt;ZZ&gt; = </span><span class="si">{</span><span class="n">mitigated_vn</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">   (error </span><span class="si">{</span><span class="nb">abs</span><span class="p">(</span><span class="n">mitigated_vn</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">exact</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+trained in 8.2 s, coefficients [ 2.261 -0.755 -0.559]
+vnCDR  &lt;ZZ&gt; = +0.6654   (error 0.0001)
+</pre></div></div>
+</div>
+<p>Plotting the target’s value against the noise level shows what both methods do: they bring the measured values back to the noiseless limit, with vnCDR landing almost exactly on it.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.5</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">exact</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;gray&quot;</span><span class="p">],</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;exact&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="n">noisy_levels</span><span class="p">,</span> <span class="s2">&quot;s-&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;measured (noisy)&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">mitigated_cdr</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;blue&quot;</span><span class="p">],</span> <span class="n">ms</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;CDR&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">mitigated_vn</span><span class="p">,</span> <span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;orange&quot;</span><span class="p">],</span> <span class="n">ms</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;vnCDR&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s2">&quot;noise level $</span><span class="se">\\</span><span class="s2">lambda$&quot;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">&quot;$</span><span class="se">\\</span><span class="s2">langle Z_5 Z_6 </span><span class="se">\\</span><span class="s2">rangle$&quot;</span><span class="p">,</span>
+       <span class="n">xticks</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="n">levels</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Mitigating the target circuit&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;lower left&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_error_mitigation_14_0.png" src="../_images/tutorials_error_mitigation_14_0.png" />
+</div>
+</div>
+</section>
+<section id="How-much-magic-to-keep">
+<h2>How much magic to keep<a class="headerlink" href="#How-much-magic-to-keep" title="Link to this heading">¶</a></h2>
+<p>The replacement probability sets how close the training circuits are to the target. Replacing every gate gives pure Clifford circuits, as in the original CDR; with the closest replacement those would be thirty copies of one circuit, so we draw the Clifford angles at random instead. Lower probabilities keep more magic gates: the training circuits resemble the target more, and cost more to simulate. Let’s compare the mitigated error across these choices.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">settings</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="s2">&quot;closest&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="s2">&quot;closest&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="s2">&quot;closest&quot;</span><span class="p">)]</span>
+<span class="n">errors</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;CDR&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;vnCDR&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+<span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">n_training_circuits</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">replacement_probability</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+                  <span class="n">replacement_method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">errors</span><span class="p">[</span><span class="s2">&quot;CDR&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">cdr</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)(</span><span class="n">noisy</span><span class="p">)</span> <span class="o">-</span> <span class="n">exact</span><span class="p">))</span>
+    <span class="n">errors</span><span class="p">[</span><span class="s2">&quot;vnCDR&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">vncdr</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">levels</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)(</span><span class="n">noisy_levels</span><span class="p">)</span> <span class="o">-</span> <span class="n">exact</span><span class="p">))</span>
+
+<span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Clifford</span><span class="se">\n</span><span class="s2">(random)&quot;</span><span class="p">,</span> <span class="s2">&quot;p = 0.9&quot;</span><span class="p">,</span> <span class="s2">&quot;p = 0.8&quot;</span><span class="p">,</span> <span class="s2">&quot;p = 0.6&quot;</span><span class="p">]</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">settings</span><span class="p">))</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.5</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">noisy</span> <span class="o">-</span> <span class="n">exact</span><span class="p">),</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;gray&quot;</span><span class="p">],</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;unmitigated&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">errors</span><span class="p">[</span><span class="s2">&quot;CDR&quot;</span><span class="p">],</span> <span class="s2">&quot;o-&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;blue&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;CDR&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">errors</span><span class="p">[</span><span class="s2">&quot;vnCDR&quot;</span><span class="p">],</span> <span class="s2">&quot;D-&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">COLORS</span><span class="p">[</span><span class="s2">&quot;orange&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;vnCDR&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">yscale</span><span class="o">=</span><span class="s2">&quot;log&quot;</span><span class="p">,</span> <span class="n">xticks</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">xticklabels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">&quot;error on $</span><span class="se">\\</span><span class="s2">langle Z_5 Z_6 </span><span class="se">\\</span><span class="s2">rangle$&quot;</span><span class="p">,</span>
+       <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Training circuits closer to the target&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;center right&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_error_mitigation_16_0.png" src="../_images/tutorials_error_mitigation_16_0.png" />
+</div>
+</div>
+<p>The two methods react differently. CDR’s error barely moves: a single straight line is what limits it, not which circuits it learns from. vnCDR gains more than an order of magnitude when the training circuits keep some magic, since its learned extrapolation then matches how the target responds to the noise; with too much magic left (p = 0.6) the training values spread less and the gain shrinks. These numbers come from one seed and one circuit, so take the trend, not the digits: a replacement
+probability around 0.8 to 0.9 is a good default, and mpstab keeps those training circuits cheap.</p>
+</section>
+<section id="Using-your-own-device">
+<h2>Using your own device<a class="headerlink" href="#Using-your-own-device" title="Link to this heading">¶</a></h2>
+<p>So far the noisy values came from a simulated noise model. On real hardware, pass a function instead: <code class="docutils literal notranslate"><span class="pre">cdr</span></code> calls it on every training circuit (a qibo <code class="docutils literal notranslate"><span class="pre">Circuit</span></code>) and expects the measured expectation value back; for <code class="docutils literal notranslate"><span class="pre">vncdr</span></code> it also receives the noise level. mpstab still computes all the noiseless values.</p>
+<p>Below, a stand-in “device” runs the circuit through the same noise model, so the result matches the one above.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">run_on_device</span><span class="p">(</span><span class="n">circuit</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Measure &lt;ZZ&gt; on the device. Here: a simulated one.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">noisy_value</span><span class="p">(</span><span class="n">HSMPO</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">observable</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="n">device_map</span> <span class="o">=</span> <span class="n">cdr</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">run_on_device</span><span class="p">,</span> <span class="n">n_training_circuits</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+                 <span class="n">replacement_probability</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;CDR with a device function: </span><span class="si">{</span><span class="n">device_map</span><span class="p">(</span><span class="n">noisy</span><span class="p">)</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CDR with a device function: +0.6504
+</pre></div></div>
+</div>
+</section>
+<section id="Summary">
+<h2>Summary<a class="headerlink" href="#Summary" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cdr(ansatz,</span> <span class="pre">observable,</span> <span class="pre">noise)</span></code> learns a noise map from low-magic training circuits, which mpstab simulates cheaply; call the map on a noisy value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vncdr</span></code> adds noise levels and learns a zero-noise extrapolation; it is usually far more accurate.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">replacement_probability</span></code> sets how much magic the training circuits keep: around 0.8 to 0.9 helps vnCDR most, and mpstab keeps it cheap.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">noise</span></code> can be a <code class="docutils literal notranslate"><span class="pre">NoiseModel</span></code> or your own function running circuits on hardware.</p></li>
+</ul>
+<p>The <em>Noise</em> and <em>Advanced noise</em> tutorials show how to build richer device noise models, such as relaxation, crosstalk and idling, which <code class="docutils literal notranslate"><span class="pre">cdr</span></code> and <code class="docutils literal notranslate"><span class="pre">vncdr</span></code> accept unchanged.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="ground_states.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Ground states with DMRG</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="advanced_noise.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Device-level noise</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Matteo Robbiati, Giulio Crognaletti, Mattia Robbiano, Roberto Di Lauro, Michele Grossi
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Error mitigation with Clifford data regression</a><ul>
+<li><a class="reference internal" href="#The-circuit-and-its-noise">The circuit and its noise</a></li>
+<li><a class="reference internal" href="#Training-circuits">Training circuits</a></li>
+<li><a class="reference internal" href="#CDR:-one-noisy-value-per-circuit">CDR: one noisy value per circuit</a></li>
+<li><a class="reference internal" href="#Variable-noise-CDR">Variable-noise CDR</a></li>
+<li><a class="reference internal" href="#How-much-magic-to-keep">How much magic to keep</a></li>
+<li><a class="reference internal" href="#Using-your-own-device">Using your own device</a></li>
+<li><a class="reference internal" href="#Summary">Summary</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/katex.min.js?v=5cc8ed51"></script>
+    <script src="../_static/auto-render.min.js?v=af98beb9"></script>
+    <script src="../_static/katex_autorenderer.js?v=bebc588a"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>
