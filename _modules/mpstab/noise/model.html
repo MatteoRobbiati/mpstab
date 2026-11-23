@@ -203,11 +203,27 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../guides/quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorials &amp; Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/introduction.html">A quick introduction to HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/noise.html">Noisy simulation with <code class="docutils literal notranslate"><span class="pre">mpstab.noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/advanced_noise.html">Device-level noise: relaxation, crosstalk and idling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/noisy_simulation.html">Noisy simulation against density matrices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 </ul>
 </li>
@@ -268,7 +284,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">replace</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
@@ -276,8 +292,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.hamiltonians</span><span class="w"> </span><span class="kn">import</span> <span class="n">pauli_terms</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.noise.events</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoherentRotation</span><span class="p">,</span> <span class="n">NoiseEvent</span><span class="p">,</span> <span class="n">PauliChannel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.noise.events</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoherentRotation</span><span class="p">,</span> <span class="n">KrausChannel</span><span class="p">,</span> <span class="n">NoiseEvent</span><span class="p">,</span> <span class="n">PauliChannel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">pauli_matrix</span><span class="p">,</span> <span class="n">validate_pauli_string</span>
+
+<span class="c1"># -- Errors acting after gates ----------------------------------------------------</span>
 
 
 <div class="viewcode-block" id="PauliError">
@@ -324,9 +342,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PauliError</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">PauliError</span><span class="p">({</span><span class="n">label</span><span class="p">:</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">p</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">probs</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">qubits</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">support</span> <span class="ow">in</span> <span class="n">_supports</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qubits</span><span class="p">):</span>
-            <span class="k">yield</span> <span class="n">PauliChannel</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">probs</span><span class="p">))</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">support</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">PauliChannel</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">probs</span><span class="p">))</span></div>
 
 
 
@@ -340,7 +357,9 @@
 <span class="sd">    ``4**k - 1`` non-identity Paulis.</span>
 
 <span class="sd">    For independent single-qubit depolarizing on every qubit of a multi-qubit</span>
-<span class="sd">    gate, use ``PauliError({&quot;X&quot;: p / 3, &quot;Y&quot;: p / 3, &quot;Z&quot;: p / 3})``.</span>
+<span class="sd">    gate, use ``PauliError({&quot;X&quot;: p / 3, &quot;Y&quot;: p / 3, &quot;Z&quot;: p / 3})``. On idle</span>
+<span class="sd">    qubits and spectators (:meth:`NoiseModel.add_idle`,</span>
+<span class="sd">    :meth:`NoiseModel.add_crosstalk`) it acts on each qubit alone.</span>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        lam: depolarizing strength, in ``[0, 4/3]``.</span>
@@ -364,11 +383,11 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DepolarizingError</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">DepolarizingError</span><span class="p">(</span><span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">qubits</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">support</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">support</span><span class="p">)</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="s2">&quot;IXYZ&quot;</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="n">k</span><span class="p">))</span>
         <span class="n">probs</span> <span class="o">=</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lam</span> <span class="o">/</span> <span class="mi">4</span><span class="o">**</span><span class="n">k</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span> <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">label</span><span class="p">)</span> <span class="o">!=</span> <span class="p">{</span><span class="s2">&quot;I&quot;</span><span class="p">}}</span>
-        <span class="k">yield</span> <span class="n">PauliChannel</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">probs</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">PauliChannel</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="n">probs</span><span class="p">)</span></div>
 
 
 
@@ -377,10 +396,14 @@
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CoherentError</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Coherent error ``exp(-i angle/2 P)``, such as an over-rotation or crosstalk.</span>
+<span class="sd">    Coherent error ``exp(-i angle/2 P)``, such as an over-rotation or a residual</span>
+<span class="sd">    ZZ coupling.</span>
 
 <span class="sd">    A single-qubit ``generator`` acts on each qubit of the gate; one as wide as</span>
-<span class="sd">    the gate acts jointly on its qubits, in the gate&#39;s qubit order.</span>
+<span class="sd">    the gate acts jointly on its qubits, in the gate&#39;s qubit order. Each one</span>
+<span class="sd">    joins the rotation chain like a magic gate, so many of them cost bond</span>
+<span class="sd">    dimension: :meth:`twirled` is the stochastic Pauli error the same rotation</span>
+<span class="sd">    becomes under randomized compiling, which costs none.</span>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        generator: Pauli label of the rotation, one qubit or as wide as the gate.</span>
@@ -390,8 +413,9 @@
 
 <span class="sd">        from mpstab.noise import CoherentError</span>
 
-<span class="sd">        crosstalk = CoherentError(&quot;ZZ&quot;, 0.02)</span>
+<span class="sd">        residual_zz = CoherentError(&quot;ZZ&quot;, 0.02)</span>
 <span class="sd">        over_rotation = CoherentError(&quot;X&quot;, 0.01)</span>
+<span class="sd">        print(residual_zz.twirled())</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">generator</span><span class="p">:</span> <span class="nb">str</span>
@@ -408,13 +432,203 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CoherentError</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">CoherentError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">,</span> <span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">qubits</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">support</span> <span class="ow">in</span> <span class="n">_supports</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qubits</span><span class="p">):</span>
-            <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;I&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">nqubits</span>
-            <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">support</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">):</span>
-                <span class="n">labels</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
-            <span class="k">yield</span> <span class="n">CoherentRotation</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">labels</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="p">)</span></div>
+<div class="viewcode-block" id="CoherentError.twirled">
+<a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.model.CoherentError.twirled">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">twirled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PauliError</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The Pauli twirl of the rotation, ``rho -&gt; cos^2 rho + sin^2 P rho P``</span>
+<span class="sd">        with ``sin^2 = sin(angle/2)**2``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">PauliError</span><span class="p">({</span><span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">angle</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)})</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">support</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;I&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">nqubits</span>
+        <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">support</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">):</span>
+            <span class="n">labels</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="k">return</span> <span class="n">CoherentRotation</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">labels</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="KrausError">
+<a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.model.KrausError">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">KrausError</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Any channel, given by its Kraus operators: ``rho -&gt; sum_k K_k rho K_k^dag``.</span>
+
+<span class="sd">    Operators on one qubit act on each qubit of the gate; operators as wide as</span>
+<span class="sd">    the gate act jointly on its qubits, the first of them the most significant</span>
+<span class="sd">    factor, as in qibo. The channel is split into its Pauli twirl, sampled as</span>
+<span class="sd">    Pauli faults, and the off-diagonal part of its process matrix, evaluated</span>
+<span class="sd">    as transition amplitudes (:class:`~mpstab.noise.events.KrausChannel`).</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        operators: the Kraus operators, each ``2**k x 2**k``.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        # A phase-damping channel.</span>
+<span class="sd">        import numpy as np</span>
+<span class="sd">        from mpstab.noise import KrausError</span>
+
+<span class="sd">        lam = 0.05</span>
+<span class="sd">        phase_damping = KrausError([</span>
+<span class="sd">            np.diag([1, np.sqrt(1 - lam)]),</span>
+<span class="sd">            np.diag([0, np.sqrt(lam)]),</span>
+<span class="sd">        ])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">operators</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">operators</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">operators</span><span class="p">)</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="n">operators</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">operators</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">dim</span><span class="p">))</span> <span class="k">if</span> <span class="n">dim</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">dim</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="mi">2</span><span class="o">**</span><span class="n">width</span> <span class="o">!=</span> <span class="n">dim</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;KrausError operators must be 2**k x 2**k matrices.&quot;</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;operators&quot;</span><span class="p">,</span> <span class="n">operators</span><span class="p">)</span>
+        <span class="n">KrausChannel</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">width</span><span class="p">)),</span> <span class="n">operators</span><span class="p">)</span>  <span class="c1"># validates</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">width</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">operators</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KrausError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;A KrausError has no strength parameter to scale; use &quot;</span>
+            <span class="s2">&quot;AmplitudeDampingError or ThermalRelaxationError, or rebuild it.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">support</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">KrausChannel</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">operators</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="AmplitudeDampingError">
+<a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.model.AmplitudeDampingError">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AmplitudeDampingError</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Amplitude damping ``|1&gt; -&gt; |0&gt;`` with probability ``gamma`` on each qubit</span>
+<span class="sd">    of the gate: energy relaxation (T1), which is not unital.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        gamma: damping probability, in ``[0, 1]``.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        from mpstab.noise import AmplitudeDampingError</span>
+
+<span class="sd">        t1 = AmplitudeDampingError(0.01)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;AmplitudeDampingError gamma=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="si">}</span><span class="s2"> outside [0, 1].&quot;</span>
+            <span class="p">)</span>
+
+    <span class="n">width</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AmplitudeDampingError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">AmplitudeDampingError</span><span class="p">(</span><span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">kraus</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">g</span><span class="p">)]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">g</span><span class="p">)],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">support</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">KrausChannel</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kraus</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ThermalRelaxationError">
+<a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.model.ThermalRelaxationError">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ThermalRelaxationError</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Thermal relaxation for a duration ``time`` on each qubit of the gate: the</span>
+<span class="sd">    excited population relaxes to ``excited_population`` with time constant</span>
+<span class="sd">    ``t1``, and coherences decay as ``exp(-time / t2)``.</span>
+
+<span class="sd">    It is generalized amplitude damping with ``gamma = 1 - exp(-time / t1)``</span>
+<span class="sd">    followed by the pure dephasing that brings the coherence decay from</span>
+<span class="sd">    ``exp(-time / (2 t1))`` down to ``exp(-time / t2)``, so ``t2 &lt;= 2 t1``.</span>
+<span class="sd">    :meth:`scaled` scales ``time``.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        t1: energy relaxation time.</span>
+<span class="sd">        t2: dephasing time, at most ``2 * t1``.</span>
+<span class="sd">        time: duration of the error, in the units of ``t1`` and ``t2``.</span>
+<span class="sd">        excited_population: equilibrium population of ``|1&gt;``, in ``[0, 1]``.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        from mpstab.noise import ThermalRelaxationError</span>
+
+<span class="sd">        idle = ThermalRelaxationError(t1=100e-6, t2=80e-6, time=50e-9)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">t1</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">t2</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">time</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">excited_population</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">t1</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">t2</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;ThermalRelaxationError needs t1 &gt; 0 and t2 &gt; 0.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">t2</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">t1</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mf">1e-12</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ThermalRelaxationError t2=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">t2</span><span class="si">}</span><span class="s2"> &gt; 2 t1=</span><span class="si">{</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">t1</span><span class="si">}</span><span class="s2">: &quot;</span>
+                <span class="s2">&quot;not a physical channel.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ThermalRelaxationError time=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="si">}</span><span class="s2"> &lt; 0.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">excited_population</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ThermalRelaxationError excited_population=&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">excited_population</span><span class="si">}</span><span class="s2"> outside [0, 1].&quot;</span>
+            <span class="p">)</span>
+
+    <span class="n">width</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ThermalRelaxationError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">kraus</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">t1</span><span class="p">)</span>
+        <span class="n">pe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">excited_population</span>
+        <span class="n">damping</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">pe</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">gamma</span><span class="p">)]]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">pe</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">gamma</span><span class="p">)],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">pe</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">gamma</span><span class="p">),</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">pe</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">gamma</span><span class="p">),</span> <span class="mi">0</span><span class="p">]]),</span>
+        <span class="p">)</span>
+        <span class="c1"># The remaining coherence decay, as a phase flip with 1 - 2 p_z equal to it.</span>
+        <span class="n">remaining</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">t2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">t1</span><span class="p">))</span>
+        <span class="n">p_z</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">remaining</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">dephasing</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p_z</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p_z</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">d</span> <span class="o">@</span> <span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">complex</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dephasing</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">damping</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">support</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">KrausChannel</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kraus</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># -- Errors on measurement and preparation ----------------------------------------</span>
 
 
 <div class="viewcode-block" id="ReadoutError">
@@ -422,42 +636,102 @@
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ReadoutError</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Symmetric readout bit flip: each measured bit is reported flipped with</span>
-<span class="sd">    probability ``p``.</span>
+<span class="sd">    Readout bit flips: a measured ``0`` is reported as ``1`` with probability</span>
+<span class="sd">    ``p0``, and a ``1`` as ``0`` with probability ``p1`` (``p0`` if not given).</span>
 
 <span class="sd">    A Pauli expectation value is estimated from the bits read out in the</span>
-<span class="sd">    term&#39;s eigenbasis, so every non-identity factor of a term on a noisy</span>
-<span class="sd">    qubit picks up a factor ``1 - 2 p``. Add it with no gate, optionally</span>
-<span class="sd">    restricted to some qubits; errors on the same qubit compose.</span>
+<span class="sd">    term&#39;s eigenbasis, so every non-identity factor ``P`` of a term on a noisy</span>
+<span class="sd">    qubit becomes ``(1 - p0 - p1) P + (p1 - p0) I``. A symmetric error only</span>
+<span class="sd">    attenuates the term; an asymmetric one also mixes in its lower-weight</span>
+<span class="sd">    subterms. Add it with no gate, optionally restricted to some qubits;</span>
+<span class="sd">    errors on the same qubit compose.</span>
 
 <span class="sd">    Attributes:</span>
-<span class="sd">        p: flip probability of each measured bit, in ``[0, 1]``.</span>
+<span class="sd">        p0: probability of reading a ``0`` as ``1``, in ``[0, 1]``.</span>
+<span class="sd">        p1: probability of reading a ``1`` as ``0``, in ``[0, 1]``; ``p0`` if</span>
+<span class="sd">            not given.</span>
 
 <span class="sd">    Example::</span>
 
 <span class="sd">        from mpstab.noise import NoiseModel, ReadoutError</span>
 
 <span class="sd">        noise = NoiseModel()</span>
-<span class="sd">        noise.add(ReadoutError(0.02))              # every qubit</span>
-<span class="sd">        noise.add(ReadoutError(0.05), qubits=[0])  # qubit 0 is worse</span>
+<span class="sd">        noise.add(ReadoutError(0.02))                    # every qubit</span>
+<span class="sd">        noise.add(ReadoutError(0.01, 0.05), qubits=[0])  # 1 -&gt; 0 is likelier</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">p0</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">p1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">p1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;p1&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ReadoutError probability </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2"> outside [0, 1].&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadoutError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ReadoutError</span><span class="p">(</span><span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">p0</span><span class="p">,</span> <span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">p1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="StatePreparationError">
+<a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.model.StatePreparationError">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">StatePreparationError</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Preparation error: each qubit starts flipped by ``X`` with probability</span>
+<span class="sd">    ``p``, so ``|0&gt;`` is prepared as ``|1&gt;``. Add it with no gate, optionally</span>
+<span class="sd">    restricted to some qubits; it acts on the initial state, before any gate.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        p: flip probability of each qubit, in ``[0, 1]``.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        from mpstab.noise import NoiseModel, StatePreparationError</span>
+
+<span class="sd">        noise = NoiseModel().add(StatePreparationError(0.01))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">p</span><span class="p">:</span> <span class="nb">float</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ReadoutError p=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="si">}</span><span class="s2"> outside [0, 1].&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;StatePreparationError p=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="si">}</span><span class="s2"> outside [0, 1].&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReadoutError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">ReadoutError</span><span class="p">(</span><span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StatePreparationError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">StatePreparationError</span><span class="p">(</span><span class="n">factor</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span></div>
 
 
 
-<span class="n">Error</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">PauliError</span><span class="p">,</span> <span class="n">DepolarizingError</span><span class="p">,</span> <span class="n">CoherentError</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">]</span>
+<span class="n">GateError</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span>
+    <span class="n">PauliError</span><span class="p">,</span>
+    <span class="n">DepolarizingError</span><span class="p">,</span>
+    <span class="n">CoherentError</span><span class="p">,</span>
+    <span class="n">KrausError</span><span class="p">,</span>
+    <span class="n">AmplitudeDampingError</span><span class="p">,</span>
+    <span class="n">ThermalRelaxationError</span><span class="p">,</span>
+<span class="p">]</span>
+<span class="n">Error</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">GateError</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">,</span> <span class="n">StatePreparationError</span><span class="p">]</span>
+<span class="n">_GATE_ERRORS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">PauliError</span><span class="p">,</span>
+    <span class="n">DepolarizingError</span><span class="p">,</span>
+    <span class="n">CoherentError</span><span class="p">,</span>
+    <span class="n">KrausError</span><span class="p">,</span>
+    <span class="n">AmplitudeDampingError</span><span class="p">,</span>
+    <span class="n">ThermalRelaxationError</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">_UNANCHORED_ERRORS</span> <span class="o">=</span> <span class="p">(</span><span class="n">ReadoutError</span><span class="p">,</span> <span class="n">StatePreparationError</span><span class="p">)</span>
+
+
+<span class="c1"># -- Rules ----------------------------------------------------------------------</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_supports</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">qubits</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The qubit tuples ``error`` acts on after a gate on ``qubits``.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">width</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">qubits</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">width</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[(</span><span class="n">q</span><span class="p">,)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">qubits</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">width</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">qubits</span><span class="p">):</span>
@@ -469,27 +743,179 @@
     <span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_single_or_pair</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Whether ``error`` acts on single qubits (1) or on coupled pairs (2).&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">width</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">width</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">2</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2"> noise acts on single qubits or coupled pairs, but &quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> has width </span><span class="si">{</span><span class="n">error</span><span class="o">.</span><span class="n">width</span><span class="si">}</span><span class="s2">.&quot;</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_gate_items</span><span class="p">(</span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;``(index, gate)`` for every gate of the queue but measurements.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">gate</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="n">gates</span><span class="o">.</span><span class="n">M</span><span class="p">)</span>
+    <span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_moments</span><span class="p">(</span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    In-order layering of the queue: a gate lands one moment after the last</span>
+<span class="sd">    gate on any of its qubits, and never before the gate queued ahead of it.</span>
+<span class="sd">    Moments therefore never decrease along the queue, so everything in moment</span>
+<span class="sd">    ``m`` can be placed after every gate of an earlier moment and before every</span>
+<span class="sd">    gate of a later one.</span>
+
+<span class="sd">    Returns ``(layers, history)``: ``layers[m]`` is the set of qubits busy in</span>
+<span class="sd">    moment ``m``, and ``history[q]`` lists ``(moment, index)`` of the gates on</span>
+<span class="sd">    qubit ``q``, in order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">depth</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">circuit</span><span class="o">.</span><span class="n">nqubits</span>
+    <span class="n">layers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">history</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">{</span><span class="n">q</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)}</span>
+    <span class="n">moment</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">_gate_items</span><span class="p">(</span><span class="n">circuit</span><span class="p">):</span>
+        <span class="n">moment</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">moment</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">depth</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">gate</span><span class="o">.</span><span class="n">qubits</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">gate</span><span class="o">.</span><span class="n">qubits</span><span class="p">:</span>
+            <span class="n">depth</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">moment</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">history</span><span class="p">[</span><span class="n">q</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">moment</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">moment</span><span class="p">:</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">set</span><span class="p">())</span>
+        <span class="n">layers</span><span class="p">[</span><span class="n">moment</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">gate</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">layers</span><span class="p">,</span> <span class="n">history</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_last_before</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">moment</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Queue index of the last gate on ``q`` before ``moment``, or ``-1``.&quot;&quot;&quot;</span>
+    <span class="n">previous</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">history</span><span class="p">[</span><span class="n">q</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;=</span> <span class="n">moment</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">index</span>
+    <span class="k">return</span> <span class="n">previous</span>
+
+
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">_Rule</span><span class="p">:</span>
-    <span class="n">error</span><span class="p">:</span> <span class="n">Error</span>
-    <span class="n">gate</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
-    <span class="n">qubits</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    One rule of a :class:`NoiseModel`; ``kind`` is ``&quot;gate&quot;``, ``&quot;crosstalk&quot;``,</span>
+<span class="sd">    ``&quot;idle&quot;``, ``&quot;readout&quot;`` or ``&quot;preparation&quot;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">gate</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">NoiseEvent</span><span class="p">]:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">()</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gate</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">()</span>
-        <span class="n">qubits</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">gate</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span>
+    <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">error</span><span class="p">:</span> <span class="n">Error</span>
+    <span class="n">gate</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">qubits</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">coupling</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_Rule</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">scaled</span><span class="p">(</span><span class="n">factor</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">NoiseEvent</span><span class="p">]:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">circuit</span><span class="o">.</span><span class="n">nqubits</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;gate&quot;</span><span class="p">,</span> <span class="s2">&quot;crosstalk&quot;</span><span class="p">):</span>
+            <span class="n">emit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gate_events</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;gate&quot;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_crosstalk_events</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">event</span>
+                <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">_gate_items</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gate</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gate</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">emit</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">gate</span><span class="o">.</span><span class="n">qubits</span><span class="p">),</span> <span class="n">n</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;idle&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_idle_events</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;preparation&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">PauliChannel</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">q</span><span class="p">,),</span> <span class="p">{</span><span class="s2">&quot;X&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">p</span><span class="p">})</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qubits</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_qubits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="n">qubits</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qubits</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">qubits</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">q</span> <span class="o">&lt;</span> <span class="n">nqubits</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> on qubit </span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2">, outside a &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">nqubits</span><span class="si">}</span><span class="s2">-qubit circuit.&quot;</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gate_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qubits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">width</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># spans the whole gate</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="p">()</span>
+                    <span class="k">return</span> <span class="p">[]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">qubits</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">qubits</span> <span class="k">if</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">qubits</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">()</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">_events</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">_event</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">support</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_supports</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">qubits</span><span class="p">)</span> <span class="k">if</span> <span class="n">qubits</span> <span class="k">else</span> <span class="p">())</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_crosstalk_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">):</span>
+        <span class="n">active</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">active</span> <span class="k">else</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">u</span> <span class="ow">in</span> <span class="n">active</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="n">v</span> <span class="ow">in</span> <span class="n">active</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">_single_or_pair</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="s2">&quot;Crosstalk&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">supports</span> <span class="o">=</span> <span class="p">[(</span><span class="n">s</span><span class="p">,)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">s</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">})]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">supports</span> <span class="o">=</span> <span class="n">edges</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">_event</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span> <span class="k">for</span> <span class="n">support</span> <span class="ow">in</span> <span class="n">supports</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_idle_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">circuit</span><span class="o">.</span><span class="n">nqubits</span>
+        <span class="n">layers</span><span class="p">,</span> <span class="n">history</span> <span class="o">=</span> <span class="n">_moments</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
+        <span class="n">allowed</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_qubits</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+        <span class="n">pairs</span> <span class="o">=</span> <span class="n">_single_or_pair</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="s2">&quot;Idle&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">pairs</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Two-qubit idle noise (</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">) needs coupling=.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">moment</span><span class="p">,</span> <span class="n">busy</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layers</span><span class="p">):</span>
+            <span class="n">idle</span> <span class="o">=</span> <span class="n">allowed</span> <span class="o">-</span> <span class="n">busy</span>
+            <span class="k">if</span> <span class="n">pairs</span><span class="p">:</span>
+                <span class="n">supports</span> <span class="o">=</span> <span class="p">[(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling</span> <span class="k">if</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">idle</span> <span class="ow">and</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">idle</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">supports</span> <span class="o">=</span> <span class="p">[(</span><span class="n">q</span><span class="p">,)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">idle</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">support</span> <span class="ow">in</span> <span class="n">supports</span><span class="p">:</span>
+                <span class="c1"># After the last gate on the support before this moment; the</span>
+                <span class="c1"># in-order layering puts it before the next one on each qubit.</span>
+                <span class="n">anchor</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">_last_before</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">moment</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">support</span><span class="p">)</span>
+                <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">_event</span><span class="p">(</span><span class="n">anchor</span><span class="p">,</span> <span class="n">support</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">events</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_coupling</span><span class="p">(</span><span class="n">coupling</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="o">...</span><span class="p">]:</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">coupling</span><span class="p">:</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">edge</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="n">v</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Coupling edge </span><span class="si">{</span><span class="n">edge</span><span class="si">}</span><span class="s2"> joins a qubit to itself.&quot;</span><span class="p">)</span>
+        <span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="nb">min</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">edges</span><span class="p">)))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_gate_types</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">gate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">gate</span><span class="p">,)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_qubit_set</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">qubits</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
+        <span class="n">qubits</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">qubits</span><span class="p">),)</span>
+    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">qubits</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="NoiseModel">
@@ -497,11 +923,19 @@
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NoiseModel</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Noise attached to gates, built rule by rule with :meth:`add` as in qibo.</span>
+<span class="sd">    Noise attached to a circuit, built rule by rule as in qibo.</span>
 
-<span class="sd">    Every rule puts its error right after each matching gate. Pass the model</span>
-<span class="sd">    to :meth:`~mpstab.HSMPO.noisy_expectation`; :meth:`apply` gives the same</span>
-<span class="sd">    noisy circuit as a qibo density-matrix circuit, for exact reference values.</span>
+<span class="sd">    - :meth:`add` puts an error right after each matching gate, or, for</span>
+<span class="sd">      :class:`ReadoutError` and :class:`StatePreparationError`, on the measured</span>
+<span class="sd">      bits and on the initial state.</span>
+<span class="sd">    - :meth:`add_crosstalk` puts it on the spectators of each matching gate:</span>
+<span class="sd">      the qubits coupled to the gate but not acted on by it.</span>
+<span class="sd">    - :meth:`add_idle` puts it on the qubits left idle in each moment of the</span>
+<span class="sd">      circuit.</span>
+
+<span class="sd">    Pass the model to :meth:`~mpstab.HSMPO.noisy_expectation`; :meth:`apply`</span>
+<span class="sd">    gives the same noisy circuit as a qibo density-matrix circuit, for exact</span>
+<span class="sd">    reference values.</span>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        rules: the rules added so far, in order.</span>
@@ -511,13 +945,22 @@
 <span class="sd">        from qibo import gates</span>
 <span class="sd">        from mpstab import HSMPO</span>
 <span class="sd">        from mpstab.models.ansatze import KickedIsing</span>
-<span class="sd">        from mpstab.noise import CoherentError, DepolarizingError, NoiseModel, PauliError</span>
+<span class="sd">        from mpstab.noise import (</span>
+<span class="sd">            AmplitudeDampingError,</span>
+<span class="sd">            CoherentError,</span>
+<span class="sd">            DepolarizingError,</span>
+<span class="sd">            NoiseModel,</span>
+<span class="sd">            PauliError,</span>
+<span class="sd">        )</span>
 
+<span class="sd">        chain = [(0, 1), (1, 2), (2, 3)]</span>
 <span class="sd">        noise = NoiseModel()</span>
 <span class="sd">        noise.add(DepolarizingError(1e-3))                     # after every gate</span>
 <span class="sd">        noise.add(PauliError({&quot;ZZ&quot;: 5e-4}), gates.CNOT)        # correlated, on CNOTs</span>
-<span class="sd">        noise.add(CoherentError(&quot;ZZ&quot;, 0.02), gates.CNOT)       # crosstalk</span>
+<span class="sd">        noise.add(CoherentError(&quot;ZZ&quot;, 0.02), gates.CNOT)       # residual coupling</span>
 <span class="sd">        noise.add(PauliError({&quot;Z&quot;: 1e-3}), gates.RX, qubits=[0, 1])</span>
+<span class="sd">        noise.add_crosstalk(PauliError({&quot;ZZ&quot;: 1e-3}), chain, gates.CNOT)</span>
+<span class="sd">        noise.add_idle(AmplitudeDampingError(1e-3))            # T1 while idle</span>
 
 <span class="sd">        hsmpo = HSMPO(KickedIsing(nqubits=4, n_steps=1, theta_h=0.7))</span>
 <span class="sd">        ideal = hsmpo.expectation(&quot;ZIIZ&quot;)</span>
@@ -539,7 +982,8 @@
 <span class="sd">        Put ``error`` after every gate of type ``gate`` (all gates if ``None``).</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            error: the error to insert.</span>
+<span class="sd">            error: the error to insert. Readout and preparation errors take no</span>
+<span class="sd">                gate.</span>
 <span class="sd">            gate: qibo gate class, or sequence of them; only gates of these</span>
 <span class="sd">                types get the error. Measurements never do.</span>
 <span class="sd">            qubits: restrict the error to these qubits. A single-qubit error</span>
@@ -551,44 +995,113 @@
 
 <span class="sd">        Raises:</span>
 <span class="sd">            TypeError: if ``error`` is not an mpstab error.</span>
-<span class="sd">            ValueError: if a :class:`ReadoutError` is given a ``gate``.</span>
+<span class="sd">            ValueError: if a :class:`ReadoutError` or a</span>
+<span class="sd">                :class:`StatePreparationError` is given a ``gate``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
-            <span class="n">error</span><span class="p">,</span> <span class="p">(</span><span class="n">PauliError</span><span class="p">,</span> <span class="n">DepolarizingError</span><span class="p">,</span> <span class="n">CoherentError</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">)</span>
-        <span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> is not a mpstab error; use PauliError, &quot;</span>
-                <span class="s2">&quot;DepolarizingError, CoherentError or ReadoutError.&quot;</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">)</span> <span class="ow">and</span> <span class="n">gate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;ReadoutError acts on the measured bits, not after a gate: add it &quot;</span>
-                <span class="s2">&quot;without a gate, optionally with qubits=.&quot;</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">gate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
-            <span class="n">gate</span> <span class="o">=</span> <span class="p">(</span><span class="n">gate</span><span class="p">,)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qubits</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
-            <span class="n">qubits</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">qubits</span><span class="p">),)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">_GATE_ERRORS</span> <span class="o">+</span> <span class="n">_UNANCHORED_ERRORS</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">_UNANCHORED_ERRORS</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">gate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> acts on the measured bits or the &quot;</span>
+                    <span class="s2">&quot;initial state, not after a gate: add it without a gate, &quot;</span>
+                    <span class="s2">&quot;optionally with qubits=.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">kind</span> <span class="o">=</span> <span class="s2">&quot;readout&quot;</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;preparation&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">kind</span> <span class="o">=</span> <span class="s2">&quot;gate&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_Rule</span><span class="p">(</span><span class="n">kind</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">_gate_types</span><span class="p">(</span><span class="n">gate</span><span class="p">),</span> <span class="n">_qubit_set</span><span class="p">(</span><span class="n">qubits</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="NoiseModel.add_crosstalk">
+<a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.model.NoiseModel.add_crosstalk">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_crosstalk</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">error</span><span class="p">:</span> <span class="n">GateError</span><span class="p">,</span>
+        <span class="n">coupling</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]],</span>
+        <span class="n">gate</span><span class="p">:</span> <span class="nb">type</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NoiseModel</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Put ``error`` on the spectators of every gate of type ``gate``.</span>
+
+<span class="sd">        A spectator is a qubit coupled to one of the gate&#39;s qubits without</span>
+<span class="sd">        being acted on by the gate. A single-qubit error acts on each</span>
+<span class="sd">        spectator; a two-qubit one acts on each ``(gate qubit, spectator)``</span>
+<span class="sd">        edge, in that order, as ``ZZ`` crosstalk from a driven qubit does.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            error: the error, on one qubit or on two.</span>
+<span class="sd">            coupling: the coupling graph, as qubit pairs.</span>
+<span class="sd">            gate: qibo gate class, or sequence of them; only gates of these</span>
+<span class="sd">                types cause the crosstalk.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``self``, so calls can be chained.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">_GATE_ERRORS</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">_Rule</span><span class="p">(</span><span class="s2">&quot;crosstalk&quot;</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">_gate_types</span><span class="p">(</span><span class="n">gate</span><span class="p">),</span> <span class="n">coupling</span><span class="o">=</span><span class="n">_coupling</span><span class="p">(</span><span class="n">coupling</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="NoiseModel.add_idle">
+<a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.model.NoiseModel.add_idle">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_idle</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">error</span><span class="p">:</span> <span class="n">GateError</span><span class="p">,</span>
+        <span class="n">qubits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">coupling</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NoiseModel</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Put ``error`` on the qubits left idle in each moment of the circuit.</span>
+
+<span class="sd">        Moments are an in-order layering of the gate queue: a gate lands one</span>
+<span class="sd">        moment after the last gate on any of its qubits, and never before the</span>
+<span class="sd">        gate queued ahead of it, so a circuit queued layer by layer gets its</span>
+<span class="sd">        layers as moments. A single-qubit error acts on every idle qubit of</span>
+<span class="sd">        every moment, before its first gate and after its last one included. A two-qubit error,</span>
+<span class="sd">        such as an always-on ``ZZ`` coupling, acts on each ``coupling`` edge</span>
+<span class="sd">        whose two qubits are both idle.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            error: the error, on one qubit or on two.</span>
+<span class="sd">            qubits: restrict the error to these qubits.</span>
+<span class="sd">            coupling: the coupling graph, needed by two-qubit errors.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``self``, so calls can be chained.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">_GATE_ERRORS</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">_Rule</span><span class="p">(</span>
+                <span class="s2">&quot;idle&quot;</span><span class="p">,</span>
                 <span class="n">error</span><span class="p">,</span>
-                <span class="nb">tuple</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span> <span class="k">if</span> <span class="n">gate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="nb">frozenset</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span> <span class="k">if</span> <span class="n">qubits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">qubits</span><span class="o">=</span><span class="n">_qubit_set</span><span class="p">(</span><span class="n">qubits</span><span class="p">),</span>
+                <span class="n">coupling</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">coupling</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_coupling</span><span class="p">(</span><span class="n">coupling</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">allowed</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">allowed</span><span class="p">):</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> is not a mpstab error accepted here; &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;use one of </span><span class="si">{</span><span class="n">names</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
 <div class="viewcode-block" id="NoiseModel.scaled">
 <a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.model.NoiseModel.scaled">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NoiseModel</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        A copy with every probability and coherent angle multiplied by ``factor``,</span>
-<span class="sd">        for noise-strength sweeps such as zero-noise extrapolation.</span>
+<span class="sd">        A copy with every error&#39;s strength multiplied by ``factor``: its</span>
+<span class="sd">        probabilities, coherent angles, damping rates or relaxation times, for</span>
+<span class="sd">        noise-strength sweeps such as zero-noise extrapolation.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">NoiseModel</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">_Rule</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">scaled</span><span class="p">(</span><span class="n">factor</span><span class="p">),</span> <span class="n">r</span><span class="o">.</span><span class="n">gate</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">]</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">NoiseModel</span><span class="p">([</span><span class="n">rule</span><span class="o">.</span><span class="n">scaled</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span> <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="NoiseModel.events">
@@ -597,31 +1110,38 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The model resolved on ``circuit``: one event per inserted error.&quot;&quot;&quot;</span>
         <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">queue</span><span class="p">):</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="n">gates</span><span class="o">.</span><span class="n">M</span><span class="p">):</span>
-                    <span class="k">continue</span>
-                <span class="n">events</span> <span class="o">+=</span> <span class="n">rule</span><span class="o">.</span><span class="n">events</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">gate</span><span class="p">,</span> <span class="n">circuit</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span>
+            <span class="n">events</span> <span class="o">+=</span> <span class="n">rule</span><span class="o">.</span><span class="n">events</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">events</span></div>
+
+
+<div class="viewcode-block" id="NoiseModel.readout_maps">
+<a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.model.NoiseModel.readout_maps">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">readout_maps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The readout errors of each qubit as ``(scale, offset)``, each of shape</span>
+<span class="sd">        ``(nqubits,)``: a measured Pauli factor ``P`` on qubit ``q`` reads as</span>
+<span class="sd">        ``scale[q] P + offset[q] I``. Ones and zeros where there is no readout</span>
+<span class="sd">        noise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">scale</span><span class="p">,</span> <span class="n">offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nqubits</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s2">&quot;readout&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">rule</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">p0</span> <span class="o">-</span> <span class="n">rule</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">p1</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">p1</span> <span class="o">-</span> <span class="n">rule</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">p0</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">rule</span><span class="o">.</span><span class="n">_qubits</span><span class="p">(</span><span class="n">nqubits</span><span class="p">):</span>
+                <span class="n">scale</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">offset</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span> <span class="o">*</span> <span class="n">scale</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">c</span> <span class="o">*</span> <span class="n">offset</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">+</span> <span class="n">a</span>
+        <span class="k">return</span> <span class="n">scale</span><span class="p">,</span> <span class="n">offset</span></div>
 
 
 <div class="viewcode-block" id="NoiseModel.readout_attenuation">
 <a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.model.NoiseModel.readout_attenuation">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">readout_attenuation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Factor ``prod (1 - 2 p)`` of the readout errors on each qubit, shape</span>
-<span class="sd">        ``(nqubits,)``; ones where there is no readout noise.</span>
+<span class="sd">        The ``scale`` of :meth:`readout_maps`: the product of ``1 - p0 - p1``</span>
+<span class="sd">        over the readout errors on each qubit, shape ``(nqubits,)``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">factors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rules</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="n">ReadoutError</span><span class="p">):</span>
-                <span class="n">qubits</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span> <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">qubits</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">rule</span><span class="o">.</span><span class="n">qubits</span>
-                <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">qubits</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">q</span> <span class="o">&lt;</span> <span class="n">nqubits</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;ReadoutError on qubit </span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s2">, outside a </span><span class="si">{</span><span class="n">nqubits</span><span class="si">}</span><span class="s2">-qubit circuit.&quot;</span>
-                        <span class="p">)</span>
-                    <span class="n">factors</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">*=</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">rule</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">p</span>
-        <span class="k">return</span> <span class="n">factors</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">readout_maps</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="NoiseModel.readout_observable">
@@ -629,18 +1149,36 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">readout_observable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        ``observable`` as ``(constant, {pauli: coefficient})``, as</span>
-<span class="sd">        :func:`~mpstab.hamiltonians.pauli_terms` returns it, with every</span>
-<span class="sd">        coefficient multiplied by the readout attenuation of the qubits its</span>
-<span class="sd">        term acts on. The constant is not measured, so it is left unchanged.</span>
+<span class="sd">        :func:`~mpstab.hamiltonians.pauli_terms` returns it, with the readout</span>
+<span class="sd">        errors folded in (:meth:`readout_maps`).</span>
+
+<span class="sd">        A symmetric error only rescales the terms. An asymmetric one expands a</span>
+<span class="sd">        term with ``w`` non-identity factors on asymmetric qubits into its</span>
+<span class="sd">        ``2**w`` subterms, the empty one adding to the constant.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">constant</span><span class="p">,</span> <span class="n">terms</span> <span class="o">=</span> <span class="n">pauli_terms</span><span class="p">(</span><span class="n">observable</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>
-        <span class="n">factors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readout_attenuation</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
-        <span class="n">scaled</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">pauli</span><span class="p">:</span> <span class="n">coefficient</span>
-            <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">([</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">factors</span><span class="p">,</span> <span class="n">pauli</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span> <span class="o">!=</span> <span class="s2">&quot;I&quot;</span><span class="p">]))</span>
-            <span class="k">for</span> <span class="n">pauli</span><span class="p">,</span> <span class="n">coefficient</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-        <span class="p">}</span>
-        <span class="k">return</span> <span class="n">constant</span><span class="p">,</span> <span class="n">scaled</span></div>
+        <span class="n">scale</span><span class="p">,</span> <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readout_maps</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">pauli</span><span class="p">,</span> <span class="n">coefficient</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">support</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pauli</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span> <span class="o">!=</span> <span class="s2">&quot;I&quot;</span><span class="p">]</span>
+            <span class="n">branching</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">support</span> <span class="k">if</span> <span class="n">offset</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">fixed</span> <span class="o">=</span> <span class="n">coefficient</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">([</span><span class="n">scale</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">support</span> <span class="k">if</span> <span class="n">offset</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">kept</span> <span class="ow">in</span> <span class="n">product</span><span class="p">((</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span> <span class="n">repeat</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">branching</span><span class="p">)):</span>
+                <span class="n">value</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">fixed</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">pauli</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">keep</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">branching</span><span class="p">,</span> <span class="n">kept</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">keep</span><span class="p">:</span>
+                        <span class="n">value</span> <span class="o">*=</span> <span class="n">scale</span><span class="p">[</span><span class="n">q</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">value</span> <span class="o">*=</span> <span class="n">offset</span><span class="p">[</span><span class="n">q</span><span class="p">]</span>
+                        <span class="n">labels</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;I&quot;</span>
+                <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">label</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;I&quot;</span><span class="p">}:</span>
+                    <span class="n">constant</span> <span class="o">+=</span> <span class="n">value</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">constant</span><span class="p">,</span> <span class="n">result</span></div>
 
 
 <div class="viewcode-block" id="NoiseModel.apply">
@@ -648,7 +1186,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Circuit</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        ``circuit`` with the noise inserted, as a qibo density-matrix circuit:</span>
-<span class="sd">        Pauli errors as ``PauliNoiseChannel``, coherent ones as unitaries.</span>
+<span class="sd">        Pauli errors as ``PauliNoiseChannel``, coherent ones as unitaries and</span>
+<span class="sd">        the others as ``KrausChannel``.</span>
 
 <span class="sd">        Readout errors act on the measured bits, not on the state, so they are</span>
 <span class="sd">        not part of this circuit: apply them to the observable with</span>
@@ -658,6 +1197,8 @@
         <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="p">(</span><span class="n">circuit</span><span class="p">):</span>
             <span class="n">by_gate</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">after_gate</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
         <span class="n">noisy</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">density_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">by_gate</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">()):</span>
+            <span class="n">noisy</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">_qibo_gate</span><span class="p">(</span><span class="n">event</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">queue</span><span class="p">):</span>
             <span class="n">noisy</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">by_gate</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="p">()):</span>
@@ -670,6 +1211,8 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_qibo_gate</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n">NoiseEvent</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">PauliChannel</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">gates</span><span class="o">.</span><span class="n">PauliNoiseChannel</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">qubits</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">probs</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">KrausChannel</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">gates</span><span class="o">.</span><span class="n">KrausChannel</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">qubits</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">kraus</span><span class="p">))</span>
     <span class="n">support</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">generator</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span> <span class="o">!=</span> <span class="s2">&quot;I&quot;</span><span class="p">]</span>
     <span class="n">matrix</span> <span class="o">=</span> <span class="n">pauli_matrix</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">support</span><span class="p">))</span>
     <span class="n">unitary</span> <span class="o">=</span> <span class="p">(</span>

@@ -203,11 +203,27 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../guides/quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorials &amp; Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/introduction.html">A quick introduction to HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/noise.html">Noisy simulation with <code class="docutils literal notranslate"><span class="pre">mpstab.noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/advanced_noise.html">Device-level noise: relaxation, crosstalk and idling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/noisy_simulation.html">Noisy simulation against density matrices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 </ul>
 </li>
@@ -275,8 +291,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_pauli_string</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">PAULI_MATRICES</span><span class="p">,</span> <span class="n">validate_pauli_string</span>
 
 
 <div class="viewcode-block" id="NoiseEvent">
@@ -287,9 +306,8 @@
 <span class="sd">    Base class of every noise event.</span>
 
 <span class="sd">    :func:`~mpstab.noise.compile_noise` dispatches on the concrete type and</span>
-<span class="sd">    rejects any it does not know. A new channel, such as amplitude damping</span>
-<span class="sd">    simulated by quantum trajectories, is added as a subclass plus a branch</span>
-<span class="sd">    there.</span>
+<span class="sd">    rejects any it does not know: a new kind of event is added as a subclass</span>
+<span class="sd">    plus a branch there.</span>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        after_gate: index in ``ansatz.circuit.queue`` of the gate the event</span>
@@ -413,6 +431,97 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">validate_pauli_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="KrausChannel">
+<a class="viewcode-back" href="../../../api/noise.html#mpstab.noise.events.KrausChannel">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">KrausChannel</span><span class="p">(</span><span class="n">NoiseEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A general channel ``rho -&gt; sum_k K_k rho K_k^dag`` on a few qubits, such as</span>
+<span class="sd">    amplitude damping or thermal relaxation.</span>
+
+<span class="sd">    In the Pauli basis the channel is ``sum_{A, B} chi[A, B] A rho B``</span>
+<span class="sd">    (:attr:`chi`). The diagonal of ``chi`` is a Pauli channel, its Pauli</span>
+<span class="sd">    twirl; the off-diagonal entries are what makes it non-unital or</span>
+<span class="sd">    otherwise non-Pauli, and the estimator evaluates them as transition</span>
+<span class="sd">    amplitudes between two sign patterns of the rotation chain.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        after_gate: index of the gate the channel follows, or ``-1`` for the</span>
+<span class="sd">            initial state.</span>
+<span class="sd">        qubits: the qubits the channel acts on. ``qubits[0]`` is the most</span>
+<span class="sd">            significant factor of the Kraus matrices, as in qibo.</span>
+<span class="sd">        kraus: Kraus operators, each ``2**k x 2**k`` for ``k = len(qubits)``.</span>
+<span class="sd">            They must satisfy ``sum_k K_k^dag K_k = I``.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        # Amplitude damping of qubit 0 after the first gate.</span>
+<span class="sd">        import numpy as np</span>
+<span class="sd">        from mpstab.noise.events import KrausChannel</span>
+
+<span class="sd">        gamma = 0.05</span>
+<span class="sd">        damping = KrausChannel(</span>
+<span class="sd">            after_gate=0,</span>
+<span class="sd">            qubits=(0,),</span>
+<span class="sd">            kraus=(</span>
+<span class="sd">                np.array([[1, 0], [0, np.sqrt(1 - gamma)]]),</span>
+<span class="sd">                np.array([[0, np.sqrt(gamma)], [0, 0]]),</span>
+<span class="sd">            ),</span>
+<span class="sd">        )</span>
+<span class="sd">        print(damping.chi[(&quot;I&quot;, &quot;Z&quot;)])  # gamma / 4</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">qubits</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">kraus</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;qubits&quot;</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;KrausChannel qubits </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="si">}</span><span class="s2"> repeat a qubit.&quot;</span><span class="p">)</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span>
+        <span class="n">kraus</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kraus</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">kraus</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kraus</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;KrausChannel on </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span><span class="si">}</span><span class="s2"> qubit(s) needs </span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="s2">&quot;Kraus operators.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">completeness</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kraus</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">completeness</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">dim</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;KrausChannel operators are not trace preserving: &quot;</span>
+                <span class="s2">&quot;sum_k K_k^dag K_k != I.&quot;</span>
+            <span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;kraus&quot;</span><span class="p">,</span> <span class="n">kraus</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">chi</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">complex</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The process matrix in the Pauli basis, ``{(A, B): chi[A, B]}``, with</span>
+<span class="sd">        ``A`` and ``B`` labels on :attr:`qubits`; entries below ``1e-15`` in</span>
+<span class="sd">        magnitude are left out. It is Hermitian, and its diagonal sums to 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="s2">&quot;IXYZ&quot;</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="n">k</span><span class="p">)]</span>
+        <span class="n">matrices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
+            <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">label</span><span class="p">:</span>
+                <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">PAULI_MATRICES</span><span class="p">[</span><span class="n">p</span><span class="p">])</span>
+            <span class="n">matrices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+        <span class="c1"># K = sum_A c[A] A with c[A] = Tr(A K) / 2**k, as Paulis are Hermitian.</span>
+        <span class="n">coefficients</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">m</span> <span class="o">@</span> <span class="n">op</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="n">k</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matrices</span><span class="p">]</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kraus</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">chi</span> <span class="o">=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span> <span class="nb">complex</span><span class="p">(</span><span class="n">chi</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">chi</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mf">1e-15</span>
+        <span class="p">}</span></div>
 
 </pre></div>
         </article>

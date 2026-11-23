@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="MPSTAB as a Qibo Backend Provider" href="../guides/qibo_backend_provider.html"><link rel="prev" title="DMRG Optimization of Quantum Hamiltonians" href="../guides/dmrg_optimization.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="DMRG: pure quimb against HSMPO" href="scripts/dmrg_j1j2_comparison.html"><link rel="prev" title="HSMPO Ground State Optimization with DMRG" href="optimization.html">
         <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
@@ -205,11 +205,27 @@
 <li class="toctree-l1"><a class="reference internal" href="../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorials &amp; Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Examples</a><input aria-label="Toggle navigation of Examples" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">A quick introduction to HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="noise.html">Noisy simulation with <code class="docutils literal notranslate"><span class="pre">mpstab.noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced_noise.html">Device-level noise: relaxation, crosstalk and idling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts/noisy_simulation.html">Noisy simulation against density matrices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">DMRG Optimization of the XXZ Model</a></li>
 </ul>
 </li>
@@ -637,23 +653,23 @@ KEY INSIGHTS
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="../guides/qibo_backend_provider.html">
+          <a class="next-page" href="scripts/dmrg_j1j2_comparison.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">MPSTAB as a Qibo Backend Provider</div>
+                <div class="title">DMRG: pure quimb against HSMPO</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="../guides/dmrg_optimization.html">
+          <a class="prev-page" href="optimization.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">DMRG Optimization of Quantum Hamiltonians</div>
+                <div class="title">HSMPO Ground State Optimization with DMRG</div>
                 
               </div>
             </a>

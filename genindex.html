@@ -202,11 +202,27 @@
 <li class="toctree-l1"><a class="reference internal" href="guides/theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="guides/quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorials &amp; Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="examples/introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/introduction.html">A quick introduction to HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/noise.html">Noisy simulation with <code class="docutils literal notranslate"><span class="pre">mpstab.noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/advanced_noise.html">Device-level noise: relaxation, crosstalk and idling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/scripts/noisy_simulation.html">Noisy simulation against density matrices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 </ul>
 </li>
@@ -273,14 +289,20 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/noise.html#mpstab.noise.model.NoiseModel.add">add() (mpstab.noise.model.NoiseModel method)</a>
 </li>
+        <li><a href="api/noise.html#mpstab.noise.model.NoiseModel.add_crosstalk">add_crosstalk() (mpstab.noise.model.NoiseModel method)</a>
+</li>
+        <li><a href="api/noise.html#mpstab.noise.model.NoiseModel.add_idle">add_idle() (mpstab.noise.model.NoiseModel method)</a>
+</li>
         <li><a href="api/qpu.html#mpstab.qpu.measurement.pauli.allocate_shots_by_variance">allocate_shots_by_variance() (in module mpstab.qpu.measurement.pauli)</a>
 </li>
+        <li><a href="api/noise.html#mpstab.noise.model.AmplitudeDampingError">AmplitudeDampingError (class in mpstab.noise.model)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/models.html#mpstab.models.ansatze.Ansatz">Ansatz (class in mpstab.models.ansatze)</a>
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.ansatz">ansatz (mpstab.evolutors.hsmpo.HSMPO attribute)</a>
 </li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/pauli.html#mpstab.pauli.anticommutation">anticommutation() (in module mpstab.pauli)</a>
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsynthsmpo.ExpectationResult.antihermitian_l2">antihermitian_l2 (mpstab.evolutors.hsynthsmpo.ExpectationResult attribute)</a>
@@ -347,6 +369,8 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/qpu.html#mpstab.qpu.measurement.shadows.canonical_omega_seed">canonical_omega_seed() (in module mpstab.qpu.measurement.shadows)</a>
 </li>
+        <li><a href="api/noise.html#mpstab.noise.events.KrausChannel.chi">chi (mpstab.noise.events.KrausChannel property)</a>
+</li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsynthsmpo.ResynthesizedHead.circuit">circuit (mpstab.evolutors.hsynthsmpo.ResynthesizedHead attribute)</a>
 
         <ul>
@@ -376,6 +400,8 @@
         <li><a href="api/qpu.html#mpstab.qpu.synthesis.cnot_ladder.CnotLadderSynthesis">CnotLadderSynthesis (class in mpstab.qpu.synthesis.cnot_ladder)</a>
 </li>
         <li><a href="api/models.html#mpstab.models.ansatze.QFTPhaseKernel.coeffs">coeffs (mpstab.models.ansatze.QFTPhaseKernel attribute)</a>
+</li>
+        <li><a href="api/noise.html#mpstab.noise.compile.CompiledNoise.coherence_mass">coherence_mass (mpstab.noise.compile.CompiledNoise property)</a>
 </li>
         <li><a href="api/noise.html#mpstab.noise.model.CoherentError">CoherentError (class in mpstab.noise.model)</a>
 </li>
@@ -636,6 +662,12 @@
   <table style="width: 100%" class="indextable genindextable"><tr>
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/models.html#mpstab.models.ansatze.KickedIsing">KickedIsing (class in mpstab.models.ansatze)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/noise.html#mpstab.noise.events.KrausChannel">KrausChannel (class in mpstab.noise.events)</a>
+</li>
+        <li><a href="api/noise.html#mpstab.noise.model.KrausError">KrausError (class in mpstab.noise.model)</a>
 </li>
     </ul></td>
   </tr></table>
@@ -1188,13 +1220,15 @@
           <li><a href="api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_rot">(mpstab.engines.tensor_networks.quimb.QuimbEngine method)</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/pauli.html#mpstab.hamiltonians.pauli_string_to_hamiltonian">pauli_string_to_hamiltonian() (in module mpstab.hamiltonians)</a>
 </li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_sum_mpo">pauli_sum_mpo() (mpstab.engines.tensor_networks.quimb.QuimbEngine method)</a>
 </li>
         <li><a href="api/pauli.html#mpstab.hamiltonians.pauli_terms">pauli_terms() (in module mpstab.hamiltonians)</a>
+</li>
+        <li><a href="api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions">pauli_transitions() (mpstab.engines.tensor_networks.quimb.QuimbEngine method)</a>
 </li>
         <li><a href="api/noise.html#mpstab.noise.events.PauliChannel">PauliChannel (class in mpstab.noise.events)</a>
 </li>
@@ -1258,6 +1292,8 @@
 </li>
         <li><a href="api/noise.html#mpstab.noise.model.NoiseModel.readout_attenuation">readout_attenuation() (mpstab.noise.model.NoiseModel method)</a>
 </li>
+        <li><a href="api/noise.html#mpstab.noise.model.NoiseModel.readout_maps">readout_maps() (mpstab.noise.model.NoiseModel method)</a>
+</li>
         <li><a href="api/noise.html#mpstab.noise.model.NoiseModel.readout_observable">readout_observable() (mpstab.noise.model.NoiseModel method)</a>
 </li>
         <li><a href="api/noise.html#mpstab.noise.model.ReadoutError">ReadoutError (class in mpstab.noise.model)</a>
@@ -1274,10 +1310,10 @@
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsynthsmpo.ResynthesizedHead.residual_gates">residual_gates (mpstab.evolutors.hsynthsmpo.ResynthesizedHead attribute)</a>
 </li>
-        <li><a href="api/evolutors.html#mpstab.evolutors.hsynthsmpo.ResynthesizedHead.residual_tableau">residual_tableau (mpstab.evolutors.hsynthsmpo.ResynthesizedHead attribute)</a>
-</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/evolutors.html#mpstab.evolutors.hsynthsmpo.ResynthesizedHead.residual_tableau">residual_tableau (mpstab.evolutors.hsynthsmpo.ResynthesizedHead attribute)</a>
+</li>
         <li><a href="api/qpu.html#mpstab.qpu.measurement.resolve_method">resolve_method() (in module mpstab.qpu.measurement)</a>
 </li>
         <li><a href="api/qpu.html#mpstab.qpu.synthesis.resolve_synthesis">resolve_synthesis() (in module mpstab.qpu.synthesis)</a>
@@ -1344,6 +1380,8 @@
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsynthsmpo.ExpectationResult.state_fidelity">state_fidelity (mpstab.evolutors.hsynthsmpo.ExpectationResult attribute)</a>
 </li>
+        <li><a href="api/noise.html#mpstab.noise.model.StatePreparationError">StatePreparationError (class in mpstab.noise.model)</a>
+</li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsynthsmpo.ExpectationResult.stderr">stderr (mpstab.evolutors.hsynthsmpo.ExpectationResult attribute)</a>
 </li>
         <li><a href="api/engines.html#mpstab.engines.stabilizers.stim.StimEngine">StimEngine (class in mpstab.engines.stabilizers.stim)</a>
@@ -1369,6 +1407,8 @@
         <li><a href="api/evolutors.html#mpstab.evolutors.hsynthsmpo.TailTruncation">TailTruncation (class in mpstab.evolutors.hsynthsmpo)</a>
 </li>
         <li><a href="api/models.html#mpstab.models.ansatze.FloquetAnsatz.target_qubit">target_qubit (mpstab.models.ansatze.FloquetAnsatz attribute)</a>
+</li>
+        <li><a href="api/noise.html#mpstab.noise.model.ThermalRelaxationError">ThermalRelaxationError (class in mpstab.noise.model)</a>
 </li>
         <li><a href="api/models.html#mpstab.models.ansatze.FloquetAnsatz.theta">theta (mpstab.models.ansatze.FloquetAnsatz attribute)</a>
 </li>
@@ -1415,6 +1455,8 @@
         <li><a href="api/evolutors.html#mpstab.evolutors.hsynthsmpo.ExpectationResult.truncation_l1">truncation_l1 (mpstab.evolutors.hsynthsmpo.ExpectationResult attribute)</a>
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsynthsmpo.ExpectationResult.truncation_l2">truncation_l2 (mpstab.evolutors.hsynthsmpo.ExpectationResult attribute)</a>
+</li>
+        <li><a href="api/noise.html#mpstab.noise.model.CoherentError.twirled">twirled() (mpstab.noise.model.CoherentError method)</a>
 </li>
     </ul></td>
   </tr></table>

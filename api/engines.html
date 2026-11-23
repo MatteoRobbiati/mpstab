@@ -204,11 +204,27 @@
 <li class="toctree-l1"><a class="reference internal" href="../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorials &amp; Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../examples/introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/introduction.html">A quick introduction to HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/noise.html">Noisy simulation with <code class="docutils literal notranslate"><span class="pre">mpstab.noise</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/advanced_noise.html">Device-level noise: relaxation, crosstalk and idling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/noisy_simulation.html">Noisy simulation against density matrices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 </ul>
 </li>
@@ -504,6 +520,19 @@ numpy backend, a list of backend scalars otherwise.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>ValueError</strong> – if <code class="docutils literal notranslate"><span class="pre">terms</span></code> is empty.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions">
+<span class="sig-name descname"><span class="pre">pauli_transitions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bra_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ket_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paulis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.pauli_transitions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions" title="Link to this definition">¶</a></dt>
+<dd><p>Normalized transition amplitudes <code class="docutils literal notranslate"><span class="pre">&lt;bra|P|ket&gt;</span></code> of many Pauli strings
+between two states, each divided by the norms of both states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A complex array on the numpy backend, a list of backend scalars
+otherwise.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -822,6 +851,7 @@ it. The default replays each prefix through <code class="docutils literal notran
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_mpo"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_mpo()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_rot"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_rot()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_sum_mpo"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_sum_mpo()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_transitions()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.rotation_operator"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.rotation_operator()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.squared_norm()</span></code></a></li>
 </ul>
