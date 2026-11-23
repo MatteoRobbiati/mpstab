@@ -1217,6 +1217,13 @@ process.</p></li>
 <p>The <a class="reference internal" href="../tutorials/noise.html"><span class="doc">Noisy simulation</span></a> tutorial compares these values against an exact
 density-matrix simulation.</p>
 </section>
+<section id="migration">
+<h2>Migration<a class="headerlink" href="#migration" title="Link to this heading">¶</a></h2>
+<p>The noise modules moved from <code class="docutils literal notranslate"><span class="pre">mpstab.noise</span></code> to <code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.models.noise</span></code>,
+with the same submodules (<code class="docutils literal notranslate"><span class="pre">compile</span></code>, <code class="docutils literal notranslate"><span class="pre">events</span></code>, <code class="docutils literal notranslate"><span class="pre">mc_noise_estimator</span></code>,
+<code class="docutils literal notranslate"><span class="pre">model</span></code>). The old paths still import, as aliases of the new objects, and emit
+a <code class="docutils literal notranslate"><span class="pre">DeprecationWarning</span></code> naming the new path.</p>
+</section>
 </section>
 
         </article>
@@ -1331,6 +1338,7 @@ density-matrix simulation.</p>
 <li><a class="reference internal" href="#mpstab.models.noise.mc_noise_estimator.noisy_expectation"><code class="docutils literal notranslate"><span class="pre">noisy_expectation()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#migration">Migration</a></li>
 </ul>
 </li>
 </ul>

@@ -696,7 +696,8 @@ training set is the subset whose noiseless values spread most
 evenly. <code class="docutils literal notranslate"><span class="pre">1</span></code> keeps the first candidates.</p></li>
 <li><p><strong>training_settings</strong> – settings each training circuit measures, drawn
 without replacement by the size of their noiseless contribution
-to it; <code class="docutils literal notranslate"><span class="pre">None</span></code> measures all of them, like the target.</p></li>
+to it; <code class="docutils literal notranslate"><span class="pre">None</span></code> measures all of them with a nonzero contribution,
+or every setting of a circuit where all contributions vanish.</p></li>
 <li><p><strong>training_shots</strong> – shots per training circuit and noise level, split over
 its settings.</p></li>
 <li><p><strong>calibrate_measurement</strong> – calibrate the measurement layer, attenuation

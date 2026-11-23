@@ -520,7 +520,8 @@
 <span class="sd">            evenly. ``1`` keeps the first candidates.</span>
 <span class="sd">        training_settings: settings each training circuit measures, drawn</span>
 <span class="sd">            without replacement by the size of their noiseless contribution</span>
-<span class="sd">            to it; ``None`` measures all of them, like the target.</span>
+<span class="sd">            to it; ``None`` measures all of them with a nonzero contribution,</span>
+<span class="sd">            or every setting of a circuit where all contributions vanish.</span>
 <span class="sd">        training_shots: shots per training circuit and noise level, split over</span>
 <span class="sd">            its settings.</span>
 <span class="sd">        calibrate_measurement: calibrate the measurement layer, attenuation</span>
@@ -700,17 +701,29 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_training_settings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">group_exact</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        ``(group, shots)`` of each training circuit&#39;s measurements: every</span>
-<span class="sd">        setting with Neyman shots, or ``training_settings`` settings drawn</span>
-<span class="sd">        without replacement by the size of their noiseless contribution to</span>
-<span class="sd">        that circuit, sharing ``training_shots`` evenly.</span>
+<span class="sd">        setting with a nonzero noiseless contribution to that circuit, with</span>
+<span class="sd">        ``training_shots`` split over them by Neyman allocation, or</span>
+<span class="sd">        ``training_settings`` such settings drawn without replacement by the</span>
+<span class="sd">        size of their contribution, sharing ``training_shots`` evenly. A</span>
+<span class="sd">        setting contributing nothing carries no information about the map.</span>
+<span class="sd">        A circuit whose settings all contribute nothing measures every</span>
+<span class="sd">        setting, with Neyman shots or drawn uniformly.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">groups</span><span class="p">,</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">recombination</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_training_circuits</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_settings</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">):</span>
-            <span class="n">shots</span> <span class="o">=</span> <span class="n">allocate_shots_by_variance</span><span class="p">(</span>
-                <span class="n">PauliMeasurementPlan</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">training_shots</span>
-            <span class="p">)</span>
-            <span class="k">return</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">shots</span><span class="p">))]</span> <span class="o">*</span> <span class="n">n</span>
+            <span class="n">draws</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">contribution</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">group_exact</span><span class="p">):</span>
+                <span class="n">informative</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">contribution</span> <span class="o">&gt;</span> <span class="mf">1e-12</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">informative</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">informative</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">))</span>
+                <span class="n">shots</span> <span class="o">=</span> <span class="n">allocate_shots_by_variance</span><span class="p">(</span>
+                    <span class="n">PauliMeasurementPlan</span><span class="p">(</span>
+                        <span class="nb">tuple</span><span class="p">(</span><span class="n">groups</span><span class="p">[</span><span class="n">g</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">informative</span><span class="p">),</span> <span class="n">coefficients</span>
+                    <span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">training_shots</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">draws</span><span class="o">.</span><span class="n">append</span><span class="p">([(</span><span class="nb">int</span><span class="p">(</span><span class="n">g</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">informative</span><span class="p">,</span> <span class="n">shots</span><span class="p">)])</span>
+            <span class="k">return</span> <span class="n">draws</span>
         <span class="n">draws</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">contribution</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">group_exact</span><span class="p">):</span>
             <span class="n">informative</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">contribution</span> <span class="o">&gt;</span> <span class="mf">1e-12</span><span class="p">)</span>
