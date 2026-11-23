@@ -411,20 +411,3 @@ def test_real_coefficients_projects_when_truncated():
     pooled = {"XY": 0.5 - 2e-4j, "ZZ": -0.25 + 0j}
     real = _real_coefficients(pooled, check=False)
     assert real == {"XY": 0.5, "ZZ": -0.25}
-
-
-def test_old_name_still_works_with_a_deprecation_warning():
-    import importlib
-
-    import mpstab
-    import mpstab.evolutors
-
-    with pytest.warns(DeprecationWarning, match="HQSMPO"):
-        assert mpstab.HSynthSMPO is mpstab.HQSMPO
-    with pytest.warns(DeprecationWarning, match="HQSMPO"):
-        assert mpstab.evolutors.HSynthSMPO is mpstab.HQSMPO
-    with pytest.warns(DeprecationWarning, match="hqsmpo"):
-        module = importlib.reload(
-            importlib.import_module("mpstab.evolutors.hsynthsmpo")
-        )
-    assert module.HSynthSMPO is mpstab.HQSMPO

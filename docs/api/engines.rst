@@ -38,7 +38,7 @@ Pure-Python implementations of the two interfaces, kept as readable examples
 of what an engine does rather than for performance. They give the same
 expectation values as stim and quimb, but are slower and cover less: the
 native tensor-network engine has no operator-side conjugation (so no head/tail
-split in :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`) and no DMRG.
+split in :class:`~mpstab.evolutors.hqsmpo.HQSMPO`) and no DMRG.
 
 .. automodule:: mpstab.engines.stabilizers.native.engine
    :members:
@@ -119,7 +119,7 @@ engine whose states and operators expose nothing.
        ``copy_state``, ``bond_dimension``
      - Optional, with a generic default an engine may override for speed.
    * - ``conjugate_operator``, ``operator_site_arrays``
-     - Optional: the head/tail split of ``HSynthSMPO`` and its measurement
+     - Optional: the head/tail split of ``HQSMPO`` and its measurement
        routes. Operators leave the engine only as numpy site arrays.
    * - ``pauli_sum_mpo``, ``minimize_energy``
      - Optional: DMRG (``HSMPO.minimize_expectation``).

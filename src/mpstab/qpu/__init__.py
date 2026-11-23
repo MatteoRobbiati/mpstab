@@ -27,11 +27,6 @@ Importing this package never requires the optional ``rustiq`` dependency:
 :mod:`~mpstab.qpu.synthesis.rustiq` only needs it when it synthesises.
 """
 
-import warnings
-
-from mpstab.qibo_tools.utilized_backends.statevector_exact_simulator import (
-    StatevectorExactSimulator,
-)
 from mpstab.qpu.execution import (
     circuit_to_qasm,
     execute_plan,
@@ -69,18 +64,3 @@ __all__ = [
     "plan_to_qasm",
     "save_circuits",
 ]
-
-
-def __getattr__(name):
-    # QiboSimulator was renamed StatevectorExactSimulator and moved to qibo_tools.
-    # TODO: name the version that removes this alias.
-    if name == "QiboSimulator":
-        warnings.warn(
-            "mpstab.qpu.QiboSimulator moved to "
-            "mpstab.qibo_tools.StatevectorExactSimulator; the old name will be "
-            "removed.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return StatevectorExactSimulator
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
