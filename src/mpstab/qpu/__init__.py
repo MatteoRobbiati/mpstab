@@ -73,6 +73,7 @@ __all__ = [
 
 def __getattr__(name):
     # QiboSimulator was renamed StatevectorExactSimulator and moved to qibo_tools.
+    # TODO: name the version that removes this alias.
     if name == "QiboSimulator":
         warnings.warn(
             "mpstab.qpu.QiboSimulator moved to "

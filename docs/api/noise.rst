@@ -109,13 +109,3 @@ fault-pattern estimator. The three steps are available on their own.
 
 The :doc:`../tutorials/noise` tutorial compares these values against an exact
 density-matrix simulation.
-
-Migration
----------
-
-The noise modules moved from ``mpstab.noise`` to :mod:`mpstab.models.noise`,
-with the same submodules (``compile``, ``events``, ``mc_noise_estimator``,
-``model``). The old paths still import, as aliases of the new objects, and emit
-a ``DeprecationWarning`` naming the new path.
-
-.. TODO: name the version that removes these aliases.

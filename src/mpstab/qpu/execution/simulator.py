@@ -11,6 +11,7 @@ from mpstab.qibo_tools.utilized_backends.statevector_exact_simulator import (
 )
 from mpstab.qpu.execution.execute import execute_plan  # noqa: F401
 
+# TODO: name the version that removes this alias.
 warnings.warn(
     "mpstab.qpu.execution.simulator was removed: QiboSimulator is now "
     "mpstab.qibo_tools.StatevectorExactSimulator and execute_plan is in "
