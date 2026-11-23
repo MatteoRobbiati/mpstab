@@ -116,7 +116,8 @@ def compute():
 def plot():
     import matplotlib.pyplot as plt
 
-    from mpstab.plotting import COLORS, set_style
+    sys.path.append(str(HERE.parents[1]))  # examples/, home of the plot style
+    from plotting import COLORS, set_style
 
     set_style()
     d = np.load(DATA)
