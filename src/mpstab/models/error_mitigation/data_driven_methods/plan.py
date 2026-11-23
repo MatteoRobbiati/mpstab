@@ -46,7 +46,10 @@ from qibo import Circuit, gates
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz
 from mpstab.models.error_mitigation.folding import fold_circuit
-from mpstab.qpu.execution import QiboSimulator, execute_plan
+from mpstab.qibo_tools.utilized_backends.statevector_exact_simulator import (
+    StatevectorExactSimulator,
+)
+from mpstab.qpu.execution import execute_plan
 from mpstab.qpu.measurement.abstract import (
     basis_measurement,
     weighted_mean_and_variance,
@@ -124,7 +127,7 @@ class MitigationPlan:
     Every circuit to run for a mitigated measurement, with its shots.
 
     It runs anywhere a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`
-    does, e.g. :func:`~mpstab.qpu.execution.simulator.execute_plan` or
+    does, e.g. :func:`~mpstab.qpu.execution.execute.execute_plan` or
     :func:`~mpstab.qpu.execution.storage.save_circuits`; :meth:`estimate` turns
     the counts into a :class:`MitigatedResult`.
 
@@ -458,7 +461,7 @@ def mitigated_expectation_at_cut(
         n_shots: shots of the target plan at each noise level.
         epsilon: target standard error sizing them instead.
         backend: anything with ``execute_circuits(circuits, nshots)``, e.g.
-            :class:`~mpstab.qpu.execution.noisy.NoisySimulator`.
+            :class:`~mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator.DensityMatrixNoiseSimulator`.
         method: the ``"pauli"`` measurement method, with its options.
         max_bond_dimension: bond cap of the tail fold.
         seed: seed of the plan.
@@ -473,7 +476,7 @@ def mitigated_expectation_at_cut(
         max_bond_dimension=max_bond_dimension,
         seed=seed,
     )
-    return plan.estimate(execute_plan(backend or QiboSimulator(), plan))
+    return plan.estimate(execute_plan(backend or StatevectorExactSimulator(), plan))
 
 
 def _pauli_values(surrogate, coefficients) -> dict:

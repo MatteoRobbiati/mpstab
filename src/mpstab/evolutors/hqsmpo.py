@@ -60,7 +60,10 @@ import stim
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.pauli import conjugate, pauli_light_cone, validate_pauli_string
-from mpstab.qpu.execution import QiboSimulator, execute_plan, save_circuits
+from mpstab.qibo_tools.utilized_backends.statevector_exact_simulator import (
+    StatevectorExactSimulator,
+)
+from mpstab.qpu.execution import execute_plan, save_circuits
 from mpstab.qpu.measurement import (
     ExpectationResult,
     MeasurementMethod,
@@ -498,7 +501,7 @@ class HQSMPO(HSMPO):
         """
         Resynthesise the head, build the measurement circuits, run them and
         recombine the results, in one call: :meth:`plan`, then
-        :func:`~mpstab.qpu.execution.simulator.execute_plan` on ``backend``,
+        :func:`~mpstab.qpu.execution.execute.execute_plan` on ``backend``,
         then the method's ``estimate``. To run the circuits on a device and
         post-process later, call those three stages separately.
 
@@ -530,7 +533,8 @@ class HQSMPO(HSMPO):
             epsilon: a target standard error, which sizes the shot budget from the
                 per-route variance predictor.
             backend: anything with ``execute_circuits(circuits, nshots)``.
-                Defaults to :class:`~mpstab.qpu.QiboSimulator`.
+                Defaults to
+                :class:`~mpstab.qibo_tools.utilized_backends.statevector_exact_simulator.StatevectorExactSimulator`.
             max_bond_dimension: bond cap for every tail fold; ``-1`` means
                 ``self.max_bond_dimension``. With ``"simulation"`` the head MPS
                 is capped at ``self.max_bond_dimension``.
@@ -571,7 +575,7 @@ class HQSMPO(HSMPO):
             seed=seed,
             out_folder=False,
         )
-        frequencies = execute_plan(backend or QiboSimulator(), plan)
+        frequencies = execute_plan(backend or StatevectorExactSimulator(), plan)
         return method.estimate(plan, frequencies, seed=seed)
 
     def plan(

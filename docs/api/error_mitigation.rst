@@ -83,13 +83,14 @@ vnCDR map, fitted on every training measurement, corrects every setting
 
     from mpstab import HQSMPO
     from mpstab.models.error_mitigation import VnCDRMitigation
-    from mpstab.qpu import NoisySimulator, execute_plan
+    from mpstab.qibo_tools import DensityMatrixNoiseSimulator
+    from mpstab.qpu import execute_plan
 
     model = HQSMPO(ansatz, head_synthesis="extraction")
     mitigation = VnCDRMitigation(n_training_circuits=8, training_settings=3)
     plan = mitigation.build_plan(model, hamiltonian, cut_index, n_shots=50_000, seed=0)
 
-    counts = execute_plan(NoisySimulator(noise), plan)  # or run plan.circuits on a device
+    counts = execute_plan(DensityMatrixNoiseSimulator(noise), plan)  # or run plan.circuits on a device
     result = plan.estimate(counts)
     print(result.unmitigated, result.measurement_mitigated, result.value)
 

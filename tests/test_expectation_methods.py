@@ -25,13 +25,8 @@ from qibo.symbols import X, Z
 
 from mpstab.evolutors.hqsmpo import HQSMPO, ExpectationResult, ResynthesizedHead
 from mpstab.models.ansatze import HardwareEfficient
-from mpstab.qpu import (
-    ClassicalShadows,
-    PauliSampling,
-    QiboSimulator,
-    estimate,
-    execute_plan,
-)
+from mpstab.qibo_tools import StatevectorExactSimulator
+from mpstab.qpu import ClassicalShadows, PauliSampling, estimate, execute_plan
 from mpstab.qpu.measurement.pauli import _antihermitian_norm
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
@@ -208,7 +203,7 @@ def test_staged_pipeline_matches_expectation_at_cut(method, xy_observable):
         seed=3,
         out_folder=False,
     )
-    frequencies = execute_plan(QiboSimulator(), plan)
+    frequencies = execute_plan(StatevectorExactSimulator(), plan)
     staged = estimate(plan, frequencies)
 
     assert staged.value == pytest.approx(one_call.value, abs=1e-12)

@@ -53,6 +53,7 @@ Among our core features:
    api/noise
    api/error_mitigation
    api/pauli
+   api/qibo_tools
    api/models
 
 .. toctree::

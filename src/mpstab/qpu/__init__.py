@@ -28,8 +28,6 @@ Importing this package never requires the optional ``rustiq`` dependency:
 """
 
 from mpstab.qpu.execution import (
-    NoisySimulator,
-    QiboSimulator,
     circuit_to_qasm,
     execute_plan,
     plan_to_qasm,
@@ -58,9 +56,7 @@ __all__ = [
     "HeadSynthesis",
     "MeasurementMethod",
     "MeasurementPlan",
-    "NoisySimulator",
     "PauliSampling",
-    "QiboSimulator",
     "RustiqSynthesis",
     "circuit_to_qasm",
     "estimate",

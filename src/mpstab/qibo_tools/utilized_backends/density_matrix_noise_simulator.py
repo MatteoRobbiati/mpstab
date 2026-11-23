@@ -7,14 +7,14 @@ from collections import Counter
 import numpy as np
 from qibo import Circuit
 
-from mpstab.qpu.execution.simulator import (
+from mpstab.qibo_tools.utilized_backends.statevector_exact_simulator import (
     _circuit_key,
     _gates_key,
     _split_basis_measurement,
 )
 
 
-class NoisySimulator:
+class DensityMatrixNoiseSimulator:
     """
     Runs plan circuits under a :class:`~mpstab.models.noise.NoiseModel`, on a
     qibo density matrix.
@@ -44,8 +44,8 @@ class NoisySimulator:
         split = _split_basis_measurement(circuit)
         if split is None:
             raise ValueError(
-                "NoisySimulator runs circuits ending in one measurement layer, "
-                "as measurement plans build them."
+                "DensityMatrixNoiseSimulator runs circuits ending in one "
+                "measurement layer, as measurement plans build them."
             )
         key = _circuit_key(circuit)
         if key not in self._probabilities:
