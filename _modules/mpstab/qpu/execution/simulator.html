@@ -214,7 +214,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/hqsmpo.html">HQSMPO on quantum hardware</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
@@ -299,6 +299,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">defaultdict</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
 
 
 <div class="viewcode-block" id="QiboSimulator">
@@ -307,11 +308,15 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Runs circuits with qibo&#39;s own simulator. The default backend.</span>
 
-<span class="sd">    Identical circuits are simulated once: a ``&quot;shadows&quot;`` plan repeats the</span>
-<span class="sd">    same state preparation under only ``3^n`` distinct measurement bases, so</span>
-<span class="sd">    its thousands of one-shot circuits collapse to a few simulations. Each</span>
-<span class="sd">    circuit still gets its own ``nshots`` independent samples, so the results</span>
-<span class="sd">    are distributed exactly as if every circuit had been run separately.</span>
+<span class="sd">    Measurement plans run one state preparation under many measurement bases,</span>
+<span class="sd">    so circuits are grouped by their preparation, everything before the</span>
+<span class="sd">    basis rotations of their final ``gates.M``: each preparation is simulated</span>
+<span class="sd">    once, and each circuit then only rotates that state into its own basis</span>
+<span class="sd">    and samples it. Every circuit still gets its own ``nshots`` independent</span>
+<span class="sd">    samples, so the results are distributed exactly as if every circuit had</span>
+<span class="sd">    been run separately. Circuits of any other shape (density matrices, noise</span>
+<span class="sd">    channels, several or mid-circuit measurements) are simulated as they are,</span>
+<span class="sd">    identical ones once.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">execute_circuits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuits</span><span class="p">,</span> <span class="n">nshots</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
@@ -320,8 +325,39 @@
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">nqubits</span><span class="si">}</span><span class="s2"> qubits: exact simulation is impractical above ~30.&quot;</span>
             <span class="p">)</span>
+        <span class="n">frequencies</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span>
+        <span class="n">preparations</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="n">others</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">splits</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># plans often repeat the same circuit object</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">circuit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">circuits</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">id</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">splits</span><span class="p">:</span>
+                <span class="n">splits</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">circuit</span><span class="p">)]</span> <span class="o">=</span> <span class="n">_split_basis_measurement</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
+            <span class="n">split</span> <span class="o">=</span> <span class="n">splits</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">circuit</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">others</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">preparations</span><span class="p">[</span><span class="n">_gates_key</span><span class="p">(</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">split</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">index</span><span class="p">,</span> <span class="n">split</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">members</span> <span class="ow">in</span> <span class="n">preparations</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="n">_prepared_state</span><span class="p">(</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">members</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">probabilities</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># per distinct basis and measured qubits</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">measured</span><span class="p">)</span> <span class="ow">in</span> <span class="n">members</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">_gates_key</span><span class="p">(</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">basis</span><span class="p">),</span> <span class="n">measured</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">probabilities</span><span class="p">:</span>
+                    <span class="n">probabilities</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_measured_probabilities</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">measured</span><span class="p">)</span>
+                <span class="n">frequencies</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sample</span><span class="p">(</span><span class="n">probabilities</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">measured</span><span class="p">),</span> <span class="n">nshots</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">others</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute_as_is</span><span class="p">([</span><span class="n">circuits</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">others</span><span class="p">],</span> <span class="n">nshots</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">frequencies</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+        <span class="k">return</span> <span class="n">frequencies</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_execute_as_is</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">nshots</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Simulate each distinct circuit once, splitting its samples.&quot;&quot;&quot;</span>
         <span class="n">groups</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-        <span class="n">keys</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># plans often repeat the same circuit object</span>
+        <span class="n">keys</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">circuit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">circuits</span><span class="p">):</span>
             <span class="n">key</span> <span class="o">=</span> <span class="n">keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">circuit</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -344,19 +380,83 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_gate_key</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="nb">type</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+        <span class="n">gate</span><span class="o">.</span><span class="n">qubits</span><span class="p">,</span>
+        <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">gate</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span> <span class="k">if</span> <span class="n">gate</span><span class="o">.</span><span class="n">parameters</span> <span class="k">else</span> <span class="p">(),</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_gates_key</span><span class="p">(</span><span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">gates_</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">nqubits</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_gate_key</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span> <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">gates_</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_circuit_key</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Everything that determines a circuit&#39;s output distribution.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">(</span>
         <span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">circuit</span><span class="o">.</span><span class="n">density_matrix</span><span class="p">)</span>
-        <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span>
-            <span class="p">(</span>
-                <span class="nb">type</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-                <span class="n">gate</span><span class="o">.</span><span class="n">qubits</span><span class="p">,</span>
-                <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">gate</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span> <span class="k">if</span> <span class="n">gate</span><span class="o">.</span><span class="n">parameters</span> <span class="k">else</span> <span class="p">(),</span>
-            <span class="p">)</span>
-            <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">circuit</span><span class="o">.</span><span class="n">queue</span>
-        <span class="p">)</span>
+        <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_gate_key</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span> <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">circuit</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span>
         <span class="o">+</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">qubits</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">circuit</span><span class="o">.</span><span class="n">measurements</span><span class="p">),)</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_split_basis_measurement</span><span class="p">(</span><span class="n">circuit</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ``(preparation, basis rotations, measured qubits)`` of a pure-state circuit</span>
+<span class="sd">    ending in a single ``gates.M`` whose basis rotations close its queue, or</span>
+<span class="sd">    ``None`` for any other circuit.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">circuit</span><span class="o">.</span><span class="n">density_matrix</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">measurements</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">measurement</span> <span class="o">=</span> <span class="n">circuit</span><span class="o">.</span><span class="n">measurements</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">queue</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">queue</span> <span class="ow">or</span> <span class="n">queue</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">measurement</span> <span class="ow">or</span> <span class="n">measurement</span><span class="o">.</span><span class="n">collapse</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">basis</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">measurement</span><span class="o">.</span><span class="n">basis</span> <span class="ow">or</span> <span class="p">[])</span>
+    <span class="n">n_basis</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">basis</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">q</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">b</span> <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">queue</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">queue</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_basis</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">basis</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">preparation</span> <span class="o">=</span> <span class="n">queue</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">queue</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_basis</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">Channel</span><span class="p">,</span> <span class="n">gates</span><span class="o">.</span><span class="n">M</span><span class="p">))</span> <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">preparation</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">preparation</span><span class="p">),</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">basis</span><span class="p">),</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">measurement</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_prepared_state</span><span class="p">(</span><span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">preparation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The state ``preparation`` leaves ``|0...0&gt;`` in, as a ``[2] * n`` array.&quot;&quot;&quot;</span>
+    <span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">preparation</span><span class="p">:</span>
+        <span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">circuit</span><span class="p">()</span><span class="o">.</span><span class="n">state</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">nqubits</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_measured_probabilities</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">measured</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Outcome probabilities of ``measured`` (in that order) after ``basis``.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">basis</span><span class="p">:</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">gate</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">gate</span><span class="o">.</span><span class="n">matrix</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">k</span><span class="p">))</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">k</span><span class="p">)),</span> <span class="n">targets</span><span class="p">))</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">)),</span> <span class="n">targets</span><span class="p">)</span>
+    <span class="n">probabilities</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">others</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span> <span class="k">if</span> <span class="n">q</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">measured</span><span class="p">)</span>
+    <span class="n">marginal</span> <span class="o">=</span> <span class="n">probabilities</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">others</span><span class="p">)</span> <span class="k">if</span> <span class="n">others</span> <span class="k">else</span> <span class="n">probabilities</span>
+    <span class="c1"># The marginal keeps the measured axes in ascending order.</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="p">[</span><span class="nb">sorted</span><span class="p">(</span><span class="n">measured</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">measured</span><span class="p">]</span>
+    <span class="n">marginal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">marginal</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">marginal</span> <span class="o">/</span> <span class="n">marginal</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_sample</span><span class="p">(</span><span class="n">probabilities</span><span class="p">,</span> <span class="n">n_measured</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">nshots</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Counter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;``nshots`` samples as qibo&#39;s ``frequencies()``: bitstring -&gt; count.&quot;&quot;&quot;</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">nshots</span><span class="p">,</span> <span class="n">probabilities</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Counter</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="nb">format</span><span class="p">(</span><span class="n">outcome</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;0</span><span class="si">{</span><span class="n">n_measured</span><span class="si">}</span><span class="s2">b&quot;</span><span class="p">):</span> <span class="nb">int</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="n">outcome</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">outcome</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+        <span class="p">}</span>
     <span class="p">)</span>
 
 
@@ -368,7 +468,7 @@
 <span class="sd">    with its own shot count, batching circuits that share a shot count into a</span>
 <span class="sd">    single ``backend.execute_circuits`` call instead of one call per circuit.</span>
 
-<span class="sd">    A ``&quot;shadows&quot;``/``&quot;tnice&quot;`` plan&#39;s circuits mostly share</span>
+<span class="sd">    A ``&quot;shadows&quot;`` plan&#39;s circuits mostly share</span>
 <span class="sd">    ``shots_per_setting`` shots each, so this collapses what would otherwise be</span>
 <span class="sd">    one backend call per shot into a handful of calls -- the contract already</span>
 <span class="sd">    supports a batch (``execute_circuits`` takes a list), the naive call site</span>

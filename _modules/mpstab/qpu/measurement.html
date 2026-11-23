@@ -214,7 +214,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/hqsmpo.html">HQSMPO on quantum hardware</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
@@ -294,8 +294,6 @@
 <span class="sd">  Pauli strings, grouped into qubit-wise-commuting settings.</span>
 <span class="sd">- :class:`~mpstab.qpu.measurement.shadows.ClassicalShadows` (``&quot;shadows&quot;``):</span>
 <span class="sd">  random Pauli bases, contracted with the observable MPO.</span>
-<span class="sd">- :class:`~mpstab.qpu.measurement.tnice.TNICE` (``&quot;tnice&quot;``): the same data as</span>
-<span class="sd">  ``&quot;shadows&quot;``, estimated with the MPS-optimised dual of TN-ICE.</span>
 
 <span class="sd">:mod:`~mpstab.qpu.measurement.pauli_expansion` turns the observable MPO into</span>
 <span class="sd">Pauli strings and variances, for the methods above.</span>
@@ -308,10 +306,9 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.measurement.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">PauliSampling</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.measurement.shadows</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClassicalShadows</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.measurement.tnice</span><span class="w"> </span><span class="kn">import</span> <span class="n">TNICE</span>
 
 <span class="c1">#: The methods by name, for the string shorthand of :func:`resolve_method`.</span>
-<span class="n">METHODS</span> <span class="o">=</span> <span class="p">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">cls</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">(</span><span class="n">PauliSampling</span><span class="p">,</span> <span class="n">ClassicalShadows</span><span class="p">,</span> <span class="n">TNICE</span><span class="p">)}</span>
+<span class="n">METHODS</span> <span class="o">=</span> <span class="p">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="bp">cls</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="p">(</span><span class="n">PauliSampling</span><span class="p">,</span> <span class="n">ClassicalShadows</span><span class="p">)}</span>
 
 
 <div class="viewcode-block" id="resolve_method">
@@ -353,8 +350,10 @@
 <span class="sd">        plan: a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`.</span>
 <span class="sd">        frequencies: one ``{bitstring: count}`` dict per circuit, in</span>
 <span class="sd">            ``plan.circuits`` order.</span>
-<span class="sd">        seed: ``&quot;tnice&quot;`` only: RNG seed for the train/test split.</span>
-<span class="sd">        options: options of the method, e.g. ``n_sweeps`` for ``&quot;tnice&quot;``.</span>
+<span class="sd">        seed: forwarded to the method&#39;s ``estimate``; the built-in methods</span>
+<span class="sd">            ignore it, since their estimates involve no randomness.</span>
+<span class="sd">        options: options of the method, e.g. ``tail_handling`` for</span>
+<span class="sd">            ``&quot;shadows&quot;``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">resolve_method</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span></div>
 
@@ -366,7 +365,6 @@
     <span class="s2">&quot;MeasurementMethod&quot;</span><span class="p">,</span>
     <span class="s2">&quot;MeasurementPlan&quot;</span><span class="p">,</span>
     <span class="s2">&quot;PauliSampling&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;TNICE&quot;</span><span class="p">,</span>
     <span class="s2">&quot;estimate&quot;</span><span class="p">,</span>
     <span class="s2">&quot;resolve_method&quot;</span><span class="p">,</span>
 <span class="p">]</span>

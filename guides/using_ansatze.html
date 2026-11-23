@@ -215,7 +215,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/hqsmpo.html">HQSMPO on quantum hardware</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
@@ -324,7 +324,7 @@ the parameters that tune its magic and its entanglement.</p>
 <section id="circuit-library-ansatze">
 <h3>Circuit-library ansätze<a class="headerlink" href="#circuit-library-ansatze" title="Link to this heading">¶</a></h3>
 <p>MPSTAB ships a small library of textbook circuits — <code class="docutils literal notranslate"><span class="pre">QFT</span></code>, <code class="docutils literal notranslate"><span class="pre">QFTPhaseKernel</span></code>,
-<code class="docutils literal notranslate"><span class="pre">Grover</span></code>, <code class="docutils literal notranslate"><span class="pre">QPE</span></code>, <code class="docutils literal notranslate"><span class="pre">QAE</span></code> and <code class="docutils literal notranslate"><span class="pre">TrotterIsing</span></code> — useful as HSMPO/HSynthSMPO
+<code class="docutils literal notranslate"><span class="pre">Grover</span></code>, <code class="docutils literal notranslate"><span class="pre">QPE</span></code>, <code class="docutils literal notranslate"><span class="pre">QAE</span></code> and <code class="docutils literal notranslate"><span class="pre">TrotterIsing</span></code> — useful as HSMPO/HQSMPO
 benchmarks. They are written with high-level gates (<code class="docutils literal notranslate"><span class="pre">CU1</span></code>, <code class="docutils literal notranslate"><span class="pre">SWAP</span></code>,
 <code class="docutils literal notranslate"><span class="pre">TOFFOLI</span></code>, <code class="docutils literal notranslate"><span class="pre">RZZ</span></code>, …) and, by default, transpiled to a native gate set on
 construction, so every non-Clifford gate becomes an <code class="docutils literal notranslate"><span class="pre">rz</span></code> rotation that HSMPO
@@ -346,7 +346,7 @@ can consume — you never hand-decompose anything:</p>
 </div>
 <p>Pass <code class="docutils literal notranslate"><span class="pre">transpile=False</span></code> to keep the raw high-level circuit for inspection
 (HSMPO itself requires the transpiled form). These pair naturally with
-<code class="docutils literal notranslate"><span class="pre">HSynthSMPO</span></code> and its cut-index split — see <a class="reference internal" href="../api/engines.html"><span class="doc">Engines</span></a>.</p>
+<code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> and its cut-index split — see <a class="reference internal" href="../api/engines.html"><span class="doc">Engines</span></a>.</p>
 </section>
 </section>
 <section id="building-custom-ansatze">

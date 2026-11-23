@@ -214,7 +214,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/hqsmpo.html">HQSMPO on quantum hardware</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
@@ -296,8 +296,7 @@
 <span class="sd">to ``O``&#39;s Pauli-coefficient MPS it gives, at ``O``&#39;s own bond dimension, the</span>
 <span class="sd">MPS ``omega`` of per-outcome estimator values (:func:`canonical_omega_seed`).</span>
 <span class="sd">Estimating is then a batched lookup of ``omega`` at every measured outcome</span>
-<span class="sd">(:func:`evaluate_omega`). :mod:`~mpstab.qpu.measurement.tnice` fits a better</span>
-<span class="sd">``omega`` on the same data, starting from this one.</span>
+<span class="sd">(:func:`evaluate_omega`).</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -543,7 +542,7 @@
 <span class="sd">            the resynthesis. ``&quot;append_to_head_circuit&quot;`` (default) runs it as</span>
 <span class="sd">            extra gates after the head; ``&quot;fold&quot;`` reabsorbs it into the tail</span>
 <span class="sd">            MPO (see</span>
-<span class="sd">            :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.build_post_head_mpo`),</span>
+<span class="sd">            :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.build_post_head_mpo`),</span>
 <span class="sd">            so the device runs the head alone at a possibly much higher shadow</span>
 <span class="sd">            variance.</span>
 

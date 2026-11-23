@@ -214,7 +214,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../examples/scripts/hqsmpo.html">HQSMPO on quantum hardware</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
@@ -306,7 +306,7 @@
 
 
 <div class="viewcode-block" id="MeasurementPlan">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hsynthsmpo.MeasurementPlan">[docs]</a>
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hqsmpo.MeasurementPlan">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MeasurementPlan</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -318,20 +318,20 @@
 <span class="sd">    - ``&quot;pauli&quot;``: ``(groups, coefficients)``, one :class:`~mpstab.qpu.measurement.pauli.QWCGroup` per circuit</span>
 <span class="sd">      in the same order, plus the ``{pauli_string: c_P}`` map the groups came</span>
 <span class="sd">      from.</span>
-<span class="sd">    - ``&quot;shadows&quot;`` and ``&quot;tnice&quot;``: ``(mpo_terms, bases)``, where ``mpo_terms``</span>
+<span class="sd">    - ``&quot;shadows&quot;``: ``(mpo_terms, bases)``, where ``mpo_terms``</span>
 <span class="sd">      holds ``(label, coefficient, sign, mpo)`` per Hamiltonian term, the</span>
 <span class="sd">      folded tail ``mpo`` as its site arrays</span>
 <span class="sd">      (:meth:`~mpstab.engines.TensorNetworkEngine.operator_site_arrays`), and</span>
 <span class="sd">      ``bases`` has one basis string per circuit.</span>
 
 <span class="sd">    Attributes:</span>
-<span class="sd">        retained_weight: ``&quot;pauli&quot;`` only, ``None`` for ``&quot;shadows&quot;``/``&quot;tnice&quot;``</span>
+<span class="sd">        retained_weight: ``&quot;pauli&quot;`` only, ``None`` for ``&quot;shadows&quot;``</span>
 <span class="sd">            (which sample nothing): the ``|coefficient|``-weighted average, over</span>
 <span class="sd">            Hamiltonian terms, of each term&#39;s</span>
 <span class="sd">            :attr:`~mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight`</span>
 <span class="sd">            -- the fraction of the tail-folded observable&#39;s Frobenius weight</span>
 <span class="sd">            that ``n_string_samples`` actually covered.</span>
-<span class="sd">        bond_truncation_l2: ``&quot;pauli&quot;`` only, ``None`` for ``&quot;shadows&quot;``/``&quot;tnice&quot;``</span>
+<span class="sd">        bond_truncation_l2: ``&quot;pauli&quot;`` only, ``None`` for ``&quot;shadows&quot;``</span>
 <span class="sd">            (whose ``truncation_l2`` already is this quantity): the bias</span>
 <span class="sd">            estimate of folding the tail at a finite bond dimension,</span>
 <span class="sd">            ``sum_terms |coefficient| * sqrt(1 - ||O&#39;||_F**2 / 2**n)``, from the</span>
@@ -359,7 +359,7 @@
     <span class="n">antihermitian_l2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="MeasurementPlan.result">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hsynthsmpo.MeasurementPlan.result">[docs]</a>
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hqsmpo.MeasurementPlan.result">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">n_shots</span><span class="p">,</span> <span class="n">n_settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExpectationResult</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;An :class:`ExpectationResult` carrying this plan&#39;s truncation diagnostics.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">ExpectationResult</span><span class="p">(</span>
@@ -378,7 +378,7 @@
 
 
 <div class="viewcode-block" id="ExpectationResult">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hsynthsmpo.ExpectationResult">[docs]</a>
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hqsmpo.ExpectationResult">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ExpectationResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -390,10 +390,10 @@
 <span class="sd">        truncation_l1: heuristic discarded-Pauli-mass estimate (see</span>
 <span class="sd">            :func:`~mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate`</span>
 <span class="sd">            -- an extrapolation, not a rigorous bound); ``None`` for the</span>
-<span class="sd">            ``&quot;shadows&quot;``/``&quot;tnice&quot;`` routes, whose bond truncation has no</span>
+<span class="sd">            ``&quot;shadows&quot;`` route, whose bond truncation has no</span>
 <span class="sd">            L1/L2 split.</span>
 <span class="sd">        truncation_l2: typical-case truncation estimate -- Pauli-set truncation</span>
-<span class="sd">            for ``&quot;pauli&quot;``, MPO bond truncation for ``&quot;shadows&quot;``/``&quot;tnice&quot;``.</span>
+<span class="sd">            for ``&quot;pauli&quot;``, MPO bond truncation for ``&quot;shadows&quot;``.</span>
 <span class="sd">        n_settings: number of distinct circuits the shots came from.</span>
 <span class="sd">        n_shots: total shots used.</span>
 <span class="sd">        retained_weight: ``&quot;pauli&quot;`` only, ``None`` otherwise -- see</span>
@@ -458,7 +458,7 @@
 
 
 <div class="viewcode-block" id="weighted_mean_and_variance">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hsynthsmpo.weighted_mean_and_variance">[docs]</a>
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hqsmpo.weighted_mean_and_variance">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">weighted_mean_and_variance</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    ``(mean, variance of a single draw)`` of ``values`` repeated ``weights``</span>
@@ -476,7 +476,7 @@
 
 
 <div class="viewcode-block" id="basis_measurement">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hsynthsmpo.basis_measurement">[docs]</a>
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hqsmpo.basis_measurement">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">basis_measurement</span><span class="p">(</span><span class="n">basis</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Circuit</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A single ``gates.M`` layer measuring each qubit in its given Pauli basis.&quot;&quot;&quot;</span>
     <span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
@@ -488,7 +488,7 @@
 
 
 <div class="viewcode-block" id="MeasurementMethod">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hsynthsmpo.MeasurementMethod">[docs]</a>
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hqsmpo.MeasurementMethod">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MeasurementMethod</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    How the tail-folded observable is measured: which circuits to run with how</span>
@@ -496,15 +496,15 @@
 <span class="sd">    expectation value (:meth:`estimate`).</span>
 
 <span class="sd">    Subclasses are frozen dataclasses holding their own options, passed as</span>
-<span class="sd">    ``method`` to :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.plan` and</span>
-<span class="sd">    :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut`.</span>
+<span class="sd">    ``method`` to :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.plan` and</span>
+<span class="sd">    :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1">#: Short name, stored as :attr:`MeasurementPlan.method`.</span>
     <span class="n">name</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
 
 <div class="viewcode-block" id="MeasurementMethod.build_plan">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hsynthsmpo.MeasurementMethod.build_plan">[docs]</a>
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hqsmpo.MeasurementMethod.build_plan">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_plan</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -522,14 +522,14 @@
 <span class="sd">        Fold the tail of every term and fix the circuits and shots.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            model: the :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO` whose</span>
+<span class="sd">            model: the :class:`~mpstab.evolutors.hqsmpo.HQSMPO` whose</span>
 <span class="sd">                tail is folded.</span>
 <span class="sd">            terms: the observable&#39;s ``{pauli_string: coefficient}``.</span>
 <span class="sd">            constant: the observable&#39;s identity offset, added back on</span>
 <span class="sd">                estimation.</span>
 <span class="sd">            cut_index: the split point.</span>
 <span class="sd">            resynthesis: the head, a</span>
-<span class="sd">                :class:`~mpstab.evolutors.hsynthsmpo.ResynthesizedHead`.</span>
+<span class="sd">                :class:`~mpstab.evolutors.hqsmpo.ResynthesizedHead`.</span>
 <span class="sd">            max_bond_dimension: bond cap for every tail fold, ``None`` for an</span>
 <span class="sd">                exact fold.</span>
 <span class="sd">            n_shots: a fixed shot budget, or ``None`` to size it from</span>
@@ -541,7 +541,7 @@
 
 
 <div class="viewcode-block" id="MeasurementMethod.estimate">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hsynthsmpo.MeasurementMethod.estimate">[docs]</a>
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.evolutors.hqsmpo.MeasurementMethod.estimate">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">estimate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="n">MeasurementPlan</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>

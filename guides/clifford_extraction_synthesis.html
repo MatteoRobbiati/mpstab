@@ -215,7 +215,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/scripts/hqsmpo.html">HQSMPO on quantum hardware</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
@@ -288,7 +288,7 @@
         <article role="main" id="furo-main-content">
           <section id="head-synthesis-by-clifford-extraction">
 <h1>Head Synthesis by Clifford Extraction<a class="headerlink" href="#head-synthesis-by-clifford-extraction" title="Link to this heading">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">HSynthSMPO</span></code> splits a circuit into a <em>head</em>, run on the device, and a
+<p><code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> splits a circuit into a <em>head</em>, run on the device, and a
 <em>tail</em>, folded classically into the observable. The head is a list of dressed
 Pauli rotations, and has to become a circuit. This page explains the
 <code class="docutils literal notranslate"><span class="pre">&quot;extraction&quot;</span></code> synthesis, which needs no extra dependency and can be told
@@ -352,11 +352,11 @@ the cheapest head is kept. A synthesis takes a fraction of a second.</p></li>
 </section>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsynthsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSynthSMPO</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hqsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HQSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParametricKickedIsing</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExtractionSynthesis</span><span class="p">,</span> <span class="n">PauliSampling</span>
 
-<span class="n">hs</span> <span class="o">=</span> <span class="n">HSynthSMPO</span><span class="p">(</span>
+<span class="n">hs</span> <span class="o">=</span> <span class="n">HQSMPO</span><span class="p">(</span>
     <span class="n">ansatz</span><span class="o">=</span><span class="n">ParametricKickedIsing</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">delta_h</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span>
     <span class="c1"># connectivity: None (all-to-all) | &quot;line&quot; | [(q0, q1), ...]</span>
     <span class="n">head_synthesis</span><span class="o">=</span><span class="n">ExtractionSynthesis</span><span class="p">(</span><span class="n">connectivity</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">),</span>

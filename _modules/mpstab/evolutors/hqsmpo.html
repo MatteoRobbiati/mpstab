@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>mpstab.evolutors.hsynthsmpo - Documentation</title>
+        <title>mpstab.evolutors.hqsmpo - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -214,7 +214,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/hsynthsmpo.html">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/hqsmpo.html">HQSMPO on quantum hardware</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
@@ -279,13 +279,13 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <h1>Source code for mpstab.evolutors.hsynthsmpo</h1><div class="highlight"><pre>
+          <h1>Source code for mpstab.evolutors.hqsmpo</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">The head/tail split of an HSMPO&#39;s dressed rotations, measured with finite shots.</span>
 
 <span class="sd">The dressed-rotation chain is cut at ``cut_index``. The head is resynthesised</span>
 <span class="sd">into a circuit a device can run; the tail is folded into the observable, leaving</span>
-<span class="sd">an MPO. :meth:`HSynthSMPO.expectation_at_cut` then measures the head against that</span>
+<span class="sd">an MPO. :meth:`HQSMPO.expectation_at_cut` then measures the head against that</span>
 <span class="sd">observable with a shot budget, by one of the measurement methods of</span>
 <span class="sd">:mod:`mpstab.qpu.measurement`, passed as an object or by name:</span>
 
@@ -294,9 +294,7 @@
 <span class="sd">  measurement settings.</span>
 <span class="sd">- :class:`~mpstab.qpu.measurement.shadows.ClassicalShadows` (``&quot;shadows&quot;``)</span>
 <span class="sd">  measures random single-qubit Pauli bases and contracts each snapshot against</span>
-<span class="sd">  the tail MPO directly; :class:`~mpstab.qpu.measurement.tnice.TNICE`</span>
-<span class="sd">  (``&quot;tnice&quot;``) runs on the same measurements and only replaces this estimator</span>
-<span class="sd">  with the MPS-optimized one.</span>
+<span class="sd">  the tail MPO directly.</span>
 
 <span class="sd">The head is resynthesised by one of the synthesisers of</span>
 <span class="sd">:mod:`mpstab.qpu.synthesis`, set as ``head_synthesis``.</span>
@@ -304,8 +302,8 @@
 <span class="sd">Resynthesising the head leaves a Clifford residual, so a device prepares</span>
 <span class="sd">``U(residual) U(head)|psi_0&gt;`` rather than the exact head state the tail</span>
 <span class="sd">coefficients were derived against. The ``&quot;pauli&quot;`` route corrects for this by</span>
-<span class="sd">conjugating every sampled string through the residual. The ``&quot;shadows&quot;`` and</span>
-<span class="sd">``&quot;tnice&quot;`` routes take a ``tail_handling`` option:</span>
+<span class="sd">conjugating every sampled string through the residual. The ``&quot;shadows&quot;`` route</span>
+<span class="sd">takes a ``tail_handling`` option:</span>
 
 <span class="sd">- ``&quot;append_to_head_circuit&quot;`` (default) runs the residual as extra gates after</span>
 <span class="sd">  the head: exact, with the shadow variance of the unfolded tail;</span>
@@ -318,9 +316,9 @@
 <span class="sd">  orders of magnitude: whether it pays off depends on the device&#39;s two-qubit</span>
 <span class="sd">  error.</span>
 
-<span class="sd">:meth:`HSynthSMPO.expectation_at_cut` chains three stages that can also be run</span>
+<span class="sd">:meth:`HQSMPO.expectation_at_cut` chains three stages that can also be run</span>
 <span class="sd">separately, e.g. to execute the circuits on a real device and post-process the</span>
-<span class="sd">results later: :meth:`HSynthSMPO.plan` builds the circuits and can save them as</span>
+<span class="sd">results later: :meth:`HQSMPO.plan` builds the circuits and can save them as</span>
 <span class="sd">OpenQASM, a device backend runs them, and the method&#39;s ``estimate`` (or</span>
 <span class="sd">:func:`~mpstab.qpu.measurement.estimate`) recombines the frequencies using the</span>
 <span class="sd">plan.</span>
@@ -366,17 +364,17 @@
     <span class="n">resolve_synthesis</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;HSynthSMPO&quot;</span><span class="p">,</span> <span class="s2">&quot;ExpectationResult&quot;</span><span class="p">,</span> <span class="s2">&quot;ResynthesizedHead&quot;</span><span class="p">,</span> <span class="s2">&quot;TailTruncation&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;HQSMPO&quot;</span><span class="p">,</span> <span class="s2">&quot;ExpectationResult&quot;</span><span class="p">,</span> <span class="s2">&quot;ResynthesizedHead&quot;</span><span class="p">,</span> <span class="s2">&quot;TailTruncation&quot;</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="ResynthesizedHead">
-<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsynthsmpo.ResynthesizedHead">[docs]</a>
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.ResynthesizedHead">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ResynthesizedHead</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A head circuit resynthesised for hardware, plus its Clifford residual.</span>
 
-<span class="sd">    Returned by :meth:`HSynthSMPO.resynthesize_head`.</span>
+<span class="sd">    Returned by :meth:`HQSMPO.resynthesize_head`.</span>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        circuit: a runnable qibo ``Circuit``, without measurement gates.</span>
@@ -402,12 +400,12 @@
 
 
 <div class="viewcode-block" id="TailTruncation">
-<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsynthsmpo.TailTruncation">[docs]</a>
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.TailTruncation">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">TailTruncation</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    How closely the truncated tail fold approximates the exact one, cheapest view</span>
-<span class="sd">    first. Returned by :meth:`HSynthSMPO.tail_truncation`.</span>
+<span class="sd">    first. Returned by :meth:`HQSMPO.tail_truncation`.</span>
 
 <span class="sd">    The first two fields compare operators only. They depend on the observable</span>
 <span class="sd">    the tail is folded onto, not on the head state.</span>
@@ -427,12 +425,13 @@
 
 
 
-<div class="viewcode-block" id="HSynthSMPO">
-<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO">[docs]</a>
+<div class="viewcode-block" id="HQSMPO">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO">[docs]</a>
 <span class="nd">@dataclass</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">HSynthSMPO</span><span class="p">(</span><span class="n">HSMPO</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HQSMPO</span><span class="p">(</span><span class="n">HSMPO</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    An :class:`~mpstab.evolutors.hsmpo.HSMPO` whose dressed rotations are split</span>
+<span class="sd">    Hybrid Quantum Stabilizer Matrix Product Operator: an</span>
+<span class="sd">    :class:`~mpstab.evolutors.hsmpo.HSMPO` whose dressed rotations are split</span>
 <span class="sd">    into a resynthesised head and an MPO tail, with the head measured from a</span>
 <span class="sd">    finite shot budget.</span>
 
@@ -456,8 +455,8 @@
     <span class="n">head_synthesis</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">HeadSynthesis</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;rustiq&quot;</span>
     <span class="n">light_cone</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
-<div class="viewcode-block" id="HSynthSMPO.relevant_rotations">
-<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO.relevant_rotations">[docs]</a>
+<div class="viewcode-block" id="HQSMPO.relevant_rotations">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.relevant_rotations">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">relevant_rotations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Indices of the dressed rotations inside the light cone of ``observable``.</span>
@@ -489,8 +488,8 @@
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">pauli_light_cone</span><span class="p">(</span><span class="n">generators</span><span class="p">,</span> <span class="n">backpropagated_paulis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="HSynthSMPO.build_post_head_mpo">
-<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO.build_post_head_mpo">[docs]</a>
+<div class="viewcode-block" id="HQSMPO.build_post_head_mpo">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.build_post_head_mpo">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_post_head_mpo</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">observable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -526,8 +525,8 @@
 <span class="sd">          from the MPO and folds each sampled string through ``R`` afterwards</span>
 <span class="sd">          (:func:`~mpstab.qpu.measurement.pauli_expansion.fold_pool_through_tableau`),</span>
 <span class="sd">          which is cheaper and unaffected by truncation;</span>
-<span class="sd">        - the ``&quot;shadows&quot;`` and ``&quot;tnice&quot;`` routes pass ``residual`` under</span>
-<span class="sd">          ``tail_handling=&quot;fold&quot;``, because their estimators contract the whole</span>
+<span class="sd">        - the ``&quot;shadows&quot;`` route passes ``residual`` under</span>
+<span class="sd">          ``tail_handling=&quot;fold&quot;``, because its estimator contracts the whole</span>
 <span class="sd">          MPO, so ``R`` has to be inside it. The price is usually more Pauli</span>
 <span class="sd">          weight, and therefore a higher shadow variance.</span>
 
@@ -567,11 +566,11 @@
                 <span class="k">for</span> <span class="n">rotation</span> <span class="ow">in</span> <span class="n">tail</span>
             <span class="p">]</span>
 
-        <span class="n">operator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">pauli_mpo</span><span class="p">(</span><span class="n">backpropagated</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">generator</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">tail</span><span class="p">):</span>  <span class="c1"># outermost rotation folded last</span>
-            <span class="n">operator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">conjugate_operator</span><span class="p">(</span>
-                <span class="n">operator</span><span class="p">,</span> <span class="n">generator</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">max_bond_dimension</span>
-            <span class="p">)</span>
+        <span class="n">operator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">conjugate_operator_many</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">pauli_mpo</span><span class="p">(</span><span class="n">backpropagated</span><span class="p">),</span>
+            <span class="nb">reversed</span><span class="p">(</span><span class="n">tail</span><span class="p">),</span>  <span class="c1"># outermost rotation folded last</span>
+            <span class="n">max_bond_dimension</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">operator</span><span class="p">,</span> <span class="n">sign</span></div>
 
 
@@ -629,11 +628,11 @@
             <span class="n">truncation_l2</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">truncation_l2</span><span class="p">),</span>
             <span class="n">n_settings</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">n_shots</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">state_fidelity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">squared_norm</span><span class="p">(</span><span class="n">state_mps</span><span class="p">),</span>
+            <span class="n">state_fidelity</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">squared_norm</span><span class="p">(</span><span class="n">state_mps</span><span class="p">))),</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="HSynthSMPO.tail_truncation">
-<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO.tail_truncation">[docs]</a>
+<div class="viewcode-block" id="HQSMPO.tail_truncation">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.tail_truncation">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">tail_truncation</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">observable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -728,8 +727,8 @@
         <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="HSynthSMPO.resynthesize_head">
-<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO.resynthesize_head">[docs]</a>
+<div class="viewcode-block" id="HQSMPO.resynthesize_head">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.resynthesize_head">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">resynthesize_head</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">cut_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -747,8 +746,10 @@
 <span class="sd">        :func:`_resynthesize`), so repeated calls at the same cut, e.g. from</span>
 <span class="sd">        :meth:`expectation_at_cut` for several observables or methods,</span>
 <span class="sd">        resynthesise once, while new parameters give new rotations and hence a</span>
-<span class="sd">        fresh resynthesis. The returned head is shared between those calls:</span>
-<span class="sd">        don&#39;t modify its ``circuit`` or ``residual_tableau`` in place.</span>
+<span class="sd">        fresh resynthesis. Only an immutable description of the head is</span>
+<span class="sd">        cached: every call returns a fresh ``circuit`` and its own copy of the</span>
+<span class="sd">        ``residual_tableau``, so modifying them, or a plan circuit sharing</span>
+<span class="sd">        their gates, never reaches a later call.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            cut_index: the split point.</span>
@@ -772,11 +773,20 @@
             <span class="n">relevant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relevant_rotations</span><span class="p">(</span><span class="n">observable</span><span class="p">)</span>
             <span class="n">dressed</span> <span class="o">=</span> <span class="p">[</span><span class="n">dressed</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">relevant</span> <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">cut_index</span><span class="p">]</span>
         <span class="n">rotations</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">generator</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">angle</span><span class="p">))</span> <span class="k">for</span> <span class="n">generator</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">dressed</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">_resynthesize</span><span class="p">(</span><span class="n">rotations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">synthesis</span><span class="p">)</span></div>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_resynthesize</span><span class="p">(</span><span class="n">rotations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">synthesis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ResynthesizedHead</span><span class="p">(</span>
+            <span class="n">circuit</span><span class="o">=</span><span class="n">head_to_qibo_circuit</span><span class="p">(</span><span class="n">cached</span><span class="o">.</span><span class="n">head</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">),</span>
+            <span class="n">residual_tableau</span><span class="o">=</span><span class="n">cached</span><span class="o">.</span><span class="n">residual_tableau</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="n">residual_gates</span><span class="o">=</span><span class="n">cached</span><span class="o">.</span><span class="n">residual_gates</span><span class="p">,</span>
+            <span class="n">n_gates</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">cached</span><span class="o">.</span><span class="n">head</span><span class="p">),</span>
+            <span class="n">n_two_qubit_gates</span><span class="o">=</span><span class="n">cached</span><span class="o">.</span><span class="n">n_two_qubit_gates</span><span class="p">,</span>
+            <span class="n">cut_index</span><span class="o">=</span><span class="n">cut_index</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">cached</span><span class="o">.</span><span class="n">method</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="HSynthSMPO.expectation_at_cut">
-<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut">[docs]</a>
+<div class="viewcode-block" id="HQSMPO.expectation_at_cut">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">expectation_at_cut</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">,</span>
@@ -814,29 +824,21 @@
 <span class="sd">            cut_index: the split point.</span>
 <span class="sd">            method: a :class:`~mpstab.qpu.measurement.abstract.MeasurementMethod`,</span>
 <span class="sd">                e.g. ``ClassicalShadows(tail_handling=&quot;fold&quot;)``; or the name of</span>
-<span class="sd">                one, ``&quot;pauli&quot;``, ``&quot;shadows&quot;`` or ``&quot;tnice&quot;``, built with</span>
-<span class="sd">                ``method_options``; or ``&quot;simulation&quot;``. ``&quot;tnice&quot;`` runs on</span>
-<span class="sd">                exactly the same circuits, bases and shots as ``&quot;shadows&quot;`` and</span>
-<span class="sd">                only replaces the fixed canonical-dual post-processing with the</span>
-<span class="sd">                MPS-optimized estimator of :mod:`~mpstab.qpu.measurement.tnice`,</span>
-<span class="sd">                so the two can be compared on identical measurement data.</span>
-<span class="sd">                ``&quot;simulation&quot;`` is classical, see above and</span>
+<span class="sd">                one, ``&quot;pauli&quot;`` or ``&quot;shadows&quot;``, built with</span>
+<span class="sd">                ``method_options``; or ``&quot;simulation&quot;``. ``&quot;simulation&quot;`` is</span>
+<span class="sd">                classical, see above and</span>
 <span class="sd">                :meth:`_simulate_at_cut`: it needs no resynthesis, backend or</span>
 <span class="sd">                shots, and ignores ``seed``.</span>
 <span class="sd">            n_shots: a fixed shot budget. Exactly one of this and ``epsilon``</span>
 <span class="sd">                for the hardware methods; neither for ``&quot;simulation&quot;``.</span>
 <span class="sd">            epsilon: a target standard error, which sizes the shot budget from the</span>
-<span class="sd">                per-route variance predictor. For ``&quot;tnice&quot;`` this reuses</span>
-<span class="sd">                ``&quot;shadows&quot;``&#39;s canonical-dual predictor, a conservative upper</span>
-<span class="sd">                bound on the (unknown ahead of fitting) optimized variance.</span>
+<span class="sd">                per-route variance predictor.</span>
 <span class="sd">            backend: anything with ``execute_circuits(circuits, nshots)``.</span>
 <span class="sd">                Defaults to :class:`~mpstab.qpu.QiboSimulator`.</span>
 <span class="sd">            max_bond_dimension: bond cap for every tail fold; ``-1`` means</span>
 <span class="sd">                ``self.max_bond_dimension``. With ``&quot;simulation&quot;`` the head MPS</span>
 <span class="sd">                is capped at ``self.max_bond_dimension``.</span>
-<span class="sd">            seed: RNG seed for Pauli sampling, random shadow bases, and (for</span>
-<span class="sd">                ``&quot;tnice&quot;``) the train/test shot split, forwarded to</span>
-<span class="sd">                :meth:`~mpstab.qpu.measurement.tnice.TNICE.estimate`.</span>
+<span class="sd">            seed: RNG seed for Pauli sampling and random shadow bases.</span>
 <span class="sd">            method_options: options of a method given by name, e.g.</span>
 <span class="sd">                ``n_string_samples`` for ``&quot;pauli&quot;`` or ``tail_handling`` for</span>
 <span class="sd">                ``&quot;shadows&quot;``; see each method&#39;s class.</span>
@@ -877,8 +879,8 @@
         <span class="k">return</span> <span class="n">method</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="HSynthSMPO.plan">
-<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO.plan">[docs]</a>
+<div class="viewcode-block" id="HQSMPO.plan">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.plan">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">plan</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">,</span>
@@ -977,21 +979,39 @@
 
 
 
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_CachedHead</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    What :func:`_resynthesize` caches: a head and its residual as immutable</span>
+<span class="sd">    gate tuples. ``residual_tableau`` is a mutable ``stim.Tableau``, so it is</span>
+<span class="sd">    only ever handed out as a copy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">head</span><span class="p">:</span> <span class="nb">tuple</span>
+    <span class="n">residual_tableau</span><span class="p">:</span> <span class="nb">object</span>
+    <span class="n">residual_gates</span><span class="p">:</span> <span class="nb">tuple</span>
+    <span class="n">n_two_qubit_gates</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span>
+
+
 <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_resynthesize</span><span class="p">(</span>
     <span class="n">rotations</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
     <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">cut_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">synthesis</span><span class="p">:</span> <span class="n">HeadSynthesis</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResynthesizedHead</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_CachedHead</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    The body of :meth:`HSynthSMPO.resynthesize_head`, cached on its arguments.</span>
+<span class="sd">    The synthesis behind :meth:`HQSMPO.resynthesize_head`, cached on its</span>
+<span class="sd">    arguments.</span>
 
 <span class="sd">    The key holds the head&#39;s dressed rotations and the (hashable) synthesis</span>
-<span class="sd">    rather than the evolutor, so a repeated call with the same rotations returns</span>
-<span class="sd">    the same :class:`ResynthesizedHead` object without synthesising again, and</span>
-<span class="sd">    changing the circuit&#39;s parameters changes the angles, hence the key: the</span>
-<span class="sd">    cache never serves a stale head and needs no invalidation.</span>
+<span class="sd">    rather than the evolutor, so a repeated call with the same rotations does</span>
+<span class="sd">    not synthesise again, and changing the circuit&#39;s parameters changes the</span>
+<span class="sd">    angles, hence the key: the cache never serves a stale head and needs no</span>
+<span class="sd">    invalidation. The value is a :class:`_CachedHead`, which nobody outside</span>
+<span class="sd">    :meth:`HQSMPO.resynthesize_head` sees: it builds the mutable objects it</span>
+<span class="sd">    returns afresh from it.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">paulis</span> <span class="o">=</span> <span class="p">[</span><span class="n">pauli</span> <span class="k">for</span> <span class="n">pauli</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">rotations</span><span class="p">]</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="p">[</span><span class="n">angle</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">rotations</span><span class="p">]</span>
@@ -1014,15 +1034,18 @@
             <span class="n">paulis</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">nqubits</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">ResynthesizedHead</span><span class="p">(</span>
-        <span class="n">circuit</span><span class="o">=</span><span class="n">head_to_qibo_circuit</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">),</span>
+    <span class="k">return</span> <span class="n">_CachedHead</span><span class="p">(</span>
+        <span class="n">head</span><span class="o">=</span><span class="n">_frozen_gates</span><span class="p">(</span><span class="n">head</span><span class="p">),</span>
         <span class="n">residual_tableau</span><span class="o">=</span><span class="n">residual_tableau</span><span class="p">,</span>
-        <span class="n">residual_gates</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">residual_gates</span><span class="p">),</span>
-        <span class="n">n_gates</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">head</span><span class="p">),</span>
+        <span class="n">residual_gates</span><span class="o">=</span><span class="n">_frozen_gates</span><span class="p">(</span><span class="n">residual_gates</span><span class="p">),</span>
         <span class="n">n_two_qubit_gates</span><span class="o">=</span><span class="n">count_two_qubit_gates</span><span class="p">(</span><span class="n">head</span><span class="p">),</span>
-        <span class="n">cut_index</span><span class="o">=</span><span class="n">cut_index</span><span class="p">,</span>
         <span class="n">method</span><span class="o">=</span><span class="n">synthesis</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
     <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_frozen_gates</span><span class="p">(</span><span class="n">gates_list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A synthesised gate list as nested tuples, qubit lists included.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="o">*</span><span class="n">entry</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">gates_list</span><span class="p">)</span>
 </pre></div>
         </article>
       </div>

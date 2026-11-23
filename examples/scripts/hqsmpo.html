@@ -7,7 +7,7 @@
         <link rel="prefetch" href="../../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>HSynthSMPO on quantum hardware - Documentation</title>
+        <title>HQSMPO on quantum hardware - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -215,7 +215,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">HSynthSMPO on quantum hardware</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">HQSMPO on quantum hardware</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
@@ -268,7 +268,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../../_sources/examples/scripts/hsynthsmpo.rst.txt" title="View this page">
+  <a class="muted-link" href="../../_sources/examples/scripts/hqsmpo.rst.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -286,16 +286,16 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="hsynthsmpo-on-quantum-hardware">
-<h1>HSynthSMPO on quantum hardware<a class="headerlink" href="#hsynthsmpo-on-quantum-hardware" title="Link to this heading">¶</a></h1>
-<p><code class="xref py py-class docutils literal notranslate"><span class="pre">HSynthSMPO</span></code> splits the chain of dressed Pauli rotations at a
+          <section id="hqsmpo-on-quantum-hardware">
+<h1>HQSMPO on quantum hardware<a class="headerlink" href="#hqsmpo-on-quantum-hardware" title="Link to this heading">¶</a></h1>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">HQSMPO</span></code> (Hybrid Quantum Stabilizer Matrix Product Operator) splits the chain of dressed Pauli rotations at a
 cut: the <em>head</em>, next to the initial state, is resynthesized into native
 gates and run on a device, while the <em>tail</em>, next to the observable, is folded
 into the observable as an MPO.</p>
-<img alt="The head of the rotation chain runs on hardware, the tail is folded into the observable MPO." src="../../_images/hsynthsmpo_head_tail_split_concept_en.png" />
-<p>The folded observable is then measured along one of three routes:</p>
-<img alt="The three measurement routes of HSynthSMPO." src="../../_images/hsynthsmpo_three_measurement_routes_en.png" />
-<img alt="Cost analysis of the head/tail split." src="../../_images/hsynthsmpo_qite_cost_analysis.png" />
+<img alt="The head of the rotation chain runs on hardware, the tail is folded into the observable MPO." src="../../_images/hqsmpo_head_tail_split_concept_en.png" />
+<p>The folded observable is then measured by sampling and grouping its Pauli
+strings (<code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code>) or with classical shadows (<code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>):</p>
+<img alt="Cost analysis of the head/tail split." src="../../_images/hqsmpo_qite_cost_analysis.png" />
 <p>With the optional rustiq extra (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;mpstab[rustiq]&quot;</span></code>) the head is
 gate-count optimized; otherwise both scripts fall back to a dependency-free
 decomposition.</p>
@@ -303,12 +303,12 @@ decomposition.</p>
 <h2>Approximation from folding the tail<a class="headerlink" href="#approximation-from-folding-the-tail" title="Link to this heading">¶</a></h2>
 <p>Sweeps the cut at a fixed bond-dimension cap and shows the error of the folded
 MPO growing as more rotations are pushed into the tail.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/scripts/quantum_hardware/hsynthsmpo_mpo_approximation.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/scripts/quantum_hardware/hqsmpo_mpo_approximation.py
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;HSynthSMPO: how folding rotations into the observable MPO introduces error.</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;HQSMPO: how folding rotations into the observable MPO introduces error.</span>
 
-<span class="sd">The HSynthSMPO splits the chain of dressed Pauli rotations at a cut index:</span>
+<span class="sd">The HQSMPO splits the chain of dressed Pauli rotations at a cut index:</span>
 
 <span class="sd">  * the *head* rotations (closer to the initial state) are resynthesized with</span>
 <span class="sd">    Qiskit&#39;s Rustiq backend and applied exactly to build the state MPS;</span>
@@ -329,7 +329,7 @@ MPO growing as more rotations are pushed into the tail.</p>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSynthSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HQSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
 
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
@@ -343,7 +343,7 @@ MPO growing as more rotations are pushed into the tail.</p>
 <span class="n">OBSERVABLE</span> <span class="o">=</span> <span class="s2">&quot;Z&quot;</span> <span class="o">*</span> <span class="n">NQUBITS</span>
 
 <span class="n">ansatz</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="n">NQUBITS</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="n">NLAYERS</span><span class="p">)</span>
-<span class="n">hs</span> <span class="o">=</span> <span class="n">HSynthSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">max_bond_dimension</span><span class="o">=</span><span class="n">MAX_BOND</span><span class="p">)</span>
+<span class="n">hs</span> <span class="o">=</span> <span class="n">HQSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">max_bond_dimension</span><span class="o">=</span><span class="n">MAX_BOND</span><span class="p">)</span>
 
 <span class="n">n_dressed</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">magic_gates</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;qubits=</span><span class="si">{</span><span class="n">NQUBITS</span><span class="si">}</span><span class="s2">  layers=</span><span class="si">{</span><span class="n">NLAYERS</span><span class="si">}</span><span class="s2">  bond cap=</span><span class="si">{</span><span class="n">MAX_BOND</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -400,10 +400,10 @@ MPO growing as more rotations are pushed into the tail.</p>
 <p>Resynthesizes every dressed rotation, measures the circuit with a finite shot
 budget through the <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> route and checks the estimate against the
 classical simulation.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/scripts/quantum_hardware/hsynthsmpo_rustiq_fold.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/scripts/quantum_hardware/hqsmpo_rustiq_fold.py
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;HSynthSMPO: measuring a fully-resynthesized head via the &quot;pauli&quot; route.</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;HQSMPO: measuring a fully-resynthesized head via the &quot;pauli&quot; route.</span>
 
 <span class="sd">Resynthesizes every dressed Pauli rotation into hardware-native gates with the</span>
 <span class="sd">low-level ``rustiq.pauli_network_synthesis`` API (falling back to a</span>
@@ -411,7 +411,7 @@ classical simulation.</p>
 <span class="sd">measures the resulting circuit with a finite shot budget via</span>
 <span class="sd">``expectation_at_cut``. The resynthesis Clifford residual (if any) is folded</span>
 <span class="sd">into the sampled Pauli terms automatically -- see the module docstring of</span>
-<span class="sd">``mpstab.evolutors.hsynthsmpo`` for why that fold has to happen before QWC</span>
+<span class="sd">``mpstab.evolutors.hqsmpo`` for why that fold has to happen before QWC</span>
 <span class="sd">grouping. ``method=&quot;simulation&quot;`` (classical, no resynthesis, no shot noise) is</span>
 <span class="sd">used here only as the reference the shot-based estimate is checked against.</span>
 
@@ -423,7 +423,7 @@ classical simulation.</p>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">stim</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsynthsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSynthSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hqsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HQSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
 
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
@@ -437,7 +437,7 @@ classical simulation.</p>
 <span class="c1"># rotations_only skips the eager MPS precompute in __post_init__ -- only the</span>
 <span class="c1"># dressed rotations are needed here, so construction stays cheap regardless of</span>
 <span class="c1"># system size (see docs/guides/rustiq_resynthesis.rst).</span>
-<span class="n">hs</span> <span class="o">=</span> <span class="n">HSynthSMPO</span><span class="o">.</span><span class="n">rotations_only</span><span class="p">(</span><span class="n">ansatz</span><span class="p">)</span>
+<span class="n">hs</span> <span class="o">=</span> <span class="n">HQSMPO</span><span class="o">.</span><span class="n">rotations_only</span><span class="p">(</span><span class="n">ansatz</span><span class="p">)</span>
 <span class="n">n_dressed</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">magic_gates</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;qubits=</span><span class="si">{</span><span class="n">NQUBITS</span><span class="si">}</span><span class="s2">  layers=</span><span class="si">{</span><span class="n">NLAYERS</span><span class="si">}</span><span class="s2">  dressed rotations=</span><span class="si">{</span><span class="n">n_dressed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
@@ -483,8 +483,8 @@ classical simulation.</p>
     <span class="s2">&quot;as a truncated tensor-network operator) into the tail MPO by the &quot;</span>
     <span class="s2">&quot;&#39;pauli&#39;/&#39;shadows&#39; routes exactly as an un-resynthesized cut would be. &quot;</span>
     <span class="s2">&quot;For a look at that approximation on its own, see &quot;</span>
-    <span class="s2">&quot;examples/scripts/quantum_hardware/hsynthsmpo_mpo_approximation.py, which uses &quot;</span>
-    <span class="s2">&quot;HSynthSMPO.tail_truncation.&quot;</span>
+    <span class="s2">&quot;examples/scripts/quantum_hardware/hqsmpo_mpo_approximation.py, which uses &quot;</span>
+    <span class="s2">&quot;HQSMPO.tail_truncation.&quot;</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -546,7 +546,7 @@ classical simulation.</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">HSynthSMPO on quantum hardware</a><ul>
+<li><a class="reference internal" href="#">HQSMPO on quantum hardware</a><ul>
 <li><a class="reference internal" href="#approximation-from-folding-the-tail">Approximation from folding the tail</a></li>
 <li><a class="reference internal" href="#measuring-a-resynthesized-head-with-finite-shots">Measuring a resynthesized head with finite shots</a></li>
 </ul>
