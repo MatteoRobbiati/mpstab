@@ -1,4 +1,4 @@
-"""Tests for mpstab.models.error_mitigation.plan: vnCDR on HQSMPO plans."""
+"""Tests for mpstab.models.error_mitigation.data_driven_methods.plan: vnCDR on HQSMPO plans."""
 
 import numpy as np
 import pytest
@@ -13,7 +13,7 @@ from mpstab.models.error_mitigation import (
     VnCDRMitigation,
     mitigated_expectation_at_cut,
 )
-from mpstab.models.error_mitigation.plan import _spread
+from mpstab.models.error_mitigation.data_driven_methods.plan import _spread
 from mpstab.models.noise import DepolarizingError, NoiseModel, ReadoutError
 from mpstab.qpu import NoisySimulator, QiboSimulator, execute_plan
 

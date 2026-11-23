@@ -45,7 +45,7 @@ from qibo import Circuit, gates
 
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz
-from mpstab.models.error_mitigation.training import fold_circuit
+from mpstab.models.error_mitigation.folding import fold_circuit
 from mpstab.qpu.execution import QiboSimulator, execute_plan
 from mpstab.qpu.measurement.abstract import (
     basis_measurement,
