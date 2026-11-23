@@ -19,7 +19,7 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
     to be read rather than to be fast: use
     :class:`~mpstab.engines.QuimbEngine` for real workloads. Supports state-side evolution and expectation values. Operator-side
     conjugation, and so the whole head/tail split of
-    :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`, needs
+    :class:`~mpstab.evolutors.hqsmpo.HQSMPO`, needs
     :class:`~mpstab.engines.QuimbEngine`.
     """
 

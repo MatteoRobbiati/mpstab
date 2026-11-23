@@ -17,8 +17,8 @@ import pytest
 import stim
 from utils import rotation_unitary
 
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.evolutors.hsmpo import HSMPO
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.models.ansatze import QAE, QFT, QPE
 from mpstab.pauli import PAULI_LABELS, validate_pauli_string
@@ -48,7 +48,7 @@ _LIBRARY_ANSATZE = [
 )
 def test_dressed_rotations_match_reference(label, factory):
     ansatz = factory()
-    hs = HSynthSMPO.rotations_only(ansatz)
+    hs = HQSMPO.rotations_only(ansatz)
 
     reference = _reference_dressed_rotations(hs)
     fast = hs._dressed_rotations()
@@ -65,7 +65,7 @@ def test_dressed_rotations_is_faster_than_reference():
     # Large enough that the O(nmagic^2) reference is clearly, robustly slower
     # (~50x at n=10), while still completing in seconds: n=18 took ~3 minutes.
     ansatz = QFT(nqubits=10)
-    hs = HSynthSMPO.rotations_only(ansatz)
+    hs = HQSMPO.rotations_only(ansatz)
 
     t0 = time.perf_counter()
     reference = _reference_dressed_rotations(hs)

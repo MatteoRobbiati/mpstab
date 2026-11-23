@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 import stim
 
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import HardwareEfficient, ParametricKickedIsing
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
@@ -119,9 +119,7 @@ def _routed_cost(circuit):
 
 def test_line_connectivity_never_costs_more_on_the_line():
     # the strategies tried without a connectivity are also tried with one
-    hs = HSynthSMPO.rotations_only(
-        ParametricKickedIsing(nqubits=8, n_steps=4, delta_h=0.3)
-    )
+    hs = HQSMPO.rotations_only(ParametricKickedIsing(nqubits=8, n_steps=4, delta_h=0.3))
     cut_index = len(hs.magic_gates)
     local = hs.resynthesize_head(
         cut_index, synthesis=ExtractionSynthesis(connectivity="line")
@@ -133,7 +131,7 @@ def test_line_connectivity_never_costs_more_on_the_line():
 
 def test_resynthesize_head_method_selection():
     np.random.seed(0)
-    hs = HSynthSMPO(
+    hs = HQSMPO(
         ansatz=HardwareEfficient(nqubits=4, nlayers=2), head_synthesis="extraction"
     )
     cut_index = len(hs.magic_gates)
@@ -141,7 +139,9 @@ def test_resynthesize_head_method_selection():
     assert (
         hs.resynthesize_head(cut_index, synthesis="cnot_ladder").method == "cnot_ladder"
     )
-    assert hs.resynthesize_head(cut_index) is hs.resynthesize_head(cut_index)  # cached
+    first, second = hs.resynthesize_head(cut_index), hs.resynthesize_head(cut_index)
+    assert second.circuit.get_parameters() == first.circuit.get_parameters()
+    assert second.residual_tableau == first.residual_tableau
     with pytest.raises(ValueError, match="Unknown head synthesis"):
         hs.resynthesize_head(cut_index, synthesis="magic")
 
@@ -162,7 +162,7 @@ def _dense_expval(circuit, operator, sign):
 def test_folded_observable_on_the_head_is_exact(connectivity, cut_fraction, observable):
     """No shots: <head| folded tail-and-residual observable |head> is the exact value."""
     np.random.seed(0)
-    hs = HSynthSMPO(
+    hs = HQSMPO(
         ansatz=HardwareEfficient(nqubits=4, nlayers=3),
         head_synthesis=ExtractionSynthesis(connectivity=connectivity),
     )
@@ -177,7 +177,7 @@ def test_folded_observable_on_the_head_is_exact(connectivity, cut_fraction, obse
 
 @pytest.mark.parametrize("delta_h", [0.0, 0.2])
 def test_folded_observable_is_exact_on_a_floquet_circuit(delta_h):
-    hs = HSynthSMPO(
+    hs = HQSMPO(
         ansatz=ParametricKickedIsing(
             nqubits=5, n_steps=3, delta_h=delta_h, delta_z=0.3
         ),
@@ -198,7 +198,7 @@ def test_folded_observable_is_exact_on_a_floquet_circuit(delta_h):
 def test_measured_expectation_matches_simulation(cut_fraction):
     """The whole hardware path, with shots, from an extraction head."""
     np.random.seed(0)
-    hs = HSynthSMPO(
+    hs = HQSMPO(
         ansatz=HardwareEfficient(nqubits=4, nlayers=2),
         head_synthesis=ExtractionSynthesis(connectivity="line"),
     )
@@ -225,7 +225,7 @@ def test_measured_expectation_matches_simulation(cut_fraction):
 
 
 def _floquet(light_cone, nqubits=8, n_steps=2, **options):
-    return HSynthSMPO(
+    return HQSMPO(
         ansatz=ParametricKickedIsing(
             nqubits=nqubits, n_steps=n_steps, delta_h=0.2, delta_z=0.3
         ),

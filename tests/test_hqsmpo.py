@@ -4,7 +4,7 @@ import stim
 from qibo import Circuit
 from utils import expectation_with_qibo, small_entangled_circuit
 
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+from mpstab.evolutors.hqsmpo import HQSMPO, _resynthesize
 from mpstab.models.ansatze import (
     QAE,
     QFT,
@@ -28,7 +28,7 @@ from mpstab.qpu.synthesis import CnotLadderSynthesis
 def test_simulation_matches_qibo(observable, cut_index):
     circ = small_entangled_circuit(4)
     ansatz = CircuitAnsatz(qibo_circuit=circ)
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
 
     simulated = hs.expectation_at_cut(observable, cut_index, method="simulation").value
     reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str=observable)
@@ -42,7 +42,7 @@ def test_simulation_matches_qibo(observable, cut_index):
 @pytest.mark.parametrize("cut_index", [0, 3, 6])
 def test_simulation_matches_hsmpo_expectation(cut_index):
     ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     observable = "ZIZI"
 
     base = hs.expectation(observable)
@@ -53,7 +53,7 @@ def test_simulation_matches_hsmpo_expectation(cut_index):
 
 def test_simulation_result_fields():
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     result = hs.expectation_at_cut("ZZZZ", 2, method="simulation")
     assert np.isreal(result.value)
     assert 0.0 <= result.state_fidelity <= 1.0 + 1e-6
@@ -65,7 +65,7 @@ def test_simulation_result_fields():
 
 def test_simulation_reports_tail_truncation():
     ansatz = HardwareEfficient(nqubits=6, nlayers=2)
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     result = hs.expectation_at_cut(
         "Z" * 6, 0, method="simulation", max_bond_dimension=1
     )
@@ -75,7 +75,7 @@ def test_simulation_reports_tail_truncation():
 
 def test_simulation_matches_hamiltonian_sum():
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     terms = {"ZZZZ": 0.5, "XIII": -1.5}
     total = hs.expectation_at_cut(terms, 2, method="simulation").value
     expected = sum(
@@ -87,7 +87,7 @@ def test_simulation_matches_hamiltonian_sum():
 
 def test_simulation_rejects_shot_budget():
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     with pytest.raises(ValueError):
         hs.expectation_at_cut("ZZZZ", 2, method="simulation", n_shots=100)
     with pytest.raises(ValueError):
@@ -97,7 +97,7 @@ def test_simulation_rejects_shot_budget():
 def test_tail_truncation_lossless_when_untruncated():
     # No bond cap => the folded tail MPO is exact => zero error.
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz)  # max_bond_dimension defaults to None
+    hs = HQSMPO(ansatz)  # max_bond_dimension defaults to None
     info = hs.tail_truncation("ZZZZ", cut_index=0, with_expval=True)
     assert info.relative_frobenius_error == pytest.approx(0.0, abs=1e-7)
     assert info.expval_abs_error == pytest.approx(0.0, abs=1e-7)
@@ -105,7 +105,7 @@ def test_tail_truncation_lossless_when_untruncated():
 
 def test_tail_truncation_skips_expval_by_default():
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     info = hs.tail_truncation("ZZZZ", cut_index=0)
     assert info.relative_frobenius_error is not None
     assert info.expval_abs_error is None
@@ -115,7 +115,7 @@ def test_tail_truncation_skips_expval_by_default():
 
 def test_tail_truncation_max_bond_dimension_overrides_default():
     ansatz = HardwareEfficient(nqubits=6, nlayers=2)
-    hs = HSynthSMPO(ansatz)  # untruncated by default
+    hs = HQSMPO(ansatz)  # untruncated by default
     assert hs.tail_truncation("Z" * 6, cut_index=0).fidelity_estimate == (
         pytest.approx(1.0)
     )
@@ -127,7 +127,7 @@ def test_tail_truncation_max_bond_dimension_overrides_default():
 def test_tail_truncation_empty_tail():
     # cut_index == number of dressed rotations => empty tail => exact operator.
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz, max_bond_dimension=2)
+    hs = HQSMPO(ansatz, max_bond_dimension=2)
     n_dressed = len(hs.magic_gates)
     info = hs.tail_truncation("ZZZZ", cut_index=n_dressed)
     assert info.relative_frobenius_error == pytest.approx(0.0, abs=1e-10)
@@ -138,7 +138,7 @@ def test_tail_truncation_reports_error_when_truncated():
     # (untruncated) tail fold still reproduces the true expectation, since with
     # cut_index=0 the state is exactly |0...0>.
     ansatz = HardwareEfficient(nqubits=6, nlayers=2)
-    hs = HSynthSMPO(ansatz, max_bond_dimension=1)
+    hs = HQSMPO(ansatz, max_bond_dimension=1)
     info = hs.tail_truncation(
         "Z" * 6, cut_index=0, reference_max_bond=None, with_expval=True
     )
@@ -162,7 +162,7 @@ def test_tail_truncation_reports_error_when_truncated():
 def test_resynthesize_head_is_qibo_circuit():
     pytest.importorskip("rustiq")
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
 
     resynth = hs.resynthesize_head(n_dressed)
@@ -176,7 +176,7 @@ def test_resynthesize_head_gate_counts_full_cut():
     pytest.importorskip("rustiq")
 
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
 
     resynth = hs.resynthesize_head(n_dressed)
@@ -184,24 +184,63 @@ def test_resynthesize_head_gate_counts_full_cut():
 
 
 def test_resynthesize_head_is_cached():
-    # Same cut, same rotations: the second call returns the cached head.
-    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)))
+    # Same cut, same rotations: the second call is served by the cache.
+    _resynthesize.cache_clear()
+    hs = HQSMPO(CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)))
     first = hs.resynthesize_head(2)
-    assert hs.resynthesize_head(2) is first
-    assert hs.resynthesize_head(3) is not first
+    second = hs.resynthesize_head(2)
+    assert _resynthesize.cache_info().hits == 1
+    assert second.circuit.get_parameters() == first.circuit.get_parameters()
+    assert second.residual_gates == first.residual_gates
+    hs.resynthesize_head(3)
+    assert _resynthesize.cache_info().misses == 2
 
 
 def test_resynthesize_head_cache_follows_parameters():
     # New parameters give new dressed angles, hence a new key: no stale head.
-    hs = HSynthSMPO(CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)))
+    _resynthesize.cache_clear()
+    hs = HQSMPO(
+        CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)),
+        head_synthesis="cnot_ladder",
+    )
     first = hs.resynthesize_head(2)
     hs.set_parameters([(theta + 0.1,) for (theta,) in hs.get_parameters()])
-    assert hs.resynthesize_head(2) is not first
+    second = hs.resynthesize_head(2)
+    assert _resynthesize.cache_info().misses == 2
+    assert second.circuit.get_parameters() != first.circuit.get_parameters()
+
+
+def test_mutating_a_plan_circuit_leaves_the_cached_head_intact():
+    # Plan circuits are head + basis measurement, and qibo's circuit addition
+    # shares gate objects: changing a plan circuit must not reach the cache.
+    hs = HQSMPO(
+        CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)),
+        head_synthesis="cnot_ladder",
+    )
+    original = hs.resynthesize_head(2).circuit.get_parameters()
+    assert original
+
+    plan = hs.plan("ZZZZ", 2, method="pauli", n_shots=200, seed=0, out_folder=False)
+    circuit = plan.circuits[0]
+    circuit.set_parameters([(0.9,) for _ in circuit.get_parameters()])
+
+    assert hs.resynthesize_head(2).circuit.get_parameters() == original
+
+
+def test_resynthesize_head_returns_independent_objects():
+    hs = HQSMPO(
+        CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)),
+        head_synthesis="cnot_ladder",
+    )
+    first, second = hs.resynthesize_head(2), hs.resynthesize_head(2)
+    assert first.circuit is not second.circuit
+    assert first.residual_tableau is not second.residual_tableau
+    assert first.residual_tableau == second.residual_tableau
 
 
 def test_resynthesize_head_cnot_ladder_fallback_has_identity_tail():
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
     dressed = hs._dressed_rotations()
 
@@ -245,7 +284,7 @@ _LIBRARY_ANSATZE = [
 )
 def test_library_ansatze_simulation_matches_qibo(label, factory):
     ansatz = factory()
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     n = ansatz.nqubits
     n_dressed = len(hs.magic_gates)
     cuts = sorted({0, 1, n_dressed // 2, n_dressed - 1, n_dressed})
@@ -268,6 +307,18 @@ def test_library_ansatze_simulation_matches_qibo(label, factory):
             )
 
 
+@pytest.mark.parametrize("observable", ["XIX", "YIX"])
+def test_long_clifford_t_tail_fold_is_exact(observable):
+    # Folding the whole circuit (cut=0) meets exactly degenerate Gram spectra,
+    # on which LAPACK's MRRR eigensolver returned non-orthogonal eigenvectors:
+    # the fold then lost canonical form and the default SVD cutoff dropped
+    # real weight (XIX gave -0.1222 instead of -0.125).
+    ansatz = Grover(nqubits=3, marked_state=0, n_iterations=2)
+    reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str=observable)
+    simulated = HQSMPO(ansatz).expectation_at_cut(observable, 0, method="simulation")
+    assert np.allclose(simulated.value, reference, atol=1e-6)
+
+
 @pytest.mark.parametrize("nqubits", [6, 8, 10])
 def test_simulation_matches_qibo_more_qubits(nqubits):
     # Larger systems (statevector still tractable). We sweep cuts with modest
@@ -277,7 +328,7 @@ def test_simulation_matches_qibo_more_qubits(nqubits):
     # bond and is the intended approximation regime -- it is exercised exactly at
     # small n by test_library_ansatze_simulation_matches_qibo instead.
     ansatz = TrotterIsing(nqubits=nqubits, n_steps=2)
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     n_dressed = len(hs.magic_gates)
     cuts = sorted({n_dressed // 2, n_dressed - 3, n_dressed - 1, n_dressed})
 
@@ -329,7 +380,7 @@ def test_allocate_shots_by_variance_raises_below_group_count():
 
 def test_expectation_at_cut_pauli_respects_shot_budget():
     ansatz = HardwareEfficient(nqubits=4, nlayers=2)
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
     cut_index = len(hs.magic_gates) // 2
 
     result = hs.expectation_at_cut(
@@ -360,3 +411,20 @@ def test_real_coefficients_projects_when_truncated():
     pooled = {"XY": 0.5 - 2e-4j, "ZZ": -0.25 + 0j}
     real = _real_coefficients(pooled, check=False)
     assert real == {"XY": 0.5, "ZZ": -0.25}
+
+
+def test_old_name_still_works_with_a_deprecation_warning():
+    import importlib
+
+    import mpstab
+    import mpstab.evolutors
+
+    with pytest.warns(DeprecationWarning, match="HQSMPO"):
+        assert mpstab.HSynthSMPO is mpstab.HQSMPO
+    with pytest.warns(DeprecationWarning, match="HQSMPO"):
+        assert mpstab.evolutors.HSynthSMPO is mpstab.HQSMPO
+    with pytest.warns(DeprecationWarning, match="hqsmpo"):
+        module = importlib.reload(
+            importlib.import_module("mpstab.evolutors.hsynthsmpo")
+        )
+    assert module.HSynthSMPO is mpstab.HQSMPO

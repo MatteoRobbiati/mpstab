@@ -31,7 +31,7 @@ by theme. Notebooks are shown with the outputs they were saved with.
    :maxdepth: 1
    :caption: Quantum hardware
 
-   scripts/hsynthsmpo
+   scripts/hqsmpo
 
 .. toctree::
    :maxdepth: 1

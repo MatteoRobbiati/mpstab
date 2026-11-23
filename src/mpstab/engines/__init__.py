@@ -10,7 +10,7 @@ abstract classes are the interface a custom engine implements.
 pure-Python implementations of that interface, kept as readable examples of
 how each engine works. They are slower than stim and quimb and cover less: no
 DMRG and no operator-side conjugation, so no head/tail split in
-:class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`.
+:class:`~mpstab.evolutors.hqsmpo.HQSMPO`.
 """
 
 from mpstab.engines.stabilizers.abstract import StabilizersEngine

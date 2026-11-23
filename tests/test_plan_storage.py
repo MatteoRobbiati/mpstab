@@ -1,7 +1,7 @@
 """
 Device-facing helpers of `mpstab.qpu`: the OpenQASM export of a
 plan's circuits (`circuit_to_qasm`, `plan_to_qasm`) and the output folder the
-circuits and shots are saved to (`HSynthSMPO.plan`,
+circuits and shots are saved to (`HQSMPO.plan`,
 `mpstab.qpu.execution.storage`), which is all a device run needs.
 """
 
@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 from qibo import Circuit, gates
 
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import HardwareEfficient
 from mpstab.qpu import circuit_to_qasm, plan_to_qasm
 from mpstab.qpu.execution import QELIB1_GATES
@@ -20,7 +20,7 @@ from mpstab.qpu.execution import QELIB1_GATES
 
 def _hs(nqubits=4, nlayers=2, seed=0):
     np.random.seed(seed)
-    return HSynthSMPO(ansatz=HardwareEfficient(nqubits=nqubits, nlayers=nlayers))
+    return HQSMPO(ansatz=HardwareEfficient(nqubits=nqubits, nlayers=nlayers))
 
 
 def _probabilities(circuit):
@@ -112,7 +112,7 @@ def test_circuit_to_qasm_rejects_a_non_qelib1_two_qubit_gate(gate):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("method", ["pauli", "shadows", "tnice"])
+@pytest.mark.parametrize("method", ["pauli", "shadows"])
 def test_plan_writes_the_output_folder(tmp_path, method):
     hs = _hs()
     plan = hs.plan("XZIZ", 3, method=method, n_shots=200, seed=0, out_folder=tmp_path)

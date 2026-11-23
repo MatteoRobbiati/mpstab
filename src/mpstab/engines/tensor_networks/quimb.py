@@ -95,10 +95,10 @@ class _CanonicalMPS:
     exact array object held by each site, and trusted only while the MPS holds
     exactly those arrays and no other tensor. The cached arrays are read-only,
     so anything else that changes the MPS has to replace them, and the next
-    view then re-canonicalizes from scratch. ``deepcopy`` preserves the
-    array identities, so copies keep their cached gauge, but numpy hands the
-    copies back writable: write into a deep copy's arrays and the gauge goes
-    stale.
+    view then re-canonicalizes from scratch. ``deepcopy`` keeps the cached
+    gauge pointing at the copy's arrays, but numpy hands those copies back
+    writable, so a writable array also invalidates the cache: a deep copy is
+    re-canonicalized once, whether or not anything wrote into it.
 
     Arrays are loaded lazily, and only the ones a kernel changed are written
     back, so the cost of an operation scales with the sites it touches.
@@ -112,9 +112,13 @@ class _CanonicalMPS:
         if gauge is not None:
             center, tids, arrays, inds = gauge
             # Exactly L tensors: an extra one (``gate_(..., contract=False)``)
-            # changes the state while leaving the site arrays untouched.
+            # changes the state while leaving the site arrays untouched. And
+            # still read-only: a deep copy's arrays are writable, so they may
+            # have been written into.
             if len(tids) == self.L == len(tensor_map) and all(
-                tid in tensor_map and tensor_map[tid].data is array
+                tid in tensor_map
+                and tensor_map[tid].data is array
+                and not array.flags.writeable
                 for tid, array in zip(tids, arrays)
             ):
                 self.center, self.tids, self.inds = center, tids, inds
@@ -189,6 +193,53 @@ class _CanonicalMPS:
         )
 
 
+def _mpo_to_sites(mpo: MatrixProductOperator) -> list[np.ndarray]:
+    """
+    The MPO's site tensors as ``(left, 4, right)`` complex arrays, the middle
+    index being ``2 * out + in`` (quimb's upper index is the output).
+    """
+    L = mpo.L
+    sites = []
+    for i in range(L):
+        inds = [mpo.upper_ind(i), mpo.lower_ind(i)]
+        if i > 0:
+            inds.insert(0, mpo.bond(i - 1, i))
+        if i < L - 1:
+            inds.append(mpo.bond(i, i + 1))
+        data = np.asarray(mpo[i].transpose(*inds).data, dtype=complex)
+        if i == 0:
+            data = data[None]
+        if i == L - 1:
+            data = data[..., None]
+        left, right = data.shape[0], data.shape[-1]
+        sites.append(data.reshape(left, 4, right))
+    return sites
+
+
+def _sites_to_mpo(sites: list[np.ndarray], like: MatrixProductOperator):
+    """Inverse of :func:`_mpo_to_sites`, with ``like``'s index names and tags."""
+    L = len(sites)
+    arrays = []
+    for i, site in enumerate(sites):
+        tensor = site.reshape(site.shape[0], 2, 2, site.shape[-1])  # (l, k, b, r)
+        if L == 1:
+            arrays.append(tensor[0, :, :, 0])
+        elif i == 0:
+            arrays.append(tensor[0].transpose(2, 0, 1))  # (r, k, b)
+        elif i == L - 1:
+            arrays.append(tensor[..., 0])  # (l, k, b)
+        else:
+            arrays.append(tensor.transpose(0, 3, 1, 2))  # (l, r, k, b)
+    return MatrixProductOperator(
+        arrays,
+        shape="lrud",
+        upper_ind_id=like.upper_ind_id,
+        lower_ind_id=like.lower_ind_id,
+        site_tag_id=like.site_tag_id,
+        tags=[tag for tag in like.tags if tag not in set(like.site_tags)],
+    )
+
+
 def _qibo_circuit_to_quimb(nqubits: int, qibo_circ, **circuit_kwargs) -> CircuitMPS:
     """
     Convert a qibo circuit into a quimb ``CircuitMPS``. Measurement gates are
@@ -252,7 +303,7 @@ class QuimbEngine(TensorNetworkEngine):
     MPS evolution and MPO expectation values via quimb.
 
     Besides evolving states, it conjugates operators, which
-    :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`'s head/tail split needs,
+    :class:`~mpstab.evolutors.hqsmpo.HQSMPO`'s head/tail split needs,
     and its MPS feeds quimb's DMRG.
     """
 
@@ -360,7 +411,7 @@ class QuimbEngine(TensorNetworkEngine):
         if self._fast and pauli is not None and len(pauli) == state_circuit.L:
             return self.pauli_expvals(state_circuit, [pauli])[0]
 
-        norm = state_circuit.norm(squared=True).real
+        norm = self.squared_norm(state_circuit).real
         ket = state_circuit.reindex({f"k{i}": f"b{i}" for i in range(state_circuit.L)})
         bra = state_circuit.H
         return (bra & operator & ket).contract(
@@ -500,6 +551,25 @@ class QuimbEngine(TensorNetworkEngine):
             rotation, inplace=True, max_bond=max_bond_dimension, **options
         )
 
+    def squared_norm(self, state_circuit: MatrixProductState):
+        """
+        ``<psi|psi>`` of the MPS. On the numpy backend it is read off the
+        orthogonality center of the cached canonical form, no full contraction
+        needed; other backends return quimb's backend scalar, so it stays
+        differentiable.
+
+        On the numpy backend, when the state has no valid cached canonical form
+        (a fresh state, or one changed outside the engine), it is
+        canonicalized in place first: its tensors are transposed and
+        gauge-transformed, the state itself is unchanged.
+        """
+        if not self._fast:
+            return state_circuit.norm(squared=True)
+        view = _CanonicalMPS(state_circuit)
+        norm = kernels.squared_norm(view, view.center)
+        view.commit()
+        return float(norm)
+
     def copy_state(self, state_circuit: MatrixProductState):
         """
         An independent copy of the state.
@@ -538,9 +608,13 @@ class QuimbEngine(TensorNetworkEngine):
         and the exact operator rank of a scrambled observable grows
         exponentially, so folding a long tail accrues truncation error. Keeping
         this exact is only affordable for modest tail lengths; see
-        :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.tail_truncation` to
+        :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.tail_truncation` to
         quantify it.
         """
+        if self._fast:
+            return self.conjugate_operator_many(
+                operator, [(generator, angle)], max_bond_dimension
+            )
         rotation = self._pauli_exp(generator, angle)
         rotation_dag = self._pauli_exp(generator, -angle)
 
@@ -549,9 +623,39 @@ class QuimbEngine(TensorNetworkEngine):
         )
         return operator.apply(rotation, compress=True, max_bond=max_bond_dimension)
 
-    def squared_norm(self, state_circuit: MatrixProductState) -> float:
-        """``<psi|psi>`` of the MPS."""
-        return float(np.real(state_circuit.norm(squared=True)))
+    def conjugate_operator_many(
+        self,
+        operator: MatrixProductOperator,
+        rotations,
+        max_bond_dimension: int | None,
+    ):
+        """
+        Conjugate ``operator`` by each ``(generator, angle)`` rotation in turn,
+        the first one innermost, as repeated :meth:`conjugate_operator` calls.
+
+        On the numpy backend the MPO is unpacked once into canonical site
+        arrays, and each conjugation touches only its generator's window
+        (:func:`~._mps_kernels.operator_conjugation`), with the same truncation
+        rule as quimb's ``compress``, so a whole tail costs about as much as
+        evolving a state through it. Other backends go through quimb.
+        """
+        if not self._fast:
+            return super().conjugate_operator_many(
+                operator, rotations, max_bond_dimension
+            )
+        cutoff = _QUIMB_DEFAULT_CUTOFF if self.svd_cutoff is None else self.svd_cutoff
+        sites = _mpo_to_sites(operator)
+        center = kernels.move_center(sites, len(sites) - 1, 0)
+        for generator, angle in rotations:
+            center = kernels.operator_conjugation(
+                sites,
+                center,
+                generator.upper(),
+                float(angle),
+                max_bond=max_bond_dimension,
+                cutoff=cutoff,
+            )
+        return _sites_to_mpo(sites, operator)
 
     def bond_dimension(self, state_circuit: MatrixProductState) -> int:
         """The largest bond dimension of the MPS."""
