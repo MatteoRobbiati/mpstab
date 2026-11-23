@@ -1,11 +1,14 @@
 """Tests for mpstab.models.noise: Pauli, coherent and Kraus noise in the HSMPO frame."""
 
+import inspect
+import textwrap
+
 import numpy as np
 import pytest
 import stim
 from qibo import Circuit, gates
-from utils import pauli_matrix
 
+import mpstab.models.noise
 from mpstab import HSMPO
 from mpstab.engines import QuimbEngine
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
@@ -21,14 +24,15 @@ from mpstab.models.noise import (
     ThermalRelaxationError,
 )
 from mpstab.models.noise.compile import compile_noise
-from mpstab.models.noise.estimator import noisy_expectation
 from mpstab.models.noise.events import (
     CoherentRotation,
     KrausChannel,
     NoiseEvent,
     PauliChannel,
 )
+from mpstab.models.noise.mc_noise_estimator import noisy_expectation
 from mpstab.models.noise.model import _qibo_gate
+from mpstab.pauli import anticommutation, pauli_light_cone, pauli_matrix
 
 OBSERVABLE = {"ZZIII": 0.7, "IXIXI": -0.4, "IIYZI": 0.3}
 
@@ -388,22 +392,13 @@ def test_two_qubit_rotations_replaced_by_cliffords():
 
 def _docstring_examples():
     """Every ``::`` literal block in the docstrings of mpstab.models.noise."""
-    import inspect
-    import textwrap
-
-    import mpstab.models.noise as noise
-    from mpstab import pauli
-    from mpstab.models.noise import compile, estimator, events
-
     blocks = []
-    objects = [getattr(noise, name) for name in noise.__all__]
-    objects += [compile.compile_noise, estimator.noisy_expectation]
-    objects += [
-        events.PauliChannel,
-        events.CoherentRotation,
-        events.KrausChannel,
+    objects = [
+        getattr(mpstab.models.noise, name) for name in mpstab.models.noise.__all__
     ]
-    objects += [pauli.anticommutation, pauli.light_cone]
+    objects += [compile_noise, noisy_expectation]
+    objects += [PauliChannel, CoherentRotation, KrausChannel]
+    objects += [anticommutation, pauli_light_cone]
     for obj in objects:
         lines = (inspect.getdoc(obj) or "").splitlines()
         for i, line in enumerate(lines):
@@ -563,8 +558,6 @@ def test_readout_only_attenuates_terms():
 
 
 def test_parallel_patterns_match_serial():
-    from mpstab.models.noise import NoiseModel, PauliError
-
     hsmpo = HSMPO(_kicked_ising(), max_bond_dimension=4)
     noise = NoiseModel().add(PauliError({"X": 0.01, "Z": 0.02}))
     serial = hsmpo.noisy_expectation(OBSERVABLE, noise, n_samples=200, seed=5)

@@ -70,6 +70,29 @@ Engines that handle the non-Clifford effects via MPO:
     simulator = HSMPO(ansatz=circuit, max_bond_dimension=32)
     # Uses Quimb tensor network engine by default
 
+Native Engines
+~~~~~~~~~~~~~~
+
+``NativeStabilizersEngine`` and ``NativeTensorNetworkEngine`` are pure-Python
+implementations of the same interfaces, meant to be read: they show what a
+stabilizers engine and a tensor-network engine actually do, without stim or
+quimb in the way. They give the same results, more slowly, and the native
+tensor-network engine supports neither DMRG nor the head/tail split of
+``HSynthSMPO``.
+
+::
+
+    from mpstab import HSMPO
+    from mpstab.engines import NativeStabilizersEngine, NativeTensorNetworkEngine
+    from mpstab.models.ansatze import HardwareEfficient
+
+    simulator = HSMPO(
+        ansatz=HardwareEfficient(nqubits=5, nlayers=2),
+        stab_engine=NativeStabilizersEngine(),
+        tn_engine=NativeTensorNetworkEngine(),
+    )
+    print(simulator.expectation("ZZZZZ"))
+
 Engine Configuration
 --------------------
 

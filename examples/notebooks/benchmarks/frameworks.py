@@ -41,8 +41,8 @@ from mpstab.engines import QuimbEngine
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
 from mpstab.models.noise.compile import compile_noise
-from mpstab.models.noise.estimator import noisy_expectation
 from mpstab.models.noise.events import CoherentRotation, PauliChannel
+from mpstab.models.noise.mc_noise_estimator import noisy_expectation
 from mpstab.plotting import COLORS
 
 log.setLevel("WARNING")
@@ -159,8 +159,8 @@ def run_mpstab(circuit, observable, max_bond=None, light_cone=True, svd_cutoff=N
     return dict(
         value=float(np.real(value)),
         time=elapsed,
-        bond=int(state.max_bond()),
-        fidelity=float(np.real(state.norm(squared=True))),
+        bond=int(hsmpo.tn_engine.bond_dimension(state)),
+        fidelity=hsmpo.tn_engine.squared_norm(state),
         magic=len(hsmpo.magic_gates),
     )
 

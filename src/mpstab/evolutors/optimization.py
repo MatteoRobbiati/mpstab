@@ -1,25 +1,8 @@
 """DMRG ground-state optimization of an HSMPO's MPS."""
 
-import copy
-from functools import reduce
-from operator import add
 from typing import Union
 
-import numpy as np
-
 from mpstab.hamiltonians import Observable, pauli_terms
-
-
-def build_pauli_mpo(tn_engine, terms: dict):
-    """
-    Sum a ``{pauli_string: coefficient}`` map of non-identity terms into one MPO.
-
-    Raises:
-        ValueError: if there are no terms.
-    """
-    if not terms:
-        raise ValueError("The Hamiltonian has no non-identity terms to optimize.")
-    return reduce(add, (c * tn_engine.pauli_mpo(p) for p, c in terms.items()))
 
 
 def minimize_expectation_dmrg(
@@ -35,10 +18,11 @@ def minimize_expectation_dmrg(
     Minimize an observable over MPS tensors with two-site DMRG.
 
     Every Hamiltonian term is first backpropagated through the HSMPO's Clifford
-    circuit, which is what makes the MPO cheaper here than in plain quimb DMRG:
-    the Clifford part is absorbed into the observable rather than represented.
-    The HSMPO's cached MPS is the starting guess, and is replaced by the optimized
-    state on return.
+    circuit, which is what makes the MPO cheaper here than in plain DMRG: the
+    Clifford part is absorbed into the observable rather than represented. The
+    HSMPO's cached MPS is the starting guess, and is replaced by the optimized
+    state on return. The sweeps themselves run on the tensor-network engine
+    (:meth:`~mpstab.engines.TensorNetworkEngine.minimize_energy`).
 
     Args:
         hsmpo: the :class:`~mpstab.evolutors.hsmpo.HSMPO` to optimize.
@@ -55,9 +39,10 @@ def minimize_expectation_dmrg(
         A dict with ``ground_state``, ``energy``, ``converged``, ``num_sweeps``
         and ``energy_history``. Energies include the Hamiltonian's constant
         offset and identity terms.
-    """
-    import quimb.tensor as qtn
 
+    Raises:
+        ValueError: if the Hamiltonian has no non-identity terms.
+    """
     constant, terms = pauli_terms(observables, hsmpo.nqubits)
     constant += terms.pop("I" * hsmpo.nqubits, 0.0)
 
@@ -73,23 +58,26 @@ def minimize_expectation_dmrg(
         for (pauli, sign), coefficient in zip(evolved, terms.values())
     }
 
-    dmrg = qtn.DMRG2(
-        build_pauli_mpo(hsmpo.tn_engine, backpropagated),
-        bond_dims=bond_dims,
-        cutoffs=cutoff,
-        p0=copy.deepcopy(hsmpo.original_circuit_mps),
-    )
-    converged = dmrg.solve(tol=tol, max_sweeps=max_sweeps, verbosity=verbosity)
+    if not backpropagated:
+        raise ValueError("The Hamiltonian has no non-identity terms to optimize.")
 
-    energy_history = [
-        float(np.real(e)) + constant for e in getattr(dmrg, "energies", None) or []
-    ]
-    hsmpo.original_circuit_mps = dmrg.state
+    tn_engine = hsmpo.tn_engine
+    result = tn_engine.minimize_energy(
+        tn_engine.pauli_sum_mpo(backpropagated),
+        hsmpo.original_circuit_mps,
+        bond_dims=bond_dims,
+        cutoff=cutoff,
+        tol=tol,
+        max_sweeps=max_sweeps,
+        verbosity=verbosity,
+    )
+    energy_history = [e + constant for e in result["energy_history"]]
+    hsmpo.original_circuit_mps = result["state"]
 
     return {
-        "ground_state": dmrg.state,
-        "energy": float(np.real(dmrg.energy)) + constant,
-        "converged": converged,
+        "ground_state": result["state"],
+        "energy": result["energy"] + constant,
+        "converged": result["converged"],
         "num_sweeps": len(energy_history) if energy_history else max_sweeps,
         "energy_history": energy_history,
     }

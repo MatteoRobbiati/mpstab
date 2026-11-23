@@ -104,7 +104,7 @@ fault-pattern estimator. The three steps are available on their own.
 .. automodule:: mpstab.models.noise.compile
    :members:
 
-.. automodule:: mpstab.models.noise.estimator
+.. automodule:: mpstab.models.noise.mc_noise_estimator
    :members: noisy_expectation
 
 The :doc:`../tutorials/noise` tutorial compares these values against an exact

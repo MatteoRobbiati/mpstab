@@ -59,9 +59,7 @@ import stim
 
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.hamiltonians import Observable, pauli_terms
-from mpstab.pauli import conjugate
-from mpstab.pauli import light_cone as pauli_light_cone
-from mpstab.pauli import validate_pauli_string
+from mpstab.pauli import conjugate, pauli_light_cone, validate_pauli_string
 from mpstab.qpu.execution import QiboSimulator, execute_plan, save_circuits
 from mpstab.qpu.measurement import (
     ExpectationResult,
@@ -69,7 +67,12 @@ from mpstab.qpu.measurement import (
     MeasurementPlan,
     resolve_method,
 )
-from mpstab.qpu.measurement.pauli_expansion import fold_fidelity, fold_truncation_l2
+from mpstab.qpu.measurement.pauli_expansion import (
+    fold_fidelity,
+    fold_truncation_l2,
+    operator_distance,
+    operator_norm,
+)
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
     HeadSynthesis,
@@ -142,8 +145,11 @@ class HQSMPO(HSMPO):
     into a resynthesised head and an MPO tail, with the head measured from a
     finite shot budget.
 
-    Requires :class:`~mpstab.engines.QuimbEngine` for the tail, the only engine
-    that can conjugate an operator.
+    The tail needs a tensor-network engine that can conjugate an operator and
+    export it as site arrays
+    (:meth:`~mpstab.engines.TensorNetworkEngine.conjugate_operator`,
+    :meth:`~mpstab.engines.TensorNetworkEngine.operator_site_arrays`), such
+    as :class:`~mpstab.engines.QuimbEngine`.
 
     Args:
         head_synthesis: how the head is resynthesised, a
@@ -313,7 +319,11 @@ class HQSMPO(HSMPO):
                 )
             )
             if max_bond_dimension is not None:
-                truncation_l2 += fold_truncation_l2(coefficient, operator, self.nqubits)
+                truncation_l2 += fold_truncation_l2(
+                    coefficient,
+                    self.tn_engine.operator_site_arrays(operator),
+                    self.nqubits,
+                )
 
         return ExpectationResult(
             value=float(np.real(value)),
@@ -385,15 +395,17 @@ class HQSMPO(HSMPO):
         operator_approx, sign = self.build_post_head_mpo(
             observable, cut_index, max_bond_dimension, residual=residual
         )
-        fidelity_estimate = fold_fidelity(operator_approx, self.nqubits)
+        approx_sites = self.tn_engine.operator_site_arrays(operator_approx)
+        fidelity_estimate = fold_fidelity(approx_sites, self.nqubits)
         if not exact:
             return TailTruncation(fidelity_estimate, None, None)
 
         operator_exact, _ = self.build_post_head_mpo(
             observable, cut_index, reference_max_bond, residual=residual
         )
-        exact_norm = float(np.real(operator_exact.norm()))
-        difference_norm = float(np.real((operator_approx - operator_exact).norm()))
+        exact_sites = self.tn_engine.operator_site_arrays(operator_exact)
+        exact_norm = operator_norm(exact_sites)
+        difference_norm = operator_distance(approx_sites, exact_sites)
         relative_frobenius_error = (
             difference_norm / exact_norm if exact_norm != 0 else 0.0
         )
@@ -433,8 +445,10 @@ class HQSMPO(HSMPO):
         :func:`_resynthesize`), so repeated calls at the same cut, e.g. from
         :meth:`expectation_at_cut` for several observables or methods,
         resynthesise once, while new parameters give new rotations and hence a
-        fresh resynthesis. The returned head is shared between those calls:
-        don't modify its ``circuit`` or ``residual_tableau`` in place.
+        fresh resynthesis. Only an immutable description of the head is
+        cached: every call returns a fresh ``circuit`` and its own copy of the
+        ``residual_tableau``, so modifying them, or a plan circuit sharing
+        their gates, never reaches a later call.
 
         Args:
             cut_index: the split point.
@@ -458,7 +472,16 @@ class HQSMPO(HSMPO):
             relevant = self.relevant_rotations(observable)
             dressed = [dressed[index] for index in relevant if index < cut_index]
         rotations = tuple((generator, float(angle)) for generator, angle in dressed)
-        return _resynthesize(rotations, self.nqubits, cut_index, synthesis)
+        cached = _resynthesize(rotations, self.nqubits, cut_index, synthesis)
+        return ResynthesizedHead(
+            circuit=head_to_qibo_circuit(cached.head, self.nqubits),
+            residual_tableau=cached.residual_tableau.copy(),
+            residual_gates=cached.residual_gates,
+            n_gates=len(cached.head),
+            n_two_qubit_gates=cached.n_two_qubit_gates,
+            cut_index=cut_index,
+            method=cached.method,
+        )
 
     def expectation_at_cut(
         self,
@@ -647,21 +670,39 @@ class HQSMPO(HSMPO):
         return plan
 
 
+@dataclass(frozen=True)
+class _CachedHead:
+    """
+    What :func:`_resynthesize` caches: a head and its residual as immutable
+    gate tuples. ``residual_tableau`` is a mutable ``stim.Tableau``, so it is
+    only ever handed out as a copy.
+    """
+
+    head: tuple
+    residual_tableau: object
+    residual_gates: tuple
+    n_two_qubit_gates: int
+    method: str
+
+
 @lru_cache(maxsize=32)
 def _resynthesize(
     rotations: Tuple[Tuple[str, float], ...],
     nqubits: int,
     cut_index: int,
     synthesis: HeadSynthesis,
-) -> ResynthesizedHead:
+) -> _CachedHead:
     """
-    The body of :meth:`HQSMPO.resynthesize_head`, cached on its arguments.
+    The synthesis behind :meth:`HQSMPO.resynthesize_head`, cached on its
+    arguments.
 
     The key holds the head's dressed rotations and the (hashable) synthesis
-    rather than the evolutor, so a repeated call with the same rotations returns
-    the same :class:`ResynthesizedHead` object without synthesising again, and
-    changing the circuit's parameters changes the angles, hence the key: the
-    cache never serves a stale head and needs no invalidation.
+    rather than the evolutor, so a repeated call with the same rotations does
+    not synthesise again, and changing the circuit's parameters changes the
+    angles, hence the key: the cache never serves a stale head and needs no
+    invalidation. The value is a :class:`_CachedHead`, which nobody outside
+    :meth:`HQSMPO.resynthesize_head` sees: it builds the mutable objects it
+    returns afresh from it.
     """
     paulis = [pauli for pauli, _ in rotations]
     angles = [angle for _, angle in rotations]
@@ -684,12 +725,15 @@ def _resynthesize(
             paulis, angles, nqubits
         )
 
-    return ResynthesizedHead(
-        circuit=head_to_qibo_circuit(head, nqubits),
+    return _CachedHead(
+        head=_frozen_gates(head),
         residual_tableau=residual_tableau,
-        residual_gates=tuple(residual_gates),
-        n_gates=len(head),
+        residual_gates=_frozen_gates(residual_gates),
         n_two_qubit_gates=count_two_qubit_gates(head),
-        cut_index=cut_index,
         method=synthesis.name,
     )
+
+
+def _frozen_gates(gates_list) -> tuple:
+    """A synthesised gate list as nested tuples, qubit lists included."""
+    return tuple((entry[0], tuple(entry[1]), *entry[2:]) for entry in gates_list)

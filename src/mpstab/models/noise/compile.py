@@ -19,15 +19,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
-import stim
 from qibo import gates
 
-from mpstab.engines import StimEngine
-from mpstab.engines.stabilizers.stim import gate_instruction
-from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.models.noise.events import (
     CoherentRotation,
@@ -39,10 +35,12 @@ from mpstab.pauli import (
     _anticommuting,
     _symplectic,
     anticommutation,
-    conjugate,
-    light_cone,
+    pauli_light_cone,
     validate_pauli_string,
 )
+
+if TYPE_CHECKING:
+    from mpstab.evolutors.hsmpo import HSMPO
 
 
 @dataclass
@@ -58,49 +56,37 @@ class CompiledNoise:
     is a pair of distinct Paulis with a nonzero off-diagonal entry, stored
     once for the pair. Both are stored in location order.
 
-    Attributes
-    ----------
-    hsmpo : HSMPO
-        The surrogate supplying the engines and the initial MPS. It is only
-        read from, never modified.
-    generators : list of str
-        Dressed generators of the rotation chain: the magic gates and the
-        coherent rotations, in circuit order.
-    angles : numpy.ndarray
-        Signed angle of each rotation, shape ``(R,)``.
-    inverse_tableau : stim.Tableau
-        ``U^dag`` for the full Clifford circuit ``U``, which dresses observables.
-    fault_paulis : list of str
-        Dressed Pauli of each fault, unsigned, length ``F``.
-    fault_probs : numpy.ndarray
-        Probability of each fault, shape ``(F,)``.
-    fault_location : numpy.ndarray
-        Location index of each fault, shape ``(F,)``, nondecreasing.
-    location_probs : numpy.ndarray
-        Probability that each location faults at all, shape ``(L,)``.
-    flips : numpy.ndarray
-        Boolean ``(F, R)`` matrix, ``True`` where a fault flips the sign of a
-        rotation's angle.
-    coherence_ket, coherence_bra : list of str
-        Dressed Paulis ``A'`` and ``B'`` of each coherence, unsigned, length
-        ``C``; the identity string where one of them is the identity.
-    coherence_weights : numpy.ndarray
-        Complex ``chi[A, B]`` of each coherence, times the dressing signs of
-        ``A'`` and ``B'``, shape ``(C,)``. The pair ``(B, A)`` has the conjugate
-        weight.
-    coherence_location : numpy.ndarray
-        Location index of each coherence, shape ``(C,)``, nondecreasing.
-    ket_flips, bra_flips : numpy.ndarray
-        Boolean ``(C, R)`` matrices: the rotations ``A'`` and ``B'`` flip.
-    location_position : numpy.ndarray
-        Rotations applied before each location, shape ``(L,)``,
-        nondecreasing.
+    Attributes:
+        hsmpo: the surrogate supplying the engines and the initial MPS. It is
+            only read from, never modified.
+        generators: dressed generators of the rotation chain: the magic gates
+            and the coherent rotations, in circuit order.
+        angles: signed angle of each rotation, shape ``(R,)``.
+        fault_paulis: dressed Pauli of each fault, unsigned, length ``F``.
+        fault_probs: probability of each fault, shape ``(F,)``.
+        fault_location: location index of each fault, shape ``(F,)``,
+            nondecreasing.
+        location_probs: probability that each location faults at all, shape
+            ``(L,)``.
+        flips: boolean ``(F, R)`` matrix, ``True`` where a fault flips the sign
+            of a rotation's angle.
+        coherence_ket: dressed Pauli ``A'`` of each coherence, unsigned, length
+            ``C``; the identity string where ``A`` is the identity.
+        coherence_bra: dressed Pauli ``B'`` of each coherence, likewise.
+        coherence_weights: complex ``chi[A, B]`` of each coherence, times the
+            dressing signs of ``A'`` and ``B'``, shape ``(C,)``. The pair
+            ``(B, A)`` has the conjugate weight.
+        coherence_location: location index of each coherence, shape ``(C,)``,
+            nondecreasing.
+        ket_flips: boolean ``(C, R)`` matrix: the rotations ``A'`` flips.
+        bra_flips: boolean ``(C, R)`` matrix: the rotations ``B'`` flips.
+        location_position: rotations applied before each location, shape
+            ``(L,)``, nondecreasing.
     """
 
     hsmpo: HSMPO
     generators: list[str]
     angles: np.ndarray
-    inverse_tableau: stim.Tableau
     fault_paulis: list[str]
     fault_probs: np.ndarray
     fault_location: np.ndarray
@@ -123,6 +109,7 @@ class CompiledNoise:
 
     @property
     def nqubits(self) -> int:
+        """Width of the circuit."""
         return self.hsmpo.nqubits
 
     @property
@@ -141,31 +128,30 @@ class CompiledNoise:
         """
         Dress a Pauli observable with the full Clifford circuit.
 
-        Parameters
-        ----------
-        pauli : str
-            Full-width Pauli string.
+        Args:
+            pauli: full-width Pauli string.
 
-        Returns
-        -------
-        (str, int)
+        Returns:
             The dressed string and its sign, as
-            :meth:`~mpstab.engines.StimEngine.backpropagate` returns them.
+            :meth:`~mpstab.engines.StabilizersEngine.backpropagate` returns them.
         """
-        return conjugate(pauli, self.inverse_tableau)
+        return self.dress_observables([pauli])[0]
+
+    def dress_observables(self, paulis: Sequence[str]) -> list:
+        """:meth:`dress_observable` for many terms, sharing the engine's work."""
+        return self.hsmpo.stab_engine.backpropagate_many(
+            list(paulis), self.hsmpo.clifford_circuit
+        )
 
     def observable_flips(self, dressed_paulis: Sequence[str]) -> np.ndarray:
         """
         Which faults flip the sign of each dressed observable term.
 
-        Parameters
-        ----------
-        dressed_paulis : sequence of str
-            Dressed observable terms, from :meth:`dress_observable`.
+        Args:
+            dressed_paulis: dressed observable terms, from
+                :meth:`dress_observable`.
 
-        Returns
-        -------
-        numpy.ndarray
+        Returns:
             Boolean ``(F, len(dressed_paulis))`` matrix.
         """
         return anticommutation(self.fault_paulis, list(dressed_paulis), self.nqubits)
@@ -174,9 +160,10 @@ class CompiledNoise:
         """
         The same noisy circuit, reduced to what can affect an observable.
 
-        Rotations outside the light cone (:func:`~mpstab.pauli.light_cone`)
-        of the observable are dropped. A fault that then flips no remaining
-        rotation and commutes with the observable terms leaves every
+        Rotations outside the observable's light cone
+        (:func:`~mpstab.pauli.pauli_light_cone`) are dropped. A fault that then
+        flips no remaining rotation and commutes with the observable terms
+        leaves every
         expectation value unchanged, so it is folded into its location's
         no-fault probability, and locations left with nothing are dropped.
 
@@ -187,21 +174,18 @@ class CompiledNoise:
         more rotations and locations; this is repeated until nothing changes.
         Every step is exact for this observable.
 
-        Parameters
-        ----------
-        dressed_paulis : sequence of str
-            Dressed observable terms, from :meth:`dress_observable`.
+        Args:
+            dressed_paulis: dressed observable terms, from
+                :meth:`dress_observable`.
 
-        Returns
-        -------
-        CompiledNoise
-            A new instance; this one is left untouched.
+        Returns:
+            A new :class:`CompiledNoise`; this one is left untouched.
         """
         dressed_paulis = list(dressed_paulis)
         if len(self.coherence_weights):
             kept, relevant, coherent = self._causal_cone(dressed_paulis)
         else:
-            kept = light_cone(self.generators, dressed_paulis, self.nqubits)
+            kept = pauli_light_cone(self.generators, dressed_paulis, self.nqubits)
             relevant = self.flips[:, kept].any(axis=1) | self.observable_flips(
                 dressed_paulis
             ).any(axis=1)
@@ -324,37 +308,29 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
     """
     Dress the noise events of a circuit with its Clifford frame.
 
-    One pass of a ``stim.TableauSimulator`` over the circuit dresses every magic
-    gate, coherent rotation and Pauli fault at its own position, and the flip
+    The stabilizers engine dresses every magic gate, coherent rotation and
+    Pauli fault with the Clifford gates before its own position, in one call
+    (:meth:`~mpstab.engines.StabilizersEngine.backpropagate_at`), and the flip
     matrix then follows from the symplectic form in one matrix product.
 
-    Parameters
-    ----------
-    hsmpo : HSMPO
-        Surrogate of the noiseless circuit. Its ``ansatz.circuit.queue`` is what
-        ``after_gate`` indexes. It may be built with
-        :meth:`~mpstab.HSMPO.rotations_only`.
-    events : sequence of NoiseEvent
-        The noise, as :class:`~mpstab.models.noise.events.PauliChannel`,
-        :class:`~mpstab.models.noise.events.CoherentRotation` and
-        :class:`~mpstab.models.noise.events.KrausChannel` events.
+    Args:
+        hsmpo: surrogate of the noiseless circuit. Its ``ansatz.circuit.queue``
+            is what ``after_gate`` indexes. It may be built with
+            :meth:`~mpstab.HSMPO.rotations_only`.
+        events: the noise, as :class:`~mpstab.models.noise.PauliChannel`,
+            :class:`~mpstab.models.noise.CoherentRotation` and
+            :class:`~mpstab.models.noise.events.KrausChannel` events.
 
-    Returns
-    -------
-    CompiledNoise
+    Returns:
+        The :class:`CompiledNoise`.
 
-    Raises
-    ------
-    NotImplementedError
-        On an event type this function does not know, or a stabilizers engine
-        other than :class:`~mpstab.engines.StimEngine`.
-    ValueError
-        On an ``after_gate`` outside the circuit, or an ansatz whose own
-        partitioning does not follow its circuit queue (``FloquetAnsatz``).
+    Raises:
+        NotImplementedError: on an event type this function does not know.
+        ValueError: on an ``after_gate`` outside the circuit, or an ansatz whose
+            own partitioning does not follow its circuit queue
+            (``FloquetAnsatz``).
 
-    Examples
-    --------
-    ::
+    Example::
 
         from qibo import Circuit, gates
         from mpstab import HSMPO
@@ -370,11 +346,6 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
         compiled = compile_noise(HSMPO(circuit), events)
         print(compiled.generators, compiled.flips)  # ['XI'] [[ True]]
     """
-    if not isinstance(hsmpo.stab_engine, StimEngine):
-        raise NotImplementedError(
-            "compile_noise requires StimEngine; call "
-            "set_engines(stab_engine=StimEngine()) first."
-        )
     nqubits = hsmpo.nqubits
     queue = hsmpo.ansatz.circuit.queue
 
@@ -394,27 +365,24 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
             validate_pauli_string(event.generator, nqubits)
         by_gate[event.after_gate].append(event)
 
-    simulator = stim.TableauSimulator()
-    simulator.do(stim.Circuit(f"I {nqubits - 1}"))
-
-    generators, angles = [], []
-    fault_paulis, fault_probs, fault_location, fault_position = [], [], [], []
+    # Everything to dress, as (pauli, number of Clifford gates before it).
+    to_dress, breakpoints = [], []
+    rotations = []  # (index into to_dress, angle), in chain order
+    faults = []  # (index into to_dress, probability, location, chain position)
+    coherences = []  # (ket index, bra index, weight, location, chain position)
     location_probs, location_position = [], []
-    coherences = []  # (ket, bra, weight, location, position)
     magic_gates = []
+    n_cliffords = 0
 
-    def add_rotation(generator: str, angle: float, inverse: stim.Tableau):
-        dressed, sign = conjugate(generator, inverse)
-        generators.append(dressed)
-        angles.append(sign * angle)
+    def dress(pauli: str) -> int:
+        to_dress.append(pauli)
+        breakpoints.append(n_cliffords)
+        return len(to_dress) - 1
 
     def add_events(index: int):
-        if index not in by_gate:
-            return
-        inverse = simulator.current_inverse_tableau()
-        for event in by_gate[index]:
+        for event in by_gate.get(index, ()):
             if isinstance(event, CoherentRotation):
-                add_rotation(event.generator, event.angle, inverse)
+                rotations.append((dress(event.generator), event.angle))
                 continue
             if isinstance(event, KrausChannel):
                 terms, pairs = _kraus_terms(event, nqubits)
@@ -425,41 +393,47 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
                 continue
             location = len(location_probs)
             for pauli, prob in terms:
-                fault_paulis.append(conjugate(pauli, inverse)[0])
-                fault_probs.append(prob)
-                fault_location.append(location)
-                fault_position.append(len(generators))
+                faults.append((dress(pauli), prob, location, len(rotations)))
             for a, b, weight in pairs:
-                ket, ket_sign = conjugate(a, inverse)
-                bra, bra_sign = conjugate(b, inverse)
-                weight *= ket_sign * bra_sign
-                coherences.append((ket, bra, weight, location, len(generators)))
+                coherences.append(
+                    (dress(a), dress(b), weight, location, len(rotations))
+                )
             location_probs.append(sum(prob for _, prob in terms))
-            location_position.append(len(generators))
+            location_position.append(len(rotations))
 
     add_events(-1)
     for index, gate in enumerate(queue):
         if not gate.clifford and not isinstance(gate, gates.M):
             magic_gates.append(gate)
-            add_rotation(
-                gate_generator(gate, nqubits),
-                gate_angle(gate),
-                simulator.current_inverse_tableau(),
-            )
+            rotations.append((dress(gate_generator(gate, nqubits)), gate_angle(gate)))
         else:
-            instruction = gate_instruction(gate)
-            if instruction is not None:
-                simulator.do(stim.Circuit(instruction))
+            n_cliffords += 1
         add_events(index)
 
     expected = [gate for _, gate in hsmpo.magic_gates]
-    if len(expected) != len(magic_gates) or any(
-        a is not b for a, b in zip(expected, magic_gates)
+    if (
+        len(expected) != len(magic_gates)
+        or any(a is not b for a, b in zip(expected, magic_gates))
+        or n_cliffords != len(hsmpo.clifford_circuit.queue)
     ):
         raise ValueError(
             f"{type(hsmpo.ansatz).__name__} partitions its circuit differently "
             "from its gate queue, so noise positions cannot be placed on it."
         )
+
+    dressed = hsmpo.stab_engine.backpropagate_at(
+        to_dress, breakpoints, hsmpo.clifford_circuit
+    )
+    generators = [dressed[i][0] for i, _ in rotations]
+    angles = [dressed[i][1] * angle for i, angle in rotations]
+    fault_paulis = [dressed[i][0] for i, _, _, _ in faults]
+    fault_position = [position for _, _, _, position in faults]
+    kets = [dressed[k][0] for k, _, _, _, _ in coherences]
+    bras = [dressed[b][0] for _, b, _, _, _ in coherences]
+    weights = [
+        weight * dressed[k][1] * dressed[b][1] for k, b, weight, _, _ in coherences
+    ]
+    coherence_position = [position for _, _, _, _, position in coherences]
 
     def later_flips(paulis, positions):
         flips = anticommutation(paulis, generators, nqubits)
@@ -468,25 +442,21 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
             np.array(positions, dtype=int)[:, None] <= np.arange(len(generators))
         )
 
-    columns = [list(c) for c in zip(*coherences)] or [[] for _ in range(5)]
-    kets, bras, weights, locations, positions = columns
-
     return CompiledNoise(
         hsmpo=hsmpo,
         generators=generators,
         angles=np.array(angles, dtype=float),
-        inverse_tableau=simulator.current_inverse_tableau(),
         fault_paulis=fault_paulis,
-        fault_probs=np.array(fault_probs, dtype=float),
-        fault_location=np.array(fault_location, dtype=int),
+        fault_probs=np.array([prob for _, prob, _, _ in faults], dtype=float),
+        fault_location=np.array([loc for _, _, loc, _ in faults], dtype=int),
         location_probs=np.array(location_probs, dtype=float),
         flips=later_flips(fault_paulis, fault_position),
         coherence_ket=kets,
         coherence_bra=bras,
         coherence_weights=np.array(weights, dtype=complex),
-        coherence_location=np.array(locations, dtype=int),
-        ket_flips=later_flips(kets, positions),
-        bra_flips=later_flips(bras, positions),
+        coherence_location=np.array([loc for _, _, _, loc, _ in coherences], dtype=int),
+        ket_flips=later_flips(kets, coherence_position),
+        bra_flips=later_flips(bras, coherence_position),
         location_position=np.array(location_position, dtype=int),
     )
 

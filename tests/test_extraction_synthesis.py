@@ -139,7 +139,9 @@ def test_resynthesize_head_method_selection():
     assert (
         hs.resynthesize_head(cut_index, synthesis="cnot_ladder").method == "cnot_ladder"
     )
-    assert hs.resynthesize_head(cut_index) is hs.resynthesize_head(cut_index)  # cached
+    first, second = hs.resynthesize_head(cut_index), hs.resynthesize_head(cut_index)
+    assert second.circuit.get_parameters() == first.circuit.get_parameters()
+    assert second.residual_tableau == first.residual_tableau
     with pytest.raises(ValueError, match="Unknown head synthesis"):
         hs.resynthesize_head(cut_index, synthesis="magic")
 

@@ -38,6 +38,7 @@ Among our core features:
    guides/qibo_backend_provider
    guides/working_with_engines
    guides/using_ansatze
+   guides/ansatze_catalogue
    guides/fidelity_and_approximation
    guides/rustiq_resynthesis
    guides/clifford_extraction_synthesis
@@ -53,6 +54,12 @@ Among our core features:
    api/error_mitigation
    api/pauli
    api/models
+
+.. toctree::
+   :maxdepth: 1
+   :caption: About
+
+   publications
 
 Indices and tables
 ==================

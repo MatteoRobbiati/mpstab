@@ -32,6 +32,7 @@ from mpstab.qpu import (
     estimate,
     execute_plan,
 )
+from mpstab.qpu.measurement.pauli import _antihermitian_norm
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
     count_two_qubit_gates,
@@ -560,8 +561,6 @@ def test_pauli_reports_the_bond_truncation():
 
 
 def test_antihermitian_norm():
-    from mpstab.qpu.measurement.pauli import _antihermitian_norm
-
     assert _antihermitian_norm({"XY": 0.5 - 3e-4j, "ZZ": -0.25 + 4e-4j}) == (
         pytest.approx(5e-4)
     )
