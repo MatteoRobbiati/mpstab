@@ -22,7 +22,7 @@ from mpstab.engines import (
 from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient, KickedIsing
 from mpstab.models.metrics import meyer_wallach_mps
-from mpstab.noise import DepolarizingError, NoiseModel
+from mpstab.models.noise import DepolarizingError, NoiseModel
 
 
 @pytest.mark.parametrize("observable", ["ZZZZZ", "ZZIXI", "XYIZX"])

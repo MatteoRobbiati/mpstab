@@ -1,12 +1,12 @@
-"""QiboSimulator simulates each state preparation once and only rotates it
+"""StatevectorExactSimulator simulates each state preparation once and only rotates it
 into each measurement basis: the outcome distribution must not change."""
 
 import numpy as np
 import pytest
 from qibo import Circuit, gates
 
-from mpstab.qpu.execution.simulator import (
-    QiboSimulator,
+from mpstab.qibo_tools.utilized_backends.statevector_exact_simulator import (
+    StatevectorExactSimulator,
     _measured_probabilities,
     _prepared_state,
     _split_basis_measurement,
@@ -77,7 +77,7 @@ def test_unsupported_circuits_run_as_they_are():
     density.add(gates.M(0))
     assert _split_basis_measurement(density) is None
 
-    results = QiboSimulator().execute_circuits(
+    results = StatevectorExactSimulator().execute_circuits(
         [noisy, _preparation() + basis_measurement("XXXX", N), density], 50
     )
     assert [sum(r.values()) for r in results] == [50, 50, 50]
@@ -87,6 +87,6 @@ def test_unsupported_circuits_run_as_they_are():
 
 def test_every_circuit_gets_its_own_samples():
     circuit = _preparation() + basis_measurement("XYZX", N)
-    results = QiboSimulator().execute_circuits([circuit] * 3, 1000)
+    results = StatevectorExactSimulator().execute_circuits([circuit] * 3, 1000)
     assert all(sum(r.values()) == 1000 for r in results)
     assert results[0] != results[1]  # independent draws

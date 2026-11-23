@@ -10,7 +10,12 @@ import numpy as np
 from qibo import Circuit, gates
 
 from mpstab.hamiltonians import pauli_terms
-from mpstab.noise.events import CoherentRotation, KrausChannel, NoiseEvent, PauliChannel
+from mpstab.models.noise.events import (
+    CoherentRotation,
+    KrausChannel,
+    NoiseEvent,
+    PauliChannel,
+)
 from mpstab.pauli import pauli_matrix, validate_pauli_string
 
 # -- Errors acting after gates ----------------------------------------------------
@@ -31,7 +36,7 @@ class PauliError:
 
     Example::
 
-        from mpstab.noise import PauliError
+        from mpstab import PauliError
 
         dephasing = PauliError({"Z": 0.01})
         correlated = PauliError({"ZZ": 0.005, "XX": 0.001})
@@ -79,7 +84,7 @@ class DepolarizingError:
 
     Example::
 
-        from mpstab.noise import DepolarizingError
+        from mpstab import DepolarizingError
 
         error = DepolarizingError(0.01)
     """
@@ -121,7 +126,7 @@ class CoherentError:
 
     Example::
 
-        from mpstab.noise import CoherentError
+        from mpstab import CoherentError
 
         residual_zz = CoherentError("ZZ", 0.02)
         over_rotation = CoherentError("X", 0.01)
@@ -165,7 +170,7 @@ class KrausError:
     the gate act jointly on its qubits, the first of them the most significant
     factor, as in qibo. The channel is split into its Pauli twirl, sampled as
     Pauli faults, and the off-diagonal part of its process matrix, evaluated
-    as transition amplitudes (:class:`~mpstab.noise.events.KrausChannel`).
+    as transition amplitudes (:class:`~mpstab.models.noise.events.KrausChannel`).
 
     Attributes:
         operators: the Kraus operators, each ``2**k x 2**k``.
@@ -174,7 +179,7 @@ class KrausError:
 
         # A phase-damping channel.
         import numpy as np
-        from mpstab.noise import KrausError
+        from mpstab import KrausError
 
         lam = 0.05
         phase_damping = KrausError([
@@ -219,7 +224,7 @@ class AmplitudeDampingError:
 
     Example::
 
-        from mpstab.noise import AmplitudeDampingError
+        from mpstab import AmplitudeDampingError
 
         t1 = AmplitudeDampingError(0.01)
     """
@@ -269,7 +274,7 @@ class ThermalRelaxationError:
 
     Example::
 
-        from mpstab.noise import ThermalRelaxationError
+        from mpstab import ThermalRelaxationError
 
         idle = ThermalRelaxationError(t1=100e-6, t2=80e-6, time=50e-9)
     """
@@ -348,7 +353,7 @@ class ReadoutError:
 
     Example::
 
-        from mpstab.noise import NoiseModel, ReadoutError
+        from mpstab import NoiseModel, ReadoutError
 
         noise = NoiseModel()
         noise.add(ReadoutError(0.02))                    # every qubit
@@ -381,7 +386,7 @@ class StatePreparationError:
 
     Example::
 
-        from mpstab.noise import NoiseModel, StatePreparationError
+        from mpstab import NoiseModel, StatePreparationError
 
         noise = NoiseModel().add(StatePreparationError(0.01))
     """
@@ -632,15 +637,15 @@ class NoiseModel:
     Example::
 
         from qibo import gates
-        from mpstab import HSMPO
-        from mpstab.models.ansatze import KickedIsing
-        from mpstab.noise import (
+        from mpstab import (
+            HSMPO,
             AmplitudeDampingError,
             CoherentError,
             DepolarizingError,
             NoiseModel,
             PauliError,
         )
+        from mpstab.models.ansatze import KickedIsing
 
         chain = [(0, 1), (1, 2), (2, 3)]
         noise = NoiseModel()

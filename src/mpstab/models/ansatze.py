@@ -60,7 +60,10 @@ class Ansatz(ABC):
         return len(self.circuit.get_parameters())
 
     def partitionate_circuit(
-        self, replacement_probability: float = 0.0, replacement_method: str = "closest"
+        self,
+        replacement_probability: float = 0.0,
+        replacement_method: str = "closest",
+        rng: Optional[random.Random] = None,
     ):
         """
         Split the circuit into a Clifford part and the magic gates left over.
@@ -74,6 +77,8 @@ class Ansatz(ABC):
             replacement_probability: chance of replacing each non-Clifford gate.
                 The default 0 keeps every non-Clifford gate as magic.
             replacement_method: ``"closest"`` or ``"random"`` Clifford angle.
+            rng: source of the replacement draws, such as a seeded
+                ``random.Random``. Defaults to the global ``random`` module.
 
         Returns:
             ``((magic_gates, clifford_circuit), full_circuit)``, where
@@ -81,22 +86,23 @@ class Ansatz(ABC):
             ``full_circuit`` is the sampled circuit including its magic gates.
         """
         return self._partition(
-            self.circuit.queue, replacement_probability, replacement_method
+            self.circuit.queue, replacement_probability, replacement_method, rng
         )
 
-    def _partition(self, queue, replacement_probability, replacement_method):
+    def _partition(self, queue, replacement_probability, replacement_method, rng=None):
         """:meth:`partitionate_circuit` over any gate sequence."""
+        rng = random if rng is None else rng
         magic_gates = []
         clifford_circuit = Circuit(self.nqubits)
         full_circuit = Circuit(self.nqubits)
 
         for gate in queue:
             if not gate.clifford and not isinstance(gate, gates.M):
-                if random.random() > replacement_probability:
+                if rng.random() > replacement_probability:
                     magic_gates.append((len(clifford_circuit.queue), gate))
                     full_circuit.add(gate)
                     continue
-                gate = replace_non_clifford_gate(gate, replacement_method)
+                gate = replace_non_clifford_gate(gate, replacement_method, rng=rng)
             clifford_circuit.add(gate)
             full_circuit.add(gate)
 
@@ -633,7 +639,10 @@ class FloquetAnsatz(Ansatz):
         return layer
 
     def partitionate_circuit(
-        self, replacement_probability: float = 0.0, replacement_method: str = "closest"
+        self,
+        replacement_probability: float = 0.0,
+        replacement_method: str = "closest",
+        rng: Optional[random.Random] = None,
     ):
         """
         Partitionate the full Floquet circuit U = H · half_sandwich · RZ · (half_sandwich)†,
@@ -654,6 +663,7 @@ class FloquetAnsatz(Ansatz):
             deepcopy(self.half_sandwich).queue,
             replacement_probability,
             replacement_method,
+            rng,
         )
 
         # shift each local_bp by +1 to account for the leading H at index 0

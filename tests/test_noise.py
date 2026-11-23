@@ -1,4 +1,4 @@
-"""Tests for mpstab.noise: Pauli, coherent and Kraus noise in the HSMPO frame."""
+"""Tests for mpstab.models.noise: Pauli, coherent and Kraus noise in the HSMPO frame."""
 
 import inspect
 import textwrap
@@ -8,11 +8,11 @@ import pytest
 import stim
 from qibo import Circuit, gates
 
-import mpstab.noise
+import mpstab.models.noise
 from mpstab import HSMPO
 from mpstab.engines import QuimbEngine
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
-from mpstab.noise import (
+from mpstab.models.noise import (
     AmplitudeDampingError,
     CoherentError,
     DepolarizingError,
@@ -23,10 +23,15 @@ from mpstab.noise import (
     StatePreparationError,
     ThermalRelaxationError,
 )
-from mpstab.noise.compile import compile_noise
-from mpstab.noise.events import CoherentRotation, KrausChannel, NoiseEvent, PauliChannel
-from mpstab.noise.mc_noise_estimator import noisy_expectation
-from mpstab.noise.model import _qibo_gate
+from mpstab.models.noise.compile import compile_noise
+from mpstab.models.noise.events import (
+    CoherentRotation,
+    KrausChannel,
+    NoiseEvent,
+    PauliChannel,
+)
+from mpstab.models.noise.mc_noise_estimator import noisy_expectation
+from mpstab.models.noise.model import _qibo_gate
 from mpstab.pauli import anticommutation, pauli_light_cone, pauli_matrix
 
 OBSERVABLE = {"ZZIII": 0.7, "IXIXI": -0.4, "IIYZI": 0.3}
@@ -386,9 +391,11 @@ def test_two_qubit_rotations_replaced_by_cliffords():
 
 
 def _docstring_examples():
-    """Every ``::`` literal block in the docstrings of mpstab.noise."""
+    """Every ``::`` literal block in the docstrings of mpstab.models.noise."""
     blocks = []
-    objects = [getattr(mpstab.noise, name) for name in mpstab.noise.__all__]
+    objects = [
+        getattr(mpstab.models.noise, name) for name in mpstab.models.noise.__all__
+    ]
     objects += [compile_noise, noisy_expectation]
     objects += [PauliChannel, CoherentRotation, KrausChannel]
     objects += [anticommutation, pauli_light_cone]

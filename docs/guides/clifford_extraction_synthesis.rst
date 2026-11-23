@@ -77,7 +77,7 @@ Usage
 
 .. code-block:: python
 
-    from mpstab.evolutors.hqsmpo import HQSMPO
+    from mpstab import HQSMPO
     from mpstab.models.ansatze import ParametricKickedIsing
     from mpstab.qpu import ExtractionSynthesis, PauliSampling
 

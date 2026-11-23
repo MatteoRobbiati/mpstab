@@ -49,7 +49,7 @@ def get_closest_angle(old_angle, candidates):
     return candidates[np.argmin(differences)]
 
 
-def replace_non_clifford_gate(gate, replacement_method, candidates=None):
+def replace_non_clifford_gate(gate, replacement_method, candidates=None, rng=None):
     """
     Replace a non-Clifford RX/RY/RZ, RXX/RYY/RZZ or GPI2 gate with a Clifford one.
 
@@ -58,6 +58,8 @@ def replace_non_clifford_gate(gate, replacement_method, candidates=None):
         replacement_method: ``"closest"`` Clifford angle, or a ``"random"`` one.
         candidates: the Clifford angles to choose from. Defaults to the
             multiples of pi/2 legal for the gate.
+        rng: source of the ``"random"`` draw, such as a seeded
+            ``random.Random``. Defaults to the global ``random`` module.
     """
     if candidates is None:
         if gate.name in _PAULI_ROTATIONS:
@@ -70,7 +72,7 @@ def replace_non_clifford_gate(gate, replacement_method, candidates=None):
             )
 
     if replacement_method == "random":
-        new_angle = random.choice(candidates)
+        new_angle = (random if rng is None else rng).choice(candidates)
     elif replacement_method == "closest":
         new_angle = get_closest_angle(gate.parameters[0], candidates)
     else:

@@ -25,13 +25,8 @@ from qibo.symbols import X, Z
 
 from mpstab.evolutors.hqsmpo import HQSMPO, ExpectationResult, ResynthesizedHead
 from mpstab.models.ansatze import HardwareEfficient
-from mpstab.qpu import (
-    ClassicalShadows,
-    PauliSampling,
-    QiboSimulator,
-    estimate,
-    execute_plan,
-)
+from mpstab.qibo_tools import StatevectorExactSimulator
+from mpstab.qpu import ClassicalShadows, PauliSampling, estimate, run_plan
 from mpstab.qpu.measurement.pauli import _antihermitian_norm
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
@@ -167,7 +162,7 @@ def test_unknown_method_raises():
 
 
 # ---------------------------------------------------------------------------
-# Staged pipeline: plan -> execute_plan -> estimate
+# Staged pipeline: plan -> run_plan -> estimate
 # ---------------------------------------------------------------------------
 
 
@@ -208,7 +203,7 @@ def test_staged_pipeline_matches_expectation_at_cut(method, xy_observable):
         seed=3,
         out_folder=False,
     )
-    frequencies = execute_plan(QiboSimulator(), plan)
+    frequencies = run_plan(plan, StatevectorExactSimulator())
     staged = estimate(plan, frequencies)
 
     assert staged.value == pytest.approx(one_call.value, abs=1e-12)
@@ -451,7 +446,7 @@ def test_bare_object_with_execute_circuits_works_as_backend():
     assert result.n_shots > 0
 
 
-def test_execute_plan_rejects_a_backend_that_drops_results():
+def test_run_plan_rejects_a_backend_that_drops_results():
     class DroppingBackend:
         def execute_circuits(self, circuits, nshots):
             return [circuit(nshots=nshots).frequencies() for circuit in circuits[1:]]
@@ -459,7 +454,7 @@ def test_execute_plan_rejects_a_backend_that_drops_results():
     hs = _hs(4)
     plan = hs.plan("ZZZZ", 2, method="shadows", n_shots=20, seed=0, out_folder=False)
     with pytest.raises(ValueError, match="DroppingBackend"):
-        execute_plan(DroppingBackend(), plan)
+        run_plan(plan, DroppingBackend())
 
 
 # ---------------------------------------------------------------------------
@@ -495,7 +490,9 @@ def test_epsilon_sizes_a_nonzero_shot_budget():
 def test_no_orphan_imports_of_deleted_modules():
 
     src = pathlib.Path(__file__).resolve().parents[1] / "src"
-    forbidden = ("mpstab.measurements", "mpstab.models.noise", "models.noise")
+    # mpstab.models.noise was a qibo-noise layer, deleted; the name now holds
+    # the HSMPO noise package, so only mpstab.measurements stays forbidden.
+    forbidden = ("mpstab.measurements",)
     offenders = [
         (str(path), token)
         for path in src.rglob("*.py")

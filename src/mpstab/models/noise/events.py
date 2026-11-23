@@ -21,7 +21,7 @@ class NoiseEvent:
     """
     Base class of every noise event.
 
-    :func:`~mpstab.noise.compile_noise` dispatches on the concrete type and
+    :func:`~mpstab.models.noise.compile_noise` dispatches on the concrete type and
     rejects any it does not know: a new kind of event is added as a subclass
     plus a branch there.
 
@@ -52,7 +52,7 @@ class PauliChannel(NoiseEvent):
     Example:
         A correlated two-qubit channel after the first gate::
 
-            from mpstab.noise.events import PauliChannel
+            from mpstab.models.noise.events import PauliChannel
 
             channel = PauliChannel(after_gate=0, qubits=(0, 1), probs={"ZZ": 0.01, "XI": 0.002})
             print(channel.no_fault_probability)
@@ -128,7 +128,7 @@ class CoherentRotation(NoiseEvent):
     Example:
         ZZ crosstalk between qubits 1 and 2 of a 4-qubit circuit, after gate 3::
 
-            from mpstab.noise.events import CoherentRotation
+            from mpstab.models.noise.events import CoherentRotation
 
             crosstalk = CoherentRotation(after_gate=3, generator="IZZI", angle=0.02)
     """
@@ -164,7 +164,7 @@ class KrausChannel(NoiseEvent):
 
         # Amplitude damping of qubit 0 after the first gate.
         import numpy as np
-        from mpstab.noise.events import KrausChannel
+        from mpstab.models.noise.events import KrausChannel
 
         gamma = 0.05
         damping = KrausChannel(

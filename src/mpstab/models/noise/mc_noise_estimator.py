@@ -1,7 +1,7 @@
 """Noisy expectation values as averages over sign patterns of the rotation chain.
 
 Every set of faults maps to a sign pattern over the dressed rotations and the
-observable terms (:mod:`mpstab.noise.compile`), so the noisy expectation value
+observable terms (:mod:`mpstab.models.noise.compile`), so the noisy expectation value
 of Pauli noise is a probability-weighted average of noiseless HSMPO
 expectation values with some angles negated. A coherence ``(A, B)`` of a
 non-Pauli channel flips the ket's and the bra's angles differently, and
@@ -23,7 +23,7 @@ quasi-probability, whose total exceeds 1 by about their summed ``|chi|``.
 
 Before any of this, the circuit is restricted to the light cone of the
 observable and the coherences
-(:meth:`~mpstab.noise.CompiledNoise.restricted_to`): rotations that cannot
+(:meth:`~mpstab.models.noise.CompiledNoise.restricted_to`): rotations that cannot
 affect them are dropped, and so are faults that then do nothing. Patterns are
 deduplicated, then evaluated in lexicographic order, each one restarting from
 the MPS checkpoint before its first rotation that differs from the previous
@@ -40,7 +40,7 @@ import numpy as np
 import stim
 
 from mpstab.hamiltonians import Observable, pauli_terms
-from mpstab.noise.compile import CompiledNoise
+from mpstab.models.noise.compile import CompiledNoise
 
 
 @dataclass
@@ -88,7 +88,7 @@ def noisy_expectation(
     Expectation value of ``observable`` on the noisy circuit.
 
     Args:
-        compiled: the noisy circuit, from :func:`~mpstab.noise.compile_noise`.
+        compiled: the noisy circuit, from :func:`~mpstab.models.noise.compile_noise`.
         observable: a Pauli string or any other format
             :func:`~mpstab.hamiltonians.pauli_terms` accepts.
         n_samples: configurations to sample for the ``k >= 2`` stratum. With
@@ -113,9 +113,9 @@ def noisy_expectation(
 
         from qibo import Circuit, gates
         from mpstab import HSMPO
-        from mpstab.noise.compile import compile_noise
-        from mpstab.noise.mc_noise_estimator import noisy_expectation
-        from mpstab.noise.events import PauliChannel
+        from mpstab.models.noise.compile import compile_noise
+        from mpstab.models.noise.mc_noise_estimator import noisy_expectation
+        from mpstab.models.noise.events import PauliChannel
 
         circuit = Circuit(2)
         circuit.add(gates.RY(0, theta=0.4))

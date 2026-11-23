@@ -26,9 +26,9 @@ Among our core features:
 
 .. toctree::
    :maxdepth: 2
-   :caption: Examples
+   :caption: Tutorials
 
-   examples/index
+   tutorials/index
 
 .. toctree::
    :maxdepth: 2
@@ -51,7 +51,9 @@ Among our core features:
    api/engines
    api/qpu
    api/noise
+   api/error_mitigation
    api/pauli
+   api/qibo_tools
    api/models
 
 .. toctree::

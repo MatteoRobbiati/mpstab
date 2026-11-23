@@ -18,8 +18,8 @@ from mpstab.evolutors.optimization import minimize_expectation_dmrg
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
-from mpstab.noise.compile import compile_noise
-from mpstab.noise.mc_noise_estimator import noisy_expectation
+from mpstab.models.noise.compile import compile_noise
+from mpstab.models.noise.mc_noise_estimator import noisy_expectation
 from mpstab.pauli import conjugate, pauli_light_cone
 
 
@@ -263,7 +263,7 @@ class HSMPO:
         Args:
             observable: a Pauli string or any other format
                 :func:`~mpstab.hamiltonians.pauli_terms` accepts.
-            noise: a :class:`~mpstab.noise.NoiseModel`.
+            noise: a :class:`~mpstab.models.noise.NoiseModel`.
             n_samples: fault configurations sampled for two or more faults. With
                 ``0`` that stratum is dropped, biasing the mean by at most
                 ``stratum_weights[2]`` times the sum of the absolute coefficients.
@@ -273,7 +273,7 @@ class HSMPO:
                 second to start, so use it for large runs.
 
         Returns:
-            :class:`~mpstab.noise.NoisyExpectation`, with the value in ``mean``
+            :class:`~mpstab.models.noise.NoisyExpectation`, with the value in ``mean``
             and its standard error in ``stderr``.
         """
         constant, terms = noise.readout_observable(observable, self.nqubits)
