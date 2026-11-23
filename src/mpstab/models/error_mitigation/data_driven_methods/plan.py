@@ -231,7 +231,8 @@ class VnCDRMitigation:
             evenly. ``1`` keeps the first candidates.
         training_settings: settings each training circuit measures, drawn
             without replacement by the size of their noiseless contribution
-            to it; ``None`` measures all of them, like the target.
+            to it; ``None`` measures all of them with a nonzero contribution,
+            or every setting of a circuit where all contributions vanish.
         training_shots: shots per training circuit and noise level, split over
             its settings.
         calibrate_measurement: calibrate the measurement layer, attenuation
@@ -408,17 +409,29 @@ class VnCDRMitigation:
     def _training_settings(self, target, group_exact, rng) -> list:
         """
         ``(group, shots)`` of each training circuit's measurements: every
-        setting with Neyman shots, or ``training_settings`` settings drawn
-        without replacement by the size of their noiseless contribution to
-        that circuit, sharing ``training_shots`` evenly.
+        setting with a nonzero noiseless contribution to that circuit, with
+        ``training_shots`` split over them by Neyman allocation, or
+        ``training_settings`` such settings drawn without replacement by the
+        size of their contribution, sharing ``training_shots`` evenly. A
+        setting contributing nothing carries no information about the map.
+        A circuit whose settings all contribute nothing measures every
+        setting, with Neyman shots or drawn uniformly.
         """
         groups, coefficients = target.recombination
-        n = self.n_training_circuits
         if self.training_settings is None or self.training_settings >= len(groups):
-            shots = allocate_shots_by_variance(
-                PauliMeasurementPlan(groups, coefficients), self.training_shots
-            )
-            return [list(enumerate(shots))] * n
+            draws = []
+            for contribution in np.abs(group_exact):
+                informative = np.flatnonzero(contribution > 1e-12)
+                if len(informative) == 0:
+                    informative = np.arange(len(groups))
+                shots = allocate_shots_by_variance(
+                    PauliMeasurementPlan(
+                        tuple(groups[g] for g in informative), coefficients
+                    ),
+                    self.training_shots,
+                )
+                draws.append([(int(g), int(n)) for g, n in zip(informative, shots)])
+            return draws
         draws = []
         for contribution in np.abs(group_exact):
             informative = np.flatnonzero(contribution > 1e-12)

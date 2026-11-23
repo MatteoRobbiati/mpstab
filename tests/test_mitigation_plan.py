@@ -55,7 +55,10 @@ def test_plan_layout(model):
     n_settings = len(plan.target.circuits)
     kinds = [m.kind for m in plan.measurements]
     assert kinds.count("target") == 2 * n_settings
-    assert kinds.count("training") == 5 * 2 * 2
+    # Each training circuit measures its settings of nonzero noiseless value.
+    informative = (np.abs(plan.training_group_exact) > 1e-12).sum(axis=1)
+    assert n_settings <= 2
+    assert kinds.count("training") == 2 * sum(k or n_settings for k in informative)
     assert kinds.count("calibration") == 6
     assert len(plan.circuits) == len(plan.shots) == len(plan.measurements)
     assert plan.circuits[:n_settings] == plan.target.circuits
@@ -125,6 +128,32 @@ def test_training_settings_are_informative_and_distinct(model):
         ]
         assert len(drawn) == len(set(drawn)) <= 2
         assert all(abs(plan.training_group_exact[i, g]) > 1e-12 for g in drawn)
+
+
+def test_all_settings_skip_zero_contributions(model):
+    mitigation = VnCDRMitigation(
+        noise_levels=(1, 3),
+        n_training_circuits=8,
+        replacement_method="random",
+        training_settings=None,
+        training_shots=1000,
+    )
+    plan = mitigation.build_plan(model, HAMILTONIAN, _cut(model), n_shots=2000, seed=0)
+    informative = np.abs(plan.training_group_exact) > 1e-12
+    # Some training circuits have settings worth nothing, else this tests nothing.
+    assert not informative.all()
+    for i in range(8):
+        for level in plan.noise_levels:
+            draws = [
+                (m.group, n)
+                for m, n in zip(plan.measurements, plan.shots)
+                if m.kind == "training" and m.level == level and m.training_index == i
+            ]
+            assert sum(n for _, n in draws) == mitigation.training_shots
+            if informative[i].any():
+                assert sorted(g for g, _ in draws) == list(
+                    np.flatnonzero(informative[i])
+                )
 
 
 def test_pooled_fit_uses_one_point_per_circuit_and_setting(model):
