@@ -47,18 +47,35 @@ class DensityMatrixNoiseSimulator:
                 "DensityMatrixNoiseSimulator runs circuits ending in one "
                 "measurement layer, as measurement plans build them."
             )
-        key = _circuit_key(circuit)
+        preparation, basis, measured = split
+        by_gate = self._events_by_gate(circuit.nqubits, preparation, basis)
+        # NoiseModel.add mutates the model in place: key on its events too.
+        events = tuple(
+            repr(event) for index in sorted(by_gate) for event in by_gate[index]
+        )
+        key = (_circuit_key(circuit), events)
         if key not in self._probabilities:
-            self._probabilities[key] = self._outcome_probabilities(circuit, *split)
+            self._probabilities[key] = self._outcome_probabilities(
+                circuit, preparation, basis, measured, by_gate
+            )
         probabilities = self._probabilities[key]
-        measured = split[2]
 
         outcomes = self.rng.choice(len(probabilities), size=nshots, p=probabilities)
         bits = (outcomes[:, None] >> np.arange(len(measured))[::-1]) & 1
         bits = self._readout(bits, measured)
         return Counter("".join(map(str, row)) for row in bits)
 
-    def _outcome_probabilities(self, circuit, preparation, basis, measured):
+    def _events_by_gate(self, nqubits: int, preparation, basis) -> dict:
+        """The noise events of the whole circuit, grouped by the gate they follow."""
+        unitary = Circuit(nqubits)
+        for gate in (*preparation, *basis):
+            unitary.add(gate)
+        by_gate: dict = {}
+        for event in self.noise.events(unitary):
+            by_gate.setdefault(event.after_gate, []).append(event)
+        return by_gate
+
+    def _outcome_probabilities(self, circuit, preparation, basis, measured, by_gate):
         """
         The noisy state is built in two steps, the preparation and then the
         basis rotations, so that plan circuits sharing a preparation simulate
@@ -68,12 +85,6 @@ class DensityMatrixNoiseSimulator:
         from mpstab.models.noise.model import _qibo_gate
 
         nqubits = circuit.nqubits
-        unitary = Circuit(nqubits)
-        for gate in (*preparation, *basis):
-            unitary.add(gate)
-        by_gate: dict = {}
-        for event in self.noise.events(unitary):
-            by_gate.setdefault(event.after_gate, []).append(event)
         split = len(preparation)
 
         prepared_events = tuple(

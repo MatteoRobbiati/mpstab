@@ -209,6 +209,42 @@ def test_noisy_simulator_without_noise_matches_the_state():
     assert parity / 200000 == pytest.approx(exact, abs=0.01)
 
 
+def test_noisy_simulator_follows_a_mutated_noise_model():
+    circuit = Circuit(1)
+    circuit.add(gates.X(0))
+    circuit.add(gates.M(0))
+    nshots = 2000
+    noise = NoiseModel()
+    simulator = DensityMatrixNoiseSimulator(noise, seed=0)
+    (noiseless,) = simulator.execute_circuits([circuit], nshots)
+    assert noiseless == {"1": nshots}
+    # NoiseModel.add mutates the model the simulator holds.
+    noise.add(DepolarizingError(0.5))
+    (mutated,) = simulator.execute_circuits([circuit], nshots)
+    (fresh,) = DensityMatrixNoiseSimulator(noise, seed=1).execute_circuits(
+        [circuit], nshots
+    )
+    # Binomial counts: the difference of two runs has std sqrt(2 n p (1 - p)).
+    ones = fresh["1"] / nshots
+    sigma = np.sqrt(2 * nshots * ones * (1 - ones))
+    assert abs(mutated["1"] - fresh["1"]) < 4 * sigma
+    assert mutated["0"] > 0
+
+
+def test_noisy_simulator_reuses_probabilities_of_an_unchanged_model():
+    circuit = Circuit(2)
+    circuit.add(gates.H(0))
+    circuit.add(gates.CNOT(0, 1))
+    circuit.add(gates.M(0, 1))
+    simulator = DensityMatrixNoiseSimulator(
+        NoiseModel().add(DepolarizingError(0.1)), seed=0
+    )
+    for _ in range(3):
+        simulator.execute_circuits([circuit], 100)
+    assert len(simulator._probabilities) == 1
+    assert len(simulator._states) == 1
+
+
 @pytest.mark.parametrize("gate", [gates.SX, gates.SXDG])
 def test_hsmpo_runs_sqrt_x_gates(gate):
     circuit = Circuit(2)
