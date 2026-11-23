@@ -746,8 +746,10 @@
 <span class="sd">        :func:`_resynthesize`), so repeated calls at the same cut, e.g. from</span>
 <span class="sd">        :meth:`expectation_at_cut` for several observables or methods,</span>
 <span class="sd">        resynthesise once, while new parameters give new rotations and hence a</span>
-<span class="sd">        fresh resynthesis. The returned head is shared between those calls:</span>
-<span class="sd">        don&#39;t modify its ``circuit`` or ``residual_tableau`` in place.</span>
+<span class="sd">        fresh resynthesis. Only an immutable description of the head is</span>
+<span class="sd">        cached: every call returns a fresh ``circuit`` and its own copy of the</span>
+<span class="sd">        ``residual_tableau``, so modifying them, or a plan circuit sharing</span>
+<span class="sd">        their gates, never reaches a later call.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            cut_index: the split point.</span>
@@ -771,7 +773,16 @@
             <span class="n">relevant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relevant_rotations</span><span class="p">(</span><span class="n">observable</span><span class="p">)</span>
             <span class="n">dressed</span> <span class="o">=</span> <span class="p">[</span><span class="n">dressed</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">relevant</span> <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">cut_index</span><span class="p">]</span>
         <span class="n">rotations</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">generator</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">angle</span><span class="p">))</span> <span class="k">for</span> <span class="n">generator</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">dressed</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">_resynthesize</span><span class="p">(</span><span class="n">rotations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">synthesis</span><span class="p">)</span></div>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">_resynthesize</span><span class="p">(</span><span class="n">rotations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">synthesis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ResynthesizedHead</span><span class="p">(</span>
+            <span class="n">circuit</span><span class="o">=</span><span class="n">head_to_qibo_circuit</span><span class="p">(</span><span class="n">cached</span><span class="o">.</span><span class="n">head</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">),</span>
+            <span class="n">residual_tableau</span><span class="o">=</span><span class="n">cached</span><span class="o">.</span><span class="n">residual_tableau</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+            <span class="n">residual_gates</span><span class="o">=</span><span class="n">cached</span><span class="o">.</span><span class="n">residual_gates</span><span class="p">,</span>
+            <span class="n">n_gates</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">cached</span><span class="o">.</span><span class="n">head</span><span class="p">),</span>
+            <span class="n">n_two_qubit_gates</span><span class="o">=</span><span class="n">cached</span><span class="o">.</span><span class="n">n_two_qubit_gates</span><span class="p">,</span>
+            <span class="n">cut_index</span><span class="o">=</span><span class="n">cut_index</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">cached</span><span class="o">.</span><span class="n">method</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="HQSMPO.expectation_at_cut">
@@ -968,21 +979,39 @@
 
 
 
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_CachedHead</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    What :func:`_resynthesize` caches: a head and its residual as immutable</span>
+<span class="sd">    gate tuples. ``residual_tableau`` is a mutable ``stim.Tableau``, so it is</span>
+<span class="sd">    only ever handed out as a copy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">head</span><span class="p">:</span> <span class="nb">tuple</span>
+    <span class="n">residual_tableau</span><span class="p">:</span> <span class="nb">object</span>
+    <span class="n">residual_gates</span><span class="p">:</span> <span class="nb">tuple</span>
+    <span class="n">n_two_qubit_gates</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span>
+
+
 <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_resynthesize</span><span class="p">(</span>
     <span class="n">rotations</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span>
     <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">cut_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">synthesis</span><span class="p">:</span> <span class="n">HeadSynthesis</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResynthesizedHead</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_CachedHead</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    The body of :meth:`HQSMPO.resynthesize_head`, cached on its arguments.</span>
+<span class="sd">    The synthesis behind :meth:`HQSMPO.resynthesize_head`, cached on its</span>
+<span class="sd">    arguments.</span>
 
 <span class="sd">    The key holds the head&#39;s dressed rotations and the (hashable) synthesis</span>
-<span class="sd">    rather than the evolutor, so a repeated call with the same rotations returns</span>
-<span class="sd">    the same :class:`ResynthesizedHead` object without synthesising again, and</span>
-<span class="sd">    changing the circuit&#39;s parameters changes the angles, hence the key: the</span>
-<span class="sd">    cache never serves a stale head and needs no invalidation.</span>
+<span class="sd">    rather than the evolutor, so a repeated call with the same rotations does</span>
+<span class="sd">    not synthesise again, and changing the circuit&#39;s parameters changes the</span>
+<span class="sd">    angles, hence the key: the cache never serves a stale head and needs no</span>
+<span class="sd">    invalidation. The value is a :class:`_CachedHead`, which nobody outside</span>
+<span class="sd">    :meth:`HQSMPO.resynthesize_head` sees: it builds the mutable objects it</span>
+<span class="sd">    returns afresh from it.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">paulis</span> <span class="o">=</span> <span class="p">[</span><span class="n">pauli</span> <span class="k">for</span> <span class="n">pauli</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">rotations</span><span class="p">]</span>
     <span class="n">angles</span> <span class="o">=</span> <span class="p">[</span><span class="n">angle</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">rotations</span><span class="p">]</span>
@@ -1005,15 +1034,18 @@
             <span class="n">paulis</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">nqubits</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">ResynthesizedHead</span><span class="p">(</span>
-        <span class="n">circuit</span><span class="o">=</span><span class="n">head_to_qibo_circuit</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">),</span>
+    <span class="k">return</span> <span class="n">_CachedHead</span><span class="p">(</span>
+        <span class="n">head</span><span class="o">=</span><span class="n">_frozen_gates</span><span class="p">(</span><span class="n">head</span><span class="p">),</span>
         <span class="n">residual_tableau</span><span class="o">=</span><span class="n">residual_tableau</span><span class="p">,</span>
-        <span class="n">residual_gates</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">residual_gates</span><span class="p">),</span>
-        <span class="n">n_gates</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">head</span><span class="p">),</span>
+        <span class="n">residual_gates</span><span class="o">=</span><span class="n">_frozen_gates</span><span class="p">(</span><span class="n">residual_gates</span><span class="p">),</span>
         <span class="n">n_two_qubit_gates</span><span class="o">=</span><span class="n">count_two_qubit_gates</span><span class="p">(</span><span class="n">head</span><span class="p">),</span>
-        <span class="n">cut_index</span><span class="o">=</span><span class="n">cut_index</span><span class="p">,</span>
         <span class="n">method</span><span class="o">=</span><span class="n">synthesis</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
     <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_frozen_gates</span><span class="p">(</span><span class="n">gates_list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A synthesised gate list as nested tuples, qubit lists included.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="o">*</span><span class="n">entry</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">gates_list</span><span class="p">)</span>
 </pre></div>
         </article>
       </div>

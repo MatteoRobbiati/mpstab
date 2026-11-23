@@ -964,8 +964,10 @@ plus a pure-Clifford residual.</p>
 <code class="xref py py-func docutils literal notranslate"><span class="pre">_resynthesize()</span></code>), so repeated calls at the same cut, e.g. from
 <a class="reference internal" href="#mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut" title="mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation_at_cut()</span></code></a> for several observables or methods,
 resynthesise once, while new parameters give new rotations and hence a
-fresh resynthesis. The returned head is shared between those calls:
-don’t modify its <code class="docutils literal notranslate"><span class="pre">circuit</span></code> or <code class="docutils literal notranslate"><span class="pre">residual_tableau</span></code> in place.</p>
+fresh resynthesis. Only an immutable description of the head is
+cached: every call returns a fresh <code class="docutils literal notranslate"><span class="pre">circuit</span></code> and its own copy of the
+<code class="docutils literal notranslate"><span class="pre">residual_tableau</span></code>, so modifying them, or a plan circuit sharing
+their gates, never reaches a later call.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
