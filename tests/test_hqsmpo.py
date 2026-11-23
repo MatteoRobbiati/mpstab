@@ -4,7 +4,7 @@ import stim
 from qibo import Circuit
 from utils import expectation_with_qibo, small_entangled_circuit
 
-from mpstab.evolutors.hqsmpo import HQSMPO
+from mpstab.evolutors.hqsmpo import HQSMPO, _resynthesize
 from mpstab.models.ansatze import (
     QAE,
     QFT,
@@ -184,19 +184,58 @@ def test_resynthesize_head_gate_counts_full_cut():
 
 
 def test_resynthesize_head_is_cached():
-    # Same cut, same rotations: the second call returns the cached head.
+    # Same cut, same rotations: the second call is served by the cache.
+    _resynthesize.cache_clear()
     hs = HQSMPO(CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)))
     first = hs.resynthesize_head(2)
-    assert hs.resynthesize_head(2) is first
-    assert hs.resynthesize_head(3) is not first
+    second = hs.resynthesize_head(2)
+    assert _resynthesize.cache_info().hits == 1
+    assert second.circuit.get_parameters() == first.circuit.get_parameters()
+    assert second.residual_gates == first.residual_gates
+    hs.resynthesize_head(3)
+    assert _resynthesize.cache_info().misses == 2
 
 
 def test_resynthesize_head_cache_follows_parameters():
     # New parameters give new dressed angles, hence a new key: no stale head.
-    hs = HQSMPO(CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)))
+    _resynthesize.cache_clear()
+    hs = HQSMPO(
+        CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)),
+        head_synthesis="cnot_ladder",
+    )
     first = hs.resynthesize_head(2)
     hs.set_parameters([(theta + 0.1,) for (theta,) in hs.get_parameters()])
-    assert hs.resynthesize_head(2) is not first
+    second = hs.resynthesize_head(2)
+    assert _resynthesize.cache_info().misses == 2
+    assert second.circuit.get_parameters() != first.circuit.get_parameters()
+
+
+def test_mutating_a_plan_circuit_leaves_the_cached_head_intact():
+    # Plan circuits are head + basis measurement, and qibo's circuit addition
+    # shares gate objects: changing a plan circuit must not reach the cache.
+    hs = HQSMPO(
+        CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)),
+        head_synthesis="cnot_ladder",
+    )
+    original = hs.resynthesize_head(2).circuit.get_parameters()
+    assert original
+
+    plan = hs.plan("ZZZZ", 2, method="pauli", n_shots=200, seed=0, out_folder=False)
+    circuit = plan.circuits[0]
+    circuit.set_parameters([(0.9,) for _ in circuit.get_parameters()])
+
+    assert hs.resynthesize_head(2).circuit.get_parameters() == original
+
+
+def test_resynthesize_head_returns_independent_objects():
+    hs = HQSMPO(
+        CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)),
+        head_synthesis="cnot_ladder",
+    )
+    first, second = hs.resynthesize_head(2), hs.resynthesize_head(2)
+    assert first.circuit is not second.circuit
+    assert first.residual_tableau is not second.residual_tableau
+    assert first.residual_tableau == second.residual_tableau
 
 
 def test_resynthesize_head_cnot_ladder_fallback_has_identity_tail():

@@ -445,8 +445,10 @@ class HQSMPO(HSMPO):
         :func:`_resynthesize`), so repeated calls at the same cut, e.g. from
         :meth:`expectation_at_cut` for several observables or methods,
         resynthesise once, while new parameters give new rotations and hence a
-        fresh resynthesis. The returned head is shared between those calls:
-        don't modify its ``circuit`` or ``residual_tableau`` in place.
+        fresh resynthesis. Only an immutable description of the head is
+        cached: every call returns a fresh ``circuit`` and its own copy of the
+        ``residual_tableau``, so modifying them, or a plan circuit sharing
+        their gates, never reaches a later call.
 
         Args:
             cut_index: the split point.
@@ -470,7 +472,16 @@ class HQSMPO(HSMPO):
             relevant = self.relevant_rotations(observable)
             dressed = [dressed[index] for index in relevant if index < cut_index]
         rotations = tuple((generator, float(angle)) for generator, angle in dressed)
-        return _resynthesize(rotations, self.nqubits, cut_index, synthesis)
+        cached = _resynthesize(rotations, self.nqubits, cut_index, synthesis)
+        return ResynthesizedHead(
+            circuit=head_to_qibo_circuit(cached.head, self.nqubits),
+            residual_tableau=cached.residual_tableau.copy(),
+            residual_gates=cached.residual_gates,
+            n_gates=len(cached.head),
+            n_two_qubit_gates=cached.n_two_qubit_gates,
+            cut_index=cut_index,
+            method=cached.method,
+        )
 
     def expectation_at_cut(
         self,
@@ -659,21 +670,39 @@ class HQSMPO(HSMPO):
         return plan
 
 
+@dataclass(frozen=True)
+class _CachedHead:
+    """
+    What :func:`_resynthesize` caches: a head and its residual as immutable
+    gate tuples. ``residual_tableau`` is a mutable ``stim.Tableau``, so it is
+    only ever handed out as a copy.
+    """
+
+    head: tuple
+    residual_tableau: object
+    residual_gates: tuple
+    n_two_qubit_gates: int
+    method: str
+
+
 @lru_cache(maxsize=32)
 def _resynthesize(
     rotations: Tuple[Tuple[str, float], ...],
     nqubits: int,
     cut_index: int,
     synthesis: HeadSynthesis,
-) -> ResynthesizedHead:
+) -> _CachedHead:
     """
-    The body of :meth:`HQSMPO.resynthesize_head`, cached on its arguments.
+    The synthesis behind :meth:`HQSMPO.resynthesize_head`, cached on its
+    arguments.
 
     The key holds the head's dressed rotations and the (hashable) synthesis
-    rather than the evolutor, so a repeated call with the same rotations returns
-    the same :class:`ResynthesizedHead` object without synthesising again, and
-    changing the circuit's parameters changes the angles, hence the key: the
-    cache never serves a stale head and needs no invalidation.
+    rather than the evolutor, so a repeated call with the same rotations does
+    not synthesise again, and changing the circuit's parameters changes the
+    angles, hence the key: the cache never serves a stale head and needs no
+    invalidation. The value is a :class:`_CachedHead`, which nobody outside
+    :meth:`HQSMPO.resynthesize_head` sees: it builds the mutable objects it
+    returns afresh from it.
     """
     paulis = [pauli for pauli, _ in rotations]
     angles = [angle for _, angle in rotations]
@@ -696,12 +725,15 @@ def _resynthesize(
             paulis, angles, nqubits
         )
 
-    return ResynthesizedHead(
-        circuit=head_to_qibo_circuit(head, nqubits),
+    return _CachedHead(
+        head=_frozen_gates(head),
         residual_tableau=residual_tableau,
-        residual_gates=tuple(residual_gates),
-        n_gates=len(head),
+        residual_gates=_frozen_gates(residual_gates),
         n_two_qubit_gates=count_two_qubit_gates(head),
-        cut_index=cut_index,
         method=synthesis.name,
     )
+
+
+def _frozen_gates(gates_list) -> tuple:
+    """A synthesised gate list as nested tuples, qubit lists included."""
+    return tuple((entry[0], tuple(entry[1]), *entry[2:]) for entry in gates_list)
