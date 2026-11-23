@@ -316,7 +316,7 @@
 
 <span class="sd">    Example::</span>
 
-<span class="sd">        from mpstab.models.noise import PauliError</span>
+<span class="sd">        from mpstab import PauliError</span>
 
 <span class="sd">        dephasing = PauliError({&quot;Z&quot;: 0.01})</span>
 <span class="sd">        correlated = PauliError({&quot;ZZ&quot;: 0.005, &quot;XX&quot;: 0.001})</span>
@@ -367,7 +367,7 @@
 
 <span class="sd">    Example::</span>
 
-<span class="sd">        from mpstab.models.noise import DepolarizingError</span>
+<span class="sd">        from mpstab import DepolarizingError</span>
 
 <span class="sd">        error = DepolarizingError(0.01)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -412,7 +412,7 @@
 
 <span class="sd">    Example::</span>
 
-<span class="sd">        from mpstab.models.noise import CoherentError</span>
+<span class="sd">        from mpstab import CoherentError</span>
 
 <span class="sd">        residual_zz = CoherentError(&quot;ZZ&quot;, 0.02)</span>
 <span class="sd">        over_rotation = CoherentError(&quot;X&quot;, 0.01)</span>
@@ -471,7 +471,7 @@
 
 <span class="sd">        # A phase-damping channel.</span>
 <span class="sd">        import numpy as np</span>
-<span class="sd">        from mpstab.models.noise import KrausError</span>
+<span class="sd">        from mpstab import KrausError</span>
 
 <span class="sd">        lam = 0.05</span>
 <span class="sd">        phase_damping = KrausError([</span>
@@ -519,7 +519,7 @@
 
 <span class="sd">    Example::</span>
 
-<span class="sd">        from mpstab.models.noise import AmplitudeDampingError</span>
+<span class="sd">        from mpstab import AmplitudeDampingError</span>
 
 <span class="sd">        t1 = AmplitudeDampingError(0.01)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -572,7 +572,7 @@
 
 <span class="sd">    Example::</span>
 
-<span class="sd">        from mpstab.models.noise import ThermalRelaxationError</span>
+<span class="sd">        from mpstab import ThermalRelaxationError</span>
 
 <span class="sd">        idle = ThermalRelaxationError(t1=100e-6, t2=80e-6, time=50e-9)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -654,7 +654,7 @@
 
 <span class="sd">    Example::</span>
 
-<span class="sd">        from mpstab.models.noise import NoiseModel, ReadoutError</span>
+<span class="sd">        from mpstab import NoiseModel, ReadoutError</span>
 
 <span class="sd">        noise = NoiseModel()</span>
 <span class="sd">        noise.add(ReadoutError(0.02))                    # every qubit</span>
@@ -690,7 +690,7 @@
 
 <span class="sd">    Example::</span>
 
-<span class="sd">        from mpstab.models.noise import NoiseModel, StatePreparationError</span>
+<span class="sd">        from mpstab import NoiseModel, StatePreparationError</span>
 
 <span class="sd">        noise = NoiseModel().add(StatePreparationError(0.01))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -944,15 +944,15 @@
 <span class="sd">    Example::</span>
 
 <span class="sd">        from qibo import gates</span>
-<span class="sd">        from mpstab import HSMPO</span>
-<span class="sd">        from mpstab.models.ansatze import KickedIsing</span>
-<span class="sd">        from mpstab.models.noise import (</span>
+<span class="sd">        from mpstab import (</span>
+<span class="sd">            HSMPO,</span>
 <span class="sd">            AmplitudeDampingError,</span>
 <span class="sd">            CoherentError,</span>
 <span class="sd">            DepolarizingError,</span>
 <span class="sd">            NoiseModel,</span>
 <span class="sd">            PauliError,</span>
 <span class="sd">        )</span>
+<span class="sd">        from mpstab.models.ansatze import KickedIsing</span>
 
 <span class="sd">        chain = [(0, 1), (1, 2), (2, 3)]</span>
 <span class="sd">        noise = NoiseModel()</span>

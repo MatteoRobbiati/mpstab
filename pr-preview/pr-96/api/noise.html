@@ -323,9 +323,8 @@ probability <code class="docutils literal notranslate"><span class="pre">p1</spa
 becomes <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">-</span> <span class="pre">p0</span> <span class="pre">-</span> <span class="pre">p1)</span> <span class="pre">P</span> <span class="pre">+</span> <span class="pre">(p1</span> <span class="pre">-</span> <span class="pre">p0)</span> <span class="pre">I</span></code>.</p>
 <p><strong>Usage Example</strong>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gates</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">KickedIsing</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">HSMPO</span><span class="p">,</span>
     <span class="n">CoherentError</span><span class="p">,</span>
     <span class="n">DepolarizingError</span><span class="p">,</span>
     <span class="n">NoiseModel</span><span class="p">,</span>
@@ -334,6 +333,7 @@ becomes <code class="docutils literal notranslate"><span class="pre">(1</span> <
     <span class="n">StatePreparationError</span><span class="p">,</span>
     <span class="n">ThermalRelaxationError</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">KickedIsing</span>
 
 <span class="n">ansatz</span> <span class="o">=</span> <span class="n">KickedIsing</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">theta_h</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">theta_z</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
 <span class="n">surrogate</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="p">)</span>
@@ -373,7 +373,7 @@ of the gate: energy relaxation (T1), which is not unital.</p>
 </dd>
 </dl>
 <p>Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">AmplitudeDampingError</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">AmplitudeDampingError</span>
 
 <span class="n">t1</span> <span class="o">=</span> <span class="n">AmplitudeDampingError</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
 </pre></div>
@@ -399,7 +399,7 @@ becomes under randomized compiling, which costs none.</p>
 </dd>
 </dl>
 <p>Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoherentError</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoherentError</span>
 
 <span class="n">residual_zz</span> <span class="o">=</span> <span class="n">CoherentError</span><span class="p">(</span><span class="s2">&quot;ZZ&quot;</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">)</span>
 <span class="n">over_rotation</span> <span class="o">=</span> <span class="n">CoherentError</span><span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
@@ -442,7 +442,7 @@ qubits and spectators (<a class="reference internal" href="#mpstab.models.noise.
 </dd>
 </dl>
 <p>Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">DepolarizingError</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">DepolarizingError</span>
 
 <span class="n">error</span> <span class="o">=</span> <span class="n">DepolarizingError</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
 </pre></div>
@@ -472,7 +472,7 @@ as transition amplitudes (<a class="reference internal" href="#mpstab.models.noi
 <p>Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># A phase-damping channel.</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">KrausError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">KrausError</span>
 
 <span class="n">lam</span> <span class="o">=</span> <span class="mf">0.05</span>
 <span class="n">phase_damping</span> <span class="o">=</span> <span class="n">KrausError</span><span class="p">([</span>
@@ -506,15 +506,15 @@ reference values.</p>
 </dl>
 <p>Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gates</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">KickedIsing</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">HSMPO</span><span class="p">,</span>
     <span class="n">AmplitudeDampingError</span><span class="p">,</span>
     <span class="n">CoherentError</span><span class="p">,</span>
     <span class="n">DepolarizingError</span><span class="p">,</span>
     <span class="n">NoiseModel</span><span class="p">,</span>
     <span class="n">PauliError</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">KickedIsing</span>
 
 <span class="n">chain</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)]</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">()</span>
@@ -676,7 +676,7 @@ is how correlated noise is written.</p>
 </dd>
 </dl>
 <p>Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">PauliError</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">PauliError</span>
 
 <span class="n">dephasing</span> <span class="o">=</span> <span class="n">PauliError</span><span class="p">({</span><span class="s2">&quot;Z&quot;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">})</span>
 <span class="n">correlated</span> <span class="o">=</span> <span class="n">PauliError</span><span class="p">({</span><span class="s2">&quot;ZZ&quot;</span><span class="p">:</span> <span class="mf">0.005</span><span class="p">,</span> <span class="s2">&quot;XX&quot;</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">})</span>
@@ -716,7 +716,7 @@ not given.</p></li>
 </dd>
 </dl>
 <p>Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">ReadoutError</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">ReadoutError</span>
 
 <span class="n">noise</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">()</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ReadoutError</span><span class="p">(</span><span class="mf">0.02</span><span class="p">))</span>                    <span class="c1"># every qubit</span>
@@ -737,7 +737,7 @@ restricted to some qubits; it acts on the initial state, before any gate.</p>
 </dd>
 </dl>
 <p>Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">StatePreparationError</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">StatePreparationError</span>
 
 <span class="n">noise</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">()</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">StatePreparationError</span><span class="p">(</span><span class="mf">0.01</span><span class="p">))</span>
 </pre></div>
@@ -765,7 +765,7 @@ followed by the pure dephasing that brings the coherence decay from
 </dd>
 </dl>
 <p>Example:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThermalRelaxationError</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThermalRelaxationError</span>
 
 <span class="n">idle</span> <span class="o">=</span> <span class="n">ThermalRelaxationError</span><span class="p">(</span><span class="n">t1</span><span class="o">=</span><span class="mf">100e-6</span><span class="p">,</span> <span class="n">t2</span><span class="o">=</span><span class="mf">80e-6</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mf">50e-9</span><span class="p">)</span>
 </pre></div>
@@ -1217,13 +1217,6 @@ process.</p></li>
 <p>The <a class="reference internal" href="../tutorials/noise.html"><span class="doc">Noisy simulation</span></a> tutorial compares these values against an exact
 density-matrix simulation.</p>
 </section>
-<section id="migration">
-<h2>Migration<a class="headerlink" href="#migration" title="Link to this heading">¶</a></h2>
-<p>The noise modules moved from <code class="docutils literal notranslate"><span class="pre">mpstab.noise</span></code> to <code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.models.noise</span></code>,
-with the same submodules (<code class="docutils literal notranslate"><span class="pre">compile</span></code>, <code class="docutils literal notranslate"><span class="pre">events</span></code>, <code class="docutils literal notranslate"><span class="pre">mc_noise_estimator</span></code>,
-<code class="docutils literal notranslate"><span class="pre">model</span></code>). The old paths still import, as aliases of the new objects, and emit
-a <code class="docutils literal notranslate"><span class="pre">DeprecationWarning</span></code> naming the new path.</p>
-</section>
 </section>
 
         </article>
@@ -1338,7 +1331,6 @@ a <code class="docutils literal notranslate"><span class="pre">DeprecationWarnin
 <li><a class="reference internal" href="#mpstab.models.noise.mc_noise_estimator.noisy_expectation"><code class="docutils literal notranslate"><span class="pre">noisy_expectation()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#migration">Migration</a></li>
 </ul>
 </li>
 </ul>

@@ -71,7 +71,7 @@ device.
 
 .. automodule:: mpstab.qpu.execution
 
-.. automodule:: mpstab.qpu.execution.execute
+.. automodule:: mpstab.qpu.execution.backend
    :members:
 
 .. automodule:: mpstab.qpu.execution.qasm

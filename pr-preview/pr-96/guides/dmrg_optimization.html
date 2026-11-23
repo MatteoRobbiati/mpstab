@@ -348,7 +348,7 @@ For an introduction to mpstab, see the <a href="quickstart.html">Quickstart</a> 
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">hamiltonians</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo.symbols</span><span class="w"> </span><span class="kn">import</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuimbEngine</span><span class="p">,</span> <span class="n">StimEngine</span>
 </pre></div>
 </div>
@@ -361,7 +361,7 @@ For an introduction to mpstab, see the <a href="quickstart.html">Quickstart</a> 
 <h3>Basic Workflow<a class="headerlink" href="#basic-workflow" title="Link to this heading">¶</a></h3>
 <p>Here’s the basic workflow for optimizing any Hamiltonian with DMRG:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuimbEngine</span><span class="p">,</span> <span class="n">StimEngine</span>
 
 <span class="c1"># 1. Create ansatz and HSMPO, with its engines</span>

@@ -324,10 +324,8 @@
 
 <span class="sd">    Example::</span>
 
-<span class="sd">        from mpstab import HSMPO</span>
+<span class="sd">        from mpstab import HSMPO, DepolarizingError, NoiseModel, cdr</span>
 <span class="sd">        from mpstab.models.ansatze import HardwareEfficient</span>
-<span class="sd">        from mpstab.models.error_mitigation import cdr</span>
-<span class="sd">        from mpstab.models.noise import DepolarizingError, NoiseModel</span>
 
 <span class="sd">        ansatz = HardwareEfficient(nqubits=4, nlayers=2)</span>
 <span class="sd">        noise = NoiseModel().add(DepolarizingError(0.01))</span>

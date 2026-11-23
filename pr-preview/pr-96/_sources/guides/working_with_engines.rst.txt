@@ -78,7 +78,7 @@ implementations of the same interfaces, meant to be read: they show what a
 stabilizers engine and a tensor-network engine actually do, without stim or
 quimb in the way. They give the same results, more slowly, and the native
 tensor-network engine supports neither DMRG nor the head/tail split of
-``HSynthSMPO``.
+``HQSMPO``.
 
 ::
 

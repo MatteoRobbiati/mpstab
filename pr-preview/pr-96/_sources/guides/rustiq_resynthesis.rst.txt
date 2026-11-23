@@ -42,7 +42,7 @@ Basic usage
 
 .. code-block:: python
 
-    from mpstab.evolutors.hqsmpo import HQSMPO
+    from mpstab import HQSMPO
     from mpstab.models.ansatze import HardwareEfficient
 
     ansatz = HardwareEfficient(nqubits=6, nlayers=2)

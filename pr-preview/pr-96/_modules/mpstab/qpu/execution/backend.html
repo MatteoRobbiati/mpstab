@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>mpstab.qpu.execution.execute - Documentation</title>
+        <title>mpstab.qpu.execution.backend - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
@@ -275,7 +275,7 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <h1>Source code for mpstab.qpu.execution.execute</h1><div class="highlight"><pre>
+          <h1>Source code for mpstab.qpu.execution.backend</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Running a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan` on a backend.</span>
 
@@ -296,9 +296,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
 
 
-<div class="viewcode-block" id="execute_plan">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.execution.execute.execute_plan">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">execute_plan</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<div class="viewcode-block" id="run_plan">
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.execution.backend.run_plan">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_plan</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">backend</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Run every circuit in a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`</span>
 <span class="sd">    with its own shot count, batching circuits that share a shot count into a</span>
@@ -311,8 +311,8 @@
 <span class="sd">    just wasn&#39;t using it.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        backend: anything with ``execute_circuits(circuits, nshots)``.</span>
 <span class="sd">        plan: a plan whose ``circuits`` and ``shots`` are the same length.</span>
+<span class="sd">        backend: anything with ``execute_circuits(circuits, nshots)``.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        One frequency dict per circuit, in ``plan.circuits`` order and</span>
