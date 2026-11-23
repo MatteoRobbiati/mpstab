@@ -36,7 +36,7 @@ from mpstab.qibo_tools import (
     MetaBackend,
     StatevectorExactSimulator,
 )
-from mpstab.qpu.execution import execute_plan
+from mpstab.qpu.execution import run_plan
 
 __all__ = [
     # simulators
@@ -64,7 +64,7 @@ __all__ = [
     "training_circuits",
     "vncdr",
     # running measurement plans
-    "execute_plan",
+    "run_plan",
     "DensityMatrixNoiseSimulator",
     "StatevectorExactSimulator",
     # mpstab as a qibo backend

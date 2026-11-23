@@ -9,7 +9,7 @@ readout errors, so the defaults can be chosen from the table it prints:
 - ``cdr`` and ``vncdr``: the noise is a callable running each training circuit
   on the simulator, the noiseless values come from HSMPO;
 - ``plan``: :class:`VnCDRMitigation` on the head of an HQSMPO plan, run with
-  :func:`execute_plan` on the simulator.
+  :func:`run_plan` on the simulator.
 
 Columns, per model, method and configuration, over ``--n-seeds`` seeds:
 
@@ -51,8 +51,8 @@ from mpstab import (
     ReadoutError,
     VnCDRMitigation,
     cdr,
-    execute_plan,
     fold_circuit,
+    run_plan,
     vncdr,
 )
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
@@ -202,7 +202,7 @@ def run_plan(model, observable, cut, p, rm, seed, args):
         )
     row["hsmpo_s"] = time.perf_counter() - start
     result = plan.estimate(
-        execute_plan(DensityMatrixNoiseSimulator(noise_model(), seed=seed), plan)
+        run_plan(plan, DensityMatrixNoiseSimulator(noise_model(), seed=seed))
     )
     _, coefficients = plan.target.recombination
     reference = (

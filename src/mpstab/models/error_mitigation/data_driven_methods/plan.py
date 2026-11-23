@@ -49,7 +49,7 @@ from mpstab.models.error_mitigation.folding import fold_circuit
 from mpstab.qibo_tools.utilized_backends.statevector_exact_simulator import (
     StatevectorExactSimulator,
 )
-from mpstab.qpu.execution import execute_plan
+from mpstab.qpu.execution import run_plan
 from mpstab.qpu.measurement.abstract import (
     basis_measurement,
     weighted_mean_and_variance,
@@ -127,7 +127,7 @@ class MitigationPlan:
     Every circuit to run for a mitigated measurement, with its shots.
 
     It runs anywhere a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`
-    does, e.g. :func:`~mpstab.qpu.execution.execute.execute_plan` or
+    does, e.g. :func:`~mpstab.qpu.execution.backend.run_plan` or
     :func:`~mpstab.qpu.execution.storage.save_circuits`; :meth:`estimate` turns
     the counts into a :class:`MitigatedResult`.
 
@@ -489,7 +489,7 @@ def mitigated_expectation_at_cut(
         max_bond_dimension=max_bond_dimension,
         seed=seed,
     )
-    return plan.estimate(execute_plan(backend or StatevectorExactSimulator(), plan))
+    return plan.estimate(run_plan(plan, backend or StatevectorExactSimulator()))
 
 
 def _pauli_values(surrogate, coefficients) -> dict:

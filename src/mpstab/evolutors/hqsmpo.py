@@ -63,7 +63,7 @@ from mpstab.pauli import conjugate, pauli_light_cone, validate_pauli_string
 from mpstab.qibo_tools.utilized_backends.statevector_exact_simulator import (
     StatevectorExactSimulator,
 )
-from mpstab.qpu.execution import execute_plan, save_circuits
+from mpstab.qpu.execution import run_plan, save_circuits
 from mpstab.qpu.measurement import (
     ExpectationResult,
     MeasurementMethod,
@@ -501,7 +501,7 @@ class HQSMPO(HSMPO):
         """
         Resynthesise the head, build the measurement circuits, run them and
         recombine the results, in one call: :meth:`plan`, then
-        :func:`~mpstab.qpu.execution.execute.execute_plan` on ``backend``,
+        :func:`~mpstab.qpu.execution.backend.run_plan` on ``backend``,
         then the method's ``estimate``. To run the circuits on a device and
         post-process later, call those three stages separately.
 
@@ -575,7 +575,7 @@ class HQSMPO(HSMPO):
             seed=seed,
             out_folder=False,
         )
-        frequencies = execute_plan(backend or StatevectorExactSimulator(), plan)
+        frequencies = run_plan(plan, backend or StatevectorExactSimulator())
         return method.estimate(plan, frequencies, seed=seed)
 
     def plan(

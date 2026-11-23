@@ -29,7 +29,7 @@ HOMES = {
         "training_circuits",
         "vncdr",
     ],
-    "mpstab.qpu.execution.execute": ["execute_plan"],
+    "mpstab.qpu.execution.backend": ["run_plan"],
     "mpstab.qibo_tools": ["DensityMatrixNoiseSimulator", "StatevectorExactSimulator"],
 }
 NAMES = [(home, name) for home, names in HOMES.items() for name in names]

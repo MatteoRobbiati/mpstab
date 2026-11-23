@@ -16,7 +16,7 @@ from mpstab.models.error_mitigation import (
 from mpstab.models.error_mitigation.data_driven_methods.plan import _spread
 from mpstab.models.noise import DepolarizingError, NoiseModel, ReadoutError
 from mpstab.qibo_tools import DensityMatrixNoiseSimulator, StatevectorExactSimulator
-from mpstab.qpu import execute_plan
+from mpstab.qpu import run_plan
 
 OBSERVABLE = "IZZI"
 
@@ -74,7 +74,7 @@ def test_noiseless_run_matches_the_plan(model):
         calibration_shots=4000,
     )
     plan = mitigation.build_plan(model, OBSERVABLE, _cut(model), n_shots=20000, seed=1)
-    result = plan.estimate(execute_plan(StatevectorExactSimulator(), plan))
+    result = plan.estimate(run_plan(plan, StatevectorExactSimulator()))
     reference = _plan_reference(model, plan)
     assert isinstance(result, MitigatedResult)
     assert abs(result.unmitigated - reference) < 5 * result.stderr + 0.02
@@ -98,9 +98,7 @@ def test_mitigation_reduces_the_error(model):
         calibration_shots=20000,
     )
     plan = mitigation.build_plan(model, OBSERVABLE, _cut(model), n_shots=30000, seed=2)
-    result = plan.estimate(
-        execute_plan(DensityMatrixNoiseSimulator(noise, seed=0), plan)
-    )
+    result = plan.estimate(run_plan(plan, DensityMatrixNoiseSimulator(noise, seed=0)))
     reference = _plan_reference(model, plan)
     unmitigated = abs(result.unmitigated - reference)
     assert abs(result.measurement_mitigated - reference) < unmitigated
@@ -161,7 +159,7 @@ def test_pooled_fit_uses_one_point_per_circuit_and_setting(model):
         n_training_circuits=5, replacement_method="random", training_settings=2
     )
     plan = mitigation.build_plan(model, HAMILTONIAN, _cut(model), n_shots=4000, seed=1)
-    result = plan.estimate(execute_plan(StatevectorExactSimulator(), plan))
+    result = plan.estimate(run_plan(plan, StatevectorExactSimulator()))
     n_points = sum(
         1 for m in plan.measurements if m.kind == "training" and m.level == 1
     )
@@ -181,7 +179,7 @@ def test_calibration_undoes_asymmetric_readout(model):
     plan = mitigation.build_plan(model, OBSERVABLE, _cut(model), n_shots=200000, seed=0)
     assert sum(m.kind == "calibration" for m in plan.measurements) == 6
     result = plan.estimate(
-        execute_plan(DensityMatrixNoiseSimulator(readout_only, seed=0), plan)
+        run_plan(plan, DensityMatrixNoiseSimulator(readout_only, seed=0))
     )
     reference = _plan_reference(model, plan)
     assert abs(result.unmitigated - reference) > 0.1

@@ -1,7 +1,7 @@
 """
 :class:`StatevectorExactSimulator`, a backend running measurement-plan circuits
 with qibo's exact statevector simulator, as
-:func:`~mpstab.qpu.execution.execute.execute_plan` expects:
+:func:`~mpstab.qpu.execution.backend.run_plan` expects:
 ``execute_circuits(circuits, nshots)`` returning one frequency dict per circuit.
 """
 

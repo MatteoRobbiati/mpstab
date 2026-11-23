@@ -18,7 +18,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 
-def execute_plan(backend, plan) -> list:
+def run_plan(plan, backend) -> list:
     """
     Run every circuit in a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`
     with its own shot count, batching circuits that share a shot count into a
@@ -31,8 +31,8 @@ def execute_plan(backend, plan) -> list:
     just wasn't using it.
 
     Args:
-        backend: anything with ``execute_circuits(circuits, nshots)``.
         plan: a plan whose ``circuits`` and ``shots`` are the same length.
+        backend: anything with ``execute_circuits(circuits, nshots)``.
 
     Returns:
         One frequency dict per circuit, in ``plan.circuits`` order and

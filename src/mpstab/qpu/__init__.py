@@ -27,12 +27,7 @@ Importing this package never requires the optional ``rustiq`` dependency:
 :mod:`~mpstab.qpu.synthesis.rustiq` only needs it when it synthesises.
 """
 
-from mpstab.qpu.execution import (
-    circuit_to_qasm,
-    execute_plan,
-    plan_to_qasm,
-    save_circuits,
-)
+from mpstab.qpu.execution import circuit_to_qasm, plan_to_qasm, run_plan, save_circuits
 from mpstab.qpu.measurement import (
     ClassicalShadows,
     ExpectationResult,
@@ -60,7 +55,7 @@ __all__ = [
     "RustiqSynthesis",
     "circuit_to_qasm",
     "estimate",
-    "execute_plan",
     "plan_to_qasm",
+    "run_plan",
     "save_circuits",
 ]

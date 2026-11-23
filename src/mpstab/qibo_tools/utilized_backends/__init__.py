@@ -1,7 +1,7 @@
 """Qibo simulators mpstab utilizes as backends for measurement plans.
 
 Each has ``execute_circuits(circuits, nshots)``, as
-:func:`~mpstab.qpu.execution.execute.execute_plan` expects, and stands in for a
+:func:`~mpstab.qpu.execution.backend.run_plan` expects, and stands in for a
 device:
 
 - :mod:`~mpstab.qibo_tools.utilized_backends.statevector_exact_simulator`:

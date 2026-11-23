@@ -20,7 +20,7 @@ from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient, KickedIsing
 from mpstab.models.metrics import meyer_wallach_mps, stabilizer_renyi_entropy_mps
 from mpstab.models.noise import DepolarizingError, NoiseModel
 from mpstab.qibo_tools import StatevectorExactSimulator
-from mpstab.qpu.execution import execute_plan
+from mpstab.qpu.execution import run_plan
 from mpstab.qpu.measurement import ClassicalShadows, PauliSampling
 
 
@@ -170,7 +170,7 @@ def test_device_routes(method):
         for model in (reference, opaque)
     ]
     # Identical circuits, so the same counts serve both plans.
-    frequencies = execute_plan(StatevectorExactSimulator(), plans[0])
+    frequencies = run_plan(plans[0], StatevectorExactSimulator())
     expected, result = (
         method.estimate(plan, frequencies, seed=7).value for plan in plans
     )
