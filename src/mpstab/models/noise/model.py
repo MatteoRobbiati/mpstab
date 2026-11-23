@@ -36,7 +36,7 @@ class PauliError:
 
     Example::
 
-        from mpstab.models.noise import PauliError
+        from mpstab import PauliError
 
         dephasing = PauliError({"Z": 0.01})
         correlated = PauliError({"ZZ": 0.005, "XX": 0.001})
@@ -84,7 +84,7 @@ class DepolarizingError:
 
     Example::
 
-        from mpstab.models.noise import DepolarizingError
+        from mpstab import DepolarizingError
 
         error = DepolarizingError(0.01)
     """
@@ -126,7 +126,7 @@ class CoherentError:
 
     Example::
 
-        from mpstab.models.noise import CoherentError
+        from mpstab import CoherentError
 
         residual_zz = CoherentError("ZZ", 0.02)
         over_rotation = CoherentError("X", 0.01)
@@ -179,7 +179,7 @@ class KrausError:
 
         # A phase-damping channel.
         import numpy as np
-        from mpstab.models.noise import KrausError
+        from mpstab import KrausError
 
         lam = 0.05
         phase_damping = KrausError([
@@ -224,7 +224,7 @@ class AmplitudeDampingError:
 
     Example::
 
-        from mpstab.models.noise import AmplitudeDampingError
+        from mpstab import AmplitudeDampingError
 
         t1 = AmplitudeDampingError(0.01)
     """
@@ -274,7 +274,7 @@ class ThermalRelaxationError:
 
     Example::
 
-        from mpstab.models.noise import ThermalRelaxationError
+        from mpstab import ThermalRelaxationError
 
         idle = ThermalRelaxationError(t1=100e-6, t2=80e-6, time=50e-9)
     """
@@ -353,7 +353,7 @@ class ReadoutError:
 
     Example::
 
-        from mpstab.models.noise import NoiseModel, ReadoutError
+        from mpstab import NoiseModel, ReadoutError
 
         noise = NoiseModel()
         noise.add(ReadoutError(0.02))                    # every qubit
@@ -386,7 +386,7 @@ class StatePreparationError:
 
     Example::
 
-        from mpstab.models.noise import NoiseModel, StatePreparationError
+        from mpstab import NoiseModel, StatePreparationError
 
         noise = NoiseModel().add(StatePreparationError(0.01))
     """
@@ -637,15 +637,15 @@ class NoiseModel:
     Example::
 
         from qibo import gates
-        from mpstab import HSMPO
-        from mpstab.models.ansatze import KickedIsing
-        from mpstab.models.noise import (
+        from mpstab import (
+            HSMPO,
             AmplitudeDampingError,
             CoherentError,
             DepolarizingError,
             NoiseModel,
             PauliError,
         )
+        from mpstab.models.ansatze import KickedIsing
 
         chain = [(0, 1), (1, 2), (2, 3)]
         noise = NoiseModel()

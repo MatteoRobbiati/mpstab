@@ -4,7 +4,7 @@ Clifford data regression learns a map from noisy expectation values to
 noiseless ones on low-magic variants of the target circuit, whose noiseless
 values HSMPO computes cheaply::
 
-    from mpstab.models.error_mitigation import cdr
+    from mpstab import cdr
 
     noise_map = cdr(ansatz, "ZZII", noise, n_training_circuits=50, seed=0)
     mitigated = noise_map(noisy_value_of_the_target)

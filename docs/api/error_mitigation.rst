@@ -32,10 +32,16 @@ Example
     import numpy as np
     from qibo import gates
 
-    from mpstab import HSMPO
+    from mpstab import (
+        HSMPO,
+        DepolarizingError,
+        NoiseModel,
+        PauliError,
+        cdr,
+        noisy_value,
+        vncdr,
+    )
     from mpstab.models.ansatze import HardwareEfficient
-    from mpstab.models.error_mitigation import cdr, noisy_value, vncdr
-    from mpstab.models.noise import DepolarizingError, NoiseModel, PauliError
 
     ansatz = HardwareEfficient(nqubits=4, nlayers=2)
     ansatz.circuit.set_parameters(
@@ -81,10 +87,12 @@ vnCDR map, fitted on every training measurement, corrects every setting
 
 .. code-block:: python
 
-    from mpstab import HQSMPO
-    from mpstab.models.error_mitigation import VnCDRMitigation
-    from mpstab.qibo_tools import DensityMatrixNoiseSimulator
-    from mpstab.qpu import execute_plan
+    from mpstab import (
+        HQSMPO,
+        DensityMatrixNoiseSimulator,
+        VnCDRMitigation,
+        execute_plan,
+    )
 
     model = HQSMPO(ansatz, head_synthesis="extraction")
     mitigation = VnCDRMitigation(n_training_circuits=8, training_settings=3)

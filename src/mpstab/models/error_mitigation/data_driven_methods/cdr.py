@@ -44,10 +44,8 @@ def cdr(
 
     Example::
 
-        from mpstab import HSMPO
+        from mpstab import HSMPO, DepolarizingError, NoiseModel, cdr
         from mpstab.models.ansatze import HardwareEfficient
-        from mpstab.models.error_mitigation import cdr
-        from mpstab.models.noise import DepolarizingError, NoiseModel
 
         ansatz = HardwareEfficient(nqubits=4, nlayers=2)
         noise = NoiseModel().add(DepolarizingError(0.01))
