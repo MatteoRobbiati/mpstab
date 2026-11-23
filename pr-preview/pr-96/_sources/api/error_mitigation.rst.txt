@@ -96,11 +96,26 @@ vnCDR map, fitted on every training measurement, corrects every setting
 API
 ---
 
-.. automodule:: mpstab.models.error_mitigation.plan
+Data-driven methods
+^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: mpstab.models.error_mitigation.data_driven_methods.cdr
+   :members: cdr
+
+.. automodule:: mpstab.models.error_mitigation.data_driven_methods.vncdr
+   :members: vncdr
+
+.. automodule:: mpstab.models.error_mitigation.data_driven_methods.regression
+   :members: MitigationNoiseMap, noisy_value
+
+.. automodule:: mpstab.models.error_mitigation.data_driven_methods.plan
    :members: VnCDRMitigation, MitigationPlan, MitigatedResult, mitigated_expectation_at_cut
 
-.. automodule:: mpstab.models.error_mitigation.cdr
-   :members: MitigationNoiseMap, cdr, vncdr, noisy_value
+.. automodule:: mpstab.models.error_mitigation.data_driven_methods.training
+   :members: training_circuits
 
-.. automodule:: mpstab.models.error_mitigation.training
-   :members: training_circuits, fold_circuit
+Noise amplification
+^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: mpstab.models.error_mitigation.folding
+   :members: fold_circuit

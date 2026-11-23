@@ -1,19 +1,19 @@
 <!doctype html>
-<html class="no-js" lang="en" data-content_root="../../../../">
+<html class="no-js" lang="en" data-content_root="../../../../../">
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html">
-        <link rel="prefetch" href="../../../../_static/mpstab_logo.png" as="image">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../../genindex.html"><link rel="search" title="Search" href="../../../../../search.html">
+        <link rel="prefetch" href="../../../../../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>mpstab.models.error_mitigation.plan - Documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
+        <title>mpstab.models.error_mitigation.data_driven_methods.plan - Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/katex-math.css?v=05624691" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
     
     
 
@@ -165,7 +165,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">Documentation</div></a>
+      <a href="../../../../../index.html"><div class="brand">Documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -184,14 +184,14 @@
   <aside class="sidebar-drawer">
     <div class="sidebar-container">
       
-      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../index.html">
   <div class="sidebar-logo-container">
-    <img class="sidebar-logo" src="../../../../_static/mpstab_logo.png" alt="Logo"/>
+    <img class="sidebar-logo" src="../../../../../_static/mpstab_logo.png" alt="Logo"/>
   </div>
   
   <span class="sidebar-brand-text">Documentation</span>
   
-</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+</a><form class="sidebar-search-container" method="get" action="../../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
@@ -199,49 +199,49 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../guides/quickstart.html">Quick Start Guide</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/introduction.html">A quick introduction to mpstab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/noise.html">Noisy simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/advanced_noise.html">Device-level noise</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/ground_states.html">Ground states with DMRG</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/noise.html">Noisy simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/advanced_noise.html">Device-level noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/working_with_engines.html">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/ansatze_catalogue.html">Ansatz Catalogue</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../guides/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../guides/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../guides/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../guides/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/evolutors.html">Evolutors</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/engines.html">Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/qpu.html">QPU</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/evolutors.html">Evolutors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/qpu.html">QPU</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/error_mitigation.html">Error Mitigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/models.html">Models &amp; Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -274,7 +274,7 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <h1>Source code for mpstab.models.error_mitigation.plan</h1><div class="highlight"><pre>
+          <h1>Source code for mpstab.models.error_mitigation.data_driven_methods.plan</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Error mitigation of an HQSMPO measurement plan with variable-noise CDR.</span>
 
 <span class="sd">An :class:`~mpstab.evolutors.hqsmpo.HQSMPO` plan runs one head circuit under</span>
@@ -322,7 +322,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">CircuitAnsatz</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.error_mitigation.training</span><span class="w"> </span><span class="kn">import</span> <span class="n">fold_circuit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.error_mitigation.folding</span><span class="w"> </span><span class="kn">import</span> <span class="n">fold_circuit</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.execution</span><span class="w"> </span><span class="kn">import</span> <span class="n">QiboSimulator</span><span class="p">,</span> <span class="n">execute_plan</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.measurement.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">basis_measurement</span><span class="p">,</span>
@@ -352,7 +352,7 @@
 
 
 <div class="viewcode-block" id="MitigatedResult">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.plan.MitigatedResult">[docs]</a>
+<a class="viewcode-back" href="../../../../../api/error_mitigation.html#mpstab.models.error_mitigation.data_driven_methods.plan.MitigatedResult">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MitigatedResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -399,7 +399,7 @@
 
 
 <div class="viewcode-block" id="MitigationPlan">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.plan.MitigationPlan">[docs]</a>
+<a class="viewcode-back" href="../../../../../api/error_mitigation.html#mpstab.models.error_mitigation.data_driven_methods.plan.MitigationPlan">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MitigationPlan</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -433,7 +433,7 @@
     <span class="n">training_circuits</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="p">(),</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MitigationPlan.estimate">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.plan.MitigationPlan.estimate">[docs]</a>
+<a class="viewcode-back" href="../../../../../api/error_mitigation.html#mpstab.models.error_mitigation.data_driven_methods.plan.MitigationPlan.estimate">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">estimate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MitigatedResult</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Mitigate from one ``{bitstring: count}`` dict per circuit, in</span>
@@ -496,7 +496,7 @@
 
 
 <div class="viewcode-block" id="VnCDRMitigation">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.plan.VnCDRMitigation">[docs]</a>
+<a class="viewcode-back" href="../../../../../api/error_mitigation.html#mpstab.models.error_mitigation.data_driven_methods.plan.VnCDRMitigation">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">VnCDRMitigation</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -546,7 +546,7 @@
         <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;noise_levels&quot;</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">))</span>
 
 <div class="viewcode-block" id="VnCDRMitigation.build_plan">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.plan.VnCDRMitigation.build_plan">[docs]</a>
+<a class="viewcode-back" href="../../../../../api/error_mitigation.html#mpstab.models.error_mitigation.data_driven_methods.plan.VnCDRMitigation.build_plan">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_plan</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">model</span><span class="p">,</span>
@@ -725,7 +725,7 @@
 
 
 <div class="viewcode-block" id="mitigated_expectation_at_cut">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.plan.mitigated_expectation_at_cut">[docs]</a>
+<a class="viewcode-back" href="../../../../../api/error_mitigation.html#mpstab.models.error_mitigation.data_driven_methods.plan.mitigated_expectation_at_cut">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">mitigated_expectation_at_cut</span><span class="p">(</span>
     <span class="n">model</span><span class="p">,</span>
     <span class="n">observable</span><span class="p">,</span>
@@ -904,15 +904,15 @@
       
     </aside>
   </div>
-</div><script src="../../../../_static/documentation_options.js?v=d45e8c67"></script>
-    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
-    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
-    <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
-    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
-    <script src="../../../../_static/katex.min.js?v=5cc8ed51"></script>
-    <script src="../../../../_static/auto-render.min.js?v=af98beb9"></script>
-    <script src="../../../../_static/katex_autorenderer.js?v=bebc588a"></script>
+</div><script src="../../../../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../../_static/katex.min.js?v=5cc8ed51"></script>
+    <script src="../../../../../_static/auto-render.min.js?v=af98beb9"></script>
+    <script src="../../../../../_static/katex_autorenderer.js?v=bebc588a"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     </body>
 </html>

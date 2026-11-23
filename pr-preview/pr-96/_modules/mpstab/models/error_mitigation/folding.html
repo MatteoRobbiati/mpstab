@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>mpstab.models.error_mitigation.training - Documentation</title>
+        <title>mpstab.models.error_mitigation.folding - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
@@ -274,72 +274,16 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <h1>Source code for mpstab.models.error_mitigation.training</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Training circuits for Clifford data regression, and noise amplification.&quot;&quot;&quot;</span>
+          <h1>Source code for mpstab.models.error_mitigation.folding</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Noise amplification by global unitary folding.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">Ansatz</span><span class="p">,</span> <span class="n">CircuitAnsatz</span>
-
-
-<div class="viewcode-block" id="training_circuits">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.training.training_circuits">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">training_circuits</span><span class="p">(</span>
-    <span class="n">ansatz</span><span class="p">:</span> <span class="n">Ansatz</span> <span class="o">|</span> <span class="n">Circuit</span><span class="p">,</span>
-    <span class="n">n_circuits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">replacement_probability</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
-    <span class="n">replacement_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;closest&quot;</span><span class="p">,</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Circuit</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Low-magic variants of ``ansatz`` to train a CDR noise map on.</span>
-
-<span class="sd">    Each non-Clifford gate is replaced by a Clifford one with probability</span>
-<span class="sd">    ``replacement_probability`` and kept otherwise</span>
-<span class="sd">    (:meth:`~mpstab.models.ansatze.Ansatz.partitionate_circuit`). Unlike the</span>
-<span class="sd">    fully Clifford circuits of the original CDR, the gates that are kept leave</span>
-<span class="sd">    some magic in each circuit, which HSMPO still simulates cheaply, so the</span>
-<span class="sd">    training set stays closer to the target circuit. Every circuit keeps the</span>
-<span class="sd">    target&#39;s gate sequence, only with other angles, so noise placed by gate</span>
-<span class="sd">    type or position acts on it as on the target.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        ansatz: the circuit to mitigate.</span>
-<span class="sd">        n_circuits: training circuits to sample.</span>
-<span class="sd">        replacement_probability: chance of replacing each non-Clifford gate.</span>
-<span class="sd">            Lower values keep more magic: closer to the target, costlier to</span>
-<span class="sd">            simulate.</span>
-<span class="sd">        replacement_method: ``&quot;closest&quot;`` or ``&quot;random&quot;`` Clifford angle.</span>
-<span class="sd">        seed: seed of the replacement draws.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        The sampled circuits, as qibo ``Circuit`` objects.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">ansatz</span> <span class="o">=</span> <span class="n">as_ansatz</span><span class="p">(</span><span class="n">ansatz</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">replacement_probability</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">replacement_method</span> <span class="o">==</span> <span class="s2">&quot;closest&quot;</span><span class="p">:</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-            <span class="s2">&quot;With replacement_probability=1 and the &#39;closest&#39; method every &quot;</span>
-            <span class="s2">&quot;training circuit is the same circuit; lower the probability or &quot;</span>
-            <span class="s2">&quot;use replacement_method=&#39;random&#39;.&quot;</span><span class="p">,</span>
-            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="n">rng</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">[</span>
-        <span class="n">ansatz</span><span class="o">.</span><span class="n">partitionate_circuit</span><span class="p">(</span>
-            <span class="n">replacement_probability</span><span class="p">,</span> <span class="n">replacement_method</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
-        <span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_circuits</span><span class="p">)</span>
-    <span class="p">]</span></div>
-
 
 
 <div class="viewcode-block" id="fold_circuit">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.training.fold_circuit">[docs]</a>
+<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.folding.fold_circuit">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">fold_circuit</span><span class="p">(</span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Circuit</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Amplify the noise of ``circuit`` by global unitary folding.</span>
@@ -366,15 +310,6 @@
         <span class="n">folded</span> <span class="o">+=</span> <span class="n">unitary</span><span class="o">.</span><span class="n">invert</span><span class="p">()</span> <span class="o">+</span> <span class="n">unitary</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">folded</span></div>
 
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">as_ansatz</span><span class="p">(</span><span class="n">ansatz</span><span class="p">:</span> <span class="n">Ansatz</span> <span class="o">|</span> <span class="n">Circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Ansatz</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;``ansatz``, wrapped in a :class:`~mpstab.models.ansatze.CircuitAnsatz` if it is a circuit.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">Circuit</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">CircuitAnsatz</span><span class="p">(</span><span class="n">qibo_circuit</span><span class="o">=</span><span class="n">ansatz</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span> <span class="n">Ansatz</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected an Ansatz or a qibo Circuit, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ansatz</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">ansatz</span>
 </pre></div>
         </article>
       </div>
