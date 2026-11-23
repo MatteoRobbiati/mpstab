@@ -377,10 +377,10 @@
 <span class="sd">    exact array object held by each site, and trusted only while the MPS holds</span>
 <span class="sd">    exactly those arrays and no other tensor. The cached arrays are read-only,</span>
 <span class="sd">    so anything else that changes the MPS has to replace them, and the next</span>
-<span class="sd">    view then re-canonicalizes from scratch. ``deepcopy`` preserves the</span>
-<span class="sd">    array identities, so copies keep their cached gauge, but numpy hands the</span>
-<span class="sd">    copies back writable: write into a deep copy&#39;s arrays and the gauge goes</span>
-<span class="sd">    stale.</span>
+<span class="sd">    view then re-canonicalizes from scratch. ``deepcopy`` keeps the cached</span>
+<span class="sd">    gauge pointing at the copy&#39;s arrays, but numpy hands those copies back</span>
+<span class="sd">    writable, so a writable array also invalidates the cache: a deep copy is</span>
+<span class="sd">    re-canonicalized once, whether or not anything wrote into it.</span>
 
 <span class="sd">    Arrays are loaded lazily, and only the ones a kernel changed are written</span>
 <span class="sd">    back, so the cost of an operation scales with the sites it touches.</span>
@@ -394,9 +394,13 @@
         <span class="k">if</span> <span class="n">gauge</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">center</span><span class="p">,</span> <span class="n">tids</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="n">gauge</span>
             <span class="c1"># Exactly L tensors: an extra one (``gate_(..., contract=False)``)</span>
-            <span class="c1"># changes the state while leaving the site arrays untouched.</span>
+            <span class="c1"># changes the state while leaving the site arrays untouched. And</span>
+            <span class="c1"># still read-only: a deep copy&#39;s arrays are writable, so they may</span>
+            <span class="c1"># have been written into.</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tids</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensor_map</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
-                <span class="n">tid</span> <span class="ow">in</span> <span class="n">tensor_map</span> <span class="ow">and</span> <span class="n">tensor_map</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="n">array</span>
+                <span class="n">tid</span> <span class="ow">in</span> <span class="n">tensor_map</span>
+                <span class="ow">and</span> <span class="n">tensor_map</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="n">array</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="n">array</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">writeable</span>
                 <span class="k">for</span> <span class="n">tid</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tids</span><span class="p">,</span> <span class="n">arrays</span><span class="p">)</span>
             <span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inds</span> <span class="o">=</span> <span class="n">center</span><span class="p">,</span> <span class="n">tids</span><span class="p">,</span> <span class="n">inds</span>
@@ -863,6 +867,11 @@
 <span class="sd">        orthogonality center of the cached canonical form, no full contraction</span>
 <span class="sd">        needed; other backends return quimb&#39;s backend scalar, so it stays</span>
 <span class="sd">        differentiable.</span>
+
+<span class="sd">        On the numpy backend, when the state has no valid cached canonical form</span>
+<span class="sd">        (a fresh state, or one changed outside the engine), it is</span>
+<span class="sd">        canonicalized in place first: its tensors are transposed and</span>
+<span class="sd">        gauge-transformed, the state itself is unchanged.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fast</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">state_circuit</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>

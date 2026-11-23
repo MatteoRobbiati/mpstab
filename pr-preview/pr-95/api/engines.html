@@ -564,6 +564,10 @@ windowed kernel, and the backend MPO otherwise.</p>
 orthogonality center of the cached canonical form, no full contraction
 needed; other backends return quimb’s backend scalar, so it stays
 differentiable.</p>
+<p>On the numpy backend, when the state has no valid cached canonical form
+(a fresh state, or one changed outside the engine), it is
+canonicalized in place first: its tensors are transposed and
+gauge-transformed, the state itself is unchanged.</p>
 </dd></dl>
 
 </dd></dl>
