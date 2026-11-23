@@ -236,6 +236,7 @@
 <li class="toctree-l1"><a class="reference internal" href="api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/models.html">Models &amp; Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
@@ -442,9 +443,11 @@
 </li>
         <li><a href="api/models.html#mpstab.models.ansatze.ParametricKickedIsing.delta_z">delta_z (mpstab.models.ansatze.ParametricKickedIsing attribute)</a>
 </li>
+        <li><a href="api/models.html#mpstab.models.ansatze.RampedKickedIsing.delta_z_last">delta_z_last (mpstab.models.ansatze.RampedKickedIsing attribute)</a>
+</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
-        <li><a href="api/models.html#mpstab.models.ansatze.RampedKickedIsing.delta_z_last">delta_z_last (mpstab.models.ansatze.RampedKickedIsing attribute)</a>
+        <li><a href="api/qibo_tools.html#mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator.DensityMatrixNoiseSimulator">DensityMatrixNoiseSimulator (class in mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator)</a>
 </li>
         <li><a href="api/noise.html#mpstab.models.noise.model.DepolarizingError">DepolarizingError (class in mpstab.models.noise.model)</a>
 </li>
@@ -512,7 +515,9 @@
 </li>
         <li><a href="api/noise.html#mpstab.models.noise.model.NoiseModel.events">events() (mpstab.models.noise.model.NoiseModel method)</a>
 </li>
-        <li><a href="api/qpu.html#mpstab.qpu.execution.simulator.execute_plan">execute_plan() (in module mpstab.qpu.execution.simulator)</a>
+        <li><a href="api/qpu.html#mpstab.qpu.execution.execute.execute_plan">execute_plan() (in module mpstab.qpu.execution.execute)</a>
+</li>
+        <li><a href="api/qibo_tools.html#mpstab.qibo_tools.provided_backends.mpstab_backend.MPStabBackend.exp_value_observable_symbolic">exp_value_observable_symbolic() (mpstab.qibo_tools.provided_backends.mpstab_backend.MPStabBackend method)</a>
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.expectation">expectation() (mpstab.evolutors.hsmpo.HSMPO method)</a>
 </li>
@@ -680,8 +685,12 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.light_cone">light_cone (mpstab.evolutors.hqsmpo.HQSMPO attribute)</a>
 </li>
+        <li><a href="api/qibo_tools.html#mpstab.qibo_tools.provided_backends.mpstab_backend.MetaBackend.list_available">list_available() (mpstab.qibo_tools.provided_backends.mpstab_backend.MetaBackend method)</a>
+</li>
     </ul></td>
     <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/qibo_tools.html#mpstab.qibo_tools.provided_backends.mpstab_backend.MetaBackend.load">load() (mpstab.qibo_tools.provided_backends.mpstab_backend.MetaBackend static method)</a>
+</li>
         <li><a href="api/qpu.html#mpstab.qpu.measurement.shadows.LOCAL_CANONICAL_DUAL_MAP">LOCAL_CANONICAL_DUAL_MAP (in module mpstab.qpu.measurement.shadows)</a>
 </li>
         <li><a href="api/qpu.html#mpstab.qpu.measurement.shadows.LOCAL_EFFECT_MAP">LOCAL_EFFECT_MAP (in module mpstab.qpu.measurement.shadows)</a>
@@ -727,6 +736,8 @@
         <li><a href="api/qpu.html#mpstab.qpu.measurement.abstract.MeasurementMethod">MeasurementMethod (class in mpstab.qpu.measurement.abstract)</a>
 </li>
         <li><a href="api/qpu.html#mpstab.qpu.measurement.abstract.MeasurementPlan">MeasurementPlan (class in mpstab.qpu.measurement.abstract)</a>
+</li>
+        <li><a href="api/qibo_tools.html#mpstab.qibo_tools.provided_backends.mpstab_backend.MetaBackend">MetaBackend (class in mpstab.qibo_tools.provided_backends.mpstab_backend)</a>
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hqsmpo.ResynthesizedHead.method">method (mpstab.evolutors.hqsmpo.ResynthesizedHead attribute)</a>
 </li>
@@ -796,15 +807,19 @@
 </li>
           <li><a href="api/pauli.html#module-mpstab.pauli">mpstab.pauli</a>
 </li>
+          <li><a href="api/qibo_tools.html#module-mpstab.qibo_tools.provided_backends.mpstab_backend">mpstab.qibo_tools.provided_backends.mpstab_backend</a>
+</li>
+          <li><a href="api/qibo_tools.html#module-mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator">mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator</a>
+</li>
+          <li><a href="api/qibo_tools.html#module-mpstab.qibo_tools.utilized_backends.statevector_exact_simulator">mpstab.qibo_tools.utilized_backends.statevector_exact_simulator</a>
+</li>
           <li><a href="api/qpu.html#module-mpstab.qpu">mpstab.qpu</a>
 </li>
           <li><a href="api/qpu.html#module-mpstab.qpu.execution">mpstab.qpu.execution</a>
 </li>
-          <li><a href="api/qpu.html#module-mpstab.qpu.execution.noisy">mpstab.qpu.execution.noisy</a>
+          <li><a href="api/qpu.html#module-mpstab.qpu.execution.execute">mpstab.qpu.execution.execute</a>
 </li>
           <li><a href="api/qpu.html#module-mpstab.qpu.execution.qasm">mpstab.qpu.execution.qasm</a>
-</li>
-          <li><a href="api/qpu.html#module-mpstab.qpu.execution.simulator">mpstab.qpu.execution.simulator</a>
 </li>
           <li><a href="api/qpu.html#module-mpstab.qpu.execution.storage">mpstab.qpu.execution.storage</a>
 </li>
@@ -854,8 +869,6 @@
           <li><a href="api/engines.html#module-mpstab.engines.tensor_networks.native.engine">module</a>
 </li>
         </ul></li>
-    </ul></td>
-    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     mpstab.engines.tensor_networks.quimb
 
@@ -863,6 +876,8 @@
           <li><a href="api/engines.html#module-mpstab.engines.tensor_networks.quimb">module</a>
 </li>
         </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
         <li>
     mpstab.evolutors.hqsmpo
 
@@ -997,6 +1012,27 @@
 </li>
         </ul></li>
         <li>
+    mpstab.qibo_tools.provided_backends.mpstab_backend
+
+        <ul>
+          <li><a href="api/qibo_tools.html#module-mpstab.qibo_tools.provided_backends.mpstab_backend">module</a>
+</li>
+        </ul></li>
+        <li>
+    mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator
+
+        <ul>
+          <li><a href="api/qibo_tools.html#module-mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator">module</a>
+</li>
+        </ul></li>
+        <li>
+    mpstab.qibo_tools.utilized_backends.statevector_exact_simulator
+
+        <ul>
+          <li><a href="api/qibo_tools.html#module-mpstab.qibo_tools.utilized_backends.statevector_exact_simulator">module</a>
+</li>
+        </ul></li>
+        <li>
     mpstab.qpu
 
         <ul>
@@ -1011,10 +1047,10 @@
 </li>
         </ul></li>
         <li>
-    mpstab.qpu.execution.noisy
+    mpstab.qpu.execution.execute
 
         <ul>
-          <li><a href="api/qpu.html#module-mpstab.qpu.execution.noisy">module</a>
+          <li><a href="api/qpu.html#module-mpstab.qpu.execution.execute">module</a>
 </li>
         </ul></li>
         <li>
@@ -1022,13 +1058,6 @@
 
         <ul>
           <li><a href="api/qpu.html#module-mpstab.qpu.execution.qasm">module</a>
-</li>
-        </ul></li>
-        <li>
-    mpstab.qpu.execution.simulator
-
-        <ul>
-          <li><a href="api/qpu.html#module-mpstab.qpu.execution.simulator">module</a>
 </li>
         </ul></li>
         <li>
@@ -1115,6 +1144,8 @@
           <li><a href="api/qpu.html#module-mpstab.qpu.synthesis.utils">module</a>
 </li>
         </ul></li>
+        <li><a href="api/qibo_tools.html#mpstab.qibo_tools.provided_backends.mpstab_backend.MPStabBackend">MPStabBackend (class in mpstab.qibo_tools.provided_backends.mpstab_backend)</a>
+</li>
     </ul></td>
   </tr></table>
 </section>
@@ -1196,8 +1227,6 @@
         <li><a href="api/error_mitigation.html#mpstab.models.error_mitigation.data_driven_methods.regression.noisy_value">noisy_value() (in module mpstab.models.error_mitigation.data_driven_methods.regression)</a>
 </li>
         <li><a href="api/noise.html#mpstab.models.noise.NoisyExpectation">NoisyExpectation (class in mpstab.models.noise)</a>
-</li>
-        <li><a href="api/qpu.html#mpstab.qpu.execution.noisy.NoisySimulator">NoisySimulator (class in mpstab.qpu.execution.noisy)</a>
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.nparams">nparams (mpstab.evolutors.hsmpo.HSMPO property)</a>
 
@@ -1337,8 +1366,6 @@
     <td style="width: 33%; vertical-align: top;"><ul>
         <li><a href="api/models.html#mpstab.models.ansatze.CircuitAnsatz.qibo_circuit">qibo_circuit (mpstab.models.ansatze.CircuitAnsatz attribute)</a>
 </li>
-        <li><a href="api/qpu.html#mpstab.qpu.execution.simulator.QiboSimulator">QiboSimulator (class in mpstab.qpu.execution.simulator)</a>
-</li>
         <li><a href="api/models.html#mpstab.models.ansatze.QPE">QPE (class in mpstab.models.ansatze)</a>
 </li>
         <li><a href="api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine">QuimbEngine (class in mpstab.engines.tensor_networks.quimb)</a>
@@ -1444,6 +1471,8 @@
         <li><a href="api/evolutors.html#mpstab.evolutors.hqsmpo.ExpectationResult.state_fidelity">state_fidelity (mpstab.evolutors.hqsmpo.ExpectationResult attribute)</a>
 </li>
         <li><a href="api/noise.html#mpstab.models.noise.model.StatePreparationError">StatePreparationError (class in mpstab.models.noise.model)</a>
+</li>
+        <li><a href="api/qibo_tools.html#mpstab.qibo_tools.utilized_backends.statevector_exact_simulator.StatevectorExactSimulator">StatevectorExactSimulator (class in mpstab.qibo_tools.utilized_backends.statevector_exact_simulator)</a>
 </li>
         <li><a href="api/evolutors.html#mpstab.evolutors.hqsmpo.ExpectationResult.stderr">stderr (mpstab.evolutors.hqsmpo.ExpectationResult attribute)</a>
 </li>

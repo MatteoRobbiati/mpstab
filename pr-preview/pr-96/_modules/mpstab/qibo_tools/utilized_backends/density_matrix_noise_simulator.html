@@ -6,7 +6,7 @@
         <link rel="prefetch" href="../../../../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>mpstab.qpu.execution.noisy - Documentation</title>
+        <title>mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
@@ -237,6 +237,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
@@ -274,7 +275,7 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <h1>Source code for mpstab.qpu.execution.noisy</h1><div class="highlight"><pre>
+          <h1>Source code for mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;A noisy stand-in for a device, to validate error mitigation on a plan.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -284,16 +285,16 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.execution.simulator</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qibo_tools.utilized_backends.statevector_exact_simulator</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_circuit_key</span><span class="p">,</span>
     <span class="n">_gates_key</span><span class="p">,</span>
     <span class="n">_split_basis_measurement</span><span class="p">,</span>
 <span class="p">)</span>
 
 
-<div class="viewcode-block" id="NoisySimulator">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.execution.noisy.NoisySimulator">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">NoisySimulator</span><span class="p">:</span>
+<div class="viewcode-block" id="DensityMatrixNoiseSimulator">
+<a class="viewcode-back" href="../../../../api/qibo_tools.html#mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator.DensityMatrixNoiseSimulator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DensityMatrixNoiseSimulator</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Runs plan circuits under a :class:`~mpstab.models.noise.NoiseModel`, on a</span>
 <span class="sd">    qibo density matrix.</span>
@@ -323,8 +324,8 @@
         <span class="n">split</span> <span class="o">=</span> <span class="n">_split_basis_measurement</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;NoisySimulator runs circuits ending in one measurement layer, &quot;</span>
-                <span class="s2">&quot;as measurement plans build them.&quot;</span>
+                <span class="s2">&quot;DensityMatrixNoiseSimulator runs circuits ending in one &quot;</span>
+                <span class="s2">&quot;measurement layer, as measurement plans build them.&quot;</span>
             <span class="p">)</span>
         <span class="n">key</span> <span class="o">=</span> <span class="n">_circuit_key</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_probabilities</span><span class="p">:</span>

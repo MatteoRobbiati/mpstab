@@ -237,6 +237,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../api/models.html">Models &amp; Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
@@ -323,7 +324,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">CircuitAnsatz</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.error_mitigation.folding</span><span class="w"> </span><span class="kn">import</span> <span class="n">fold_circuit</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.execution</span><span class="w"> </span><span class="kn">import</span> <span class="n">QiboSimulator</span><span class="p">,</span> <span class="n">execute_plan</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qibo_tools.utilized_backends.statevector_exact_simulator</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">StatevectorExactSimulator</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.execution</span><span class="w"> </span><span class="kn">import</span> <span class="n">execute_plan</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.measurement.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">basis_measurement</span><span class="p">,</span>
     <span class="n">weighted_mean_and_variance</span><span class="p">,</span>
@@ -406,7 +410,7 @@
 <span class="sd">    Every circuit to run for a mitigated measurement, with its shots.</span>
 
 <span class="sd">    It runs anywhere a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`</span>
-<span class="sd">    does, e.g. :func:`~mpstab.qpu.execution.simulator.execute_plan` or</span>
+<span class="sd">    does, e.g. :func:`~mpstab.qpu.execution.execute.execute_plan` or</span>
 <span class="sd">    :func:`~mpstab.qpu.execution.storage.save_circuits`; :meth:`estimate` turns</span>
 <span class="sd">    the counts into a :class:`MitigatedResult`.</span>
 
@@ -752,7 +756,7 @@
 <span class="sd">        n_shots: shots of the target plan at each noise level.</span>
 <span class="sd">        epsilon: target standard error sizing them instead.</span>
 <span class="sd">        backend: anything with ``execute_circuits(circuits, nshots)``, e.g.</span>
-<span class="sd">            :class:`~mpstab.qpu.execution.noisy.NoisySimulator`.</span>
+<span class="sd">            :class:`~mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator.DensityMatrixNoiseSimulator`.</span>
 <span class="sd">        method: the ``&quot;pauli&quot;`` measurement method, with its options.</span>
 <span class="sd">        max_bond_dimension: bond cap of the tail fold.</span>
 <span class="sd">        seed: seed of the plan.</span>
@@ -767,7 +771,7 @@
         <span class="n">max_bond_dimension</span><span class="o">=</span><span class="n">max_bond_dimension</span><span class="p">,</span>
         <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">plan</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">execute_plan</span><span class="p">(</span><span class="n">backend</span> <span class="ow">or</span> <span class="n">QiboSimulator</span><span class="p">(),</span> <span class="n">plan</span><span class="p">))</span></div>
+    <span class="k">return</span> <span class="n">plan</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">execute_plan</span><span class="p">(</span><span class="n">backend</span> <span class="ow">or</span> <span class="n">StatevectorExactSimulator</span><span class="p">(),</span> <span class="n">plan</span><span class="p">))</span></div>
 
 
 
