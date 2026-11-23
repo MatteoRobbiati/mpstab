@@ -55,13 +55,20 @@ _ORTHOGONALITY_TOL = 1e-12
 # Raw complex LAPACK routines: scipy.linalg's wrappers validate and copy their
 # inputs, which costs more than the factorization itself on the small matrices
 # of a low bond dimension.
-_POTRF, _TRTRS, _HEEVR, _HEEVR_LWORK = scipy.linalg.lapack.get_lapack_funcs(
-    ("potrf", "trtrs", "heevr", "heevr_lwork"), dtype=np.complex128
+_POTRF, _TRTRS, _HEEVD, _HEEVR, _HEEVR_LWORK = scipy.linalg.lapack.get_lapack_funcs(
+    ("potrf", "trtrs", "heevd", "heevr", "heevr_lwork"), dtype=np.complex128
 )
 
 #: Optimal ``heevr`` workspace sizes per matrix order: its default is the
 #: minimum, which runs unblocked and is markedly slower on large matrices.
 _HEEVR_WORKSPACE: dict = {}
+
+#: Matrix order above which ``heevr`` (MRRR) beats ``heevd`` (divide and
+#: conquer); below it ``heevd`` is as fast or faster.
+_HEEVR_MIN_ORDER = 128
+
+#: Largest ``|V^H V - I|`` entry accepted from ``heevr`` eigenvectors.
+_EIGENVECTOR_TOL = 1e-10
 
 
 def _svd(matrix: np.ndarray):
@@ -128,23 +135,42 @@ def n_kept(s: np.ndarray, cutoff: float, max_bond: int | None) -> int:
     return max(keep, 1)
 
 
+def _heevd(hermitian: np.ndarray):
+    """Eigendecomposition by LAPACK's divide-and-conquer driver (``heevd``)."""
+    values, vectors, info = _HEEVD(hermitian, compute_v=1, lower=0)
+    if info != 0:
+        raise np.linalg.LinAlgError(f"heevd failed with info={info}")
+    return values, vectors
+
+
 def _eigh(hermitian: np.ndarray):
     """
-    Eigendecomposition of a Hermitian matrix, ascending, by LAPACK's MRRR
-    driver (``heevr``), the fastest of the ones scipy exposes at these sizes.
+    Eigendecomposition of a Hermitian matrix, ascending, with orthonormal
+    eigenvectors.
+
+    Small matrices go to the divide-and-conquer driver (``heevd``), larger
+    ones to the MRRR driver (``heevr``), the faster of the two above
+    :data:`_HEEVR_MIN_ORDER`. MRRR can return eigenvectors that are far from
+    orthogonal on (nearly) degenerate eigenvalues, which the Gram matrices of
+    Clifford+T operators have exactly, and how far depends on the LAPACK
+    build. Its eigenvectors are therefore checked, and recomputed by
+    ``heevd`` when they are not orthonormal.
     """
+    hermitian = np.asarray(hermitian, dtype=np.complex128)
     order = hermitian.shape[0]
+    if order <= _HEEVR_MIN_ORDER:
+        return _heevd(hermitian)
     workspace = _HEEVR_WORKSPACE.get(order)
     if workspace is None:
         lwork, lrwork, liwork, _ = _HEEVR_LWORK(order)
         workspace = _HEEVR_WORKSPACE[order] = dict(
             lwork=int(lwork.real), lrwork=int(lrwork), liwork=int(liwork)
         )
-    values, vectors, _, _, info = _HEEVR(
-        np.asarray(hermitian, dtype=np.complex128), compute_v=1, lower=0, **workspace
-    )
-    if info != 0:
-        raise np.linalg.LinAlgError(f"heevr failed with info={info}")
+    values, vectors, _, _, info = _HEEVR(hermitian, compute_v=1, lower=0, **workspace)
+    if info != 0 or (
+        np.abs(vectors.conj().T @ vectors - np.eye(order)).max() > _EIGENVECTOR_TOL
+    ):
+        return _heevd(hermitian)
     return values, vectors
 
 

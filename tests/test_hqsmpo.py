@@ -268,6 +268,18 @@ def test_library_ansatze_simulation_matches_qibo(label, factory):
             )
 
 
+@pytest.mark.parametrize("observable", ["XIX", "YIX"])
+def test_long_clifford_t_tail_fold_is_exact(observable):
+    # Folding the whole circuit (cut=0) meets exactly degenerate Gram spectra,
+    # on which LAPACK's MRRR eigensolver returned non-orthogonal eigenvectors:
+    # the fold then lost canonical form and the default SVD cutoff dropped
+    # real weight (XIX gave -0.1222 instead of -0.125).
+    ansatz = Grover(nqubits=3, marked_state=0, n_iterations=2)
+    reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str=observable)
+    simulated = HQSMPO(ansatz).expectation_at_cut(observable, 0, method="simulation")
+    assert np.allclose(simulated.value, reference, atol=1e-6)
+
+
 @pytest.mark.parametrize("nqubits", [6, 8, 10])
 def test_simulation_matches_qibo_more_qubits(nqubits):
     # Larger systems (statevector still tractable). We sweep cuts with modest

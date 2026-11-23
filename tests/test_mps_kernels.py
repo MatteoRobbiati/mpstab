@@ -131,3 +131,37 @@ def test_zero_cutoff_keeps_the_exact_rank(shape):
         a, b = split(m, 0.0, None)
         assert min(a.shape + b.shape) == 7
         np.testing.assert_allclose(a @ b, m, atol=1e-10)
+
+
+def _degenerate_hermitian(order):
+    """A Hermitian matrix with exactly repeated integer eigenvalues, like the
+    Gram matrices of Clifford+T operators."""
+    q, _ = np.linalg.qr(_complex(order, order))
+    values = np.repeat(np.arange(1.0, order // 2 + 1), 2)[:order]
+    return (q * values) @ q.conj().T
+
+
+@pytest.mark.parametrize("order", [4, 2 * kernels._HEEVR_MIN_ORDER])
+def test_eigh_is_orthonormal_on_a_degenerate_spectrum(order):
+    hermitian = _degenerate_hermitian(order)
+    values, vectors = kernels._eigh(hermitian)
+    np.testing.assert_allclose(vectors.conj().T @ vectors, np.eye(order), atol=1e-12)
+    np.testing.assert_allclose(hermitian @ vectors, vectors * values, atol=1e-10)
+
+
+def test_eigh_falls_back_when_heevr_loses_orthogonality(monkeypatch):
+    """MRRR may return non-orthogonal eigenvectors on clustered eigenvalues;
+    those must be recomputed, not handed to the splits as an isometry."""
+    order = 2 * kernels._HEEVR_MIN_ORDER
+    hermitian = _degenerate_hermitian(order)
+    heevr = kernels._HEEVR
+
+    def skewed(*args, **kwargs):
+        values, vectors, m, isuppz, info = heevr(*args, **kwargs)
+        vectors = vectors.copy()
+        vectors[:, 1] += 1e-2 * vectors[:, 0]
+        return values, vectors, m, isuppz, info
+
+    monkeypatch.setattr(kernels, "_HEEVR", skewed)
+    _, vectors = kernels._eigh(hermitian)
+    np.testing.assert_allclose(vectors.conj().T @ vectors, np.eye(order), atol=1e-12)
