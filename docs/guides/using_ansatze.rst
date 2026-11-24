@@ -68,39 +68,84 @@ Pass ``transpile=False`` to keep the raw high-level circuit for inspection
 ``HQSMPO`` and its cut-index split — see :doc:`../api/engines`.
 
 
+Choosing the couplings
+----------------------
+
+Every ansatz with two-qubit gates takes a ``graph`` field: the pairs of qubits
+it couples, as a :class:`.Topology` or anything that describes one, such as a
+name, a list of edges or a ``networkx`` graph. The single-qubit part of the
+ansatz stays the same; the two-qubit gates go on the edges, a layer of
+disjoint edges at a time. ``ansatz.topology`` reads back the pairs the circuit
+couples::
+
+    from mpstab.models.ansatze import HardwareEfficient, RampedKickedIsing
+
+    # the same kicked Ising ansatz on a 3 x 4 lattice instead of a chain
+    lattice = RampedKickedIsing(nqubits=12, n_steps=4, delta_h=0.2, graph="grid")
+    print(lattice.topology.depth)  # 4 layers of disjoint bonds per step
+
+    # any list of edges
+    pairs = HardwareEfficient(nqubits=6, nlayers=2, graph=[(0, 3), (1, 4), (2, 5)])
+    print(pairs.topology.edges)  # ((0, 3), (1, 4), (2, 5))
+
+To run the circuit on a device without routing, build the ansatz on the
+coupling map of the device, or on part of it, and check it with
+:meth:`.Topology.is_subgraph_of`. A provider lists each coupled pair in both
+directions; :meth:`.Topology.from_device` reads it::
+
+    from mpstab import Topology
+    from mpstab.models.ansatze import RampedKickedIsing
+
+    coupling_map = [(0, 1), (1, 0), (1, 2), (2, 1), (1, 3), (3, 1)]
+    device = Topology.from_device(coupling_map)
+
+    ansatz = RampedKickedIsing(
+        nqubits=device.nqubits, n_steps=3, delta_h=0.2, graph=device
+    )
+    assert ansatz.topology.is_subgraph_of(device)
+
+The :doc:`ansatze_catalogue` lists the default couplings of each ansatz, and
+the tutorial :doc:`../tutorials/topology` shows how the choice of the graph
+changes the cost of HSMPO at fixed magic.
+
 Building Custom Ansätze
 ------------------------
 
-Extend the ``Ansatz`` class for custom patterns::
+Extend the ``Ansatz`` class for custom patterns. Let the ansatz take a
+``graph`` and place its two-qubit gates on the layers of the corresponding
+:class:`.Topology`: the same class then runs on a ring, a lattice or the
+coupling map of a device::
 
-    from mpstab import HSMPO
-    from mpstab.models.ansatze import Ansatz
-    from qibo import Circuit, gates
+    from dataclasses import dataclass
+
     import numpy as np
+    from qibo import gates
 
-    class MyCustomAnsatz(Ansatz):
-        """Custom ansatz for specific problem."""
+    from mpstab import HSMPO, Topology
+    from mpstab.models.ansatze import Ansatz
 
-        def __init__(self, nqubits, pattern="ring"):
-            super().__init__(nqubits)
-            self.pattern = pattern
-            self._build_circuit()
 
-        def _build_circuit(self):
-            # Your circuit construction logic
-            self.circuit = Circuit(self.nqubits)
+    @dataclass
+    class LayeredRY(Ansatz):
+        """Random RY rotations on every qubit, then a CZ on every coupled pair."""
 
-            # Add gates based on pattern
-            if self.pattern == "ring":
+        nlayers: int = 2
+        graph: object = "ring"  # anything Topology.coerce accepts
+
+        def __post_init__(self):
+            super().__post_init__()  # creates the empty circuit
+            topology = Topology.coerce(self.graph, self.nqubits)
+            for _ in range(self.nlayers):
                 for q in range(self.nqubits):
-                    self.circuit.add(gates.H(q))
-                for q in range(self.nqubits):
-                    next_q = (q + 1) % self.nqubits
-                    self.circuit.add(gates.CNOT(q, next_q))
+                    self.circuit.add(gates.RY(q, theta=np.random.uniform(-np.pi, np.pi)))
+                for layer in topology.layers:
+                    for a, b in layer:
+                        self.circuit.add(gates.CZ(a, b))
 
-    # Use with HSMPO
-    ansatz = MyCustomAnsatz(nqubits=5, pattern="ring")
+
+    ansatz = LayeredRY(nqubits=6, graph="grid")
     simulator = HSMPO(ansatz=ansatz)
+    print(simulator.expectation("ZZIIII"))
 
 The ansatz partitioning
 -----------------------

@@ -34,3 +34,9 @@ repository.
    echo
    free_fermions
    frameworks
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Ansätze
+
+   topology
