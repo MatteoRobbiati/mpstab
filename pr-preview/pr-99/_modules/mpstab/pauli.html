@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -284,6 +291,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">reduce</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">stim</span>
@@ -301,6 +309,24 @@
 
 <span class="c1">#: The same matrices stacked in :data:`PAULI_LABELS` order, shape ``(4, 2, 2)``.</span>
 <span class="n">PAULI_ARRAY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">PAULI_MATRICES</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">PAULI_LABELS</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="pauli_matrix">
+<a class="viewcode-back" href="../../api/pauli.html#mpstab.pauli.pauli_matrix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">pauli_matrix</span><span class="p">(</span><span class="n">pauli</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dense matrix of a Pauli string, qubit 0 being the most significant.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pauli: the Pauli string; the empty string gives the ``1 x 1`` identity.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The ``2**n x 2**n`` complex matrix ``P_0 (x) P_1 (x) ... (x) P_{n-1}``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">,</span> <span class="p">(</span><span class="n">PAULI_MATRICES</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">pauli</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="validate_pauli_string">
@@ -400,13 +426,13 @@
 
 
 
-<span class="c1">#: Rows of rotations :func:`light_cone` handles at once, bounding its memory.</span>
+<span class="c1">#: Rows of rotations :func:`pauli_light_cone` handles at once, bounding its memory.</span>
 <span class="n">_LIGHT_CONE_BLOCK</span> <span class="o">=</span> <span class="mi">1024</span>
 
 
-<div class="viewcode-block" id="light_cone">
-<a class="viewcode-back" href="../../api/pauli.html#mpstab.pauli.light_cone">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">light_cone</span><span class="p">(</span>
+<div class="viewcode-block" id="pauli_light_cone">
+<a class="viewcode-back" href="../../api/pauli.html#mpstab.pauli.pauli_light_cone">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">pauli_light_cone</span><span class="p">(</span>
     <span class="n">generators</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">observables</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -430,11 +456,11 @@
 
 <span class="sd">    Example::</span>
 
-<span class="sd">        from mpstab.pauli import light_cone</span>
+<span class="sd">        from mpstab.pauli import pauli_light_cone</span>
 
 <span class="sd">        # IX commutes with everything after it and drops out; ZI commutes</span>
 <span class="sd">        # with the observable but not with the kept XI, so it stays.</span>
-<span class="sd">        print(light_cone([&quot;ZI&quot;, &quot;IX&quot;, &quot;XI&quot;], [&quot;ZI&quot;], 2))</span>
+<span class="sd">        print(pauli_light_cone([&quot;ZI&quot;, &quot;IX&quot;, &quot;XI&quot;], [&quot;ZI&quot;], 2))</span>
 <span class="sd">        # [0 2]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">x</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">_symplectic</span><span class="p">(</span><span class="n">generators</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>

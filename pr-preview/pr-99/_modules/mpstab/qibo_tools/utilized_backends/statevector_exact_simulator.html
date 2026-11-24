@@ -6,10 +6,11 @@
         <link rel="prefetch" href="../../../../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>mpstab.qpu.execution.simulator - Documentation</title>
+        <title>mpstab.qibo_tools.utilized_backends.statevector_exact_simulator - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -273,18 +280,12 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <h1>Source code for mpstab.qpu.execution.simulator</h1><div class="highlight"><pre>
+          <h1>Source code for mpstab.qibo_tools.utilized_backends.statevector_exact_simulator</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Running a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan` on a backend.</span>
-
-<span class="sd">A backend is any object with an ``execute_circuits(circuits, nshots)`` method</span>
-<span class="sd">returning one frequency dictionary per circuit, as qibo&#39;s</span>
-<span class="sd">``Circuit.__call__(nshots=...).frequencies()`` does; there is no base class to</span>
-<span class="sd">subclass. :class:`QiboSimulator` below is the default.</span>
-
-<span class="sd">Bitstrings are qubit-0-leftmost throughout mpstab, as in qibo. A backend whose</span>
-<span class="sd">provider reports them the other way round, qubit 0 rightmost as in qiskit, must</span>
-<span class="sd">reverse them before returning.</span>
+<span class="sd">:class:`StatevectorExactSimulator`, a backend running measurement-plan circuits</span>
+<span class="sd">with qibo&#39;s exact statevector simulator, as</span>
+<span class="sd">:func:`~mpstab.qpu.execution.backend.run_plan` expects:</span>
+<span class="sd">``execute_circuits(circuits, nshots)`` returning one frequency dict per circuit.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -296,11 +297,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
 
 
-<div class="viewcode-block" id="QiboSimulator">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.execution.simulator.QiboSimulator">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">QiboSimulator</span><span class="p">:</span>
+<div class="viewcode-block" id="StatevectorExactSimulator">
+<a class="viewcode-back" href="../../../../api/qibo_tools.html#mpstab.qibo_tools.utilized_backends.statevector_exact_simulator.StatevectorExactSimulator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StatevectorExactSimulator</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Runs circuits with qibo&#39;s own simulator. The default backend.</span>
+<span class="sd">    Runs circuits with qibo&#39;s exact statevector simulator. The default backend.</span>
 
 <span class="sd">    Measurement plans run one state preparation under many measurement bases,</span>
 <span class="sd">    so circuits are grouped by their preparation, everything before the</span>
@@ -452,55 +453,6 @@
             <span class="k">for</span> <span class="n">outcome</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
         <span class="p">}</span>
     <span class="p">)</span>
-
-
-<div class="viewcode-block" id="execute_plan">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.execution.simulator.execute_plan">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">execute_plan</span><span class="p">(</span><span class="n">backend</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Run every circuit in a :class:`~mpstab.qpu.measurement.abstract.MeasurementPlan`</span>
-<span class="sd">    with its own shot count, batching circuits that share a shot count into a</span>
-<span class="sd">    single ``backend.execute_circuits`` call instead of one call per circuit.</span>
-
-<span class="sd">    A ``&quot;shadows&quot;`` plan&#39;s circuits mostly share</span>
-<span class="sd">    ``shots_per_setting`` shots each, so this collapses what would otherwise be</span>
-<span class="sd">    one backend call per shot into a handful of calls -- the contract already</span>
-<span class="sd">    supports a batch (``execute_circuits`` takes a list), the naive call site</span>
-<span class="sd">    just wasn&#39;t using it.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        backend: anything with ``execute_circuits(circuits, nshots)``.</span>
-<span class="sd">        plan: a plan whose ``circuits`` and ``shots`` are the same length.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        One frequency dict per circuit, in ``plan.circuits`` order and</span>
-<span class="sd">        qubit-0-leftmost -- what :mod:`~mpstab.qpu.measurement`</span>
-<span class="sd">        assumes.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        ValueError: if the backend returns a different number of results than</span>
-<span class="sd">            the circuits it was given, which would otherwise leave gaps that</span>
-<span class="sd">            only surface later, inside the estimator.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">groups</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">shots</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">shots</span><span class="p">):</span>
-        <span class="n">groups</span><span class="p">[</span><span class="n">shots</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-
-    <span class="n">frequencies</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">circuits</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">shots</span><span class="p">,</span> <span class="n">indices</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">circuits</span> <span class="o">=</span> <span class="p">[</span><span class="n">plan</span><span class="o">.</span><span class="n">circuits</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">execute_circuits</span><span class="p">(</span><span class="n">circuits</span><span class="p">,</span> <span class="n">shots</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">circuits</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">backend</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.execute_circuits returned &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="si">}</span><span class="s2"> results for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">circuits</span><span class="p">)</span><span class="si">}</span><span class="s2"> circuits; it must &quot;</span>
-                <span class="s2">&quot;return one frequency dict per circuit, in order.&quot;</span>
-            <span class="p">)</span>
-        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">results</span><span class="p">):</span>
-            <span class="n">frequencies</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
-
-    <span class="k">return</span> <span class="n">frequencies</span></div>
-
 </pre></div>
         </article>
       </div>

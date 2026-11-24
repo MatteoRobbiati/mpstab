@@ -46,9 +46,8 @@ becomes ``(1 - p0 - p1) P + (p1 - p0) I``.
 **Usage Example**::
 
     from qibo import gates
-    from mpstab import HSMPO
-    from mpstab.models.ansatze import KickedIsing
-    from mpstab.models.noise import (
+    from mpstab import (
+        HSMPO,
         CoherentError,
         DepolarizingError,
         NoiseModel,
@@ -57,6 +56,7 @@ becomes ``(1 - p0 - p1) P + (p1 - p0) I``.
         StatePreparationError,
         ThermalRelaxationError,
     )
+    from mpstab.models.ansatze import KickedIsing
 
     ansatz = KickedIsing(nqubits=4, n_steps=1, theta_h=0.7, theta_z=0.3)
     surrogate = HSMPO(ansatz)
@@ -104,7 +104,7 @@ fault-pattern estimator. The three steps are available on their own.
 .. automodule:: mpstab.models.noise.compile
    :members:
 
-.. automodule:: mpstab.models.noise.estimator
+.. automodule:: mpstab.models.noise.mc_noise_estimator
    :members: noisy_expectation
 
 The :doc:`../tutorials/noise` tutorial compares these values against an exact

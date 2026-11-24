@@ -9,6 +9,7 @@
 <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -213,6 +214,7 @@
 <li class="toctree-l1"><a class="reference internal" href="user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -239,7 +241,12 @@
 <li class="toctree-l1"><a class="reference internal" href="api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -294,7 +301,19 @@
   <tr class="cg-1">
     <td></td>
     <td>&#160;&#160;&#160;
+        <a href="api/engines.html#module-mpstab.engines.stabilizers.native.engine"><code class="xref">mpstab.engines.stabilizers.native.engine</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
         <a href="api/engines.html#module-mpstab.engines.stabilizers.stim"><code class="xref">mpstab.engines.stabilizers.stim</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="api/engines.html#module-mpstab.engines.tensor_networks.native.engine"><code class="xref">mpstab.engines.tensor_networks.native.engine</code></a></td><td>
     <em></em></td>
   </tr>
   <tr class="cg-1">
@@ -348,19 +367,37 @@
   <tr class="cg-1">
     <td></td>
     <td>&#160;&#160;&#160;
-        <a href="api/error_mitigation.html#module-mpstab.models.error_mitigation.cdr"><code class="xref">mpstab.models.error_mitigation.cdr</code></a></td><td>
+        <a href="api/error_mitigation.html#module-mpstab.models.error_mitigation.data_driven_methods.cdr"><code class="xref">mpstab.models.error_mitigation.data_driven_methods.cdr</code></a></td><td>
     <em></em></td>
   </tr>
   <tr class="cg-1">
     <td></td>
     <td>&#160;&#160;&#160;
-        <a href="api/error_mitigation.html#module-mpstab.models.error_mitigation.plan"><code class="xref">mpstab.models.error_mitigation.plan</code></a></td><td>
+        <a href="api/error_mitigation.html#module-mpstab.models.error_mitigation.data_driven_methods.plan"><code class="xref">mpstab.models.error_mitigation.data_driven_methods.plan</code></a></td><td>
     <em></em></td>
   </tr>
   <tr class="cg-1">
     <td></td>
     <td>&#160;&#160;&#160;
-        <a href="api/error_mitigation.html#module-mpstab.models.error_mitigation.training"><code class="xref">mpstab.models.error_mitigation.training</code></a></td><td>
+        <a href="api/error_mitigation.html#module-mpstab.models.error_mitigation.data_driven_methods.regression"><code class="xref">mpstab.models.error_mitigation.data_driven_methods.regression</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="api/error_mitigation.html#module-mpstab.models.error_mitigation.data_driven_methods.training"><code class="xref">mpstab.models.error_mitigation.data_driven_methods.training</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="api/error_mitigation.html#module-mpstab.models.error_mitigation.data_driven_methods.vncdr"><code class="xref">mpstab.models.error_mitigation.data_driven_methods.vncdr</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="api/error_mitigation.html#module-mpstab.models.error_mitigation.folding"><code class="xref">mpstab.models.error_mitigation.folding</code></a></td><td>
     <em></em></td>
   </tr>
   <tr class="cg-1">
@@ -378,13 +415,13 @@
   <tr class="cg-1">
     <td></td>
     <td>&#160;&#160;&#160;
-        <a href="api/noise.html#module-mpstab.models.noise.estimator"><code class="xref">mpstab.models.noise.estimator</code></a></td><td>
+        <a href="api/noise.html#module-mpstab.models.noise.events"><code class="xref">mpstab.models.noise.events</code></a></td><td>
     <em></em></td>
   </tr>
   <tr class="cg-1">
     <td></td>
     <td>&#160;&#160;&#160;
-        <a href="api/noise.html#module-mpstab.models.noise.events"><code class="xref">mpstab.models.noise.events</code></a></td><td>
+        <a href="api/noise.html#module-mpstab.models.noise.mc_noise_estimator"><code class="xref">mpstab.models.noise.mc_noise_estimator</code></a></td><td>
     <em></em></td>
   </tr>
   <tr class="cg-1">
@@ -408,6 +445,24 @@
   <tr class="cg-1">
     <td></td>
     <td>&#160;&#160;&#160;
+        <a href="api/qibo_tools.html#module-mpstab.qibo_tools.provided_backends.mpstab_backend"><code class="xref">mpstab.qibo_tools.provided_backends.mpstab_backend</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="api/qibo_tools.html#module-mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator"><code class="xref">mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
+        <a href="api/qibo_tools.html#module-mpstab.qibo_tools.utilized_backends.statevector_exact_simulator"><code class="xref">mpstab.qibo_tools.utilized_backends.statevector_exact_simulator</code></a></td><td>
+    <em></em></td>
+  </tr>
+  <tr class="cg-1">
+    <td></td>
+    <td>&#160;&#160;&#160;
         <a href="api/qpu.html#module-mpstab.qpu"><code class="xref">mpstab.qpu</code></a></td><td>
     <em></em></td>
   </tr>
@@ -420,19 +475,13 @@
   <tr class="cg-1">
     <td></td>
     <td>&#160;&#160;&#160;
-        <a href="api/qpu.html#module-mpstab.qpu.execution.noisy"><code class="xref">mpstab.qpu.execution.noisy</code></a></td><td>
+        <a href="api/qpu.html#module-mpstab.qpu.execution.backend"><code class="xref">mpstab.qpu.execution.backend</code></a></td><td>
     <em></em></td>
   </tr>
   <tr class="cg-1">
     <td></td>
     <td>&#160;&#160;&#160;
         <a href="api/qpu.html#module-mpstab.qpu.execution.qasm"><code class="xref">mpstab.qpu.execution.qasm</code></a></td><td>
-    <em></em></td>
-  </tr>
-  <tr class="cg-1">
-    <td></td>
-    <td>&#160;&#160;&#160;
-        <a href="api/qpu.html#module-mpstab.qpu.execution.simulator"><code class="xref">mpstab.qpu.execution.simulator</code></a></td><td>
     <em></em></td>
   </tr>
   <tr class="cg-1">

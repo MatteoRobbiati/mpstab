@@ -6,10 +6,11 @@
         <link rel="prefetch" href="../../../../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>mpstab.qpu.execution.noisy - Documentation</title>
+        <title>mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -273,7 +280,7 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <h1>Source code for mpstab.qpu.execution.noisy</h1><div class="highlight"><pre>
+          <h1>Source code for mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;A noisy stand-in for a device, to validate error mitigation on a plan.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -283,16 +290,16 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.execution.simulator</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qibo_tools.utilized_backends.statevector_exact_simulator</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_circuit_key</span><span class="p">,</span>
     <span class="n">_gates_key</span><span class="p">,</span>
     <span class="n">_split_basis_measurement</span><span class="p">,</span>
 <span class="p">)</span>
 
 
-<div class="viewcode-block" id="NoisySimulator">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.execution.noisy.NoisySimulator">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">NoisySimulator</span><span class="p">:</span>
+<div class="viewcode-block" id="DensityMatrixNoiseSimulator">
+<a class="viewcode-back" href="../../../../api/qibo_tools.html#mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator.DensityMatrixNoiseSimulator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DensityMatrixNoiseSimulator</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Runs plan circuits under a :class:`~mpstab.models.noise.NoiseModel`, on a</span>
 <span class="sd">    qibo density matrix.</span>
@@ -322,21 +329,38 @@
         <span class="n">split</span> <span class="o">=</span> <span class="n">_split_basis_measurement</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;NoisySimulator runs circuits ending in one measurement layer, &quot;</span>
-                <span class="s2">&quot;as measurement plans build them.&quot;</span>
+                <span class="s2">&quot;DensityMatrixNoiseSimulator runs circuits ending in one &quot;</span>
+                <span class="s2">&quot;measurement layer, as measurement plans build them.&quot;</span>
             <span class="p">)</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="n">_circuit_key</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
+        <span class="n">preparation</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">measured</span> <span class="o">=</span> <span class="n">split</span>
+        <span class="n">by_gate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_events_by_gate</span><span class="p">(</span><span class="n">circuit</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">preparation</span><span class="p">,</span> <span class="n">basis</span><span class="p">)</span>
+        <span class="c1"># NoiseModel.add mutates the model in place: key on its events too.</span>
+        <span class="n">events</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="nb">repr</span><span class="p">(</span><span class="n">event</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">by_gate</span><span class="p">)</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">by_gate</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">_circuit_key</span><span class="p">(</span><span class="n">circuit</span><span class="p">),</span> <span class="n">events</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_probabilities</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_probabilities</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outcome_probabilities</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="o">*</span><span class="n">split</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_probabilities</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outcome_probabilities</span><span class="p">(</span>
+                <span class="n">circuit</span><span class="p">,</span> <span class="n">preparation</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">measured</span><span class="p">,</span> <span class="n">by_gate</span>
+            <span class="p">)</span>
         <span class="n">probabilities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_probabilities</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-        <span class="n">measured</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
         <span class="n">outcomes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">probabilities</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">nshots</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">probabilities</span><span class="p">)</span>
         <span class="n">bits</span> <span class="o">=</span> <span class="p">(</span><span class="n">outcomes</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">measured</span><span class="p">))[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">&amp;</span> <span class="mi">1</span>
         <span class="n">bits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_readout</span><span class="p">(</span><span class="n">bits</span><span class="p">,</span> <span class="n">measured</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">Counter</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">row</span><span class="p">))</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">bits</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_outcome_probabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">,</span> <span class="n">preparation</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">measured</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_events_by_gate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">preparation</span><span class="p">,</span> <span class="n">basis</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The noise events of the whole circuit, grouped by the gate they follow.&quot;&quot;&quot;</span>
+        <span class="n">unitary</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">preparation</span><span class="p">,</span> <span class="o">*</span><span class="n">basis</span><span class="p">):</span>
+            <span class="n">unitary</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
+        <span class="n">by_gate</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">events</span><span class="p">(</span><span class="n">unitary</span><span class="p">):</span>
+            <span class="n">by_gate</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">after_gate</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">by_gate</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_outcome_probabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">,</span> <span class="n">preparation</span><span class="p">,</span> <span class="n">basis</span><span class="p">,</span> <span class="n">measured</span><span class="p">,</span> <span class="n">by_gate</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        The noisy state is built in two steps, the preparation and then the</span>
 <span class="sd">        basis rotations, so that plan circuits sharing a preparation simulate</span>
@@ -346,12 +370,6 @@
         <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">_qibo_gate</span>
 
         <span class="n">nqubits</span> <span class="o">=</span> <span class="n">circuit</span><span class="o">.</span><span class="n">nqubits</span>
-        <span class="n">unitary</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">preparation</span><span class="p">,</span> <span class="o">*</span><span class="n">basis</span><span class="p">):</span>
-            <span class="n">unitary</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
-        <span class="n">by_gate</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">events</span><span class="p">(</span><span class="n">unitary</span><span class="p">):</span>
-            <span class="n">by_gate</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">after_gate</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
         <span class="n">split</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">preparation</span><span class="p">)</span>
 
         <span class="n">prepared_events</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>

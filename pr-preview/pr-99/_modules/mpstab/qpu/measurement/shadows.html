@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -591,6 +598,8 @@
             <span class="n">operator</span><span class="p">,</span> <span class="n">sign</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">build_post_head_mpo</span><span class="p">(</span>
                 <span class="n">pauli</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">max_bond_dimension</span><span class="p">,</span> <span class="n">residual</span><span class="o">=</span><span class="n">residual</span>
             <span class="p">)</span>
+            <span class="c1"># From here on the tail is plain arrays, whatever the engine.</span>
+            <span class="n">operator</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">operator_site_arrays</span><span class="p">(</span><span class="n">operator</span><span class="p">)</span>
             <span class="n">mpo_terms</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">pauli</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">sign</span><span class="p">,</span> <span class="n">operator</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">max_bond_dimension</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">truncation_l2</span> <span class="o">+=</span> <span class="n">fold_truncation_l2</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">operator</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>

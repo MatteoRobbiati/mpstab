@@ -31,6 +31,32 @@ Tensor Network Engine
 conjugation with `quimb <https://quimb.readthedocs.io/>`_, on the numpy, jax or
 torch backend.
 
+Native Engines
+--------------
+
+Pure-Python implementations of the two interfaces, kept as readable examples
+of what an engine does rather than for performance. They give the same
+expectation values as stim and quimb, but are slower and cover less: the
+native tensor-network engine has no operator-side conjugation (so no head/tail
+split in :class:`~mpstab.evolutors.hqsmpo.HQSMPO`) and no DMRG.
+
+.. automodule:: mpstab.engines.stabilizers.native.engine
+   :members:
+   :show-inheritance:
+
+**Native Stabilizers Engine**: backpropagates a Pauli string by composing one
+tableau per gate, on the XZ-encoded Pauli arithmetic of
+:mod:`mpstab.engines.stabilizers.native.pauli_string`.
+
+.. automodule:: mpstab.engines.tensor_networks.native.engine
+   :members:
+   :show-inheritance:
+
+**Native Tensor Network Engine**: an MPS in Vidal canonical form on a small
+in-package tensor-network layer
+(:mod:`mpstab.engines.tensor_networks.native.circuit_mps`), evolved by
+applying MPOs and re-splitting by SVD.
+
 Selecting Engines
 -----------------
 
@@ -73,6 +99,54 @@ Base Engine Classes::
     from mpstab.engines import StabilizersEngine, TensorNetworkEngine
 
 These abstract base classes define the required methods that any engine must implement.
+
+The evolutors never look inside an engine's states or operators: everything
+they need goes through these methods, so a new tensor-network engine only has
+to implement them. ``tests/test_engine_agnostic.py`` enforces this with an
+engine whose states and operators expose nothing.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - ``TensorNetworkEngine`` methods
+     - Needed for
+   * - ``build_circuit_mps``, ``pauli_mpo``, ``expval``, ``pauli_rot``,
+       ``squared_norm``
+     - Required: building and evolving the MPS, expectation values and
+       truncation fidelities.
+   * - ``pauli_expvals``, ``rotation_operator``, ``apply_rotation``,
+       ``copy_state``, ``bond_dimension``
+     - Optional, with a generic default an engine may override for speed.
+   * - ``conjugate_operator``, ``operator_site_arrays``
+     - Optional: the head/tail split of ``HQSMPO`` and its measurement
+       routes. Operators leave the engine only as numpy site arrays.
+   * - ``pauli_sum_mpo``, ``minimize_energy``
+     - Optional: DMRG (``HSMPO.minimize_expectation``).
+   * - ``circuit_truncation_fidelity``
+     - Optional: ``HSMPO.truncation_fidelity_pure_tn``.
+
+An optional method an engine does not implement raises ``NotImplementedError``
+only when the feature that needs it is used.
+
+A stabilizers engine is where the Clifford part of the circuit is handled; the
+evolutors and the noise compiler only ask it for backpropagated Pauli strings.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - ``StabilizersEngine`` methods
+     - Needed for
+   * - ``backpropagate``
+     - Required: dressing observables with the Clifford circuit.
+   * - ``backpropagate_many``
+     - Optional, with a generic default an engine may override to share work
+       across observables.
+   * - ``backpropagate_at``
+     - Dressing each magic gate and noise event with the Clifford gates before
+       it. The default replays each prefix through ``backpropagate``;
+       ``StimEngine`` overrides it with a single tableau pass.
 
 See Also
 --------

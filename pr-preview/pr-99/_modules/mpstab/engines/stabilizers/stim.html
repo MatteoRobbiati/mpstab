@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -277,6 +284,7 @@
 <span></span><span class="sd">&quot;&quot;&quot;Stabilizers engine backed by stim.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">stim</span>
@@ -309,78 +317,6 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Whether ``angle`` equals ``target`` modulo ``2 pi``.&quot;&quot;&quot;</span>
     <span class="n">difference</span> <span class="o">=</span> <span class="p">(</span><span class="n">angle</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">difference</span> <span class="o">&lt;</span> <span class="n">atol</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="n">difference</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">atol</span>
-
-
-<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_inverse_tableau</span><span class="p">(</span><span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">instructions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">stim</span><span class="o">.</span><span class="n">Tableau</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    ``U^dag`` for the circuit given as stim instructions. Cached on the</span>
-<span class="sd">    circuit&#39;s content, so in-place parameter changes can never hit a stale one.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">simulator</span> <span class="o">=</span> <span class="n">stim</span><span class="o">.</span><span class="n">TableauSimulator</span><span class="p">()</span>
-    <span class="n">simulator</span><span class="o">.</span><span class="n">do</span><span class="p">(</span>
-        <span class="n">stim</span><span class="o">.</span><span class="n">Circuit</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;I </span><span class="si">{</span><span class="n">width</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="o">*</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">instructions</span><span class="p">)]))</span>
-    <span class="p">)</span>
-    <span class="c1"># current_inverse_tableau() is U^dag, so conjugating by it gives U^dag O U.</span>
-    <span class="k">return</span> <span class="n">simulator</span><span class="o">.</span><span class="n">current_inverse_tableau</span><span class="p">()</span>
-
-
-<div class="viewcode-block" id="StimEngine">
-<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.stabilizers.stim.StimEngine">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">StimEngine</span><span class="p">(</span><span class="n">StabilizersEngine</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Clifford backpropagation of Pauli observables, powered by stim.&quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="StimEngine.backpropagate">
-<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.stabilizers.stim.StimEngine.backpropagate">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">backpropagate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">clifford_circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Evolve ``observable`` back through ``clifford_circuit`` (Heisenberg picture).</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            ``(pauli_string, sign)`` for ``U^dag . O . U``, with ``U`` the circuit.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">backpropagate_many</span><span class="p">([</span><span class="n">observable</span><span class="p">],</span> <span class="n">clifford_circuit</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
-
-
-<div class="viewcode-block" id="StimEngine.backpropagate_many">
-<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.stabilizers.stim.StimEngine.backpropagate_many">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">backpropagate_many</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observables</span><span class="p">,</span> <span class="n">clifford_circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        :meth:`backpropagate` every observable through the same circuit.</span>
-
-<span class="sd">        The circuit&#39;s ``U^dag`` tableau is built once and cached, so a whole</span>
-<span class="sd">        Hamiltonian costs one stim simulation plus one tableau lookup per term,</span>
-<span class="sd">        and repeated calls on an unchanged circuit skip the simulation too.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">observables</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">observables</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">observables</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[]</span>
-        <span class="c1"># Size the tableau to at least the observables: stim sizes a circuit by</span>
-        <span class="c1"># the highest qubit any gate touches, which may be lower.</span>
-        <span class="n">tableau</span> <span class="o">=</span> <span class="n">_inverse_tableau</span><span class="p">(</span>
-            <span class="nb">max</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">observables</span><span class="p">)),</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instructions</span><span class="p">(</span><span class="n">clifford_circuit</span><span class="p">))</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">conjugate</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">tableau</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">observables</span><span class="p">]</span></div>
-
-
-<div class="viewcode-block" id="StimEngine.instructions">
-<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.stabilizers.stim.StimEngine.instructions">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">instructions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        One stim instruction line per gate of ``circuit``, ``None`` for gates</span>
-<span class="sd">        that leave the Pauli frame untouched.</span>
-
-<span class="sd">        stim parses a whole program from text far faster than it appends</span>
-<span class="sd">        instructions one call at a time, so circuits are assembled as text.</span>
-
-<span class="sd">        Raises:</span>
-<span class="sd">            ValueError: on a non-Clifford rotation angle, or a gate with no stim</span>
-<span class="sd">                equivalent. Unsupported gates fail loudly rather than being</span>
-<span class="sd">                dropped, which would silently give a wrong Pauli frame.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">gate_instruction</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span> <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">circuit</span><span class="o">.</span><span class="n">queue</span><span class="p">]</span></div>
-</div>
-
 
 
 <div class="viewcode-block" id="gate_instruction">
@@ -459,6 +395,133 @@
         <span class="k">if</span> <span class="n">_is_multiple_of</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">instruction</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Gate </span><span class="si">{</span><span class="n">gate</span><span class="si">}</span><span class="s2"> is not Clifford.&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="circuit_instructions">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.stabilizers.stim.circuit_instructions">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">circuit_instructions</span><span class="p">(</span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;One stim instruction line per gate of ``circuit``, ``None`` for no-ops.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">gate_instruction</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span> <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">circuit</span><span class="o">.</span><span class="n">queue</span><span class="p">]</span></div>
+
+
+
+<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_inverse_tableau</span><span class="p">(</span><span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">instructions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">stim</span><span class="o">.</span><span class="n">Tableau</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ``U^dag`` for the circuit given as stim instructions. Cached on the</span>
+<span class="sd">    circuit&#39;s content, so in-place parameter changes can never hit a stale one.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">simulator</span> <span class="o">=</span> <span class="n">stim</span><span class="o">.</span><span class="n">TableauSimulator</span><span class="p">()</span>
+    <span class="n">simulator</span><span class="o">.</span><span class="n">do</span><span class="p">(</span>
+        <span class="n">stim</span><span class="o">.</span><span class="n">Circuit</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;I </span><span class="si">{</span><span class="n">width</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="o">*</span><span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">instructions</span><span class="p">)]))</span>
+    <span class="p">)</span>
+    <span class="c1"># current_inverse_tableau() is U^dag, so conjugating by it gives U^dag O U.</span>
+    <span class="k">return</span> <span class="n">simulator</span><span class="o">.</span><span class="n">current_inverse_tableau</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="StimEngine">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.stabilizers.stim.StimEngine">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StimEngine</span><span class="p">(</span><span class="n">StabilizersEngine</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Clifford backpropagation of Pauli observables, powered by stim.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="StimEngine.backpropagate">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.stabilizers.stim.StimEngine.backpropagate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backpropagate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">clifford_circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evolve ``observable`` back through ``clifford_circuit`` (Heisenberg picture).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``(pauli_string, sign)`` for ``U^dag . O . U``, with ``U`` the circuit.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">backpropagate_many</span><span class="p">([</span><span class="n">observable</span><span class="p">],</span> <span class="n">clifford_circuit</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="StimEngine.backpropagate_many">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.stabilizers.stim.StimEngine.backpropagate_many">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backpropagate_many</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observables</span><span class="p">,</span> <span class="n">clifford_circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :meth:`backpropagate` every observable through the same circuit.</span>
+
+<span class="sd">        The circuit&#39;s ``U^dag`` tableau is built once and cached, so a whole</span>
+<span class="sd">        Hamiltonian costs one stim simulation plus one tableau lookup per term,</span>
+<span class="sd">        and repeated calls on an unchanged circuit skip the simulation too.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">observables</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">observables</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">observables</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="c1"># Size the tableau to at least the observables: stim sizes a circuit by</span>
+        <span class="c1"># the highest qubit any gate touches, which may be lower.</span>
+        <span class="n">tableau</span> <span class="o">=</span> <span class="n">_inverse_tableau</span><span class="p">(</span>
+            <span class="nb">max</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">observables</span><span class="p">)),</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">instructions</span><span class="p">(</span><span class="n">clifford_circuit</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">conjugate</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">tableau</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">observables</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="StimEngine.backpropagate_at">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.stabilizers.stim.StimEngine.backpropagate_at">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backpropagate_at</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">observables</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">breakpoints</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">clifford_circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Backpropagate each observable through its own prefix of</span>
+<span class="sd">        ``clifford_circuit`` with one stim tableau pass.</span>
+
+<span class="sd">        The circuit is simulated once, a segment at a time in breakpoint order,</span>
+<span class="sd">        and each observable is conjugated by the inverse tableau of its prefix,</span>
+<span class="sd">        so the cost is one pass over the circuit plus one conjugation per</span>
+<span class="sd">        observable.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: on a breakpoint outside ``[0, len(clifford_circuit.queue)]``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">observables</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">observables</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">observables</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">instructions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instructions</span><span class="p">(</span><span class="n">clifford_circuit</span><span class="p">)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">clifford_circuit</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span> <span class="o">*</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">observables</span><span class="p">))</span>
+        <span class="n">simulator</span> <span class="o">=</span> <span class="n">stim</span><span class="o">.</span><span class="n">TableauSimulator</span><span class="p">()</span>
+        <span class="n">simulator</span><span class="o">.</span><span class="n">do</span><span class="p">(</span><span class="n">stim</span><span class="o">.</span><span class="n">Circuit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;I </span><span class="si">{</span><span class="n">width</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">observables</span><span class="p">)</span>
+        <span class="n">simulated</span><span class="p">,</span> <span class="n">inverse</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">observables</span><span class="p">)),</span> <span class="n">key</span><span class="o">=</span><span class="n">breakpoints</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">):</span>
+            <span class="n">breakpoint_index</span> <span class="o">=</span> <span class="n">breakpoints</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">breakpoint_index</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">instructions</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Breakpoint </span><span class="si">{</span><span class="n">breakpoint_index</span><span class="si">}</span><span class="s2"> is outside the circuit&#39;s &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">instructions</span><span class="p">)</span><span class="si">}</span><span class="s2"> gates.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">inverse</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">breakpoint_index</span> <span class="o">&gt;</span> <span class="n">simulated</span><span class="p">:</span>
+                <span class="n">segment</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">instructions</span><span class="p">[</span><span class="n">simulated</span><span class="p">:</span><span class="n">breakpoint_index</span><span class="p">])</span>
+                <span class="n">simulator</span><span class="o">.</span><span class="n">do</span><span class="p">(</span><span class="n">stim</span><span class="o">.</span><span class="n">Circuit</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">segment</span><span class="p">)))</span>
+                <span class="n">simulated</span> <span class="o">=</span> <span class="n">breakpoint_index</span>
+                <span class="c1"># current_inverse_tableau() is U^dag for the prefix U.</span>
+                <span class="n">inverse</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">current_inverse_tableau</span><span class="p">()</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">conjugate</span><span class="p">(</span><span class="n">observables</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">inverse</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span></div>
+
+
+<div class="viewcode-block" id="StimEngine.instructions">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.stabilizers.stim.StimEngine.instructions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">instructions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        One stim instruction line per gate of ``circuit``, ``None`` for gates</span>
+<span class="sd">        that leave the Pauli frame untouched.</span>
+
+<span class="sd">        stim parses a whole program from text far faster than it appends</span>
+<span class="sd">        instructions one call at a time, so circuits are assembled as text.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: on a non-Clifford rotation angle, or a gate with no stim</span>
+<span class="sd">                equivalent. Unsupported gates fail loudly rather than being</span>
+<span class="sd">                dropped, which would silently give a wrong Pauli frame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">circuit_instructions</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span></div>
+</div>
+
 </pre></div>
         </article>
       </div>

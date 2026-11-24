@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -303,11 +310,9 @@
 <span class="sd">    rejects any it does not know: a new kind of event is added as a subclass</span>
 <span class="sd">    plus a branch there.</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    after_gate : int</span>
-<span class="sd">        Index in ``ansatz.circuit.queue`` of the gate the event follows, or</span>
-<span class="sd">        ``-1`` for the initial state.</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        after_gate: index in ``ansatz.circuit.queue`` of the gate the event</span>
+<span class="sd">            follows, or ``-1`` for the initial state.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">after_gate</span><span class="p">:</span> <span class="nb">int</span></div>
@@ -324,24 +329,21 @@
 <span class="sd">    With probability ``probs[P]`` the Pauli string ``P`` acts on ``qubits``,</span>
 <span class="sd">    and with the remaining probability nothing happens.</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    after_gate : int</span>
-<span class="sd">        Index of the gate the channel follows, or ``-1`` for the initial state.</span>
-<span class="sd">    qubits : tuple of int</span>
-<span class="sd">        The qubits the channel acts on, in the order the Pauli labels use.</span>
-<span class="sd">    probs : dict of str to float</span>
-<span class="sd">        Probability of each non-identity Pauli string on ``qubits``, one label</span>
-<span class="sd">        per qubit. They must sum to at most 1.</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        after_gate: index of the gate the channel follows, or ``-1`` for the</span>
+<span class="sd">            initial state.</span>
+<span class="sd">        qubits: the qubits the channel acts on, in the order the Pauli labels</span>
+<span class="sd">            use.</span>
+<span class="sd">        probs: probability of each non-identity Pauli string on ``qubits``, one</span>
+<span class="sd">            label per qubit. They must sum to at most 1.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    A correlated two-qubit channel after the first gate::</span>
+<span class="sd">    Example:</span>
+<span class="sd">        A correlated two-qubit channel after the first gate::</span>
 
-<span class="sd">        from mpstab.models.noise.events import PauliChannel</span>
+<span class="sd">            from mpstab.models.noise.events import PauliChannel</span>
 
-<span class="sd">        channel = PauliChannel(after_gate=0, qubits=(0, 1), probs={&quot;ZZ&quot;: 0.01, &quot;XI&quot;: 0.002})</span>
-<span class="sd">        print(channel.no_fault_probability)</span>
+<span class="sd">            channel = PauliChannel(after_gate=0, qubits=(0, 1), probs={&quot;ZZ&quot;: 0.01, &quot;XI&quot;: 0.002})</span>
+<span class="sd">            print(channel.no_fault_probability)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">qubits</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
@@ -378,15 +380,14 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        The channel&#39;s terms as ``(pauli, probability)``, padded to ``nqubits``.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        nqubits : int</span>
-<span class="sd">            Width of the circuit.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            nqubits: width of the circuit.</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        list of (str, float)</span>
-<span class="sd">            One entry per term, in ``probs`` order.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            One ``(pauli, probability)`` entry per term, in ``probs`` order.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if the channel acts on a qubit outside the circuit.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qubits</span><span class="p">,</span> <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">nqubits</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -412,22 +413,18 @@
 <span class="sd">    A coherent error ``exp(-i angle/2 generator)``, such as ZZ crosstalk or an</span>
 <span class="sd">    over-rotation.</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    after_gate : int</span>
-<span class="sd">        Index of the gate the rotation follows, or ``-1`` for the initial state.</span>
-<span class="sd">    generator : str</span>
-<span class="sd">        Full-width Pauli string, one label per qubit of the circuit.</span>
-<span class="sd">    angle : float</span>
-<span class="sd">        Rotation angle.</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        after_gate: index of the gate the rotation follows, or ``-1`` for the</span>
+<span class="sd">            initial state.</span>
+<span class="sd">        generator: full-width Pauli string, one label per qubit of the circuit.</span>
+<span class="sd">        angle: rotation angle.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ZZ crosstalk between qubits 1 and 2 of a 4-qubit circuit, after gate 3::</span>
+<span class="sd">    Example:</span>
+<span class="sd">        ZZ crosstalk between qubits 1 and 2 of a 4-qubit circuit, after gate 3::</span>
 
-<span class="sd">        from mpstab.models.noise.events import CoherentRotation</span>
+<span class="sd">            from mpstab.models.noise.events import CoherentRotation</span>
 
-<span class="sd">        crosstalk = CoherentRotation(after_gate=3, generator=&quot;IZZI&quot;, angle=0.02)</span>
+<span class="sd">            crosstalk = CoherentRotation(after_gate=3, generator=&quot;IZZI&quot;, angle=0.02)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">generator</span><span class="p">:</span> <span class="nb">str</span>
@@ -452,21 +449,17 @@
 <span class="sd">    otherwise non-Pauli, and the estimator evaluates them as transition</span>
 <span class="sd">    amplitudes between two sign patterns of the rotation chain.</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    after_gate : int</span>
-<span class="sd">        Index of the gate the channel follows, or ``-1`` for the initial state.</span>
-<span class="sd">    qubits : tuple of int</span>
-<span class="sd">        The qubits the channel acts on. ``qubits[0]`` is the most significant</span>
-<span class="sd">        factor of the Kraus matrices, as in qibo.</span>
-<span class="sd">    kraus : tuple of numpy.ndarray</span>
-<span class="sd">        Kraus operators, each ``2**k x 2**k`` for ``k = len(qubits)``. They</span>
-<span class="sd">        must satisfy ``sum_k K_k^dag K_k = I``.</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        after_gate: index of the gate the channel follows, or ``-1`` for the</span>
+<span class="sd">            initial state.</span>
+<span class="sd">        qubits: the qubits the channel acts on. ``qubits[0]`` is the most</span>
+<span class="sd">            significant factor of the Kraus matrices, as in qibo.</span>
+<span class="sd">        kraus: Kraus operators, each ``2**k x 2**k`` for ``k = len(qubits)``.</span>
+<span class="sd">            They must satisfy ``sum_k K_k^dag K_k = I``.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    Amplitude damping of qubit 0 after the first gate::</span>
+<span class="sd">    Example::</span>
 
+<span class="sd">        # Amplitude damping of qubit 0 after the first gate.</span>
 <span class="sd">        import numpy as np</span>
 <span class="sd">        from mpstab.models.noise.events import KrausChannel</span>
 

@@ -11,6 +11,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -215,6 +216,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -241,7 +243,12 @@
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -321,9 +328,8 @@ probability <code class="docutils literal notranslate"><span class="pre">p1</spa
 becomes <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">-</span> <span class="pre">p0</span> <span class="pre">-</span> <span class="pre">p1)</span> <span class="pre">P</span> <span class="pre">+</span> <span class="pre">(p1</span> <span class="pre">-</span> <span class="pre">p0)</span> <span class="pre">I</span></code>.</p>
 <p><strong>Usage Example</strong>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gates</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">KickedIsing</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">HSMPO</span><span class="p">,</span>
     <span class="n">CoherentError</span><span class="p">,</span>
     <span class="n">DepolarizingError</span><span class="p">,</span>
     <span class="n">NoiseModel</span><span class="p">,</span>
@@ -332,6 +338,7 @@ becomes <code class="docutils literal notranslate"><span class="pre">(1</span> <
     <span class="n">StatePreparationError</span><span class="p">,</span>
     <span class="n">ThermalRelaxationError</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">KickedIsing</span>
 
 <span class="n">ansatz</span> <span class="o">=</span> <span class="n">KickedIsing</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">theta_h</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">theta_z</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
 <span class="n">surrogate</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="p">)</span>
@@ -365,8 +372,13 @@ becomes <code class="docutils literal notranslate"><span class="pre">(1</span> <
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.noise.model.</span></span><span class="sig-name descname"><span class="pre">AmplitudeDampingError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/noise/model.html#AmplitudeDampingError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.noise.model.AmplitudeDampingError" title="Link to this definition">¶</a></dt>
 <dd><p>Amplitude damping <code class="docutils literal notranslate"><span class="pre">|1&gt;</span> <span class="pre">-&gt;</span> <span class="pre">|0&gt;</span></code> with probability <code class="docutils literal notranslate"><span class="pre">gamma</span></code> on each qubit
 of the gate: energy relaxation (T1), which is not unital.</p>
-<p class="rubric">Examples</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">AmplitudeDampingError</span>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>gamma</strong> (<em>float</em>) – damping probability, in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.</p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">AmplitudeDampingError</span>
 
 <span class="n">t1</span> <span class="o">=</span> <span class="n">AmplitudeDampingError</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
 </pre></div>
@@ -383,8 +395,16 @@ the gate acts jointly on its qubits, in the gate’s qubit order. Each one
 joins the rotation chain like a magic gate, so many of them cost bond
 dimension: <a class="reference internal" href="#mpstab.models.noise.model.CoherentError.twirled" title="mpstab.models.noise.model.CoherentError.twirled"><code class="xref py py-meth docutils literal notranslate"><span class="pre">twirled()</span></code></a> is the stochastic Pauli error the same rotation
 becomes under randomized compiling, which costs none.</p>
-<p class="rubric">Examples</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoherentError</span>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>generator</strong> (<em>str</em>) – Pauli label of the rotation, one qubit or as wide as the gate.</p></li>
+<li><p><strong>angle</strong> (<em>float</em>) – rotation angle.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoherentError</span>
 
 <span class="n">residual_zz</span> <span class="o">=</span> <span class="n">CoherentError</span><span class="p">(</span><span class="s2">&quot;ZZ&quot;</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">)</span>
 <span class="n">over_rotation</span> <span class="o">=</span> <span class="n">CoherentError</span><span class="p">(</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
@@ -421,8 +441,13 @@ the gate, with qibo’s convention: probability <code class="docutils literal no
 gate, use <code class="docutils literal notranslate"><span class="pre">PauliError({&quot;X&quot;:</span> <span class="pre">p</span> <span class="pre">/</span> <span class="pre">3,</span> <span class="pre">&quot;Y&quot;:</span> <span class="pre">p</span> <span class="pre">/</span> <span class="pre">3,</span> <span class="pre">&quot;Z&quot;:</span> <span class="pre">p</span> <span class="pre">/</span> <span class="pre">3})</span></code>. On idle
 qubits and spectators (<a class="reference internal" href="#mpstab.models.noise.model.NoiseModel.add_idle" title="mpstab.models.noise.model.NoiseModel.add_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.add_idle()</span></code></a>,
 <a class="reference internal" href="#mpstab.models.noise.model.NoiseModel.add_crosstalk" title="mpstab.models.noise.model.NoiseModel.add_crosstalk"><code class="xref py py-meth docutils literal notranslate"><span class="pre">NoiseModel.add_crosstalk()</span></code></a>) it acts on each qubit alone.</p>
-<p class="rubric">Examples</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">DepolarizingError</span>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>lam</strong> (<em>float</em>) – depolarizing strength, in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">4/3]</span></code>.</p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">DepolarizingError</span>
 
 <span class="n">error</span> <span class="o">=</span> <span class="n">DepolarizingError</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
 </pre></div>
@@ -444,10 +469,15 @@ the gate act jointly on its qubits, the first of them the most significant
 factor, as in qibo. The channel is split into its Pauli twirl, sampled as
 Pauli faults, and the off-diagonal part of its process matrix, evaluated
 as transition amplitudes (<a class="reference internal" href="#mpstab.models.noise.events.KrausChannel" title="mpstab.models.noise.events.KrausChannel"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausChannel</span></code></a>).</p>
-<p class="rubric">Examples</p>
-<p>A phase-damping channel:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">KrausError</span>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>operators</strong> (<em>Sequence</em><em>[</em><em>numpy.ndarray</em><em>]</em>) – the Kraus operators, each <code class="docutils literal notranslate"><span class="pre">2**k</span> <span class="pre">x</span> <span class="pre">2**k</span></code>.</p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># A phase-damping channel.</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">KrausError</span>
 
 <span class="n">lam</span> <span class="o">=</span> <span class="mf">0.05</span>
 <span class="n">phase_damping</span> <span class="o">=</span> <span class="n">KrausError</span><span class="p">([</span>
@@ -474,17 +504,22 @@ circuit.</p></li>
 <p>Pass the model to <code class="xref py py-meth docutils literal notranslate"><span class="pre">noisy_expectation()</span></code>; <a class="reference internal" href="#mpstab.models.noise.model.NoiseModel.apply" title="mpstab.models.noise.model.NoiseModel.apply"><code class="xref py py-meth docutils literal notranslate"><span class="pre">apply()</span></code></a>
 gives the same noisy circuit as a qibo density-matrix circuit, for exact
 reference values.</p>
-<p class="rubric">Examples</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rules</strong> (<em>list</em><em>[</em><em>mpstab.models.noise.model._Rule</em><em>]</em>) – the rules added so far, in order.</p>
+</dd>
+</dl>
+<p>Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gates</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">KickedIsing</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">HSMPO</span><span class="p">,</span>
     <span class="n">AmplitudeDampingError</span><span class="p">,</span>
     <span class="n">CoherentError</span><span class="p">,</span>
     <span class="n">DepolarizingError</span><span class="p">,</span>
     <span class="n">NoiseModel</span><span class="p">,</span>
     <span class="n">PauliError</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">KickedIsing</span>
 
 <span class="n">chain</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)]</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">()</span>
@@ -508,18 +543,24 @@ reference values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>error</strong> (<a class="reference internal" href="#mpstab.models.noise.model.PauliError" title="mpstab.models.noise.model.PauliError"><em>PauliError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.DepolarizingError" title="mpstab.models.noise.model.DepolarizingError"><em>DepolarizingError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.CoherentError" title="mpstab.models.noise.model.CoherentError"><em>CoherentError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.KrausError" title="mpstab.models.noise.model.KrausError"><em>KrausError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.AmplitudeDampingError" title="mpstab.models.noise.model.AmplitudeDampingError"><em>AmplitudeDampingError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.ThermalRelaxationError" title="mpstab.models.noise.model.ThermalRelaxationError"><em>ThermalRelaxationError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.ReadoutError" title="mpstab.models.noise.model.ReadoutError"><em>ReadoutError</em></a><em> or </em><a class="reference internal" href="#mpstab.models.noise.model.StatePreparationError" title="mpstab.models.noise.model.StatePreparationError"><em>StatePreparationError</em></a>) – The error to insert. Readout and preparation errors take no gate.</p></li>
-<li><p><strong>gate</strong> (<em>qibo gate class</em><em> or </em><em>sequence</em><em> of </em><em>them</em><em>, </em><em>optional</em>) – Only gates of these types get the error. Measurements never do.</p></li>
-<li><p><strong>qubits</strong> (<em>int</em><em> or </em><em>sequence</em><em> of </em><em>int</em><em>, </em><em>optional</em>) – Restrict the error to these qubits. A single-qubit error acts only
-on the gate’s qubits in this set; an error spanning the whole gate
-applies only to gates entirely inside it.</p></li>
+<li><p><strong>error</strong> – the error to insert. Readout and preparation errors take no
+gate.</p></li>
+<li><p><strong>gate</strong> – qibo gate class, or sequence of them; only gates of these
+types get the error. Measurements never do.</p></li>
+<li><p><strong>qubits</strong> – restrict the error to these qubits. A single-qubit error
+acts only on the gate’s qubits in this set; an error spanning
+the whole gate applies only to gates entirely inside it.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">self</span></code>, so calls can be chained.</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#mpstab.models.noise.model.NoiseModel" title="mpstab.models.noise.model.NoiseModel">NoiseModel</a></p>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TypeError</strong> – if <code class="docutils literal notranslate"><span class="pre">error</span></code> is not an mpstab error.</p></li>
+<li><p><strong>ValueError</strong> – if a <a class="reference internal" href="#mpstab.models.noise.model.ReadoutError" title="mpstab.models.noise.model.ReadoutError"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReadoutError</span></code></a> or a
+    <a class="reference internal" href="#mpstab.models.noise.model.StatePreparationError" title="mpstab.models.noise.model.StatePreparationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatePreparationError</span></code></a> is given a <code class="docutils literal notranslate"><span class="pre">gate</span></code>.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -535,16 +576,14 @@ edge, in that order, as <code class="docutils literal notranslate"><span class="
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>error</strong> (<a class="reference internal" href="#mpstab.models.noise.model.PauliError" title="mpstab.models.noise.model.PauliError"><em>PauliError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.DepolarizingError" title="mpstab.models.noise.model.DepolarizingError"><em>DepolarizingError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.CoherentError" title="mpstab.models.noise.model.CoherentError"><em>CoherentError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.KrausError" title="mpstab.models.noise.model.KrausError"><em>KrausError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.AmplitudeDampingError" title="mpstab.models.noise.model.AmplitudeDampingError"><em>AmplitudeDampingError</em></a><em> or </em><a class="reference internal" href="#mpstab.models.noise.model.ThermalRelaxationError" title="mpstab.models.noise.model.ThermalRelaxationError"><em>ThermalRelaxationError</em></a>) – The error, on one qubit or on two.</p></li>
-<li><p><strong>coupling</strong> (<em>iterable</em><em> of </em><em>(</em><em>int</em><em>, </em><em>int</em><em>)</em>) – The coupling graph, as qubit pairs.</p></li>
-<li><p><strong>gate</strong> (<em>qibo gate class</em><em> or </em><em>sequence</em><em> of </em><em>them</em><em>, </em><em>optional</em>) – Only gates of these types cause the crosstalk.</p></li>
+<li><p><strong>error</strong> – the error, on one qubit or on two.</p></li>
+<li><p><strong>coupling</strong> – the coupling graph, as qubit pairs.</p></li>
+<li><p><strong>gate</strong> – qibo gate class, or sequence of them; only gates of these
+types cause the crosstalk.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">self</span></code>, so calls can be chained.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#mpstab.models.noise.model.NoiseModel" title="mpstab.models.noise.model.NoiseModel">NoiseModel</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -556,24 +595,20 @@ edge, in that order, as <code class="docutils literal notranslate"><span class="
 <p>Moments are an in-order layering of the gate queue: a gate lands one
 moment after the last gate on any of its qubits, and never before the
 gate queued ahead of it, so a circuit queued layer by layer gets its
-layers as moments. A
-single-qubit error acts on every idle qubit of every moment, before
-its first gate and after its last one included. A two-qubit error,
+layers as moments. A single-qubit error acts on every idle qubit of
+every moment, before its first gate and after its last one included. A two-qubit error,
 such as an always-on <code class="docutils literal notranslate"><span class="pre">ZZ</span></code> coupling, acts on each <code class="docutils literal notranslate"><span class="pre">coupling</span></code> edge
 whose two qubits are both idle.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>error</strong> (<a class="reference internal" href="#mpstab.models.noise.model.PauliError" title="mpstab.models.noise.model.PauliError"><em>PauliError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.DepolarizingError" title="mpstab.models.noise.model.DepolarizingError"><em>DepolarizingError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.CoherentError" title="mpstab.models.noise.model.CoherentError"><em>CoherentError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.KrausError" title="mpstab.models.noise.model.KrausError"><em>KrausError</em></a><em>, </em><a class="reference internal" href="#mpstab.models.noise.model.AmplitudeDampingError" title="mpstab.models.noise.model.AmplitudeDampingError"><em>AmplitudeDampingError</em></a><em> or </em><a class="reference internal" href="#mpstab.models.noise.model.ThermalRelaxationError" title="mpstab.models.noise.model.ThermalRelaxationError"><em>ThermalRelaxationError</em></a>) – The error, on one qubit or on two.</p></li>
-<li><p><strong>qubits</strong> (<em>int</em><em> or </em><em>sequence</em><em> of </em><em>int</em><em>, </em><em>optional</em>) – Restrict the error to these qubits.</p></li>
-<li><p><strong>coupling</strong> (<em>iterable</em><em> of </em><em>(</em><em>int</em><em>, </em><em>int</em><em>)</em><em>, </em><em>optional</em>) – The coupling graph, needed by two-qubit errors.</p></li>
+<li><p><strong>error</strong> – the error, on one qubit or on two.</p></li>
+<li><p><strong>qubits</strong> – restrict the error to these qubits.</p></li>
+<li><p><strong>coupling</strong> – the coupling graph, needed by two-qubit errors.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">self</span></code>, so calls can be chained.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#mpstab.models.noise.model.NoiseModel" title="mpstab.models.noise.model.NoiseModel">NoiseModel</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -640,8 +675,13 @@ noise-strength sweeps such as zero-noise extrapolation.</p>
 qubit of the gate. Labels as wide as the gate (<code class="docutils literal notranslate"><span class="pre">{&quot;ZZ&quot;:</span> <span class="pre">0.01}</span></code> after a
 two-qubit gate) act jointly on its qubits, in the gate’s qubit order, which
 is how correlated noise is written.</p>
-<p class="rubric">Examples</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">PauliError</span>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>probs</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>]</em>) – probability of each non-identity Pauli label.</p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">PauliError</span>
 
 <span class="n">dephasing</span> <span class="o">=</span> <span class="n">PauliError</span><span class="p">({</span><span class="s2">&quot;Z&quot;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">})</span>
 <span class="n">correlated</span> <span class="o">=</span> <span class="n">PauliError</span><span class="p">({</span><span class="s2">&quot;ZZ&quot;</span><span class="p">:</span> <span class="mf">0.005</span><span class="p">,</span> <span class="s2">&quot;XX&quot;</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">})</span>
@@ -671,8 +711,17 @@ qubit becomes <code class="docutils literal notranslate"><span class="pre">(1</s
 attenuates the term; an asymmetric one also mixes in its lower-weight
 subterms. Add it with no gate, optionally restricted to some qubits;
 errors on the same qubit compose.</p>
-<p class="rubric">Examples</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">ReadoutError</span>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> (<em>float</em>) – probability of reading a <code class="docutils literal notranslate"><span class="pre">0</span></code> as <code class="docutils literal notranslate"><span class="pre">1</span></code>, in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.</p></li>
+<li><p><strong>p1</strong> (<em>float</em><em> | </em><em>None</em>) – probability of reading a <code class="docutils literal notranslate"><span class="pre">1</span></code> as <code class="docutils literal notranslate"><span class="pre">0</span></code>, in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>; <code class="docutils literal notranslate"><span class="pre">p0</span></code> if
+not given.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">ReadoutError</span>
 
 <span class="n">noise</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">()</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ReadoutError</span><span class="p">(</span><span class="mf">0.02</span><span class="p">))</span>                    <span class="c1"># every qubit</span>
@@ -687,8 +736,13 @@ errors on the same qubit compose.</p>
 <dd><p>Preparation error: each qubit starts flipped by <code class="docutils literal notranslate"><span class="pre">X</span></code> with probability
 <code class="docutils literal notranslate"><span class="pre">p</span></code>, so <code class="docutils literal notranslate"><span class="pre">|0&gt;</span></code> is prepared as <code class="docutils literal notranslate"><span class="pre">|1&gt;</span></code>. Add it with no gate, optionally
 restricted to some qubits; it acts on the initial state, before any gate.</p>
-<p class="rubric">Examples</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">StatePreparationError</span>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> (<em>float</em>) – flip probability of each qubit, in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.</p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span><span class="p">,</span> <span class="n">StatePreparationError</span>
 
 <span class="n">noise</span> <span class="o">=</span> <span class="n">NoiseModel</span><span class="p">()</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">StatePreparationError</span><span class="p">(</span><span class="mf">0.01</span><span class="p">))</span>
 </pre></div>
@@ -705,8 +759,18 @@ excited population relaxes to <code class="docutils literal notranslate"><span c
 followed by the pure dephasing that brings the coherence decay from
 <code class="docutils literal notranslate"><span class="pre">exp(-time</span> <span class="pre">/</span> <span class="pre">(2</span> <span class="pre">t1))</span></code> down to <code class="docutils literal notranslate"><span class="pre">exp(-time</span> <span class="pre">/</span> <span class="pre">t2)</span></code>, so <code class="docutils literal notranslate"><span class="pre">t2</span> <span class="pre">&lt;=</span> <span class="pre">2</span> <span class="pre">t1</span></code>.
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">scaled()</span></code> scales <code class="docutils literal notranslate"><span class="pre">time</span></code>.</p>
-<p class="rubric">Examples</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThermalRelaxationError</span>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t1</strong> (<em>float</em>) – energy relaxation time.</p></li>
+<li><p><strong>t2</strong> (<em>float</em>) – dephasing time, at most <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">t1</span></code>.</p></li>
+<li><p><strong>time</strong> (<em>float</em>) – duration of the error, in the units of <code class="docutils literal notranslate"><span class="pre">t1</span></code> and <code class="docutils literal notranslate"><span class="pre">t2</span></code>.</p></li>
+<li><p><strong>excited_population</strong> (<em>float</em>) – equilibrium population of <code class="docutils literal notranslate"><span class="pre">|1&gt;</span></code>, in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThermalRelaxationError</span>
 
 <span class="n">idle</span> <span class="o">=</span> <span class="n">ThermalRelaxationError</span><span class="p">(</span><span class="n">t1</span><span class="o">=</span><span class="mf">100e-6</span><span class="p">,</span> <span class="n">t2</span><span class="o">=</span><span class="mf">80e-6</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mf">50e-9</span><span class="p">)</span>
 </pre></div>
@@ -715,91 +779,30 @@ followed by the pure dephasing that brings the coherence decay from
 
 <dl class="py class">
 <dt class="sig sig-object py" id="mpstab.models.noise.NoisyExpectation">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.noise.</span></span><span class="sig-name descname"><span class="pre">NoisyExpectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_patterns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fidelities</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stratum_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_transitions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/noise/estimator.html#NoisyExpectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.noise.NoisyExpectation" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.noise.</span></span><span class="sig-name descname"><span class="pre">NoisyExpectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_patterns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fidelities</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stratum_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_transitions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/noise/mc_noise_estimator.html#NoisyExpectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.noise.NoisyExpectation" title="Link to this definition">¶</a></dt>
 <dd><p>Result of <code class="xref py py-func docutils literal notranslate"><span class="pre">noisy_expectation()</span></code>.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.NoisyExpectation.mean">
-<span class="sig-name descname"><span class="pre">mean</span></span><a class="headerlink" href="#mpstab.models.noise.NoisyExpectation.mean" title="Link to this definition">¶</a></dt>
-<dd><p>The noisy expectation value.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mean</strong> (<em>float</em>) – the noisy expectation value.</p></li>
+<li><p><strong>stderr</strong> (<em>float</em>) – its standard error, from the sampled <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> stratum only:
+the lower strata are exact. Zero when nothing was sampled.</p></li>
+<li><p><strong>n_patterns</strong> (<em>int</em>) – distinct rotation sign patterns evaluated on the MPS as
+expectation values.</p></li>
+<li><p><strong>fidelities</strong> (<em>numpy.ndarray</em>) – truncation fidelity of the MPS of each of those patterns,
+shape <code class="docutils literal notranslate"><span class="pre">(n_patterns,)</span></code>; <code class="docutils literal notranslate"><span class="pre">nan</span></code> for an engine that does not expose
+a norm.</p></li>
+<li><p><strong>stratum_weights</strong> (<em>tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>, </em><em>float</em><em>]</em>) – total weight of the configurations with <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> locations doing something, counting only
+the faults and coherences that can affect the observable. For Pauli
+noise these are probabilities summing to 1; coherences count with
+<code class="docutils literal notranslate"><span class="pre">|chi|</span></code>.</p></li>
+<li><p><strong>n_samples</strong> (<em>int</em>) – configurations sampled for the <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> stratum.</p></li>
+<li><p><strong>n_transitions</strong> (<em>int</em>) – transition amplitudes evaluated for coherences, exact
+and sampled.</p></li>
+</ul>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.NoisyExpectation.stderr">
-<span class="sig-name descname"><span class="pre">stderr</span></span><a class="headerlink" href="#mpstab.models.noise.NoisyExpectation.stderr" title="Link to this definition">¶</a></dt>
-<dd><p>Its standard error, from the sampled <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> stratum only: the
-lower strata are exact. Zero when nothing was sampled.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.NoisyExpectation.n_patterns">
-<span class="sig-name descname"><span class="pre">n_patterns</span></span><a class="headerlink" href="#mpstab.models.noise.NoisyExpectation.n_patterns" title="Link to this definition">¶</a></dt>
-<dd><p>Distinct rotation sign patterns evaluated on the MPS as expectation
-values.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.NoisyExpectation.fidelities">
-<span class="sig-name descname"><span class="pre">fidelities</span></span><a class="headerlink" href="#mpstab.models.noise.NoisyExpectation.fidelities" title="Link to this definition">¶</a></dt>
-<dd><p>Truncation fidelity of the MPS of each of those patterns, shape
-<code class="docutils literal notranslate"><span class="pre">(n_patterns,)</span></code>; <code class="docutils literal notranslate"><span class="pre">nan</span></code> for an engine that does not expose a norm.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.NoisyExpectation.stratum_weights">
-<span class="sig-name descname"><span class="pre">stratum_weights</span></span><a class="headerlink" href="#mpstab.models.noise.NoisyExpectation.stratum_weights" title="Link to this definition">¶</a></dt>
-<dd><p>Total weight of the configurations with <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">1</span></code> and
-<code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> locations doing something, counting only the faults and
-coherences that can affect the observable. For Pauli noise these are
-probabilities summing to 1; coherences count with <code class="docutils literal notranslate"><span class="pre">|chi|</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple of float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.NoisyExpectation.n_samples">
-<span class="sig-name descname"><span class="pre">n_samples</span></span><a class="headerlink" href="#mpstab.models.noise.NoisyExpectation.n_samples" title="Link to this definition">¶</a></dt>
-<dd><p>Configurations sampled for the <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> stratum.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.NoisyExpectation.n_transitions">
-<span class="sig-name descname"><span class="pre">n_transitions</span></span><a class="headerlink" href="#mpstab.models.noise.NoisyExpectation.n_transitions" title="Link to this definition">¶</a></dt>
-<dd><p>Transition amplitudes evaluated for coherences, exact and sampled.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int</p>
-</dd>
-</dl>
-</dd></dl>
-
 </dd></dl>
 
 <section id="low-level-interface">
@@ -819,15 +822,16 @@ listed.</p>
 <p>A coherent error <code class="docutils literal notranslate"><span class="pre">exp(-i</span> <span class="pre">angle/2</span> <span class="pre">generator)</span></code>, such as ZZ crosstalk or an
 over-rotation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>after_gate</strong> (<em>int</em>) – Index of the gate the rotation follows, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> for the initial state.</p></li>
-<li><p><strong>generator</strong> (<em>str</em>) – Full-width Pauli string, one label per qubit of the circuit.</p></li>
-<li><p><strong>angle</strong> (<em>float</em>) – Rotation angle.</p></li>
+<li><p><strong>after_gate</strong> (<em>int</em>) – index of the gate the rotation follows, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> for the
+initial state.</p></li>
+<li><p><strong>generator</strong> (<em>str</em>) – full-width Pauli string, one label per qubit of the circuit.</p></li>
+<li><p><strong>angle</strong> (<em>float</em>) – rotation angle.</p></li>
 </ul>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
+<p class="rubric">Example</p>
 <p>ZZ crosstalk between qubits 1 and 2 of a 4-qubit circuit, after gate 3:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.events</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoherentRotation</span>
 
@@ -848,19 +852,20 @@ twirl; the off-diagonal entries are what makes it non-unital or
 otherwise non-Pauli, and the estimator evaluates them as transition
 amplitudes between two sign patterns of the rotation chain.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>after_gate</strong> (<em>int</em>) – Index of the gate the channel follows, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> for the initial state.</p></li>
-<li><p><strong>qubits</strong> (<em>tuple</em><em> of </em><em>int</em>) – The qubits the channel acts on. <code class="docutils literal notranslate"><span class="pre">qubits[0]</span></code> is the most significant
-factor of the Kraus matrices, as in qibo.</p></li>
-<li><p><strong>kraus</strong> (<em>tuple</em><em> of </em><em>numpy.ndarray</em>) – Kraus operators, each <code class="docutils literal notranslate"><span class="pre">2**k</span> <span class="pre">x</span> <span class="pre">2**k</span></code> for <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">len(qubits)</span></code>. They
-must satisfy <code class="docutils literal notranslate"><span class="pre">sum_k</span> <span class="pre">K_k^dag</span> <span class="pre">K_k</span> <span class="pre">=</span> <span class="pre">I</span></code>.</p></li>
+<li><p><strong>after_gate</strong> (<em>int</em>) – index of the gate the channel follows, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> for the
+initial state.</p></li>
+<li><p><strong>qubits</strong> (<em>tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em>) – the qubits the channel acts on. <code class="docutils literal notranslate"><span class="pre">qubits[0]</span></code> is the most
+significant factor of the Kraus matrices, as in qibo.</p></li>
+<li><p><strong>kraus</strong> (<em>tuple</em><em>[</em><em>numpy.ndarray</em><em>, </em><em>...</em><em>]</em>) – Kraus operators, each <code class="docutils literal notranslate"><span class="pre">2**k</span> <span class="pre">x</span> <span class="pre">2**k</span></code> for <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">=</span> <span class="pre">len(qubits)</span></code>.
+They must satisfy <code class="docutils literal notranslate"><span class="pre">sum_k</span> <span class="pre">K_k^dag</span> <span class="pre">K_k</span> <span class="pre">=</span> <span class="pre">I</span></code>.</p></li>
 </ul>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
-<p>Amplitude damping of qubit 0 after the first gate:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Amplitude damping of qubit 0 after the first gate.</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.events</span><span class="w"> </span><span class="kn">import</span> <span class="n">KrausChannel</span>
 
 <span class="n">gamma</span> <span class="o">=</span> <span class="mf">0.05</span>
@@ -894,9 +899,9 @@ magnitude are left out. It is Hermitian, and its diagonal sums to 1.</p>
 rejects any it does not know: a new kind of event is added as a subclass
 plus a branch there.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>after_gate</strong> (<em>int</em>) – Index in <code class="docutils literal notranslate"><span class="pre">ansatz.circuit.queue</span></code> of the gate the event follows, or
-<code class="docutils literal notranslate"><span class="pre">-1</span></code> for the initial state.</p>
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>after_gate</strong> (<em>int</em>) – index in <code class="docutils literal notranslate"><span class="pre">ansatz.circuit.queue</span></code> of the gate the event
+follows, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> for the initial state.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -909,16 +914,18 @@ plus a branch there.</p>
 <p>With probability <code class="docutils literal notranslate"><span class="pre">probs[P]</span></code> the Pauli string <code class="docutils literal notranslate"><span class="pre">P</span></code> acts on <code class="docutils literal notranslate"><span class="pre">qubits</span></code>,
 and with the remaining probability nothing happens.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>after_gate</strong> (<em>int</em>) – Index of the gate the channel follows, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> for the initial state.</p></li>
-<li><p><strong>qubits</strong> (<em>tuple</em><em> of </em><em>int</em>) – The qubits the channel acts on, in the order the Pauli labels use.</p></li>
-<li><p><strong>probs</strong> (<em>dict</em><em> of </em><em>str to float</em>) – Probability of each non-identity Pauli string on <code class="docutils literal notranslate"><span class="pre">qubits</span></code>, one label
-per qubit. They must sum to at most 1.</p></li>
+<li><p><strong>after_gate</strong> (<em>int</em>) – index of the gate the channel follows, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> for the
+initial state.</p></li>
+<li><p><strong>qubits</strong> (<em>tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em>) – the qubits the channel acts on, in the order the Pauli labels
+use.</p></li>
+<li><p><strong>probs</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>]</em>) – probability of each non-identity Pauli string on <code class="docutils literal notranslate"><span class="pre">qubits</span></code>, one
+label per qubit. They must sum to at most 1.</p></li>
 </ul>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
+<p class="rubric">Example</p>
 <p>A correlated two-qubit channel after the first gate:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.events</span><span class="w"> </span><span class="kn">import</span> <span class="n">PauliChannel</span>
 
@@ -932,13 +939,13 @@ per qubit. They must sum to at most 1.</p></li>
 <dd><p>The channel’s terms as <code class="docutils literal notranslate"><span class="pre">(pauli,</span> <span class="pre">probability)</span></code>, padded to <code class="docutils literal notranslate"><span class="pre">nqubits</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>nqubits</strong> (<em>int</em>) – Width of the circuit.</p>
+<dd class="field-odd"><p><strong>nqubits</strong> – width of the circuit.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>One entry per term, in <code class="docutils literal notranslate"><span class="pre">probs</span></code> order.</p>
+<dd class="field-even"><p>One <code class="docutils literal notranslate"><span class="pre">(pauli,</span> <span class="pre">probability)</span></code> entry per term, in <code class="docutils literal notranslate"><span class="pre">probs</span></code> order.</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list of (str, float)</p>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – if the channel acts on a qubit outside the circuit.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -966,7 +973,7 @@ bra with <code class="docutils literal notranslate"><span class="pre">B'</span><
 differently and contributes a transition amplitude between the two.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.noise.compile.</span></span><span class="sig-name descname"><span class="pre">CompiledNoise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">hsmpo:</span> <span class="pre">~mpstab.evolutors.hsmpo.HSMPO,</span> <span class="pre">generators:</span> <span class="pre">list[str],</span> <span class="pre">angles:</span> <span class="pre">~numpy.ndarray,</span> <span class="pre">inverse_tableau:</span> <span class="pre">~stim._stim_sse2.Tableau,</span> <span class="pre">fault_paulis:</span> <span class="pre">list[str],</span> <span class="pre">fault_probs:</span> <span class="pre">~numpy.ndarray,</span> <span class="pre">fault_location:</span> <span class="pre">~numpy.ndarray,</span> <span class="pre">location_probs:</span> <span class="pre">~numpy.ndarray,</span> <span class="pre">flips:</span> <span class="pre">~numpy.ndarray,</span> <span class="pre">coherence_ket:</span> <span class="pre">list[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">coherence_bra:</span> <span class="pre">list[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">coherence_weights:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">coherence_location:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">ket_flips:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">bra_flips:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">location_position:</span> <span class="pre">~numpy.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/noise/compile.html#CompiledNoise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.models.noise.compile.</span></span><span class="sig-name descname"><span class="pre">CompiledNoise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">hsmpo:</span> <span class="pre">HSMPO,</span> <span class="pre">generators:</span> <span class="pre">list[str],</span> <span class="pre">angles:</span> <span class="pre">np.ndarray,</span> <span class="pre">fault_paulis:</span> <span class="pre">list[str],</span> <span class="pre">fault_probs:</span> <span class="pre">np.ndarray,</span> <span class="pre">fault_location:</span> <span class="pre">np.ndarray,</span> <span class="pre">location_probs:</span> <span class="pre">np.ndarray,</span> <span class="pre">flips:</span> <span class="pre">np.ndarray,</span> <span class="pre">coherence_ket:</span> <span class="pre">list[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">coherence_bra:</span> <span class="pre">list[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">coherence_weights:</span> <span class="pre">np.ndarray</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">coherence_location:</span> <span class="pre">np.ndarray</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">ket_flips:</span> <span class="pre">np.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">bra_flips:</span> <span class="pre">np.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">location_position:</span> <span class="pre">np.ndarray</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/models/noise/compile.html#CompiledNoise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise" title="Link to this definition">¶</a></dt>
 <dd><p>A noisy circuit in the Clifford frame of an HSMPO surrogate.</p>
 <p>Build it with <a class="reference internal" href="#mpstab.models.noise.compile.compile_noise" title="mpstab.models.noise.compile.compile_noise"><code class="xref py py-func docutils literal notranslate"><span class="pre">compile_noise()</span></code></a>. Each location is one
 <code class="xref py py-class docutils literal notranslate"><span class="pre">PauliChannel</span></code> or
@@ -975,167 +982,37 @@ Pauli of a location with nonzero probability: a term of the Pauli channel,
 or a diagonal entry of the Kraus channel’s process matrix. Each coherence
 is a pair of distinct Paulis with a nonzero off-diagonal entry, stored
 once for the pair. Both are stored in location order.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.hsmpo">
-<span class="sig-name descname"><span class="pre">hsmpo</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.hsmpo" title="Link to this definition">¶</a></dt>
-<dd><p>The surrogate supplying the engines and the initial MPS. It is only
-read from, never modified.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="evolutors.html#mpstab.evolutors.hsmpo.HSMPO" title="mpstab.evolutors.hsmpo.HSMPO">HSMPO</a></p>
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hsmpo</strong> (<a class="reference internal" href="evolutors.html#mpstab.evolutors.hsmpo.HSMPO" title="mpstab.evolutors.hsmpo.HSMPO"><em>HSMPO</em></a>) – the surrogate supplying the engines and the initial MPS. It is
+only read from, never modified.</p></li>
+<li><p><strong>generators</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – dressed generators of the rotation chain: the magic gates
+and the coherent rotations, in circuit order.</p></li>
+<li><p><strong>angles</strong> (<em>np.ndarray</em>) – signed angle of each rotation, shape <code class="docutils literal notranslate"><span class="pre">(R,)</span></code>.</p></li>
+<li><p><strong>fault_paulis</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – dressed Pauli of each fault, unsigned, length <code class="docutils literal notranslate"><span class="pre">F</span></code>.</p></li>
+<li><p><strong>fault_probs</strong> (<em>np.ndarray</em>) – probability of each fault, shape <code class="docutils literal notranslate"><span class="pre">(F,)</span></code>.</p></li>
+<li><p><strong>fault_location</strong> (<em>np.ndarray</em>) – location index of each fault, shape <code class="docutils literal notranslate"><span class="pre">(F,)</span></code>,
+nondecreasing.</p></li>
+<li><p><strong>location_probs</strong> (<em>np.ndarray</em>) – probability that each location faults at all, shape
+<code class="docutils literal notranslate"><span class="pre">(L,)</span></code>.</p></li>
+<li><p><strong>flips</strong> (<em>np.ndarray</em>) – boolean <code class="docutils literal notranslate"><span class="pre">(F,</span> <span class="pre">R)</span></code> matrix, <code class="docutils literal notranslate"><span class="pre">True</span></code> where a fault flips the sign
+of a rotation’s angle.</p></li>
+<li><p><strong>coherence_ket</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – dressed Pauli <code class="docutils literal notranslate"><span class="pre">A'</span></code> of each coherence, unsigned, length
+<code class="docutils literal notranslate"><span class="pre">C</span></code>; the identity string where <code class="docutils literal notranslate"><span class="pre">A</span></code> is the identity.</p></li>
+<li><p><strong>coherence_bra</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – dressed Pauli <code class="docutils literal notranslate"><span class="pre">B'</span></code> of each coherence, likewise.</p></li>
+<li><p><strong>coherence_weights</strong> (<em>np.ndarray</em>) – complex <code class="docutils literal notranslate"><span class="pre">chi[A,</span> <span class="pre">B]</span></code> of each coherence, times the
+dressing signs of <code class="docutils literal notranslate"><span class="pre">A'</span></code> and <code class="docutils literal notranslate"><span class="pre">B'</span></code>, shape <code class="docutils literal notranslate"><span class="pre">(C,)</span></code>. The pair
+<code class="docutils literal notranslate"><span class="pre">(B,</span> <span class="pre">A)</span></code> has the conjugate weight.</p></li>
+<li><p><strong>coherence_location</strong> (<em>np.ndarray</em>) – location index of each coherence, shape <code class="docutils literal notranslate"><span class="pre">(C,)</span></code>,
+nondecreasing.</p></li>
+<li><p><strong>ket_flips</strong> (<em>np.ndarray</em><em> | </em><em>None</em>) – boolean <code class="docutils literal notranslate"><span class="pre">(C,</span> <span class="pre">R)</span></code> matrix: the rotations <code class="docutils literal notranslate"><span class="pre">A'</span></code> flips.</p></li>
+<li><p><strong>bra_flips</strong> (<em>np.ndarray</em><em> | </em><em>None</em>) – boolean <code class="docutils literal notranslate"><span class="pre">(C,</span> <span class="pre">R)</span></code> matrix: the rotations <code class="docutils literal notranslate"><span class="pre">B'</span></code> flips.</p></li>
+<li><p><strong>location_position</strong> (<em>np.ndarray</em><em> | </em><em>None</em>) – rotations applied before each location, shape
+<code class="docutils literal notranslate"><span class="pre">(L,)</span></code>, nondecreasing.</p></li>
+</ul>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.generators">
-<span class="sig-name descname"><span class="pre">generators</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.generators" title="Link to this definition">¶</a></dt>
-<dd><p>Dressed generators of the rotation chain: the magic gates and the
-coherent rotations, in circuit order.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list of str</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.angles">
-<span class="sig-name descname"><span class="pre">angles</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.angles" title="Link to this definition">¶</a></dt>
-<dd><p>Signed angle of each rotation, shape <code class="docutils literal notranslate"><span class="pre">(R,)</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.inverse_tableau">
-<span class="sig-name descname"><span class="pre">inverse_tableau</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.inverse_tableau" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">U^dag</span></code> for the full Clifford circuit <code class="docutils literal notranslate"><span class="pre">U</span></code>, which dresses observables.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>stim.Tableau</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.fault_paulis">
-<span class="sig-name descname"><span class="pre">fault_paulis</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.fault_paulis" title="Link to this definition">¶</a></dt>
-<dd><p>Dressed Pauli of each fault, unsigned, length <code class="docutils literal notranslate"><span class="pre">F</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list of str</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.fault_probs">
-<span class="sig-name descname"><span class="pre">fault_probs</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.fault_probs" title="Link to this definition">¶</a></dt>
-<dd><p>Probability of each fault, shape <code class="docutils literal notranslate"><span class="pre">(F,)</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.fault_location">
-<span class="sig-name descname"><span class="pre">fault_location</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.fault_location" title="Link to this definition">¶</a></dt>
-<dd><p>Location index of each fault, shape <code class="docutils literal notranslate"><span class="pre">(F,)</span></code>, nondecreasing.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.location_probs">
-<span class="sig-name descname"><span class="pre">location_probs</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.location_probs" title="Link to this definition">¶</a></dt>
-<dd><p>Probability that each location faults at all, shape <code class="docutils literal notranslate"><span class="pre">(L,)</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.flips">
-<span class="sig-name descname"><span class="pre">flips</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.flips" title="Link to this definition">¶</a></dt>
-<dd><p>Boolean <code class="docutils literal notranslate"><span class="pre">(F,</span> <span class="pre">R)</span></code> matrix, <code class="docutils literal notranslate"><span class="pre">True</span></code> where a fault flips the sign of a
-rotation’s angle.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">coherence_ket,</span> <span class="pre">coherence_bra</span></span></dt>
-<dd><p>Dressed Paulis <code class="docutils literal notranslate"><span class="pre">A'</span></code> and <code class="docutils literal notranslate"><span class="pre">B'</span></code> of each coherence, unsigned, length
-<code class="docutils literal notranslate"><span class="pre">C</span></code>; the identity string where one of them is the identity.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list of str</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.coherence_weights">
-<span class="sig-name descname"><span class="pre">coherence_weights</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.coherence_weights" title="Link to this definition">¶</a></dt>
-<dd><p>Complex <code class="docutils literal notranslate"><span class="pre">chi[A,</span> <span class="pre">B]</span></code> of each coherence, times the dressing signs of
-<code class="docutils literal notranslate"><span class="pre">A'</span></code> and <code class="docutils literal notranslate"><span class="pre">B'</span></code>, shape <code class="docutils literal notranslate"><span class="pre">(C,)</span></code>. The pair <code class="docutils literal notranslate"><span class="pre">(B,</span> <span class="pre">A)</span></code> has the conjugate
-weight.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.coherence_location">
-<span class="sig-name descname"><span class="pre">coherence_location</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.coherence_location" title="Link to this definition">¶</a></dt>
-<dd><p>Location index of each coherence, shape <code class="docutils literal notranslate"><span class="pre">(C,)</span></code>, nondecreasing.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">ket_flips,</span> <span class="pre">bra_flips</span></span></dt>
-<dd><p>Boolean <code class="docutils literal notranslate"><span class="pre">(C,</span> <span class="pre">R)</span></code> matrices: the rotations <code class="docutils literal notranslate"><span class="pre">A'</span></code> and <code class="docutils literal notranslate"><span class="pre">B'</span></code> flip.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.location_position">
-<span class="sig-name descname"><span class="pre">location_position</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.location_position" title="Link to this definition">¶</a></dt>
-<dd><p>Rotations applied before each location, shape <code class="docutils literal notranslate"><span class="pre">(L,)</span></code>,
-nondecreasing.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.coherence_mass">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">coherence_mass</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.coherence_mass" title="Link to this definition">¶</a></dt>
@@ -1149,16 +1026,25 @@ counted, shape <code class="docutils literal notranslate"><span class="pre">(L,)
 <dd><p>Dress a Pauli observable with the full Clifford circuit.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>pauli</strong> (<em>str</em>) – Full-width Pauli string.</p>
+<dd class="field-odd"><p><strong>pauli</strong> – full-width Pauli string.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The dressed string and its sign, as
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">backpropagate()</span></code> returns them.</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>(str, int)</p>
-</dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.dress_observables">
+<span class="sig-name descname"><span class="pre">dress_observables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paulis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/models/noise/compile.html#CompiledNoise.dress_observables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.dress_observables" title="Link to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.dress_observable" title="mpstab.models.noise.compile.CompiledNoise.dress_observable"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dress_observable()</span></code></a> for many terms, sharing the engine’s work.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.nqubits">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">nqubits</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.nqubits" title="Link to this definition">¶</a></dt>
+<dd><p>Width of the circuit.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1167,13 +1053,11 @@ counted, shape <code class="docutils literal notranslate"><span class="pre">(L,)
 <dd><p>Which faults flip the sign of each dressed observable term.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>dressed_paulis</strong> (<em>sequence</em><em> of </em><em>str</em>) – Dressed observable terms, from <a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.dress_observable" title="mpstab.models.noise.compile.CompiledNoise.dress_observable"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dress_observable()</span></code></a>.</p>
+<dd class="field-odd"><p><strong>dressed_paulis</strong> – dressed observable terms, from
+<a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.dress_observable" title="mpstab.models.noise.compile.CompiledNoise.dress_observable"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dress_observable()</span></code></a>.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Boolean <code class="docutils literal notranslate"><span class="pre">(F,</span> <span class="pre">len(dressed_paulis))</span></code> matrix.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1182,9 +1066,10 @@ counted, shape <code class="docutils literal notranslate"><span class="pre">(L,)
 <dt class="sig sig-object py" id="mpstab.models.noise.compile.CompiledNoise.restricted_to">
 <span class="sig-name descname"><span class="pre">restricted_to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dressed_paulis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise" title="mpstab.models.noise.compile.CompiledNoise"><span class="pre">CompiledNoise</span></a></span></span><a class="reference internal" href="../_modules/mpstab/models/noise/compile.html#CompiledNoise.restricted_to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.noise.compile.CompiledNoise.restricted_to" title="Link to this definition">¶</a></dt>
 <dd><p>The same noisy circuit, reduced to what can affect an observable.</p>
-<p>Rotations outside the light cone (<a class="reference internal" href="pauli.html#mpstab.pauli.light_cone" title="mpstab.pauli.light_cone"><code class="xref py py-func docutils literal notranslate"><span class="pre">light_cone()</span></code></a>)
-of the observable are dropped. A fault that then flips no remaining
-rotation and commutes with the observable terms leaves every
+<p>Rotations outside the observable’s light cone
+(<a class="reference internal" href="pauli.html#mpstab.pauli.pauli_light_cone" title="mpstab.pauli.pauli_light_cone"><code class="xref py py-func docutils literal notranslate"><span class="pre">pauli_light_cone()</span></code></a>) are dropped. A fault that then
+flips no remaining rotation and commutes with the observable terms
+leaves every
 expectation value unchanged, so it is folded into its location’s
 no-fault probability, and locations left with nothing are dropped.</p>
 <p>A location with coherences is dropped whole when all its Paulis pass
@@ -1195,13 +1080,11 @@ more rotations and locations; this is repeated until nothing changes.
 Every step is exact for this observable.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>dressed_paulis</strong> (<em>sequence</em><em> of </em><em>str</em>) – Dressed observable terms, from <a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.dress_observable" title="mpstab.models.noise.compile.CompiledNoise.dress_observable"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dress_observable()</span></code></a>.</p>
+<dd class="field-odd"><p><strong>dressed_paulis</strong> – dressed observable terms, from
+<a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.dress_observable" title="mpstab.models.noise.compile.CompiledNoise.dress_observable"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dress_observable()</span></code></a>.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A new instance; this one is left untouched.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise" title="mpstab.models.noise.compile.CompiledNoise">CompiledNoise</a></p>
+<dd class="field-even"><p>A new <a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise" title="mpstab.models.noise.compile.CompiledNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompiledNoise</span></code></a>; this one is left untouched.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1212,33 +1095,34 @@ Every step is exact for this observable.</p>
 <dt class="sig sig-object py" id="mpstab.models.noise.compile.compile_noise">
 <span class="sig-prename descclassname"><span class="pre">mpstab.models.noise.compile.</span></span><span class="sig-name descname"><span class="pre">compile_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hsmpo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="evolutors.html#mpstab.evolutors.hsmpo.HSMPO" title="mpstab.evolutors.hsmpo.HSMPO"><span class="pre">HSMPO</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">events</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#mpstab.models.noise.events.NoiseEvent" title="mpstab.models.noise.events.NoiseEvent"><span class="pre">NoiseEvent</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise" title="mpstab.models.noise.compile.CompiledNoise"><span class="pre">CompiledNoise</span></a></span></span><a class="reference internal" href="../_modules/mpstab/models/noise/compile.html#compile_noise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.noise.compile.compile_noise" title="Link to this definition">¶</a></dt>
 <dd><p>Dress the noise events of a circuit with its Clifford frame.</p>
-<p>One pass of a <code class="docutils literal notranslate"><span class="pre">stim.TableauSimulator</span></code> over the circuit dresses every magic
-gate, coherent rotation and Pauli fault at its own position, and the flip
+<p>The stabilizers engine dresses every magic gate, coherent rotation and
+Pauli fault with the Clifford gates before its own position, in one call
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">backpropagate_at()</span></code>), and the flip
 matrix then follows from the symplectic form in one matrix product.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hsmpo</strong> (<a class="reference internal" href="evolutors.html#mpstab.evolutors.hsmpo.HSMPO" title="mpstab.evolutors.hsmpo.HSMPO"><em>HSMPO</em></a>) – Surrogate of the noiseless circuit. Its <code class="docutils literal notranslate"><span class="pre">ansatz.circuit.queue</span></code> is what
-<code class="docutils literal notranslate"><span class="pre">after_gate</span></code> indexes. It may be built with
+<li><p><strong>hsmpo</strong> – surrogate of the noiseless circuit. Its <code class="docutils literal notranslate"><span class="pre">ansatz.circuit.queue</span></code>
+is what <code class="docutils literal notranslate"><span class="pre">after_gate</span></code> indexes. It may be built with
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">rotations_only()</span></code>.</p></li>
-<li><p><strong>events</strong> (<em>sequence</em><em> of </em><a class="reference internal" href="#mpstab.models.noise.events.NoiseEvent" title="mpstab.models.noise.events.NoiseEvent"><em>NoiseEvent</em></a>) – The noise, as <a class="reference internal" href="#mpstab.models.noise.events.PauliChannel" title="mpstab.models.noise.events.PauliChannel"><code class="xref py py-class docutils literal notranslate"><span class="pre">PauliChannel</span></code></a>,
-<a class="reference internal" href="#mpstab.models.noise.events.CoherentRotation" title="mpstab.models.noise.events.CoherentRotation"><code class="xref py py-class docutils literal notranslate"><span class="pre">CoherentRotation</span></code></a> and
+<li><p><strong>events</strong> – the noise, as <code class="xref py py-class docutils literal notranslate"><span class="pre">PauliChannel</span></code>,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">CoherentRotation</span></code> and
 <a class="reference internal" href="#mpstab.models.noise.events.KrausChannel" title="mpstab.models.noise.events.KrausChannel"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausChannel</span></code></a> events.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise" title="mpstab.models.noise.compile.CompiledNoise">CompiledNoise</a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The <a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise" title="mpstab.models.noise.compile.CompiledNoise"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompiledNoise</span></code></a>.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>NotImplementedError</strong> – On an event type this function does not know, or a stabilizers engine
-    other than <code class="xref py py-class docutils literal notranslate"><span class="pre">StimEngine</span></code>.</p></li>
-<li><p><strong>ValueError</strong> – On an <code class="docutils literal notranslate"><span class="pre">after_gate</span></code> outside the circuit, or an ansatz whose own
-    partitioning does not follow its circuit queue (<code class="docutils literal notranslate"><span class="pre">FloquetAnsatz</span></code>).</p></li>
+<li><p><strong>NotImplementedError</strong> – on an event type this function does not know.</p></li>
+<li><p><strong>ValueError</strong> – on an <code class="docutils literal notranslate"><span class="pre">after_gate</span></code> outside the circuit, or an ansatz whose
+    own partitioning does not follow its circuit queue
+    (<code class="docutils literal notranslate"><span class="pre">FloquetAnsatz</span></code>).</p></li>
 </ul>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
+<p>Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.compile</span><span class="w"> </span><span class="kn">import</span> <span class="n">compile_noise</span>
@@ -1256,7 +1140,7 @@ matrix then follows from the symplectic form in one matrix product.</p>
 </div>
 </dd></dl>
 
-<p id="module-mpstab.models.noise.estimator">Noisy expectation values as averages over sign patterns of the rotation chain.</p>
+<p id="module-mpstab.models.noise.mc_noise_estimator">Noisy expectation values as averages over sign patterns of the rotation chain.</p>
 <p>Every set of faults maps to a sign pattern over the dressed rotations and the
 observable terms (<a class="reference internal" href="#module-mpstab.models.noise.compile" title="mpstab.models.noise.compile"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.models.noise.compile</span></code></a>), so the noisy expectation value
 of Pauli noise is a probability-weighted average of noiseless HSMPO
@@ -1285,39 +1169,40 @@ the MPS checkpoint before its first rotation that differs from the previous
 pattern; the bra of a transition branches off the ket’s checkpoint at their
 first difference.</p>
 <dl class="py function">
-<dt class="sig sig-object py" id="mpstab.models.noise.estimator.noisy_expectation">
-<span class="sig-prename descclassname"><span class="pre">mpstab.models.noise.estimator.</span></span><span class="sig-name descname"><span class="pre">noisy_expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compiled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise" title="mpstab.models.noise.compile.CompiledNoise"><span class="pre">CompiledNoise</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">observable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SymbolicHamiltonian</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">light_cone</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_workers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation" title="mpstab.models.noise.estimator.NoisyExpectation"><span class="pre">NoisyExpectation</span></a></span></span><a class="reference internal" href="../_modules/mpstab/models/noise/estimator.html#noisy_expectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.noise.estimator.noisy_expectation" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="mpstab.models.noise.mc_noise_estimator.noisy_expectation">
+<span class="sig-prename descclassname"><span class="pre">mpstab.models.noise.mc_noise_estimator.</span></span><span class="sig-name descname"><span class="pre">noisy_expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compiled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise" title="mpstab.models.noise.compile.CompiledNoise"><span class="pre">CompiledNoise</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">observable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SymbolicHamiltonian</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">light_cone</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_workers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation" title="mpstab.models.noise.mc_noise_estimator.NoisyExpectation"><span class="pre">NoisyExpectation</span></a></span></span><a class="reference internal" href="../_modules/mpstab/models/noise/mc_noise_estimator.html#noisy_expectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.models.noise.mc_noise_estimator.noisy_expectation" title="Link to this definition">¶</a></dt>
 <dd><p>Expectation value of <code class="docutils literal notranslate"><span class="pre">observable</span></code> on the noisy circuit.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>compiled</strong> (<a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise" title="mpstab.models.noise.compile.CompiledNoise"><em>CompiledNoise</em></a>) – The noisy circuit, from <code class="xref py py-func docutils literal notranslate"><span class="pre">compile_noise()</span></code>.</p></li>
-<li><p><strong>observable</strong> (<em>Observable</em>) – A Pauli string or any other format
+<li><p><strong>compiled</strong> – the noisy circuit, from <code class="xref py py-func docutils literal notranslate"><span class="pre">compile_noise()</span></code>.</p></li>
+<li><p><strong>observable</strong> – a Pauli string or any other format
 <a class="reference internal" href="pauli.html#mpstab.hamiltonians.pauli_terms" title="mpstab.hamiltonians.pauli_terms"><code class="xref py py-func docutils literal notranslate"><span class="pre">pauli_terms()</span></code></a> accepts.</p></li>
-<li><p><strong>n_samples</strong> (<em>int</em><em>, </em><em>optional</em>) – Configurations to sample for the <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> stratum. With <code class="docutils literal notranslate"><span class="pre">0</span></code> that
-stratum is dropped, which biases the mean by at most
+<li><p><strong>n_samples</strong> – configurations to sample for the <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> stratum. With
+<code class="docutils literal notranslate"><span class="pre">0</span></code> that stratum is dropped, which biases the mean by at most
 <code class="docutils literal notranslate"><span class="pre">stratum_weights[2]</span></code> times the sum of the absolute coefficients.</p></li>
-<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – Seed of the sampler.</p></li>
-<li><p><strong>light_cone</strong> (<em>bool</em><em>, </em><em>optional</em>) – Restrict the circuit to the light cone first. This is exact, and it
-leaves fewer rotations per pattern and fewer faults, so a smaller
-<code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> weight and a smaller standard error. Turn it off only to
-compare against the unrestricted computation.</p></li>
-<li><p><strong>n_workers</strong> (<em>int</em><em>, </em><em>optional</em>) – Processes evaluating the sign patterns of Pauli faults. The distinct
-patterns are split into contiguous blocks, so the result is identical
-for any value; each extra process costs a start-up of about a second,
-so it pays off only when there are many patterns or the MPS is large.
-Transition amplitudes are evaluated in this process.</p></li>
+<li><p><strong>seed</strong> – seed of the sampler.</p></li>
+<li><p><strong>light_cone</strong> – restrict the circuit to the observable’s light cone first.
+This is exact, and it leaves fewer rotations per pattern and fewer
+faults, so a smaller <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">&gt;=</span> <span class="pre">2</span></code> weight and a smaller standard error.
+Turn it off only to compare against the unrestricted computation.</p></li>
+<li><p><strong>n_workers</strong> – processes evaluating the sign patterns of Pauli faults. The
+distinct patterns are split into contiguous blocks, so the result is
+identical for any value; each extra process costs a start-up of
+about a second, so it pays off only when there are many patterns or
+the MPS is large. Transition amplitudes are evaluated in this
+process.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation" title="mpstab.models.noise.estimator.NoisyExpectation">NoisyExpectation</a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The <a class="reference internal" href="#mpstab.models.noise.NoisyExpectation" title="mpstab.models.noise.mc_noise_estimator.NoisyExpectation"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoisyExpectation</span></code></a>.</p>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
+<p>Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.compile</span><span class="w"> </span><span class="kn">import</span> <span class="n">compile_noise</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.estimator</span><span class="w"> </span><span class="kn">import</span> <span class="n">noisy_expectation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.mc_noise_estimator</span><span class="w"> </span><span class="kn">import</span> <span class="n">noisy_expectation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.events</span><span class="w"> </span><span class="kn">import</span> <span class="n">PauliChannel</span>
 
 <span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -1425,16 +1310,7 @@ density-matrix simulation.</p>
 <li><a class="reference internal" href="#mpstab.models.noise.model.ReadoutError"><code class="docutils literal notranslate"><span class="pre">ReadoutError</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.models.noise.model.StatePreparationError"><code class="docutils literal notranslate"><span class="pre">StatePreparationError</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.models.noise.model.ThermalRelaxationError"><code class="docutils literal notranslate"><span class="pre">ThermalRelaxationError</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation"><code class="docutils literal notranslate"><span class="pre">NoisyExpectation</span></code></a><ul>
-<li><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation.mean"><code class="docutils literal notranslate"><span class="pre">NoisyExpectation.mean</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation.stderr"><code class="docutils literal notranslate"><span class="pre">NoisyExpectation.stderr</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation.n_patterns"><code class="docutils literal notranslate"><span class="pre">NoisyExpectation.n_patterns</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation.fidelities"><code class="docutils literal notranslate"><span class="pre">NoisyExpectation.fidelities</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation.stratum_weights"><code class="docutils literal notranslate"><span class="pre">NoisyExpectation.stratum_weights</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation.n_samples"><code class="docutils literal notranslate"><span class="pre">NoisyExpectation.n_samples</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation.n_transitions"><code class="docutils literal notranslate"><span class="pre">NoisyExpectation.n_transitions</span></code></a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#mpstab.models.noise.NoisyExpectation"><code class="docutils literal notranslate"><span class="pre">NoisyExpectation</span></code></a></li>
 <li><a class="reference internal" href="#low-level-interface">Low-level interface</a><ul>
 <li><a class="reference internal" href="#mpstab.models.noise.events.CoherentRotation"><code class="docutils literal notranslate"><span class="pre">CoherentRotation</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.models.noise.events.KrausChannel"><code class="docutils literal notranslate"><span class="pre">KrausChannel</span></code></a><ul>
@@ -1448,26 +1324,16 @@ density-matrix simulation.</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise"><code class="docutils literal notranslate"><span class="pre">CompiledNoise</span></code></a><ul>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.hsmpo"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.hsmpo</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.generators"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.generators</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.angles"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.angles</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.inverse_tableau"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.inverse_tableau</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.fault_paulis"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.fault_paulis</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.fault_probs"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.fault_probs</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.fault_location"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.fault_location</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.location_probs"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.location_probs</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.flips"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.flips</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.coherence_weights"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.coherence_weights</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.coherence_location"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.coherence_location</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.location_position"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.location_position</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.coherence_mass"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.coherence_mass</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.dress_observable"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.dress_observable()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.dress_observables"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.dress_observables()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.nqubits"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.nqubits</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.observable_flips"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.observable_flips()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.models.noise.compile.CompiledNoise.restricted_to"><code class="docutils literal notranslate"><span class="pre">CompiledNoise.restricted_to()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#mpstab.models.noise.compile.compile_noise"><code class="docutils literal notranslate"><span class="pre">compile_noise()</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.models.noise.estimator.noisy_expectation"><code class="docutils literal notranslate"><span class="pre">noisy_expectation()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.models.noise.mc_noise_estimator.noisy_expectation"><code class="docutils literal notranslate"><span class="pre">noisy_expectation()</span></code></a></li>
 </ul>
 </li>
 </ul>

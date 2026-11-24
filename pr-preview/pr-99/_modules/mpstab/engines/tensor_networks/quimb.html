@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -284,16 +291,32 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo.gates.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParametrizedGate</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">quimb.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DMRG2</span><span class="p">,</span>
     <span class="n">CircuitMPS</span><span class="p">,</span>
     <span class="n">MatrixProductOperator</span><span class="p">,</span>
     <span class="n">MatrixProductState</span><span class="p">,</span>
     <span class="n">MPO_identity</span><span class="p">,</span>
     <span class="n">MPO_product_operator</span><span class="p">,</span>
+    <span class="n">bonds</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines.tensor_networks</span><span class="w"> </span><span class="kn">import</span> <span class="n">_mps_kernels</span> <span class="k">as</span> <span class="n">kernels</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines.tensor_networks.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorNetworkEngine</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">PAULI_MATRICES</span>
+
+<span class="c1"># jax and torch are optional quimb backends.</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines.tensor_networks._jax_linalg</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">install</span> <span class="k">as</span> <span class="n">_install_jax_linalg</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">jnp</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">torch</span> <span class="o">=</span> <span class="kc">None</span>
 
 <span class="c1">#: qibo gate names mapped to their quimb equivalents.</span>
 <span class="n">GATE_MAP</span> <span class="o">=</span> <span class="p">{</span>
@@ -361,10 +384,10 @@
 <span class="sd">    exact array object held by each site, and trusted only while the MPS holds</span>
 <span class="sd">    exactly those arrays and no other tensor. The cached arrays are read-only,</span>
 <span class="sd">    so anything else that changes the MPS has to replace them, and the next</span>
-<span class="sd">    view then re-canonicalizes from scratch. ``deepcopy`` preserves the</span>
-<span class="sd">    array identities, so copies keep their cached gauge, but numpy hands the</span>
-<span class="sd">    copies back writable: write into a deep copy&#39;s arrays and the gauge goes</span>
-<span class="sd">    stale.</span>
+<span class="sd">    view then re-canonicalizes from scratch. ``deepcopy`` keeps the cached</span>
+<span class="sd">    gauge pointing at the copy&#39;s arrays, but numpy hands those copies back</span>
+<span class="sd">    writable, so a writable array also invalidates the cache: a deep copy is</span>
+<span class="sd">    re-canonicalized once, whether or not anything wrote into it.</span>
 
 <span class="sd">    Arrays are loaded lazily, and only the ones a kernel changed are written</span>
 <span class="sd">    back, so the cost of an operation scales with the sites it touches.</span>
@@ -378,9 +401,13 @@
         <span class="k">if</span> <span class="n">gauge</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">center</span><span class="p">,</span> <span class="n">tids</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">inds</span> <span class="o">=</span> <span class="n">gauge</span>
             <span class="c1"># Exactly L tensors: an extra one (``gate_(..., contract=False)``)</span>
-            <span class="c1"># changes the state while leaving the site arrays untouched.</span>
+            <span class="c1"># changes the state while leaving the site arrays untouched. And</span>
+            <span class="c1"># still read-only: a deep copy&#39;s arrays are writable, so they may</span>
+            <span class="c1"># have been written into.</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tids</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensor_map</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
-                <span class="n">tid</span> <span class="ow">in</span> <span class="n">tensor_map</span> <span class="ow">and</span> <span class="n">tensor_map</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="n">array</span>
+                <span class="n">tid</span> <span class="ow">in</span> <span class="n">tensor_map</span>
+                <span class="ow">and</span> <span class="n">tensor_map</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="n">array</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="n">array</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">writeable</span>
                 <span class="k">for</span> <span class="n">tid</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tids</span><span class="p">,</span> <span class="n">arrays</span><span class="p">)</span>
             <span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">center</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inds</span> <span class="o">=</span> <span class="n">center</span><span class="p">,</span> <span class="n">tids</span><span class="p">,</span> <span class="n">inds</span>
@@ -564,25 +591,22 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_array_module</span><span class="p">(</span><span class="n">backend</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The array module of a quimb backend: numpy, ``jax.numpy`` or torch.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">&quot;numpy&quot;</span><span class="p">:</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
-
-        <span class="k">return</span> <span class="n">numpy</span>
+        <span class="k">return</span> <span class="n">np</span>
+    <span class="k">if</span> <span class="n">backend</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;jax&quot;</span><span class="p">,</span> <span class="s2">&quot;torch&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Unsupported quimb backend </span><span class="si">{</span><span class="n">backend</span><span class="si">!r}</span><span class="s2">, expected &#39;numpy&#39;, &#39;jax&#39; or &#39;torch&#39;.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">module</span> <span class="o">=</span> <span class="n">jnp</span> <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">&quot;jax&quot;</span> <span class="k">else</span> <span class="n">torch</span>
+    <span class="k">if</span> <span class="n">module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="n">backend</span><span class="si">!r}</span><span class="s2"> quimb backend needs </span><span class="si">{</span><span class="n">backend</span><span class="si">}</span><span class="s2">: &quot;</span>
+            <span class="sa">f</span><span class="s1">&#39;pip install &quot;mpstab[</span><span class="si">{</span><span class="s2">&quot;pytorch&quot;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">backend</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;torch&quot;</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;jax&quot;</span><span class="si">}</span><span class="s1">]&quot;&#39;</span>
+        <span class="p">)</span>
     <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">&quot;jax&quot;</span><span class="p">:</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span>
-
-        <span class="kn">from</span><span class="w"> </span><span class="nn">._jax_linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">install</span>
-
         <span class="c1"># jax&#39;s SVD derivative is nan on repeated zero singular values, which</span>
         <span class="c1"># an MPS evolved from a product state hits at its first compressions.</span>
-        <span class="n">install</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">numpy</span>
-    <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">&quot;torch&quot;</span><span class="p">:</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-
-        <span class="k">return</span> <span class="n">torch</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;Unsupported quimb backend </span><span class="si">{</span><span class="n">backend</span><span class="si">!r}</span><span class="s2">, expected &#39;numpy&#39;, &#39;jax&#39; or &#39;torch&#39;.&quot;</span>
-    <span class="p">)</span>
+        <span class="n">_install_jax_linalg</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">module</span>
 
 
 <div class="viewcode-block" id="QuimbEngine">
@@ -907,15 +931,22 @@
 <a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">squared_norm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_circuit</span><span class="p">:</span> <span class="n">MatrixProductState</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        ``&lt;psi|psi&gt;``. On the numpy backend it is read off the orthogonality</span>
-<span class="sd">        center of the cached canonical form, no full contraction needed.</span>
+<span class="sd">        ``&lt;psi|psi&gt;`` of the MPS. On the numpy backend it is read off the</span>
+<span class="sd">        orthogonality center of the cached canonical form, no full contraction</span>
+<span class="sd">        needed; other backends return quimb&#39;s backend scalar, so it stays</span>
+<span class="sd">        differentiable.</span>
+
+<span class="sd">        On the numpy backend, when the state has no valid cached canonical form</span>
+<span class="sd">        (a fresh state, or one changed outside the engine), it is</span>
+<span class="sd">        canonicalized in place first: its tensors are transposed and</span>
+<span class="sd">        gauge-transformed, the state itself is unchanged.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fast</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">squared_norm</span><span class="p">(</span><span class="n">state_circuit</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">state_circuit</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">view</span> <span class="o">=</span> <span class="n">_CanonicalMPS</span><span class="p">(</span><span class="n">state_circuit</span><span class="p">)</span>
         <span class="n">norm</span> <span class="o">=</span> <span class="n">kernels</span><span class="o">.</span><span class="n">squared_norm</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">view</span><span class="o">.</span><span class="n">center</span><span class="p">)</span>
         <span class="n">view</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">norm</span></div>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span></div>
 
 
     <span class="nd">@property</span>
@@ -1046,6 +1077,96 @@
                 <span class="n">cutoff</span><span class="o">=</span><span class="n">cutoff</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">_sites_to_mpo</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">operator</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="QuimbEngine.bond_dimension">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.bond_dimension">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bond_dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_circuit</span><span class="p">:</span> <span class="n">MatrixProductState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The largest bond dimension of the MPS.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">state_circuit</span><span class="o">.</span><span class="n">max_bond</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="QuimbEngine.operator_site_arrays">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_site_arrays">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">operator_site_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operator</span><span class="p">:</span> <span class="n">MatrixProductOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The MPO&#39;s site tensors as numpy arrays ordered ``(left, right, k, b)``,</span>
+<span class="sd">        ``k`` the upper (output) and ``b`` the lower (input) index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">arrays</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">tensor</span> <span class="o">=</span> <span class="n">operator</span><span class="p">[</span><span class="n">site</span><span class="p">]</span>
+            <span class="n">left</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">bonds</span><span class="p">(</span><span class="n">operator</span><span class="p">[</span><span class="n">site</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">tensor</span><span class="p">))</span> <span class="k">if</span> <span class="n">site</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">list</span><span class="p">(</span><span class="n">bonds</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">operator</span><span class="p">[</span><span class="n">site</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))</span> <span class="k">if</span> <span class="n">site</span> <span class="o">&lt;</span> <span class="n">operator</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="p">)</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="n">left</span> <span class="o">+</span> <span class="n">right</span> <span class="o">+</span> <span class="p">[</span><span class="n">operator</span><span class="o">.</span><span class="n">upper_ind</span><span class="p">(</span><span class="n">site</span><span class="p">),</span> <span class="n">operator</span><span class="o">.</span><span class="n">lower_ind</span><span class="p">(</span><span class="n">site</span><span class="p">)]</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">*</span><span class="n">order</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">left</span><span class="p">:</span>
+                <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">right</span><span class="p">:</span>
+                <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+            <span class="n">arrays</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">arrays</span></div>
+
+
+<div class="viewcode-block" id="QuimbEngine.pauli_sum_mpo">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_sum_mpo">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pauli_sum_mpo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">terms</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MatrixProductOperator</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The MPO of ``sum_P c_P P``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if ``terms`` is empty.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">terms</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot build the MPO of an empty Pauli sum.&quot;</span><span class="p">)</span>
+        <span class="n">mpos</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pauli_mpo</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">mpos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">mpo</span> <span class="ow">in</span> <span class="n">mpos</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">total</span> <span class="o">=</span> <span class="n">total</span> <span class="o">+</span> <span class="n">mpo</span>
+        <span class="k">return</span> <span class="n">total</span></div>
+
+
+<div class="viewcode-block" id="QuimbEngine.minimize_energy">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.minimize_energy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">minimize_energy</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">operator</span><span class="p">:</span> <span class="n">MatrixProductOperator</span><span class="p">,</span>
+        <span class="n">initial_state</span><span class="p">:</span> <span class="n">MatrixProductState</span><span class="p">,</span>
+        <span class="n">bond_dims</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+        <span class="n">cutoff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">max_sweeps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">verbosity</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Two-site DMRG with quimb&#39;s ``DMRG2``, on a copy of ``initial_state``.&quot;&quot;&quot;</span>
+        <span class="n">dmrg</span> <span class="o">=</span> <span class="n">DMRG2</span><span class="p">(</span>
+            <span class="n">operator</span><span class="p">,</span>
+            <span class="n">bond_dims</span><span class="o">=</span><span class="n">bond_dims</span><span class="p">,</span>
+            <span class="n">cutoffs</span><span class="o">=</span><span class="n">cutoff</span><span class="p">,</span>
+            <span class="n">p0</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">initial_state</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">converged</span> <span class="o">=</span> <span class="n">dmrg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">max_sweeps</span><span class="o">=</span><span class="n">max_sweeps</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="n">verbosity</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;state&quot;</span><span class="p">:</span> <span class="n">dmrg</span><span class="o">.</span><span class="n">state</span><span class="p">,</span>
+            <span class="s2">&quot;energy&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">dmrg</span><span class="o">.</span><span class="n">energy</span><span class="p">)),</span>
+            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="n">converged</span><span class="p">,</span>
+            <span class="s2">&quot;energy_history&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dmrg</span><span class="p">,</span> <span class="s2">&quot;energies&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
+            <span class="p">],</span>
+        <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="QuimbEngine.circuit_truncation_fidelity">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.circuit_truncation_fidelity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">circuit_truncation_fidelity</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">circuit</span><span class="p">,</span> <span class="n">max_bond_dimension</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;quimb&#39;s ``CircuitMPS.fidelity_estimate`` after running ``circuit``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_qibo_circuit_to_quimb</span><span class="p">(</span>
+            <span class="n">nqubits</span><span class="o">=</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">qibo_circ</span><span class="o">=</span><span class="n">circuit</span><span class="p">,</span> <span class="n">max_bond</span><span class="o">=</span><span class="n">max_bond_dimension</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">fidelity_estimate</span><span class="p">()</span></div>
 </div>
 
 </pre></div>

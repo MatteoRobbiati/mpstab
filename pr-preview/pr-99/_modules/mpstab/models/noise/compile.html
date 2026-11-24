@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -295,15 +302,11 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">replace</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">stim</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gates</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">StimEngine</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines.stabilizers.stim</span><span class="w"> </span><span class="kn">import</span> <span class="n">gate_instruction</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">gate_angle</span><span class="p">,</span> <span class="n">gate_generator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.events</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CoherentRotation</span><span class="p">,</span>
@@ -315,10 +318,12 @@
     <span class="n">_anticommuting</span><span class="p">,</span>
     <span class="n">_symplectic</span><span class="p">,</span>
     <span class="n">anticommutation</span><span class="p">,</span>
-    <span class="n">conjugate</span><span class="p">,</span>
-    <span class="n">light_cone</span><span class="p">,</span>
+    <span class="n">pauli_light_cone</span><span class="p">,</span>
     <span class="n">validate_pauli_string</span><span class="p">,</span>
 <span class="p">)</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 
 
 <div class="viewcode-block" id="CompiledNoise">
@@ -336,49 +341,37 @@
 <span class="sd">    is a pair of distinct Paulis with a nonzero off-diagonal entry, stored</span>
 <span class="sd">    once for the pair. Both are stored in location order.</span>
 
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    hsmpo : HSMPO</span>
-<span class="sd">        The surrogate supplying the engines and the initial MPS. It is only</span>
-<span class="sd">        read from, never modified.</span>
-<span class="sd">    generators : list of str</span>
-<span class="sd">        Dressed generators of the rotation chain: the magic gates and the</span>
-<span class="sd">        coherent rotations, in circuit order.</span>
-<span class="sd">    angles : numpy.ndarray</span>
-<span class="sd">        Signed angle of each rotation, shape ``(R,)``.</span>
-<span class="sd">    inverse_tableau : stim.Tableau</span>
-<span class="sd">        ``U^dag`` for the full Clifford circuit ``U``, which dresses observables.</span>
-<span class="sd">    fault_paulis : list of str</span>
-<span class="sd">        Dressed Pauli of each fault, unsigned, length ``F``.</span>
-<span class="sd">    fault_probs : numpy.ndarray</span>
-<span class="sd">        Probability of each fault, shape ``(F,)``.</span>
-<span class="sd">    fault_location : numpy.ndarray</span>
-<span class="sd">        Location index of each fault, shape ``(F,)``, nondecreasing.</span>
-<span class="sd">    location_probs : numpy.ndarray</span>
-<span class="sd">        Probability that each location faults at all, shape ``(L,)``.</span>
-<span class="sd">    flips : numpy.ndarray</span>
-<span class="sd">        Boolean ``(F, R)`` matrix, ``True`` where a fault flips the sign of a</span>
-<span class="sd">        rotation&#39;s angle.</span>
-<span class="sd">    coherence_ket, coherence_bra : list of str</span>
-<span class="sd">        Dressed Paulis ``A&#39;`` and ``B&#39;`` of each coherence, unsigned, length</span>
-<span class="sd">        ``C``; the identity string where one of them is the identity.</span>
-<span class="sd">    coherence_weights : numpy.ndarray</span>
-<span class="sd">        Complex ``chi[A, B]`` of each coherence, times the dressing signs of</span>
-<span class="sd">        ``A&#39;`` and ``B&#39;``, shape ``(C,)``. The pair ``(B, A)`` has the conjugate</span>
-<span class="sd">        weight.</span>
-<span class="sd">    coherence_location : numpy.ndarray</span>
-<span class="sd">        Location index of each coherence, shape ``(C,)``, nondecreasing.</span>
-<span class="sd">    ket_flips, bra_flips : numpy.ndarray</span>
-<span class="sd">        Boolean ``(C, R)`` matrices: the rotations ``A&#39;`` and ``B&#39;`` flip.</span>
-<span class="sd">    location_position : numpy.ndarray</span>
-<span class="sd">        Rotations applied before each location, shape ``(L,)``,</span>
-<span class="sd">        nondecreasing.</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        hsmpo: the surrogate supplying the engines and the initial MPS. It is</span>
+<span class="sd">            only read from, never modified.</span>
+<span class="sd">        generators: dressed generators of the rotation chain: the magic gates</span>
+<span class="sd">            and the coherent rotations, in circuit order.</span>
+<span class="sd">        angles: signed angle of each rotation, shape ``(R,)``.</span>
+<span class="sd">        fault_paulis: dressed Pauli of each fault, unsigned, length ``F``.</span>
+<span class="sd">        fault_probs: probability of each fault, shape ``(F,)``.</span>
+<span class="sd">        fault_location: location index of each fault, shape ``(F,)``,</span>
+<span class="sd">            nondecreasing.</span>
+<span class="sd">        location_probs: probability that each location faults at all, shape</span>
+<span class="sd">            ``(L,)``.</span>
+<span class="sd">        flips: boolean ``(F, R)`` matrix, ``True`` where a fault flips the sign</span>
+<span class="sd">            of a rotation&#39;s angle.</span>
+<span class="sd">        coherence_ket: dressed Pauli ``A&#39;`` of each coherence, unsigned, length</span>
+<span class="sd">            ``C``; the identity string where ``A`` is the identity.</span>
+<span class="sd">        coherence_bra: dressed Pauli ``B&#39;`` of each coherence, likewise.</span>
+<span class="sd">        coherence_weights: complex ``chi[A, B]`` of each coherence, times the</span>
+<span class="sd">            dressing signs of ``A&#39;`` and ``B&#39;``, shape ``(C,)``. The pair</span>
+<span class="sd">            ``(B, A)`` has the conjugate weight.</span>
+<span class="sd">        coherence_location: location index of each coherence, shape ``(C,)``,</span>
+<span class="sd">            nondecreasing.</span>
+<span class="sd">        ket_flips: boolean ``(C, R)`` matrix: the rotations ``A&#39;`` flips.</span>
+<span class="sd">        bra_flips: boolean ``(C, R)`` matrix: the rotations ``B&#39;`` flips.</span>
+<span class="sd">        location_position: rotations applied before each location, shape</span>
+<span class="sd">            ``(L,)``, nondecreasing.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">hsmpo</span><span class="p">:</span> <span class="n">HSMPO</span>
     <span class="n">generators</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="n">angles</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
-    <span class="n">inverse_tableau</span><span class="p">:</span> <span class="n">stim</span><span class="o">.</span><span class="n">Tableau</span>
     <span class="n">fault_paulis</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="n">fault_probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
     <span class="n">fault_location</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
@@ -401,6 +394,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">nqubits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Width of the circuit.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hsmpo</span><span class="o">.</span><span class="n">nqubits</span>
 
     <span class="nd">@property</span>
@@ -421,18 +415,23 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Dress a Pauli observable with the full Clifford circuit.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        pauli : str</span>
-<span class="sd">            Full-width Pauli string.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            pauli: full-width Pauli string.</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        (str, int)</span>
+<span class="sd">        Returns:</span>
 <span class="sd">            The dressed string and its sign, as</span>
-<span class="sd">            :meth:`~mpstab.engines.StimEngine.backpropagate` returns them.</span>
+<span class="sd">            :meth:`~mpstab.engines.StabilizersEngine.backpropagate` returns them.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">conjugate</span><span class="p">(</span><span class="n">pauli</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inverse_tableau</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dress_observables</span><span class="p">([</span><span class="n">pauli</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="CompiledNoise.dress_observables">
+<a class="viewcode-back" href="../../../../api/noise.html#mpstab.models.noise.compile.CompiledNoise.dress_observables">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dress_observables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paulis</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:meth:`dress_observable` for many terms, sharing the engine&#39;s work.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hsmpo</span><span class="o">.</span><span class="n">stab_engine</span><span class="o">.</span><span class="n">backpropagate_many</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">paulis</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">hsmpo</span><span class="o">.</span><span class="n">clifford_circuit</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CompiledNoise.observable_flips">
@@ -441,14 +440,11 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Which faults flip the sign of each dressed observable term.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        dressed_paulis : sequence of str</span>
-<span class="sd">            Dressed observable terms, from :meth:`dress_observable`.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            dressed_paulis: dressed observable terms, from</span>
+<span class="sd">                :meth:`dress_observable`.</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        numpy.ndarray</span>
+<span class="sd">        Returns:</span>
 <span class="sd">            Boolean ``(F, len(dressed_paulis))`` matrix.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">anticommutation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fault_paulis</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">dressed_paulis</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span></div>
@@ -460,9 +456,10 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        The same noisy circuit, reduced to what can affect an observable.</span>
 
-<span class="sd">        Rotations outside the light cone (:func:`~mpstab.pauli.light_cone`)</span>
-<span class="sd">        of the observable are dropped. A fault that then flips no remaining</span>
-<span class="sd">        rotation and commutes with the observable terms leaves every</span>
+<span class="sd">        Rotations outside the observable&#39;s light cone</span>
+<span class="sd">        (:func:`~mpstab.pauli.pauli_light_cone`) are dropped. A fault that then</span>
+<span class="sd">        flips no remaining rotation and commutes with the observable terms</span>
+<span class="sd">        leaves every</span>
 <span class="sd">        expectation value unchanged, so it is folded into its location&#39;s</span>
 <span class="sd">        no-fault probability, and locations left with nothing are dropped.</span>
 
@@ -473,21 +470,18 @@
 <span class="sd">        more rotations and locations; this is repeated until nothing changes.</span>
 <span class="sd">        Every step is exact for this observable.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        dressed_paulis : sequence of str</span>
-<span class="sd">            Dressed observable terms, from :meth:`dress_observable`.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            dressed_paulis: dressed observable terms, from</span>
+<span class="sd">                :meth:`dress_observable`.</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        CompiledNoise</span>
-<span class="sd">            A new instance; this one is left untouched.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            A new :class:`CompiledNoise`; this one is left untouched.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dressed_paulis</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dressed_paulis</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coherence_weights</span><span class="p">):</span>
             <span class="n">kept</span><span class="p">,</span> <span class="n">relevant</span><span class="p">,</span> <span class="n">coherent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_causal_cone</span><span class="p">(</span><span class="n">dressed_paulis</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">kept</span> <span class="o">=</span> <span class="n">light_cone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generators</span><span class="p">,</span> <span class="n">dressed_paulis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span>
+            <span class="n">kept</span> <span class="o">=</span> <span class="n">pauli_light_cone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generators</span><span class="p">,</span> <span class="n">dressed_paulis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span>
             <span class="n">relevant</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flips</span><span class="p">[:,</span> <span class="n">kept</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">|</span> <span class="bp">self</span><span class="o">.</span><span class="n">observable_flips</span><span class="p">(</span>
                 <span class="n">dressed_paulis</span>
             <span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -614,37 +608,29 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Dress the noise events of a circuit with its Clifford frame.</span>
 
-<span class="sd">    One pass of a ``stim.TableauSimulator`` over the circuit dresses every magic</span>
-<span class="sd">    gate, coherent rotation and Pauli fault at its own position, and the flip</span>
+<span class="sd">    The stabilizers engine dresses every magic gate, coherent rotation and</span>
+<span class="sd">    Pauli fault with the Clifford gates before its own position, in one call</span>
+<span class="sd">    (:meth:`~mpstab.engines.StabilizersEngine.backpropagate_at`), and the flip</span>
 <span class="sd">    matrix then follows from the symplectic form in one matrix product.</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    hsmpo : HSMPO</span>
-<span class="sd">        Surrogate of the noiseless circuit. Its ``ansatz.circuit.queue`` is what</span>
-<span class="sd">        ``after_gate`` indexes. It may be built with</span>
-<span class="sd">        :meth:`~mpstab.HSMPO.rotations_only`.</span>
-<span class="sd">    events : sequence of NoiseEvent</span>
-<span class="sd">        The noise, as :class:`~mpstab.models.noise.events.PauliChannel`,</span>
-<span class="sd">        :class:`~mpstab.models.noise.events.CoherentRotation` and</span>
-<span class="sd">        :class:`~mpstab.models.noise.events.KrausChannel` events.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        hsmpo: surrogate of the noiseless circuit. Its ``ansatz.circuit.queue``</span>
+<span class="sd">            is what ``after_gate`` indexes. It may be built with</span>
+<span class="sd">            :meth:`~mpstab.HSMPO.rotations_only`.</span>
+<span class="sd">        events: the noise, as :class:`~mpstab.models.noise.PauliChannel`,</span>
+<span class="sd">            :class:`~mpstab.models.noise.CoherentRotation` and</span>
+<span class="sd">            :class:`~mpstab.models.noise.events.KrausChannel` events.</span>
 
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    CompiledNoise</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        The :class:`CompiledNoise`.</span>
 
-<span class="sd">    Raises</span>
-<span class="sd">    ------</span>
-<span class="sd">    NotImplementedError</span>
-<span class="sd">        On an event type this function does not know, or a stabilizers engine</span>
-<span class="sd">        other than :class:`~mpstab.engines.StimEngine`.</span>
-<span class="sd">    ValueError</span>
-<span class="sd">        On an ``after_gate`` outside the circuit, or an ansatz whose own</span>
-<span class="sd">        partitioning does not follow its circuit queue (``FloquetAnsatz``).</span>
+<span class="sd">    Raises:</span>
+<span class="sd">        NotImplementedError: on an event type this function does not know.</span>
+<span class="sd">        ValueError: on an ``after_gate`` outside the circuit, or an ansatz whose</span>
+<span class="sd">            own partitioning does not follow its circuit queue</span>
+<span class="sd">            (``FloquetAnsatz``).</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ::</span>
+<span class="sd">    Example::</span>
 
 <span class="sd">        from qibo import Circuit, gates</span>
 <span class="sd">        from mpstab import HSMPO</span>
@@ -660,11 +646,6 @@
 <span class="sd">        compiled = compile_noise(HSMPO(circuit), events)</span>
 <span class="sd">        print(compiled.generators, compiled.flips)  # [&#39;XI&#39;] [[ True]]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hsmpo</span><span class="o">.</span><span class="n">stab_engine</span><span class="p">,</span> <span class="n">StimEngine</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-            <span class="s2">&quot;compile_noise requires StimEngine; call &quot;</span>
-            <span class="s2">&quot;set_engines(stab_engine=StimEngine()) first.&quot;</span>
-        <span class="p">)</span>
     <span class="n">nqubits</span> <span class="o">=</span> <span class="n">hsmpo</span><span class="o">.</span><span class="n">nqubits</span>
     <span class="n">queue</span> <span class="o">=</span> <span class="n">hsmpo</span><span class="o">.</span><span class="n">ansatz</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">queue</span>
 
@@ -684,27 +665,24 @@
             <span class="n">validate_pauli_string</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">generator</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>
         <span class="n">by_gate</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">after_gate</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
 
-    <span class="n">simulator</span> <span class="o">=</span> <span class="n">stim</span><span class="o">.</span><span class="n">TableauSimulator</span><span class="p">()</span>
-    <span class="n">simulator</span><span class="o">.</span><span class="n">do</span><span class="p">(</span><span class="n">stim</span><span class="o">.</span><span class="n">Circuit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;I </span><span class="si">{</span><span class="n">nqubits</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
-
-    <span class="n">generators</span><span class="p">,</span> <span class="n">angles</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-    <span class="n">fault_paulis</span><span class="p">,</span> <span class="n">fault_probs</span><span class="p">,</span> <span class="n">fault_location</span><span class="p">,</span> <span class="n">fault_position</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="c1"># Everything to dress, as (pauli, number of Clifford gates before it).</span>
+    <span class="n">to_dress</span><span class="p">,</span> <span class="n">breakpoints</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="n">rotations</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># (index into to_dress, angle), in chain order</span>
+    <span class="n">faults</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># (index into to_dress, probability, location, chain position)</span>
+    <span class="n">coherences</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># (ket index, bra index, weight, location, chain position)</span>
     <span class="n">location_probs</span><span class="p">,</span> <span class="n">location_position</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-    <span class="n">coherences</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># (ket, bra, weight, location, position)</span>
     <span class="n">magic_gates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">n_cliffords</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_rotation</span><span class="p">(</span><span class="n">generator</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">angle</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">inverse</span><span class="p">:</span> <span class="n">stim</span><span class="o">.</span><span class="n">Tableau</span><span class="p">):</span>
-        <span class="n">dressed</span><span class="p">,</span> <span class="n">sign</span> <span class="o">=</span> <span class="n">conjugate</span><span class="p">(</span><span class="n">generator</span><span class="p">,</span> <span class="n">inverse</span><span class="p">)</span>
-        <span class="n">generators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dressed</span><span class="p">)</span>
-        <span class="n">angles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sign</span> <span class="o">*</span> <span class="n">angle</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dress</span><span class="p">(</span><span class="n">pauli</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">to_dress</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pauli</span><span class="p">)</span>
+        <span class="n">breakpoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_cliffords</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">to_dress</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">add_events</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">by_gate</span><span class="p">:</span>
-            <span class="k">return</span>
-        <span class="n">inverse</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">current_inverse_tableau</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">by_gate</span><span class="p">[</span><span class="n">index</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">by_gate</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="p">()):</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">CoherentRotation</span><span class="p">):</span>
-                <span class="n">add_rotation</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">generator</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">angle</span><span class="p">,</span> <span class="n">inverse</span><span class="p">)</span>
+                <span class="n">rotations</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">dress</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">generator</span><span class="p">),</span> <span class="n">event</span><span class="o">.</span><span class="n">angle</span><span class="p">))</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">KrausChannel</span><span class="p">):</span>
                 <span class="n">terms</span><span class="p">,</span> <span class="n">pairs</span> <span class="o">=</span> <span class="n">_kraus_terms</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>
@@ -715,41 +693,47 @@
                 <span class="k">continue</span>
             <span class="n">location</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">location_probs</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">pauli</span><span class="p">,</span> <span class="n">prob</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">:</span>
-                <span class="n">fault_paulis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conjugate</span><span class="p">(</span><span class="n">pauli</span><span class="p">,</span> <span class="n">inverse</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="n">fault_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prob</span><span class="p">)</span>
-                <span class="n">fault_location</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
-                <span class="n">fault_position</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">generators</span><span class="p">))</span>
+                <span class="n">faults</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">dress</span><span class="p">(</span><span class="n">pauli</span><span class="p">),</span> <span class="n">prob</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">rotations</span><span class="p">)))</span>
             <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
-                <span class="n">ket</span><span class="p">,</span> <span class="n">ket_sign</span> <span class="o">=</span> <span class="n">conjugate</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">inverse</span><span class="p">)</span>
-                <span class="n">bra</span><span class="p">,</span> <span class="n">bra_sign</span> <span class="o">=</span> <span class="n">conjugate</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">inverse</span><span class="p">)</span>
-                <span class="n">weight</span> <span class="o">*=</span> <span class="n">ket_sign</span> <span class="o">*</span> <span class="n">bra_sign</span>
-                <span class="n">coherences</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ket</span><span class="p">,</span> <span class="n">bra</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">generators</span><span class="p">)))</span>
+                <span class="n">coherences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">dress</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">dress</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="n">weight</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">rotations</span><span class="p">))</span>
+                <span class="p">)</span>
             <span class="n">location_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">prob</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">prob</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">))</span>
-            <span class="n">location_position</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">generators</span><span class="p">))</span>
+            <span class="n">location_position</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rotations</span><span class="p">))</span>
 
     <span class="n">add_events</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">queue</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">gate</span><span class="o">.</span><span class="n">clifford</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="n">gates</span><span class="o">.</span><span class="n">M</span><span class="p">):</span>
             <span class="n">magic_gates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
-            <span class="n">add_rotation</span><span class="p">(</span>
-                <span class="n">gate_generator</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">),</span>
-                <span class="n">gate_angle</span><span class="p">(</span><span class="n">gate</span><span class="p">),</span>
-                <span class="n">simulator</span><span class="o">.</span><span class="n">current_inverse_tableau</span><span class="p">(),</span>
-            <span class="p">)</span>
+            <span class="n">rotations</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">dress</span><span class="p">(</span><span class="n">gate_generator</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)),</span> <span class="n">gate_angle</span><span class="p">(</span><span class="n">gate</span><span class="p">)))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">instruction</span> <span class="o">=</span> <span class="n">gate_instruction</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">instruction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">simulator</span><span class="o">.</span><span class="n">do</span><span class="p">(</span><span class="n">stim</span><span class="o">.</span><span class="n">Circuit</span><span class="p">(</span><span class="n">instruction</span><span class="p">))</span>
+            <span class="n">n_cliffords</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">add_events</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
 
     <span class="n">expected</span> <span class="o">=</span> <span class="p">[</span><span class="n">gate</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">hsmpo</span><span class="o">.</span><span class="n">magic_gates</span><span class="p">]</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">magic_gates</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span>
-        <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">magic_gates</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">magic_gates</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">magic_gates</span><span class="p">))</span>
+        <span class="ow">or</span> <span class="n">n_cliffords</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hsmpo</span><span class="o">.</span><span class="n">clifford_circuit</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span>
     <span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">hsmpo</span><span class="o">.</span><span class="n">ansatz</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> partitions its circuit differently &quot;</span>
             <span class="s2">&quot;from its gate queue, so noise positions cannot be placed on it.&quot;</span>
         <span class="p">)</span>
+
+    <span class="n">dressed</span> <span class="o">=</span> <span class="n">hsmpo</span><span class="o">.</span><span class="n">stab_engine</span><span class="o">.</span><span class="n">backpropagate_at</span><span class="p">(</span>
+        <span class="n">to_dress</span><span class="p">,</span> <span class="n">breakpoints</span><span class="p">,</span> <span class="n">hsmpo</span><span class="o">.</span><span class="n">clifford_circuit</span>
+    <span class="p">)</span>
+    <span class="n">generators</span> <span class="o">=</span> <span class="p">[</span><span class="n">dressed</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">rotations</span><span class="p">]</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="p">[</span><span class="n">dressed</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">angle</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">rotations</span><span class="p">]</span>
+    <span class="n">fault_paulis</span> <span class="o">=</span> <span class="p">[</span><span class="n">dressed</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">faults</span><span class="p">]</span>
+    <span class="n">fault_position</span> <span class="o">=</span> <span class="p">[</span><span class="n">position</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">faults</span><span class="p">]</span>
+    <span class="n">kets</span> <span class="o">=</span> <span class="p">[</span><span class="n">dressed</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">coherences</span><span class="p">]</span>
+    <span class="n">bras</span> <span class="o">=</span> <span class="p">[</span><span class="n">dressed</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">coherences</span><span class="p">]</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">weight</span> <span class="o">*</span> <span class="n">dressed</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">dressed</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">coherences</span>
+    <span class="p">]</span>
+    <span class="n">coherence_position</span> <span class="o">=</span> <span class="p">[</span><span class="n">position</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">coherences</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">later_flips</span><span class="p">(</span><span class="n">paulis</span><span class="p">,</span> <span class="n">positions</span><span class="p">):</span>
         <span class="n">flips</span> <span class="o">=</span> <span class="n">anticommutation</span><span class="p">(</span><span class="n">paulis</span><span class="p">,</span> <span class="n">generators</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>
@@ -758,25 +742,21 @@
             <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">generators</span><span class="p">))</span>
         <span class="p">)</span>
 
-    <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">coherences</span><span class="p">)]</span> <span class="ow">or</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)]</span>
-    <span class="n">kets</span><span class="p">,</span> <span class="n">bras</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">locations</span><span class="p">,</span> <span class="n">positions</span> <span class="o">=</span> <span class="n">columns</span>
-
     <span class="k">return</span> <span class="n">CompiledNoise</span><span class="p">(</span>
         <span class="n">hsmpo</span><span class="o">=</span><span class="n">hsmpo</span><span class="p">,</span>
         <span class="n">generators</span><span class="o">=</span><span class="n">generators</span><span class="p">,</span>
         <span class="n">angles</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
-        <span class="n">inverse_tableau</span><span class="o">=</span><span class="n">simulator</span><span class="o">.</span><span class="n">current_inverse_tableau</span><span class="p">(),</span>
         <span class="n">fault_paulis</span><span class="o">=</span><span class="n">fault_paulis</span><span class="p">,</span>
-        <span class="n">fault_probs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fault_probs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
-        <span class="n">fault_location</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fault_location</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span>
+        <span class="n">fault_probs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">prob</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">faults</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+        <span class="n">fault_location</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">loc</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">faults</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span>
         <span class="n">location_probs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">location_probs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
         <span class="n">flips</span><span class="o">=</span><span class="n">later_flips</span><span class="p">(</span><span class="n">fault_paulis</span><span class="p">,</span> <span class="n">fault_position</span><span class="p">),</span>
         <span class="n">coherence_ket</span><span class="o">=</span><span class="n">kets</span><span class="p">,</span>
         <span class="n">coherence_bra</span><span class="o">=</span><span class="n">bras</span><span class="p">,</span>
         <span class="n">coherence_weights</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">),</span>
-        <span class="n">coherence_location</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">locations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span>
-        <span class="n">ket_flips</span><span class="o">=</span><span class="n">later_flips</span><span class="p">(</span><span class="n">kets</span><span class="p">,</span> <span class="n">positions</span><span class="p">),</span>
-        <span class="n">bra_flips</span><span class="o">=</span><span class="n">later_flips</span><span class="p">(</span><span class="n">bras</span><span class="p">,</span> <span class="n">positions</span><span class="p">),</span>
+        <span class="n">coherence_location</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">loc</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">coherences</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span>
+        <span class="n">ket_flips</span><span class="o">=</span><span class="n">later_flips</span><span class="p">(</span><span class="n">kets</span><span class="p">,</span> <span class="n">coherence_position</span><span class="p">),</span>
+        <span class="n">bra_flips</span><span class="o">=</span><span class="n">later_flips</span><span class="p">(</span><span class="n">bras</span><span class="p">,</span> <span class="n">coherence_position</span><span class="p">),</span>
         <span class="n">location_position</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">location_position</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span>
     <span class="p">)</span></div>
 

@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Tutorials" href="../tutorials/index.html"><link rel="prev" title="Using Ansätze" href="using_ansatze.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Tutorials" href="../tutorials/index.html"><link rel="prev" title="Ansatz Catalogue" href="ansatze_catalogue.html">
         <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
@@ -11,6 +11,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
@@ -216,6 +217,7 @@
 <li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -242,7 +244,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -346,7 +353,7 @@ For an introduction to mpstab, see the <a href="../quickstart.html">Quickstart</
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">hamiltonians</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo.symbols</span><span class="w"> </span><span class="kn">import</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuimbEngine</span><span class="p">,</span> <span class="n">StimEngine</span>
 </pre></div>
 </div>
@@ -359,7 +366,7 @@ For an introduction to mpstab, see the <a href="../quickstart.html">Quickstart</
 <h3>Basic Workflow<a class="headerlink" href="#basic-workflow" title="Link to this heading">¶</a></h3>
 <p>Here’s the basic workflow for optimizing any Hamiltonian with DMRG:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuimbEngine</span><span class="p">,</span> <span class="n">StimEngine</span>
 
 <span class="c1"># 1. Create ansatz and HSMPO, with its engines</span>
@@ -477,14 +484,14 @@ convergence and improve accuracy.</p>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="using_ansatze.html">
+          <a class="prev-page" href="ansatze_catalogue.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Using Ansätze</div>
+                <div class="title">Ansatz Catalogue</div>
                 
               </div>
             </a>

@@ -40,6 +40,7 @@ Among our core features:
    user_guide/qibo_backend_provider
    user_guide/working_with_engines
    user_guide/using_ansatze
+   user_guide/ansatze_catalogue
    user_guide/dmrg_optimization
 
 .. toctree::
@@ -58,7 +59,14 @@ Among our core features:
    api/noise
    api/error_mitigation
    api/pauli
+   api/qibo_tools
    api/models
+
+.. toctree::
+   :maxdepth: 1
+   :caption: About
+
+   publications
 
 Indices and tables
 ==================

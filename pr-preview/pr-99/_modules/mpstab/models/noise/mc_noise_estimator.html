@@ -6,10 +6,11 @@
         <link rel="prefetch" href="../../../../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>mpstab.models.noise.estimator - Documentation</title>
+        <title>mpstab.models.noise.mc_noise_estimator - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -273,7 +280,7 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <h1>Source code for mpstab.models.noise.estimator</h1><div class="highlight"><pre>
+          <h1>Source code for mpstab.models.noise.mc_noise_estimator</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Noisy expectation values as averages over sign patterns of the rotation chain.</span>
 
 <span class="sd">Every set of faults maps to a sign pattern over the dressed rotations and the</span>
@@ -309,6 +316,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessPoolExecutor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -325,28 +333,23 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Result of :func:`noisy_expectation`.</span>
 
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    mean : float</span>
-<span class="sd">        The noisy expectation value.</span>
-<span class="sd">    stderr : float</span>
-<span class="sd">        Its standard error, from the sampled ``k &gt;= 2`` stratum only: the</span>
-<span class="sd">        lower strata are exact. Zero when nothing was sampled.</span>
-<span class="sd">    n_patterns : int</span>
-<span class="sd">        Distinct rotation sign patterns evaluated on the MPS as expectation</span>
-<span class="sd">        values.</span>
-<span class="sd">    fidelities : numpy.ndarray</span>
-<span class="sd">        Truncation fidelity of the MPS of each of those patterns, shape</span>
-<span class="sd">        ``(n_patterns,)``; ``nan`` for an engine that does not expose a norm.</span>
-<span class="sd">    stratum_weights : tuple of float</span>
-<span class="sd">        Total weight of the configurations with ``k = 0``, ``k = 1`` and</span>
-<span class="sd">        ``k &gt;= 2`` locations doing something, counting only the faults and</span>
-<span class="sd">        coherences that can affect the observable. For Pauli noise these are</span>
-<span class="sd">        probabilities summing to 1; coherences count with ``|chi|``.</span>
-<span class="sd">    n_samples : int</span>
-<span class="sd">        Configurations sampled for the ``k &gt;= 2`` stratum.</span>
-<span class="sd">    n_transitions : int</span>
-<span class="sd">        Transition amplitudes evaluated for coherences, exact and sampled.</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        mean: the noisy expectation value.</span>
+<span class="sd">        stderr: its standard error, from the sampled ``k &gt;= 2`` stratum only:</span>
+<span class="sd">            the lower strata are exact. Zero when nothing was sampled.</span>
+<span class="sd">        n_patterns: distinct rotation sign patterns evaluated on the MPS as</span>
+<span class="sd">            expectation values.</span>
+<span class="sd">        fidelities: truncation fidelity of the MPS of each of those patterns,</span>
+<span class="sd">            shape ``(n_patterns,)``; ``nan`` for an engine that does not expose</span>
+<span class="sd">            a norm.</span>
+<span class="sd">        stratum_weights: total weight of the configurations with ``k = 0``,</span>
+<span class="sd">            ``k = 1`` and ``k &gt;= 2`` locations doing something, counting only</span>
+<span class="sd">            the faults and coherences that can affect the observable. For Pauli</span>
+<span class="sd">            noise these are probabilities summing to 1; coherences count with</span>
+<span class="sd">            ``|chi|``.</span>
+<span class="sd">        n_samples: configurations sampled for the ``k &gt;= 2`` stratum.</span>
+<span class="sd">        n_transitions: transition amplitudes evaluated for coherences, exact</span>
+<span class="sd">            and sampled.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">mean</span><span class="p">:</span> <span class="nb">float</span>
@@ -372,43 +375,34 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Expectation value of ``observable`` on the noisy circuit.</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    compiled : CompiledNoise</span>
-<span class="sd">        The noisy circuit, from :func:`~mpstab.models.noise.compile_noise`.</span>
-<span class="sd">    observable : Observable</span>
-<span class="sd">        A Pauli string or any other format</span>
-<span class="sd">        :func:`~mpstab.hamiltonians.pauli_terms` accepts.</span>
-<span class="sd">    n_samples : int, optional</span>
-<span class="sd">        Configurations to sample for the ``k &gt;= 2`` stratum. With ``0`` that</span>
-<span class="sd">        stratum is dropped, which biases the mean by at most</span>
-<span class="sd">        ``stratum_weights[2]`` times the sum of the absolute coefficients.</span>
-<span class="sd">    seed : int, optional</span>
-<span class="sd">        Seed of the sampler.</span>
-<span class="sd">    light_cone : bool, optional</span>
-<span class="sd">        Restrict the circuit to the light cone first. This is exact, and it</span>
-<span class="sd">        leaves fewer rotations per pattern and fewer faults, so a smaller</span>
-<span class="sd">        ``k &gt;= 2`` weight and a smaller standard error. Turn it off only to</span>
-<span class="sd">        compare against the unrestricted computation.</span>
-<span class="sd">    n_workers : int, optional</span>
-<span class="sd">        Processes evaluating the sign patterns of Pauli faults. The distinct</span>
-<span class="sd">        patterns are split into contiguous blocks, so the result is identical</span>
-<span class="sd">        for any value; each extra process costs a start-up of about a second,</span>
-<span class="sd">        so it pays off only when there are many patterns or the MPS is large.</span>
-<span class="sd">        Transition amplitudes are evaluated in this process.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        compiled: the noisy circuit, from :func:`~mpstab.models.noise.compile_noise`.</span>
+<span class="sd">        observable: a Pauli string or any other format</span>
+<span class="sd">            :func:`~mpstab.hamiltonians.pauli_terms` accepts.</span>
+<span class="sd">        n_samples: configurations to sample for the ``k &gt;= 2`` stratum. With</span>
+<span class="sd">            ``0`` that stratum is dropped, which biases the mean by at most</span>
+<span class="sd">            ``stratum_weights[2]`` times the sum of the absolute coefficients.</span>
+<span class="sd">        seed: seed of the sampler.</span>
+<span class="sd">        light_cone: restrict the circuit to the observable&#39;s light cone first.</span>
+<span class="sd">            This is exact, and it leaves fewer rotations per pattern and fewer</span>
+<span class="sd">            faults, so a smaller ``k &gt;= 2`` weight and a smaller standard error.</span>
+<span class="sd">            Turn it off only to compare against the unrestricted computation.</span>
+<span class="sd">        n_workers: processes evaluating the sign patterns of Pauli faults. The</span>
+<span class="sd">            distinct patterns are split into contiguous blocks, so the result is</span>
+<span class="sd">            identical for any value; each extra process costs a start-up of</span>
+<span class="sd">            about a second, so it pays off only when there are many patterns or</span>
+<span class="sd">            the MPS is large. Transition amplitudes are evaluated in this</span>
+<span class="sd">            process.</span>
 
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    NoisyExpectation</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        The :class:`NoisyExpectation`.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ::</span>
+<span class="sd">    Example::</span>
 
 <span class="sd">        from qibo import Circuit, gates</span>
 <span class="sd">        from mpstab import HSMPO</span>
 <span class="sd">        from mpstab.models.noise.compile import compile_noise</span>
-<span class="sd">        from mpstab.models.noise.estimator import noisy_expectation</span>
+<span class="sd">        from mpstab.models.noise.mc_noise_estimator import noisy_expectation</span>
 <span class="sd">        from mpstab.models.noise.events import PauliChannel</span>
 
 <span class="sd">        circuit = Circuit(2)</span>
@@ -423,7 +417,7 @@
 <span class="sd">        print(f&quot;{result.mean:.4f} +- {result.stderr:.4f}&quot;)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">constant</span><span class="p">,</span> <span class="n">terms</span> <span class="o">=</span> <span class="n">pauli_terms</span><span class="p">(</span><span class="n">observable</span><span class="p">,</span> <span class="n">compiled</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span>
-    <span class="n">dressed</span> <span class="o">=</span> <span class="p">[</span><span class="n">compiled</span><span class="o">.</span><span class="n">dress_observable</span><span class="p">(</span><span class="n">pauli</span><span class="p">)</span> <span class="k">for</span> <span class="n">pauli</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">]</span>
+    <span class="n">dressed</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">dress_observables</span><span class="p">(</span><span class="n">terms</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">light_cone</span><span class="p">:</span>
         <span class="n">compiled</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">restricted_to</span><span class="p">([</span><span class="n">pauli</span> <span class="k">for</span> <span class="n">pauli</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dressed</span><span class="p">])</span>
     <span class="n">observable_flips</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">observable_flips</span><span class="p">([</span><span class="n">pauli</span> <span class="k">for</span> <span class="n">pauli</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dressed</span><span class="p">])</span>
@@ -704,8 +698,6 @@
     <span class="k">if</span> <span class="n">n_workers</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">values</span><span class="p">,</span> <span class="n">fidelities</span> <span class="o">=</span> <span class="n">_evaluate_patterns</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">unique</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessPoolExecutor</span>
-
         <span class="n">blocks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array_split</span><span class="p">(</span><span class="n">unique</span><span class="p">,</span> <span class="n">n_workers</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="n">n_workers</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
             <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
@@ -806,7 +798,7 @@
         <span class="k">if</span> <span class="n">paulis</span><span class="p">:</span>
             <span class="n">expvals</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">pauli_expvals</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">paulis</span><span class="p">)</span>
             <span class="n">values</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">expvals</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">))</span> <span class="o">*</span> <span class="n">signs</span>
-        <span class="n">fidelities</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">squared_norm</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
+        <span class="n">fidelities</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">squared_norm</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">values</span><span class="p">,</span> <span class="n">fidelities</span>
 
 

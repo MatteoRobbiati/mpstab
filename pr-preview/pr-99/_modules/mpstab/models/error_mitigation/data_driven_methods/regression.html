@@ -1,18 +1,19 @@
 <!doctype html>
-<html class="no-js" lang="en" data-content_root="../../../../">
+<html class="no-js" lang="en" data-content_root="../../../../../">
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html">
-        <link rel="prefetch" href="../../../../_static/mpstab_logo.png" as="image">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../../genindex.html"><link rel="search" title="Search" href="../../../../../search.html">
+        <link rel="prefetch" href="../../../../../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>mpstab.models.error_mitigation.cdr - Documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+        <title>mpstab.models.error_mitigation.data_driven_methods.regression - Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/katex-math.css?v=05624691" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
     
     
 
@@ -164,7 +165,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../../index.html"><div class="brand">Documentation</div></a>
+      <a href="../../../../../index.html"><div class="brand">Documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -183,14 +184,14 @@
   <aside class="sidebar-drawer">
     <div class="sidebar-container">
       
-      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../../index.html">
   <div class="sidebar-logo-container">
-    <img class="sidebar-logo" src="../../../../_static/mpstab_logo.png" alt="Logo"/>
+    <img class="sidebar-logo" src="../../../../../_static/mpstab_logo.png" alt="Logo"/>
   </div>
   
   <span class="sidebar-brand-text">Documentation</span>
   
-</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+</a><form class="sidebar-search-container" method="get" action="../../../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
@@ -198,49 +199,55 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../quickstart.html">Quick Start Guide</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../methods/analytic_gradients.html">Analytic gradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../methods/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../methods/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../methods/analytic_gradients.html">Analytic gradients</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../methods/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../methods/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/introduction.html">A quick introduction to mpstab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/noise.html">Noisy simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/advanced_noise.html">Device-level noise</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/ground_states.html">Ground states with DMRG</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/noise.html">Noisy simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/advanced_noise.html">Device-level noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/evolutors.html">Evolutors</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/engines.html">Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/qpu.html">QPU</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/evolutors.html">Evolutors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/qpu.html">QPU</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/error_mitigation.html">Error Mitigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/qibo_tools.html">Qibo tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -273,11 +280,13 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <h1>Source code for mpstab.models.error_mitigation.cdr</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Clifford data regression (CDR) and its variable-noise extension (vnCDR).</span>
+          <h1>Source code for mpstab.models.error_mitigation.data_driven_methods.regression</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;The machinery shared by Clifford data regression and its variable-noise</span>
+<span class="sd">extension: training data, noisy values and the fitted noise map.</span>
 
-<span class="sd">Both learn a map from noisy expectation values to noiseless ones on training</span>
-<span class="sd">circuits close to the target, then apply it to the target&#39;s noisy value:</span>
+<span class="sd">Both methods learn a map from noisy expectation values to noiseless ones on</span>
+<span class="sd">training circuits close to the target, then apply it to the target&#39;s noisy</span>
+<span class="sd">value:</span>
 
 <span class="sd">- the training circuits are low-magic variants of the target</span>
 <span class="sd">  (:func:`~mpstab.models.error_mitigation.training_circuits`);</span>
@@ -287,18 +296,15 @@
 <span class="sd">  simulated by :meth:`~mpstab.HSMPO.noisy_expectation`, or from any callable,</span>
 <span class="sd">  such as one running the circuit on hardware.</span>
 
-<span class="sd">References:</span>
-<span class="sd">    1. P. Czarnik, A. Arrasmith et al., *Error mitigation with Clifford</span>
-<span class="sd">       quantum-circuit data*, `arXiv:2005.10189 &lt;https://arxiv.org/abs/2005.10189&gt;`_.</span>
-<span class="sd">    2. A. Lowe, M. H. Gordon et al., *Unified approach to data-driven quantum</span>
-<span class="sd">       error mitigation*, `arXiv:2011.01157 &lt;https://arxiv.org/abs/2011.01157&gt;`_.</span>
+<span class="sd">The methods themselves are :func:`~mpstab.models.error_mitigation.cdr` and</span>
+<span class="sd">:func:`~mpstab.models.error_mitigation.vncdr`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span>
@@ -306,8 +312,10 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.hamiltonians</span><span class="w"> </span><span class="kn">import</span> <span class="n">Observable</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">Ansatz</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.error_mitigation.training</span><span class="w"> </span><span class="kn">import</span> <span class="n">fold_circuit</span><span class="p">,</span> <span class="n">training_circuits</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.error_mitigation.data_driven_methods.training</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">training_circuits</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.error_mitigation.folding</span><span class="w"> </span><span class="kn">import</span> <span class="n">fold_circuit</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseModel</span>
 
 <span class="c1">#: Noisy values of a circuit: a noise model to simulate, or a callable returning</span>
@@ -316,7 +324,7 @@
 
 
 <div class="viewcode-block" id="MitigationNoiseMap">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.cdr.MitigationNoiseMap">[docs]</a>
+<a class="viewcode-back" href="../../../../../api/error_mitigation.html#mpstab.models.error_mitigation.data_driven_methods.regression.MitigationNoiseMap">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MitigationNoiseMap</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -367,195 +375,8 @@
 
 
 
-<div class="viewcode-block" id="cdr">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.cdr.cdr">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">cdr</span><span class="p">(</span>
-    <span class="n">ansatz</span><span class="p">:</span> <span class="n">Ansatz</span> <span class="o">|</span> <span class="n">Circuit</span><span class="p">,</span>
-    <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">,</span>
-    <span class="n">noise</span><span class="p">:</span> <span class="n">NoiseSource</span><span class="p">,</span>
-    <span class="n">n_training_circuits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
-    <span class="n">replacement_probability</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
-    <span class="n">replacement_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;closest&quot;</span><span class="p">,</span>
-    <span class="n">model</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">initial_state</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">max_bond_dimension</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">n_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MitigationNoiseMap</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Learn the CDR noise map of ``observable`` on ``ansatz``.</span>
-
-<span class="sd">    Example::</span>
-
-<span class="sd">        from mpstab import HSMPO</span>
-<span class="sd">        from mpstab.models.ansatze import HardwareEfficient</span>
-<span class="sd">        from mpstab.models.error_mitigation import cdr</span>
-<span class="sd">        from mpstab.models.noise import DepolarizingError, NoiseModel</span>
-
-<span class="sd">        ansatz = HardwareEfficient(nqubits=4, nlayers=2)</span>
-<span class="sd">        noise = NoiseModel().add(DepolarizingError(0.01))</span>
-
-<span class="sd">        noise_map = cdr(ansatz, &quot;ZZII&quot;, noise, n_training_circuits=20, seed=0)</span>
-<span class="sd">        noisy = HSMPO(ansatz).noisy_expectation(&quot;ZZII&quot;, noise, seed=0).mean</span>
-<span class="sd">        mitigated = noise_map(noisy)</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        ansatz: the circuit to mitigate.</span>
-<span class="sd">        observable: a Pauli string or any other format</span>
-<span class="sd">            :func:`~mpstab.hamiltonians.pauli_terms` accepts.</span>
-<span class="sd">        noise: a :class:`~mpstab.models.noise.NoiseModel`, simulated with</span>
-<span class="sd">            HSMPO, or a callable ``f(circuit) -&gt; float`` giving the noisy value</span>
-<span class="sd">            of a circuit, for instance by running it on hardware. The circuit</span>
-<span class="sd">            it receives starts with ``initial_state``, if any.</span>
-<span class="sd">        n_training_circuits: training circuits to sample.</span>
-<span class="sd">        replacement_probability: chance of replacing each non-Clifford gate in</span>
-<span class="sd">            a training circuit (:func:`training_circuits`).</span>
-<span class="sd">        replacement_method: ``&quot;closest&quot;`` or ``&quot;random&quot;`` Clifford angle.</span>
-<span class="sd">        model: ``model(x, *params)`` to fit, with ``x`` the noisy value. The</span>
-<span class="sd">            default ``a * x + b`` is fitted by least squares; any other is</span>
-<span class="sd">            fitted with ``scipy.optimize.curve_fit``, starting from ones.</span>
-<span class="sd">        initial_state: one-qubit-gates-only circuit preparing the initial</span>
-<span class="sd">            state, ``|0...0&gt;`` if ``None``.</span>
-<span class="sd">        max_bond_dimension: MPS truncation cap for HSMPO.</span>
-<span class="sd">        n_samples: fault configurations HSMPO samples per noisy value, when</span>
-<span class="sd">            ``noise`` is a noise model.</span>
-<span class="sd">        seed: seed of the training circuits and of the noise sampling.</span>
-<span class="sd">        n_workers: processes evaluating the training circuits in parallel,</span>
-<span class="sd">            when ``noise`` is a noise model; a callable always runs in this</span>
-<span class="sd">            process. The result does not depend on it.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        :class:`MitigationNoiseMap`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">circuits</span><span class="p">,</span> <span class="n">exact</span><span class="p">,</span> <span class="n">noisy</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">_training_data</span><span class="p">(</span>
-        <span class="n">ansatz</span><span class="p">,</span>
-        <span class="n">observable</span><span class="p">,</span>
-        <span class="n">noise</span><span class="p">,</span>
-        <span class="kc">None</span><span class="p">,</span>
-        <span class="s2">&quot;scale&quot;</span><span class="p">,</span>
-        <span class="n">n_training_circuits</span><span class="p">,</span>
-        <span class="n">replacement_probability</span><span class="p">,</span>
-        <span class="n">replacement_method</span><span class="p">,</span>
-        <span class="n">initial_state</span><span class="p">,</span>
-        <span class="n">max_bond_dimension</span><span class="p">,</span>
-        <span class="n">n_samples</span><span class="p">,</span>
-        <span class="n">seed</span><span class="p">,</span>
-        <span class="n">n_workers</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">design</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">noisy</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">noisy</span><span class="p">)])</span>
-    <span class="n">model</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">_fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">noisy</span><span class="p">,</span> <span class="n">exact</span><span class="p">,</span> <span class="n">_linear</span><span class="p">,</span> <span class="n">design</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">MitigationNoiseMap</span><span class="p">(</span>
-        <span class="n">params</span><span class="p">,</span> <span class="n">exact</span><span class="p">,</span> <span class="n">noisy</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">noisy_stderr</span><span class="o">=</span><span class="n">stderr</span><span class="p">,</span> <span class="n">circuits</span><span class="o">=</span><span class="n">circuits</span>
-    <span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="vncdr">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.cdr.vncdr">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">vncdr</span><span class="p">(</span>
-    <span class="n">ansatz</span><span class="p">:</span> <span class="n">Ansatz</span> <span class="o">|</span> <span class="n">Circuit</span><span class="p">,</span>
-    <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">,</span>
-    <span class="n">noise</span><span class="p">:</span> <span class="n">NoiseSource</span><span class="p">,</span>
-    <span class="n">noise_levels</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
-    <span class="n">amplification</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;scale&quot;</span><span class="p">,</span>
-    <span class="n">n_training_circuits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
-    <span class="n">replacement_probability</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
-    <span class="n">replacement_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;closest&quot;</span><span class="p">,</span>
-    <span class="n">model</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">initial_state</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">max_bond_dimension</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">n_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MitigationNoiseMap</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Learn the variable-noise CDR noise map of ``observable`` on ``ansatz``.</span>
-
-<span class="sd">    The map takes the target&#39;s noisy values at every level of</span>
-<span class="sd">    ``noise_levels``, so evaluate the target the same way. For a noise model,</span>
-<span class="sd">    :func:`noisy_value` does it::</span>
-
-<span class="sd">        levels = (1, 3, 5)</span>
-<span class="sd">        noise_map = vncdr(ansatz, &quot;ZZII&quot;, noise, noise_levels=levels, seed=0)</span>
-<span class="sd">        target = HSMPO(ansatz)</span>
-<span class="sd">        mitigated = noise_map(</span>
-<span class="sd">            [noisy_value(target, &quot;ZZII&quot;, noise, level) for level in levels]</span>
-<span class="sd">        )</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        ansatz: the circuit to mitigate.</span>
-<span class="sd">        observable: a Pauli string or any other format</span>
-<span class="sd">            :func:`~mpstab.hamiltonians.pauli_terms` accepts.</span>
-<span class="sd">        noise: a :class:`~mpstab.models.noise.NoiseModel`, simulated with</span>
-<span class="sd">            HSMPO, or a callable ``f(circuit, level) -&gt; float`` giving the noisy</span>
-<span class="sd">            value of a circuit at a noise level, for instance by running</span>
-<span class="sd">            :func:`fold_circuit` of it on hardware. The circuit it receives</span>
-<span class="sd">            starts with ``initial_state``, if any.</span>
-<span class="sd">        noise_levels: the noise amplification factors, ``1`` being the</span>
-<span class="sd">            unamplified noise.</span>
-<span class="sd">        amplification: how a noise model is amplified: ``&quot;scale&quot;`` multiplies</span>
-<span class="sd">            every error&#39;s strength by the level</span>
-<span class="sd">            (:meth:`~mpstab.models.noise.NoiseModel.scaled`), ``&quot;fold&quot;`` runs</span>
-<span class="sd">            the folded circuit (:func:`fold_circuit`), which needs odd integer</span>
-<span class="sd">            levels. Ignored for a callable.</span>
-<span class="sd">        n_training_circuits: training circuits to sample.</span>
-<span class="sd">        replacement_probability: chance of replacing each non-Clifford gate in</span>
-<span class="sd">            a training circuit (:func:`training_circuits`).</span>
-<span class="sd">        replacement_method: ``&quot;closest&quot;`` or ``&quot;random&quot;`` Clifford angle.</span>
-<span class="sd">        model: ``model(x, *params)`` to fit, with ``x`` an array whose last</span>
-<span class="sd">            axis runs over the noise levels. The default ``x @ params``, a</span>
-<span class="sd">            linear combination of the levels as in [2], is fitted by least</span>
-<span class="sd">            squares; any other with ``scipy.optimize.curve_fit``, starting</span>
-<span class="sd">            from ones.</span>
-<span class="sd">        initial_state: one-qubit-gates-only circuit preparing the initial</span>
-<span class="sd">            state, ``|0...0&gt;`` if ``None``.</span>
-<span class="sd">        max_bond_dimension: MPS truncation cap for HSMPO.</span>
-<span class="sd">        n_samples: fault configurations HSMPO samples per noisy value, when</span>
-<span class="sd">            ``noise`` is a noise model.</span>
-<span class="sd">        seed: seed of the training circuits and of the noise sampling.</span>
-<span class="sd">        n_workers: processes evaluating the training circuits in parallel,</span>
-<span class="sd">            when ``noise`` is a noise model; a callable always runs in this</span>
-<span class="sd">            process. The result does not depend on it.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        :class:`MitigationNoiseMap`, with :attr:`~MitigationNoiseMap.noise_levels` set.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">noise_levels</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">noise_levels</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">amplification</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span> <span class="s2">&quot;fold&quot;</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Unknown amplification </span><span class="si">{</span><span class="n">amplification</span><span class="si">!r}</span><span class="s2">, expected &#39;scale&#39; or &#39;fold&#39;.&quot;</span>
-        <span class="p">)</span>
-    <span class="n">circuits</span><span class="p">,</span> <span class="n">exact</span><span class="p">,</span> <span class="n">noisy</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">_training_data</span><span class="p">(</span>
-        <span class="n">ansatz</span><span class="p">,</span>
-        <span class="n">observable</span><span class="p">,</span>
-        <span class="n">noise</span><span class="p">,</span>
-        <span class="n">noise_levels</span><span class="p">,</span>
-        <span class="n">amplification</span><span class="p">,</span>
-        <span class="n">n_training_circuits</span><span class="p">,</span>
-        <span class="n">replacement_probability</span><span class="p">,</span>
-        <span class="n">replacement_method</span><span class="p">,</span>
-        <span class="n">initial_state</span><span class="p">,</span>
-        <span class="n">max_bond_dimension</span><span class="p">,</span>
-        <span class="n">n_samples</span><span class="p">,</span>
-        <span class="n">seed</span><span class="p">,</span>
-        <span class="n">n_workers</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">model</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">_fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">noisy</span><span class="p">,</span> <span class="n">exact</span><span class="p">,</span> <span class="n">_combination</span><span class="p">,</span> <span class="n">noisy</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">MitigationNoiseMap</span><span class="p">(</span>
-        <span class="n">params</span><span class="p">,</span>
-        <span class="n">exact</span><span class="p">,</span>
-        <span class="n">noisy</span><span class="p">,</span>
-        <span class="n">model</span><span class="p">,</span>
-        <span class="n">noise_levels</span><span class="o">=</span><span class="n">noise_levels</span><span class="p">,</span>
-        <span class="n">noisy_stderr</span><span class="o">=</span><span class="n">stderr</span><span class="p">,</span>
-        <span class="n">circuits</span><span class="o">=</span><span class="n">circuits</span><span class="p">,</span>
-    <span class="p">)</span></div>
-
-
-
 <div class="viewcode-block" id="noisy_value">
-<a class="viewcode-back" href="../../../../api/error_mitigation.html#mpstab.models.error_mitigation.cdr.noisy_value">[docs]</a>
+<a class="viewcode-back" href="../../../../../api/error_mitigation.html#mpstab.models.error_mitigation.data_driven_methods.regression.noisy_value">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">noisy_value</span><span class="p">(</span>
     <span class="n">hsmpo</span><span class="p">:</span> <span class="n">HSMPO</span><span class="p">,</span>
     <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">,</span>
@@ -575,7 +396,8 @@
 <span class="sd">            :func:`~mpstab.hamiltonians.pauli_terms` accepts.</span>
 <span class="sd">        noise: the noise model.</span>
 <span class="sd">        level: the noise amplification factor.</span>
-<span class="sd">        amplification: ``&quot;scale&quot;`` or ``&quot;fold&quot;``, as in :func:`vncdr`.</span>
+<span class="sd">        amplification: ``&quot;scale&quot;`` or ``&quot;fold&quot;``, as in</span>
+<span class="sd">            :func:`~mpstab.models.error_mitigation.vncdr`.</span>
 <span class="sd">        n_samples: fault configurations sampled by</span>
 <span class="sd">            :meth:`~mpstab.HSMPO.noisy_expectation`.</span>
 <span class="sd">        seed: seed of the sampler.</span>
@@ -606,7 +428,7 @@
     <span class="k">return</span> <span class="n">hsmpo</span><span class="o">.</span><span class="n">noisy_expectation</span><span class="p">(</span><span class="n">observable</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="n">n_samples</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_training_data</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">training_data</span><span class="p">(</span>
     <span class="n">ansatz</span><span class="p">,</span>
     <span class="n">observable</span><span class="p">,</span>
     <span class="n">noise</span><span class="p">,</span>
@@ -710,7 +532,7 @@
     <span class="k">return</span> <span class="n">exact</span><span class="p">,</span> <span class="n">noisy</span><span class="p">,</span> <span class="n">stderr</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">noisy</span><span class="p">,</span> <span class="n">exact</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">design</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">fit_noise_map</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">noisy</span><span class="p">,</span> <span class="n">exact</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">design</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    ``(model, params)`` fitted to map ``noisy`` onto ``exact``: the ``default``</span>
 <span class="sd">    model, linear in its parameters, by least squares on its ``design`` matrix,</span>
@@ -727,16 +549,6 @@
         <span class="p">)</span>
     <span class="n">params</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">noisy</span><span class="p">,</span> <span class="n">exact</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arguments</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">params</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_linear</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;``a * x + b``, the CDR model.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">b</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_combination</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;``x @ params``, the vnCDR model: a linear combination of the noise levels.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">x</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_seed</span><span class="p">(</span><span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -774,15 +586,15 @@
       
     </aside>
   </div>
-</div><script src="../../../../_static/documentation_options.js?v=d45e8c67"></script>
-    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
-    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
-    <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
-    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
-    <script src="../../../../_static/katex.min.js?v=5cc8ed51"></script>
-    <script src="../../../../_static/auto-render.min.js?v=af98beb9"></script>
-    <script src="../../../../_static/katex_autorenderer.js?v=bebc588a"></script>
+</div><script src="../../../../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../../_static/katex.min.js?v=5cc8ed51"></script>
+    <script src="../../../../../_static/auto-render.min.js?v=af98beb9"></script>
+    <script src="../../../../../_static/katex_autorenderer.js?v=bebc588a"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     </body>
 </html>

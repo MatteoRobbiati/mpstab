@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -278,8 +285,9 @@
 <span class="sd">Head synthesis with rustiq&#39;s Pauli-network synthesis, which cancels gates across</span>
 <span class="sd">rotations.</span>
 
-<span class="sd">``rustiq`` is optional and not on PyPI, so it is imported lazily; install it</span>
-<span class="sd">with ``pip install &quot;mpstab[rustiq]&quot;``.</span>
+<span class="sd">``rustiq`` is optional and not on PyPI: this module imports without it, and</span>
+<span class="sd">synthesising raises an ``ImportError`` with the install hint</span>
+<span class="sd">``pip install &quot;mpstab[rustiq]&quot;``.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -290,16 +298,19 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.synthesis.abstract</span><span class="w"> </span><span class="kn">import</span> <span class="n">HeadSynthesis</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.synthesis.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">place_rotations</span>
 
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">rustiq</span><span class="w"> </span><span class="kn">import</span> <span class="n">Metric</span><span class="p">,</span> <span class="n">pauli_network_synthesis</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># optional dependency</span>
+    <span class="n">Metric</span> <span class="o">=</span> <span class="n">pauli_network_synthesis</span> <span class="o">=</span> <span class="kc">None</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_import_rustiq</span><span class="p">():</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">rustiq</span><span class="w"> </span><span class="kn">import</span> <span class="n">Metric</span><span class="p">,</span> <span class="n">pauli_network_synthesis</span>
-    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_require_rustiq</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise an ``ImportError`` with the install hint if rustiq is missing.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">pauli_network_synthesis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
             <span class="s2">&quot;rustiq is required for Pauli-network resynthesis. Install it with: &quot;</span>
             <span class="s1">&#39;pip install &quot;mpstab[rustiq]&quot;&#39;</span>
-        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
-    <span class="k">return</span> <span class="n">Metric</span><span class="p">,</span> <span class="n">pauli_network_synthesis</span>
+        <span class="p">)</span>
 
 
 <div class="viewcode-block" id="RustiqSynthesis">
@@ -329,12 +340,12 @@
 <div class="viewcode-block" id="RustiqSynthesis.synthesize">
 <a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.synthesis.rustiq.RustiqSynthesis.synthesize">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">synthesize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paulis</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">nqubits</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">_import_rustiq</span><span class="p">()</span>  <span class="c1"># fail with the install hint even on an empty head</span>
+        <span class="n">_require_rustiq</span><span class="p">()</span>  <span class="c1"># fail with the install hint even on an empty head</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">synthesize</span><span class="p">(</span><span class="n">paulis</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_synthesize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paulis</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">):</span>
-        <span class="n">Metric</span><span class="p">,</span> <span class="n">pauli_network_synthesis</span> <span class="o">=</span> <span class="n">_import_rustiq</span><span class="p">()</span>
+        <span class="n">_require_rustiq</span><span class="p">()</span>
         <span class="n">metric</span> <span class="o">=</span> <span class="n">Metric</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">)</span>
         <span class="n">skeleton</span> <span class="o">=</span> <span class="n">pauli_network_synthesis</span><span class="p">(</span>
             <span class="n">paulis</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">preserve_order</span><span class="p">,</span> <span class="n">fix_clifford</span><span class="o">=</span><span class="kc">False</span>

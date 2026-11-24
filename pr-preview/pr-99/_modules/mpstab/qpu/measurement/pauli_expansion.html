@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -282,8 +289,11 @@
 <span class="sd">to be turned back into Pauli strings with coefficients. This module does that</span>
 <span class="sd">change of basis and everything that follows directly from it.</span>
 
-<span class="sd">MPO site tensors carry an upper (output) index ``k{i}`` and a lower (input)</span>
-<span class="sd">index ``b{i}``. The recurring contraction is ``Tr[sigma O] = sum_{k,b} O[k,b]</span>
+<span class="sd">Every function takes the MPO as its site arrays, the engine-independent form</span>
+<span class="sd">:meth:`~mpstab.engines.TensorNetworkEngine.operator_site_arrays` exports: one</span>
+<span class="sd">numpy array per site ordered ``(left, right, k, b)``, with ``k`` the upper</span>
+<span class="sd">(output) and ``b`` the lower (input) index, and boundary bonds as singleton</span>
+<span class="sd">axes. The recurring contraction is ``Tr[sigma O] = sum_{k,b} O[k,b]</span>
 <span class="sd">sigma[b,k]``, hence the ``&quot;kb,bk&quot;`` index patterns below.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -296,30 +306,41 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">PAULI_ARRAY</span><span class="p">,</span> <span class="n">PAULI_LABELS</span><span class="p">,</span> <span class="n">conjugate</span>
 
 
-<div class="viewcode-block" id="mpo_site_arrays">
-<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.measurement.pauli_expansion.mpo_site_arrays">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">mpo_site_arrays</span><span class="p">(</span><span class="n">mpo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<div class="viewcode-block" id="operator_inner">
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.measurement.pauli_expansion.operator_inner">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">operator_inner</span><span class="p">(</span><span class="n">left_sites</span><span class="p">,</span> <span class="n">right_sites</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">complex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    MPO site tensors as arrays ordered ``(left, right, k, b)``.</span>
-
-<span class="sd">    Boundary bonds become singleton axes so every site has rank 4 and callers</span>
-<span class="sd">    need no special case for the first and last site.</span>
+<span class="sd">    Hilbert-Schmidt inner product ``Tr[A^dag B]`` of two MPOs given as site</span>
+<span class="sd">    arrays, contracted site by site in ``O(n chi**3)``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">quimb.tensor</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qtn</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">left_sites</span><span class="p">,</span> <span class="n">right_sites</span><span class="p">):</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;lm,lrkb,mskb-&gt;rs&quot;</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">b</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">complex</span><span class="p">(</span><span class="n">env</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span></div>
 
-    <span class="n">arrays</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mpo</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
-        <span class="n">tensor</span> <span class="o">=</span> <span class="n">mpo</span><span class="p">[</span><span class="n">site</span><span class="p">]</span>
-        <span class="n">left</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qtn</span><span class="o">.</span><span class="n">bonds</span><span class="p">(</span><span class="n">mpo</span><span class="p">[</span><span class="n">site</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">tensor</span><span class="p">))</span> <span class="k">if</span> <span class="n">site</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[]</span>
-        <span class="n">right</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qtn</span><span class="o">.</span><span class="n">bonds</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">mpo</span><span class="p">[</span><span class="n">site</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))</span> <span class="k">if</span> <span class="n">site</span> <span class="o">&lt;</span> <span class="n">mpo</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="p">[]</span>
-        <span class="n">order</span> <span class="o">=</span> <span class="n">left</span> <span class="o">+</span> <span class="n">right</span> <span class="o">+</span> <span class="p">[</span><span class="n">mpo</span><span class="o">.</span><span class="n">upper_ind</span><span class="p">(</span><span class="n">site</span><span class="p">),</span> <span class="n">mpo</span><span class="o">.</span><span class="n">lower_ind</span><span class="p">(</span><span class="n">site</span><span class="p">)]</span>
-        <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">*</span><span class="n">order</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">left</span><span class="p">:</span>
-            <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">right</span><span class="p">:</span>
-            <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-        <span class="n">arrays</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">arrays</span></div>
+
+
+<div class="viewcode-block" id="operator_norm">
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.measurement.pauli_expansion.operator_norm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">operator_norm</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Frobenius norm ``sqrt(Tr[A^dag A])`` of an MPO given as site arrays.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">operator_inner</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="n">sites</span><span class="p">)</span><span class="o">.</span><span class="n">real</span><span class="p">)))</span></div>
+
+
+
+<div class="viewcode-block" id="operator_distance">
+<a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.measurement.pauli_expansion.operator_distance">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">operator_distance</span><span class="p">(</span><span class="n">left_sites</span><span class="p">,</span> <span class="n">right_sites</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Frobenius distance ``||A - B||_F`` of two MPOs given as site arrays, from</span>
+<span class="sd">    ``||A||**2 + ||B||**2 - 2 Re Tr[A^dag B]``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">squared</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">operator_inner</span><span class="p">(</span><span class="n">left_sites</span><span class="p">,</span> <span class="n">left_sites</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+        <span class="o">+</span> <span class="n">operator_inner</span><span class="p">(</span><span class="n">right_sites</span><span class="p">,</span> <span class="n">right_sites</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+        <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">operator_inner</span><span class="p">(</span><span class="n">left_sites</span><span class="p">,</span> <span class="n">right_sites</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">squared</span><span class="p">)))</span></div>
 
 
 
@@ -338,7 +359,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">[</span>
         <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;lrkb,ibk-&gt;ilr&quot;</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">PAULI_ARRAY</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
-        <span class="k">for</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">mpo_site_arrays</span><span class="p">(</span><span class="n">mpo</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">mpo</span>
     <span class="p">]</span></div>
 
 
@@ -351,7 +372,7 @@
 <span class="sd">    string, since conjugation by a unitary preserves the norm, and lower by the</span>
 <span class="sd">    weight the truncation discarded.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">mpo</span><span class="o">.</span><span class="n">norm</span><span class="p">()))</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="n">nqubits</span></div>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">operator_inner</span><span class="p">(</span><span class="n">mpo</span><span class="p">,</span> <span class="n">mpo</span><span class="p">)</span><span class="o">.</span><span class="n">real</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="n">nqubits</span></div>
 
 
 

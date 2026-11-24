@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="DMRG Optimization of Quantum Hamiltonians" href="dmrg_optimization.html"><link rel="prev" title="Working with Engines" href="working_with_engines.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Ansatz Catalogue" href="ansatze_catalogue.html"><link rel="prev" title="Working with Engines" href="working_with_engines.html">
         <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
@@ -11,6 +11,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -215,6 +216,7 @@
 <li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -241,7 +243,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -293,6 +300,8 @@ any Qibo circuit into an Mpstab ansatz (CircuitAnsatz), and a more complicated a
 more information about the quantum hardware and, then, recover a compiled and transpiled ansatz (TranspiledAnsatz). This second
 model is particularly relevant in contexts where one wants to have control of the number of gates executed
 on a real quantum device.</p>
+<p>The <a class="reference internal" href="ansatze_catalogue.html"><span class="doc">Ansatz Catalogue</span></a> lists every ansatz with its physical description and
+the parameters that tune its magic and its entanglement.</p>
 <section id="circuitansatz">
 <h3>CircuitAnsatz<a class="headerlink" href="#circuitansatz" title="Link to this heading">¶</a></h3>
 <p>Wrap any existing Qibo circuit as an ansatz:</p>
@@ -399,12 +408,12 @@ method to partitionate and recover all these features of the provided circuit.</
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="dmrg_optimization.html">
+          <a class="next-page" href="ansatze_catalogue.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">DMRG Optimization of Quantum Hamiltonians</div>
+                <div class="title">Ansatz Catalogue</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

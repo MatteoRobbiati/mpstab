@@ -11,6 +11,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -215,6 +216,7 @@
 <li class="toctree-l1"><a class="reference internal" href="user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -241,7 +243,12 @@
 <li class="toctree-l1"><a class="reference internal" href="api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -385,6 +392,16 @@ Among our core features:</p>
 <li class="toctree-l2"><a class="reference internal" href="user_guide/using_ansatze.html#further-reading">Further Reading</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/ansatze_catalogue.html">Ansatz Catalogue</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#summary">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#class-hierarchy">Class hierarchy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#variational-circuits">Variational circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#floquet-and-kicked-dynamics">Floquet and kicked dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#circuit-library">Circuit library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#wrappers">Wrappers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#see-also">See also</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="user_guide/dmrg_optimization.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="user_guide/dmrg_optimization.html#key-advantages">Key Advantages</a></li>
@@ -430,6 +447,7 @@ Among our core features:</p>
 <li class="toctree-l1"><a class="reference internal" href="api/engines.html">Engines</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/engines.html#module-mpstab.engines.stabilizers.stim">Stabilizer Engine</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/engines.html#module-mpstab.engines.tensor_networks.quimb">Tensor Network Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/engines.html#native-engines">Native Engines</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/engines.html#selecting-engines">Selecting Engines</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/engines.html#engine-interface">Engine Interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/engines.html#see-also">See Also</a></li>
@@ -458,12 +476,17 @@ Among our core features:</p>
 <li class="toctree-l1"><a class="reference internal" href="api/error_mitigation.html">Error Mitigation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/error_mitigation.html#example">Example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/error_mitigation.html#mitigating-an-hqsmpo-measurement-plan">Mitigating an HQSMPO measurement plan</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/error_mitigation.html#module-mpstab.models.error_mitigation.plan">API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/error_mitigation.html#api">API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/pauli.html">Paulis &amp; Observables</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/pauli.html#module-mpstab.pauli">Pauli Strings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/pauli.html#module-mpstab.hamiltonians">Observables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/qibo_tools.html">Qibo tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/qibo_tools.html#provided-backends">Provided backends</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/qibo_tools.html#utilized-backends">Utilized backends</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/models.html">Models &amp; Methods</a><ul>
@@ -474,6 +497,12 @@ Among our core features:</p>
 <li class="toctree-l2"><a class="reference internal" href="api/models.html#related-documentation">Related Documentation</a></li>
 </ul>
 </li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="publications.html">Publications</a></li>
 </ul>
 </div>
 </section>

@@ -11,6 +11,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -215,6 +216,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -241,7 +243,12 @@
 <li class="toctree-l1"><a class="reference internal" href="noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -309,8 +316,8 @@ passed to <a class="reference internal" href="evolutors.html#mpstab.evolutors.hq
 <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">expectation_at_cut</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">ClassicalShadows</span><span class="p">(),</span> <span class="n">n_shots</span><span class="o">=</span><span class="mi">10_000</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Importing this package never requires the optional <code class="docutils literal notranslate"><span class="pre">rustiq</span></code> dependency, which
-<a class="reference internal" href="#module-mpstab.qpu.synthesis.rustiq" title="mpstab.qpu.synthesis.rustiq"><code class="xref py py-mod docutils literal notranslate"><span class="pre">rustiq</span></code></a> imports lazily.</p>
+<p>Importing this package never requires the optional <code class="docutils literal notranslate"><span class="pre">rustiq</span></code> dependency:
+<a class="reference internal" href="#module-mpstab.qpu.synthesis.rustiq" title="mpstab.qpu.synthesis.rustiq"><code class="xref py py-mod docutils literal notranslate"><span class="pre">rustiq</span></code></a> only needs it when it synthesises.</p>
 <section id="synthesis">
 <h2>Synthesis<a class="headerlink" href="#synthesis" title="Link to this heading">¶</a></h2>
 <p>Turns a head’s dressed rotations into a runnable circuit plus a pure-Clifford
@@ -328,7 +335,7 @@ simulator (<a class="reference internal" href="pauli.html#mpstab.pauli.conjugate
 holding its own options. Three are available, one module each:</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#mpstab.qpu.synthesis.rustiq.RustiqSynthesis" title="mpstab.qpu.synthesis.rustiq.RustiqSynthesis"><code class="xref py py-class docutils literal notranslate"><span class="pre">RustiqSynthesis</span></code></a>: rustiq’s Pauli-network
-synthesis (optional dependency, imported lazily).</p></li>
+synthesis (optional dependency, needed only when synthesising).</p></li>
 <li><p><a class="reference internal" href="#mpstab.qpu.synthesis.extraction.ExtractionSynthesis" title="mpstab.qpu.synthesis.extraction.ExtractionSynthesis"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtractionSynthesis</span></code></a>: Clifford
 extraction, dependency-free and connectivity-aware.</p></li>
 <li><p><a class="reference internal" href="#mpstab.qpu.synthesis.cnot_ladder.CnotLadderSynthesis" title="mpstab.qpu.synthesis.cnot_ladder.CnotLadderSynthesis"><code class="xref py py-class docutils literal notranslate"><span class="pre">CnotLadderSynthesis</span></code></a>: the textbook
@@ -363,7 +370,7 @@ can cache resyntheses on it. They implement <code class="xref py py-meth docutil
 <dt class="sig sig-object py" id="mpstab.qpu.synthesis.abstract.HeadSynthesis.name">
 <span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#mpstab.qpu.synthesis.abstract.HeadSynthesis.name" title="Link to this definition">¶</a></dt>
 <dd><p>Short name, reported as
-<a class="reference internal" href="evolutors.html#id12" title="mpstab.evolutors.hqsmpo.ResynthesizedHead.method"><code class="xref py py-attr docutils literal notranslate"><span class="pre">method</span></code></a>.</p>
+<a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.ResynthesizedHead.method" title="mpstab.evolutors.hqsmpo.ResynthesizedHead.method"><code class="xref py py-attr docutils literal notranslate"><span class="pre">method</span></code></a>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -395,8 +402,9 @@ Clifford residual both as a <code class="docutils literal notranslate"><span cla
 
 <p id="module-mpstab.qpu.synthesis.rustiq">Head synthesis with rustiq’s Pauli-network synthesis, which cancels gates across
 rotations.</p>
-<p><code class="docutils literal notranslate"><span class="pre">rustiq</span></code> is optional and not on PyPI, so it is imported lazily; install it
-with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;mpstab[rustiq]&quot;</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rustiq</span></code> is optional and not on PyPI: this module imports without it, and
+synthesising raises an <code class="docutils literal notranslate"><span class="pre">ImportError</span></code> with the install hint
+<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;mpstab[rustiq]&quot;</span></code>.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="mpstab.qpu.synthesis.rustiq.RustiqSynthesis">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.qpu.synthesis.rustiq.</span></span><span class="sig-name descname"><span class="pre">RustiqSynthesis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'count'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preserve_order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/qpu/synthesis/rustiq.html#RustiqSynthesis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.synthesis.rustiq.RustiqSynthesis" title="Link to this definition">¶</a></dt>
@@ -420,7 +428,7 @@ implements is unique, so compare tableaus rather than gate lists.</p>
 <dt class="sig sig-object py" id="mpstab.qpu.synthesis.rustiq.RustiqSynthesis.name">
 <span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'rustiq'</span></span><a class="headerlink" href="#mpstab.qpu.synthesis.rustiq.RustiqSynthesis.name" title="Link to this definition">¶</a></dt>
 <dd><p>Short name, reported as
-<a class="reference internal" href="evolutors.html#id12" title="mpstab.evolutors.hqsmpo.ResynthesizedHead.method"><code class="xref py py-attr docutils literal notranslate"><span class="pre">method</span></code></a>.</p>
+<a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.ResynthesizedHead.method" title="mpstab.evolutors.hqsmpo.ResynthesizedHead.method"><code class="xref py py-attr docutils literal notranslate"><span class="pre">method</span></code></a>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -495,7 +503,7 @@ numbering of the strings. The CNOTs chosen stay local on it.</p></li>
 <dt class="sig sig-object py" id="mpstab.qpu.synthesis.extraction.ExtractionSynthesis.name">
 <span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'extraction'</span></span><a class="headerlink" href="#mpstab.qpu.synthesis.extraction.ExtractionSynthesis.name" title="Link to this definition">¶</a></dt>
 <dd><p>Short name, reported as
-<a class="reference internal" href="evolutors.html#id12" title="mpstab.evolutors.hqsmpo.ResynthesizedHead.method"><code class="xref py py-attr docutils literal notranslate"><span class="pre">method</span></code></a>.</p>
+<a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.ResynthesizedHead.method" title="mpstab.evolutors.hqsmpo.ResynthesizedHead.method"><code class="xref py py-attr docutils literal notranslate"><span class="pre">method</span></code></a>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -533,7 +541,7 @@ rotation and no cancellation across rotations.</p>
 <dt class="sig sig-object py" id="mpstab.qpu.synthesis.cnot_ladder.CnotLadderSynthesis.name">
 <span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'cnot_ladder'</span></span><a class="headerlink" href="#mpstab.qpu.synthesis.cnot_ladder.CnotLadderSynthesis.name" title="Link to this definition">¶</a></dt>
 <dd><p>Short name, reported as
-<a class="reference internal" href="evolutors.html#id12" title="mpstab.evolutors.hqsmpo.ResynthesizedHead.method"><code class="xref py py-attr docutils literal notranslate"><span class="pre">method</span></code></a>.</p>
+<a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.ResynthesizedHead.method" title="mpstab.evolutors.hqsmpo.ResynthesizedHead.method"><code class="xref py py-attr docutils literal notranslate"><span class="pre">method</span></code></a>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -653,133 +661,39 @@ here.</p>
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.qpu.measurement.abstract.</span></span><span class="sig-name descname"><span class="pre">ExpectationResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">truncation_l1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">truncation_l2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_shots</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">retained_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_fidelity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond_truncation_l2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">antihermitian_l2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/qpu/measurement/abstract.html#ExpectationResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A measured expectation value, its shot noise and its truncation budget.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.value">
-<span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.value" title="Link to this definition">¶</a></dt>
-<dd><p>the (real) expectation value.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.stderr">
-<span class="sig-name descname"><span class="pre">stderr</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.stderr" title="Link to this definition">¶</a></dt>
-<dd><p>standard error from shot noise alone.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.truncation_l1">
-<span class="sig-name descname"><span class="pre">truncation_l1</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.truncation_l1" title="Link to this definition">¶</a></dt>
-<dd><p>heuristic discarded-Pauli-mass estimate (see
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>float</em>) – the (real) expectation value.</p></li>
+<li><p><strong>stderr</strong> (<em>float</em>) – standard error from shot noise alone.</p></li>
+<li><p><strong>truncation_l1</strong> (<em>object</em>) – heuristic discarded-Pauli-mass estimate (see
 <a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate" title="mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncation_error_estimate()</span></code></a>
 – an extrapolation, not a rigorous bound); <code class="docutils literal notranslate"><span class="pre">None</span></code> for the
 <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code> route, whose bond truncation has no
-L1/L2 split.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>object</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.truncation_l2">
-<span class="sig-name descname"><span class="pre">truncation_l2</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.truncation_l2" title="Link to this definition">¶</a></dt>
-<dd><p>typical-case truncation estimate – Pauli-set truncation
-for <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code>, MPO bond truncation for <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.n_settings">
-<span class="sig-name descname"><span class="pre">n_settings</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.n_settings" title="Link to this definition">¶</a></dt>
-<dd><p>number of distinct circuits the shots came from.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.n_shots">
-<span class="sig-name descname"><span class="pre">n_shots</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.n_shots" title="Link to this definition">¶</a></dt>
-<dd><p>total shots used.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.retained_weight">
-<span class="sig-name descname"><span class="pre">retained_weight</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.retained_weight" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise – see
-<a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.retained_weight" title="mpstab.qpu.measurement.abstract.MeasurementPlan.retained_weight"><code class="xref py py-attr docutils literal notranslate"><span class="pre">retained_weight</span></code></a>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float | None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.state_fidelity">
-<span class="sig-name descname"><span class="pre">state_fidelity</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.state_fidelity" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;simulation&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise: the squared
+L1/L2 split.</p></li>
+<li><p><strong>truncation_l2</strong> (<em>float</em>) – typical-case truncation estimate – Pauli-set truncation
+for <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code>, MPO bond truncation for <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>.</p></li>
+<li><p><strong>n_settings</strong> (<em>int</em>) – number of distinct circuits the shots came from.</p></li>
+<li><p><strong>n_shots</strong> (<em>int</em>) – total shots used.</p></li>
+<li><p><strong>retained_weight</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise – see
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">retained_weight</span></code>.</p></li>
+<li><p><strong>state_fidelity</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;simulation&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise: the squared
 norm of the head MPS, which its truncation pushes below 1. The
 hardware methods run the head on the device, so they have no head
-truncation to report.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float | None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.bond_truncation_l2">
-<span class="sig-name descname"><span class="pre">bond_truncation_l2</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.bond_truncation_l2" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise (there
+truncation to report.</p></li>
+<li><p><strong>bond_truncation_l2</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise (there
 <code class="docutils literal notranslate"><span class="pre">truncation_l2</span></code> already is the bond truncation): the bias
 estimate of folding the tail at a finite bond dimension – see
-<a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.bond_truncation_l2" title="mpstab.qpu.measurement.abstract.MeasurementPlan.bond_truncation_l2"><code class="xref py py-attr docutils literal notranslate"><span class="pre">bond_truncation_l2</span></code></a>.
-Part of <code class="docutils literal notranslate"><span class="pre">total_error</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float | None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.antihermitian_l2">
-<span class="sig-name descname"><span class="pre">antihermitian_l2</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.antihermitian_l2" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise: the size of the
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">bond_truncation_l2</span></code>.
+Part of <code class="docutils literal notranslate"><span class="pre">total_error</span></code>.</p></li>
+<li><p><strong>antihermitian_l2</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise: the size of the
 anti-Hermitian part the bond truncation left in the sampled
 coefficients, which was projected out – see
-<a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.antihermitian_l2" title="mpstab.qpu.measurement.abstract.MeasurementPlan.antihermitian_l2"><code class="xref py py-attr docutils literal notranslate"><span class="pre">antihermitian_l2</span></code></a>.
-A diagnostic, not part of <code class="docutils literal notranslate"><span class="pre">total_error</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float | None</p>
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">antihermitian_l2</span></code>.
+A diagnostic, not part of <code class="docutils literal notranslate"><span class="pre">total_error</span></code>.</p></li>
+</ul>
 </dd>
 </dl>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.ExpectationResult.total_error">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">total_error</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.ExpectationResult.total_error" title="Link to this definition">¶</a></dt>
@@ -865,59 +779,37 @@ recombine the results.</p>
 in the same order, plus the <code class="docutils literal notranslate"><span class="pre">{pauli_string:</span> <span class="pre">c_P}</span></code> map the groups came
 from.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>: <code class="docutils literal notranslate"><span class="pre">(mpo_terms,</span> <span class="pre">bases)</span></code>, where <code class="docutils literal notranslate"><span class="pre">mpo_terms</span></code>
-holds <code class="docutils literal notranslate"><span class="pre">(label,</span> <span class="pre">coefficient,</span> <span class="pre">sign,</span> <span class="pre">mpo)</span></code> per Hamiltonian term and
+holds <code class="docutils literal notranslate"><span class="pre">(label,</span> <span class="pre">coefficient,</span> <span class="pre">sign,</span> <span class="pre">mpo)</span></code> per Hamiltonian term, the
+folded tail <code class="docutils literal notranslate"><span class="pre">mpo</span></code> as its site arrays
+(<code class="xref py py-meth docutils literal notranslate"><span class="pre">operator_site_arrays()</span></code>), and
 <code class="docutils literal notranslate"><span class="pre">bases</span></code> has one basis string per circuit.</p></li>
 </ul>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.MeasurementPlan.retained_weight">
-<span class="sig-name descname"><span class="pre">retained_weight</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.retained_weight" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> for <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>
+<dl class="field-list simple">
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>retained_weight</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> for <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>
 (which sample nothing): the <code class="docutils literal notranslate"><span class="pre">|coefficient|</span></code>-weighted average, over
 Hamiltonian terms, of each term’s
-<a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight" title="mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight"><code class="xref py py-attr docutils literal notranslate"><span class="pre">retained_weight</span></code></a>
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">retained_weight</span></code>
 – the fraction of the tail-folded observable’s Frobenius weight
-that <code class="docutils literal notranslate"><span class="pre">n_string_samples</span></code> actually covered.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float | None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.MeasurementPlan.bond_truncation_l2">
-<span class="sig-name descname"><span class="pre">bond_truncation_l2</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.bond_truncation_l2" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> for <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>
+that <code class="docutils literal notranslate"><span class="pre">n_string_samples</span></code> actually covered.</p></li>
+<li><p><strong>bond_truncation_l2</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> for <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>
 (whose <code class="docutils literal notranslate"><span class="pre">truncation_l2</span></code> already is this quantity): the bias
 estimate of folding the tail at a finite bond dimension,
 <code class="docutils literal notranslate"><span class="pre">sum_terms</span> <span class="pre">|coefficient|</span> <span class="pre">*</span> <span class="pre">sqrt(1</span> <span class="pre">-</span> <span class="pre">||O'||_F**2</span> <span class="pre">/</span> <span class="pre">2**n)</span></code>, from the
 norm each folded MPO lost. <code class="docutils literal notranslate"><span class="pre">0.0</span></code> for an untruncated fold. The
 <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> route’s <code class="docutils literal notranslate"><span class="pre">truncation_l1</span></code>/<code class="docutils literal notranslate"><span class="pre">truncation_l2</span></code> only count
 the Pauli strings left unsampled <em>of the already truncated MPO</em>,
-so they miss it.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float | None</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.MeasurementPlan.antihermitian_l2">
-<span class="sig-name descname"><span class="pre">antihermitian_l2</span></span><a class="headerlink" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.antihermitian_l2" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise: the size of the
+so they miss it.</p></li>
+<li><p><strong>antihermitian_l2</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise: the size of the
 anti-Hermitian part the bond truncation left in the sampled
 coefficients and that was projected out,
 <code class="docutils literal notranslate"><span class="pre">sqrt(sum_P</span> <span class="pre">Im(c_P)**2)</span></code>. A diagnostic of how hard the
 truncation hit, not an error of the estimate: the projection never
-moves the operator away from the exact, Hermitian one.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float | None</p>
+moves the operator away from the exact, Hermitian one.</p></li>
+</ul>
 </dd>
 </dl>
-</dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="mpstab.qpu.measurement.abstract.MeasurementPlan.result">
 <span class="sig-name descname"><span class="pre">result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_shots</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_settings</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult" title="mpstab.qpu.measurement.abstract.ExpectationResult"><span class="pre">ExpectationResult</span></a></span></span><a class="reference internal" href="../_modules/mpstab/qpu/measurement/abstract.html#MeasurementPlan.result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.result" title="Link to this definition">¶</a></dt>
@@ -1259,59 +1151,28 @@ array.</p>
 observable, which leaves an MPO. To measure that observable on a device it has
 to be turned back into Pauli strings with coefficients. This module does that
 change of basis and everything that follows directly from it.</p>
-<p>MPO site tensors carry an upper (output) index <code class="docutils literal notranslate"><span class="pre">k{i}</span></code> and a lower (input)
-index <code class="docutils literal notranslate"><span class="pre">b{i}</span></code>. The recurring contraction is <code class="docutils literal notranslate"><span class="pre">Tr[sigma</span> <span class="pre">O]</span> <span class="pre">=</span> <span class="pre">sum_{k,b}</span> <span class="pre">O[k,b]</span>
+<p>Every function takes the MPO as its site arrays, the engine-independent form
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">operator_site_arrays()</span></code> exports: one
+numpy array per site ordered <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">right,</span> <span class="pre">k,</span> <span class="pre">b)</span></code>, with <code class="docutils literal notranslate"><span class="pre">k</span></code> the upper
+(output) and <code class="docutils literal notranslate"><span class="pre">b</span></code> the lower (input) index, and boundary bonds as singleton
+axes. The recurring contraction is <code class="docutils literal notranslate"><span class="pre">Tr[sigma</span> <span class="pre">O]</span> <span class="pre">=</span> <span class="pre">sum_{k,b}</span> <span class="pre">O[k,b]</span>
 <span class="pre">sigma[b,k]</span></code>, hence the <code class="docutils literal notranslate"><span class="pre">&quot;kb,bk&quot;</span></code> index patterns below.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.PauliEnsemble">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.qpu.measurement.pauli_expansion.</span></span><span class="sig-name descname"><span class="pre">PauliEnsemble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coefficients</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">retained_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/qpu/measurement/pauli_expansion.html#PauliEnsemble"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>A retained subset of an operator’s Pauli expansion, coefficients included.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.strings">
-<span class="sig-name descname"><span class="pre">strings</span></span><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.strings" title="Link to this definition">¶</a></dt>
-<dd><p>the retained Pauli strings.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple</p>
+<dt class="field-odd">Variables<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>strings</strong> (<em>tuple</em>) – the retained Pauli strings.</p></li>
+<li><p><strong>coefficients</strong> (<em>numpy.ndarray</em>) – their <code class="docutils literal notranslate"><span class="pre">c_P</span></code>, in the same order.</p></li>
+<li><p><strong>retained_weight</strong> (<em>float</em>) – fraction of the operator’s Frobenius weight the
+retained strings capture, <code class="docutils literal notranslate"><span class="pre">sum</span> <span class="pre">|c_P|**2</span> <span class="pre">/</span> <span class="pre">total_weight</span></code>.</p></li>
+<li><p><strong>total_weight</strong> (<em>float</em>) – <code class="docutils literal notranslate"><span class="pre">sum_P</span> <span class="pre">|c_P|**2</span></code> over the whole expansion.</p></li>
+</ul>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.coefficients">
-<span class="sig-name descname"><span class="pre">coefficients</span></span><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.coefficients" title="Link to this definition">¶</a></dt>
-<dd><p>their <code class="docutils literal notranslate"><span class="pre">c_P</span></code>, in the same order.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight">
-<span class="sig-name descname"><span class="pre">retained_weight</span></span><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight" title="Link to this definition">¶</a></dt>
-<dd><p>fraction of the operator’s Frobenius weight the
-retained strings capture, <code class="docutils literal notranslate"><span class="pre">sum</span> <span class="pre">|c_P|**2</span> <span class="pre">/</span> <span class="pre">total_weight</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.total_weight">
-<span class="sig-name descname"><span class="pre">total_weight</span></span><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.total_weight" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">sum_P</span> <span class="pre">|c_P|**2</span></code> over the whole expansion.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="py function">
@@ -1352,14 +1213,6 @@ tail at a finite bond dimension, from the norm the fold lost.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.mpo_site_arrays">
-<span class="sig-prename descclassname"><span class="pre">mpstab.qpu.measurement.pauli_expansion.</span></span><span class="sig-name descname"><span class="pre">mpo_site_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mpo</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/qpu/measurement/pauli_expansion.html#mpo_site_arrays"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.mpo_site_arrays" title="Link to this definition">¶</a></dt>
-<dd><p>MPO site tensors as arrays ordered <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">right,</span> <span class="pre">k,</span> <span class="pre">b)</span></code>.</p>
-<p>Boundary bonds become singleton axes so every site has rank 4 and callers
-need no special case for the first and last site.</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.mpo_to_pauli_mps">
 <span class="sig-prename descclassname"><span class="pre">mpstab.qpu.measurement.pauli_expansion.</span></span><span class="sig-name descname"><span class="pre">mpo_to_pauli_mps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mpo</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/qpu/measurement/pauli_expansion.html#mpo_to_pauli_mps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.mpo_to_pauli_mps" title="Link to this definition">¶</a></dt>
 <dd><p>Rewrite an MPO in the Pauli basis, exactly.</p>
@@ -1369,6 +1222,26 @@ unchanged bond dimension. Contracting the resulting train at a fixed label
 sequence <code class="docutils literal notranslate"><span class="pre">P</span></code> gives <code class="docutils literal notranslate"><span class="pre">c_P</span> <span class="pre">=</span> <span class="pre">Tr[O</span> <span class="pre">P]</span> <span class="pre">/</span> <span class="pre">2**n</span></code>. Being only a change of basis
 on the physical index, it makes <a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.sample_pauli_strings" title="mpstab.qpu.measurement.pauli_expansion.sample_pauli_strings"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_pauli_strings()</span></code></a> exact and
 <a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.shadow_variance_from_mpo" title="mpstab.qpu.measurement.pauli_expansion.shadow_variance_from_mpo"><code class="xref py py-func docutils literal notranslate"><span class="pre">shadow_variance_from_mpo()</span></code></a> enumeration-free.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.operator_distance">
+<span class="sig-prename descclassname"><span class="pre">mpstab.qpu.measurement.pauli_expansion.</span></span><span class="sig-name descname"><span class="pre">operator_distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">left_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right_sites</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/mpstab/qpu/measurement/pauli_expansion.html#operator_distance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.operator_distance" title="Link to this definition">¶</a></dt>
+<dd><p>Frobenius distance <code class="docutils literal notranslate"><span class="pre">||A</span> <span class="pre">-</span> <span class="pre">B||_F</span></code> of two MPOs given as site arrays, from
+<code class="docutils literal notranslate"><span class="pre">||A||**2</span> <span class="pre">+</span> <span class="pre">||B||**2</span> <span class="pre">-</span> <span class="pre">2</span> <span class="pre">Re</span> <span class="pre">Tr[A^dag</span> <span class="pre">B]</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.operator_inner">
+<span class="sig-prename descclassname"><span class="pre">mpstab.qpu.measurement.pauli_expansion.</span></span><span class="sig-name descname"><span class="pre">operator_inner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">left_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right_sites</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">complex</span></span></span><a class="reference internal" href="../_modules/mpstab/qpu/measurement/pauli_expansion.html#operator_inner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.operator_inner" title="Link to this definition">¶</a></dt>
+<dd><p>Hilbert-Schmidt inner product <code class="docutils literal notranslate"><span class="pre">Tr[A^dag</span> <span class="pre">B]</span></code> of two MPOs given as site
+arrays, contracted site by site in <code class="docutils literal notranslate"><span class="pre">O(n</span> <span class="pre">chi**3)</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.operator_norm">
+<span class="sig-prename descclassname"><span class="pre">mpstab.qpu.measurement.pauli_expansion.</span></span><span class="sig-name descname"><span class="pre">operator_norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sites</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/mpstab/qpu/measurement/pauli_expansion.html#operator_norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.operator_norm" title="Link to this definition">¶</a></dt>
+<dd><p>Frobenius norm <code class="docutils literal notranslate"><span class="pre">sqrt(Tr[A^dag</span> <span class="pre">A])</span></code> of an MPO given as site arrays.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -1436,41 +1309,26 @@ as an order-of-magnitude indicator, not a certified error bound.</p>
 device.</p>
 <p id="module-mpstab.qpu.execution">Step 3 of the QPU pipeline: running a plan’s circuits, here or elsewhere.</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="#module-mpstab.qpu.execution.simulator" title="mpstab.qpu.execution.simulator"><code class="xref py py-mod docutils literal notranslate"><span class="pre">simulator</span></code></a>: the backend contract and the default
-<a class="reference internal" href="#mpstab.qpu.execution.simulator.QiboSimulator" title="mpstab.qpu.execution.simulator.QiboSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">QiboSimulator</span></code></a>.</p></li>
-<li><p><a class="reference internal" href="#module-mpstab.qpu.execution.noisy" title="mpstab.qpu.execution.noisy"><code class="xref py py-mod docutils literal notranslate"><span class="pre">noisy</span></code></a>: <a class="reference internal" href="#mpstab.qpu.execution.noisy.NoisySimulator" title="mpstab.qpu.execution.noisy.NoisySimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoisySimulator</span></code></a>,
-the same circuits under a noise model, to validate error mitigation.</p></li>
+<li><p><a class="reference internal" href="#module-mpstab.qpu.execution.backend" title="mpstab.qpu.execution.backend"><code class="xref py py-mod docutils literal notranslate"><span class="pre">backend</span></code></a>: the backend contract and
+<a class="reference internal" href="#mpstab.qpu.execution.backend.run_plan" title="mpstab.qpu.execution.backend.run_plan"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_plan()</span></code></a>. Backends running the
+circuits with qibo are in <code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.qibo_tools</span></code>.</p></li>
 <li><p><a class="reference internal" href="#module-mpstab.qpu.execution.qasm" title="mpstab.qpu.execution.qasm"><code class="xref py py-mod docutils literal notranslate"><span class="pre">qasm</span></code></a>: OpenQASM 2 export of a plan’s circuits.</p></li>
 <li><p><a class="reference internal" href="#module-mpstab.qpu.execution.storage" title="mpstab.qpu.execution.storage"><code class="xref py py-mod docutils literal notranslate"><span class="pre">storage</span></code></a>: saving them to a folder, so they can run
 on a device.</p></li>
 </ul>
-<p id="module-mpstab.qpu.execution.simulator">Running a <a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan" title="mpstab.qpu.measurement.abstract.MeasurementPlan"><code class="xref py py-class docutils literal notranslate"><span class="pre">MeasurementPlan</span></code></a> on a backend.</p>
+<p id="module-mpstab.qpu.execution.backend">Running a <a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan" title="mpstab.qpu.measurement.abstract.MeasurementPlan"><code class="xref py py-class docutils literal notranslate"><span class="pre">MeasurementPlan</span></code></a> on a backend.</p>
 <p>A backend is any object with an <code class="docutils literal notranslate"><span class="pre">execute_circuits(circuits,</span> <span class="pre">nshots)</span></code> method
 returning one frequency dictionary per circuit, as qibo’s
 <code class="docutils literal notranslate"><span class="pre">Circuit.__call__(nshots=...).frequencies()</span></code> does; there is no base class to
-subclass. <a class="reference internal" href="#mpstab.qpu.execution.simulator.QiboSimulator" title="mpstab.qpu.execution.simulator.QiboSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">QiboSimulator</span></code></a> below is the default.</p>
+subclass. The default,
+<a class="reference internal" href="qibo_tools.html#mpstab.qibo_tools.utilized_backends.statevector_exact_simulator.StatevectorExactSimulator" title="mpstab.qibo_tools.utilized_backends.statevector_exact_simulator.StatevectorExactSimulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatevectorExactSimulator</span></code></a>,
+runs them with qibo.</p>
 <p>Bitstrings are qubit-0-leftmost throughout mpstab, as in qibo. A backend whose
 provider reports them the other way round, qubit 0 rightmost as in qiskit, must
 reverse them before returning.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="mpstab.qpu.execution.simulator.QiboSimulator">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.qpu.execution.simulator.</span></span><span class="sig-name descname"><span class="pre">QiboSimulator</span></span><a class="reference internal" href="../_modules/mpstab/qpu/execution/simulator.html#QiboSimulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.execution.simulator.QiboSimulator" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Runs circuits with qibo’s own simulator. The default backend.</p>
-<p>Measurement plans run one state preparation under many measurement bases,
-so circuits are grouped by their preparation, everything before the
-basis rotations of their final <code class="docutils literal notranslate"><span class="pre">gates.M</span></code>: each preparation is simulated
-once, and each circuit then only rotates that state into its own basis
-and samples it. Every circuit still gets its own <code class="docutils literal notranslate"><span class="pre">nshots</span></code> independent
-samples, so the results are distributed exactly as if every circuit had
-been run separately. Circuits of any other shape (density matrices, noise
-channels, several or mid-circuit measurements) are simulated as they are,
-identical ones once.</p>
-</dd></dl>
-
 <dl class="py function">
-<dt class="sig sig-object py" id="mpstab.qpu.execution.simulator.execute_plan">
-<span class="sig-prename descclassname"><span class="pre">mpstab.qpu.execution.simulator.</span></span><span class="sig-name descname"><span class="pre">execute_plan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backend</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plan</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/qpu/execution/simulator.html#execute_plan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.execution.simulator.execute_plan" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="mpstab.qpu.execution.backend.run_plan">
+<span class="sig-prename descclassname"><span class="pre">mpstab.qpu.execution.backend.</span></span><span class="sig-name descname"><span class="pre">run_plan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backend</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/qpu/execution/backend.html#run_plan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.execution.backend.run_plan" title="Link to this definition">¶</a></dt>
 <dd><p>Run every circuit in a <a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan" title="mpstab.qpu.measurement.abstract.MeasurementPlan"><code class="xref py py-class docutils literal notranslate"><span class="pre">MeasurementPlan</span></code></a>
 with its own shot count, batching circuits that share a shot count into a
 single <code class="docutils literal notranslate"><span class="pre">backend.execute_circuits</span></code> call instead of one call per circuit.</p>
@@ -1482,8 +1340,8 @@ just wasn’t using it.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>backend</strong> – anything with <code class="docutils literal notranslate"><span class="pre">execute_circuits(circuits,</span> <span class="pre">nshots)</span></code>.</p></li>
 <li><p><strong>plan</strong> – a plan whose <code class="docutils literal notranslate"><span class="pre">circuits</span></code> and <code class="docutils literal notranslate"><span class="pre">shots</span></code> are the same length.</p></li>
+<li><p><strong>backend</strong> – anything with <code class="docutils literal notranslate"><span class="pre">execute_circuits(circuits,</span> <span class="pre">nshots)</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1495,28 +1353,6 @@ assumes.</p>
 <dd class="field-odd"><p><strong>ValueError</strong> – if the backend returns a different number of results than
     the circuits it was given, which would otherwise leave gaps that
     only surface later, inside the estimator.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<p id="module-mpstab.qpu.execution.noisy">A noisy stand-in for a device, to validate error mitigation on a plan.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="mpstab.qpu.execution.noisy.NoisySimulator">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.qpu.execution.noisy.</span></span><span class="sig-name descname"><span class="pre">NoisySimulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">noise</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/qpu/execution/noisy.html#NoisySimulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.execution.noisy.NoisySimulator" title="Link to this definition">¶</a></dt>
-<dd><p>Runs plan circuits under a <code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code>, on a
-qibo density matrix.</p>
-<p>Each circuit’s preparation and basis rotations are run as one noisy
-circuit (<code class="xref py py-meth docutils literal notranslate"><span class="pre">apply()</span></code>), so the basis
-rotations of the measurement layer are as noisy as any other gate. Readout
-errors then flip the sampled bits. Density matrices limit it to small
-circuits, about ten qubits: it is a reference for testing, not a
-simulator for production runs.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>noise</strong> – the noise model.</p></li>
-<li><p><strong>seed</strong> – seed of the sampled shots and readout flips.</p></li>
-</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -1690,16 +1526,6 @@ counts in.</p>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.estimate"><code class="docutils literal notranslate"><span class="pre">estimate()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.resolve_method"><code class="docutils literal notranslate"><span class="pre">resolve_method()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult"><code class="docutils literal notranslate"><span class="pre">ExpectationResult</span></code></a><ul>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.value"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.value</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.stderr"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.stderr</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.truncation_l1"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.truncation_l1</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.truncation_l2"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.truncation_l2</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.n_settings"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.n_settings</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.n_shots"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.n_shots</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.retained_weight"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.retained_weight</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.state_fidelity"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.state_fidelity</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.bond_truncation_l2"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.bond_truncation_l2</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.antihermitian_l2"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.antihermitian_l2</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.ExpectationResult.total_error"><code class="docutils literal notranslate"><span class="pre">ExpectationResult.total_error</span></code></a></li>
 </ul>
 </li>
@@ -1710,9 +1536,6 @@ counts in.</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan"><code class="docutils literal notranslate"><span class="pre">MeasurementPlan</span></code></a><ul>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.retained_weight"><code class="docutils literal notranslate"><span class="pre">MeasurementPlan.retained_weight</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.bond_truncation_l2"><code class="docutils literal notranslate"><span class="pre">MeasurementPlan.bond_truncation_l2</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.antihermitian_l2"><code class="docutils literal notranslate"><span class="pre">MeasurementPlan.antihermitian_l2</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.abstract.MeasurementPlan.result"><code class="docutils literal notranslate"><span class="pre">MeasurementPlan.result()</span></code></a></li>
 </ul>
 </li>
@@ -1748,18 +1571,14 @@ counts in.</p>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.shadows.outcome_index"><code class="docutils literal notranslate"><span class="pre">outcome_index()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.shadows.real_pauli_mps"><code class="docutils literal notranslate"><span class="pre">real_pauli_mps()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.shadows.shots_to_outcomes"><code class="docutils literal notranslate"><span class="pre">shots_to_outcomes()</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble"><code class="docutils literal notranslate"><span class="pre">PauliEnsemble</span></code></a><ul>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.strings"><code class="docutils literal notranslate"><span class="pre">PauliEnsemble.strings</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.coefficients"><code class="docutils literal notranslate"><span class="pre">PauliEnsemble.coefficients</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.retained_weight"><code class="docutils literal notranslate"><span class="pre">PauliEnsemble.retained_weight</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble.total_weight"><code class="docutils literal notranslate"><span class="pre">PauliEnsemble.total_weight</span></code></a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.PauliEnsemble"><code class="docutils literal notranslate"><span class="pre">PauliEnsemble</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.fold_fidelity"><code class="docutils literal notranslate"><span class="pre">fold_fidelity()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.fold_pool_through_tableau"><code class="docutils literal notranslate"><span class="pre">fold_pool_through_tableau()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.fold_truncation_l2"><code class="docutils literal notranslate"><span class="pre">fold_truncation_l2()</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.mpo_site_arrays"><code class="docutils literal notranslate"><span class="pre">mpo_site_arrays()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.mpo_to_pauli_mps"><code class="docutils literal notranslate"><span class="pre">mpo_to_pauli_mps()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.operator_distance"><code class="docutils literal notranslate"><span class="pre">operator_distance()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.operator_inner"><code class="docutils literal notranslate"><span class="pre">operator_inner()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.operator_norm"><code class="docutils literal notranslate"><span class="pre">operator_norm()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.pool_pauli_terms"><code class="docutils literal notranslate"><span class="pre">pool_pauli_terms()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.sample_pauli_strings"><code class="docutils literal notranslate"><span class="pre">sample_pauli_strings()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.shadow_variance_from_mpo"><code class="docutils literal notranslate"><span class="pre">shadow_variance_from_mpo()</span></code></a></li>
@@ -1767,9 +1586,7 @@ counts in.</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#execution">Execution</a><ul>
-<li><a class="reference internal" href="#mpstab.qpu.execution.simulator.QiboSimulator"><code class="docutils literal notranslate"><span class="pre">QiboSimulator</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.execution.simulator.execute_plan"><code class="docutils literal notranslate"><span class="pre">execute_plan()</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.qpu.execution.noisy.NoisySimulator"><code class="docutils literal notranslate"><span class="pre">NoisySimulator</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.qpu.execution.backend.run_plan"><code class="docutils literal notranslate"><span class="pre">run_plan()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.execution.qasm.QELIB1_GATES"><code class="docutils literal notranslate"><span class="pre">QELIB1_GATES</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.execution.qasm.circuit_to_qasm"><code class="docutils literal notranslate"><span class="pre">circuit_to_qasm()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.qpu.execution.qasm.plan_to_qasm"><code class="docutils literal notranslate"><span class="pre">plan_to_qasm()</span></code></a></li>

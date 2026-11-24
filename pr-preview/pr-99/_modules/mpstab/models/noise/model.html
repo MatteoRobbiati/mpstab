@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -285,13 +292,14 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.hamiltonians</span><span class="w"> </span><span class="kn">import</span> <span class="n">pauli_terms</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.events</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CoherentRotation</span><span class="p">,</span>
     <span class="n">KrausChannel</span><span class="p">,</span>
     <span class="n">NoiseEvent</span><span class="p">,</span>
     <span class="n">PauliChannel</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">PAULI_MATRICES</span><span class="p">,</span> <span class="n">validate_pauli_string</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">pauli_matrix</span><span class="p">,</span> <span class="n">validate_pauli_string</span>
 
 <span class="c1"># -- Errors acting after gates ----------------------------------------------------</span>
 
@@ -308,11 +316,12 @@
 <span class="sd">    two-qubit gate) act jointly on its qubits, in the gate&#39;s qubit order, which</span>
 <span class="sd">    is how correlated noise is written.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ::</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        probs: probability of each non-identity Pauli label.</span>
 
-<span class="sd">        from mpstab.models.noise import PauliError</span>
+<span class="sd">    Example::</span>
+
+<span class="sd">        from mpstab import PauliError</span>
 
 <span class="sd">        dephasing = PauliError({&quot;Z&quot;: 0.01})</span>
 <span class="sd">        correlated = PauliError({&quot;ZZ&quot;: 0.005, &quot;XX&quot;: 0.001})</span>
@@ -358,11 +367,12 @@
 <span class="sd">    qubits and spectators (:meth:`NoiseModel.add_idle`,</span>
 <span class="sd">    :meth:`NoiseModel.add_crosstalk`) it acts on each qubit alone.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ::</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        lam: depolarizing strength, in ``[0, 4/3]``.</span>
 
-<span class="sd">        from mpstab.models.noise import DepolarizingError</span>
+<span class="sd">    Example::</span>
+
+<span class="sd">        from mpstab import DepolarizingError</span>
 
 <span class="sd">        error = DepolarizingError(0.01)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -401,11 +411,13 @@
 <span class="sd">    dimension: :meth:`twirled` is the stochastic Pauli error the same rotation</span>
 <span class="sd">    becomes under randomized compiling, which costs none.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ::</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        generator: Pauli label of the rotation, one qubit or as wide as the gate.</span>
+<span class="sd">        angle: rotation angle.</span>
 
-<span class="sd">        from mpstab.models.noise import CoherentError</span>
+<span class="sd">    Example::</span>
+
+<span class="sd">        from mpstab import CoherentError</span>
 
 <span class="sd">        residual_zz = CoherentError(&quot;ZZ&quot;, 0.02)</span>
 <span class="sd">        over_rotation = CoherentError(&quot;X&quot;, 0.01)</span>
@@ -457,12 +469,14 @@
 <span class="sd">    Pauli faults, and the off-diagonal part of its process matrix, evaluated</span>
 <span class="sd">    as transition amplitudes (:class:`~mpstab.models.noise.events.KrausChannel`).</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    A phase-damping channel::</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        operators: the Kraus operators, each ``2**k x 2**k``.</span>
 
+<span class="sd">    Example::</span>
+
+<span class="sd">        # A phase-damping channel.</span>
 <span class="sd">        import numpy as np</span>
-<span class="sd">        from mpstab.models.noise import KrausError</span>
+<span class="sd">        from mpstab import KrausError</span>
 
 <span class="sd">        lam = 0.05</span>
 <span class="sd">        phase_damping = KrausError([</span>
@@ -505,11 +519,12 @@
 <span class="sd">    Amplitude damping ``|1&gt; -&gt; |0&gt;`` with probability ``gamma`` on each qubit</span>
 <span class="sd">    of the gate: energy relaxation (T1), which is not unital.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ::</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        gamma: damping probability, in ``[0, 1]``.</span>
 
-<span class="sd">        from mpstab.models.noise import AmplitudeDampingError</span>
+<span class="sd">    Example::</span>
+
+<span class="sd">        from mpstab import AmplitudeDampingError</span>
 
 <span class="sd">        t1 = AmplitudeDampingError(0.01)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -554,11 +569,15 @@
 <span class="sd">    ``exp(-time / (2 t1))`` down to ``exp(-time / t2)``, so ``t2 &lt;= 2 t1``.</span>
 <span class="sd">    :meth:`scaled` scales ``time``.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ::</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        t1: energy relaxation time.</span>
+<span class="sd">        t2: dephasing time, at most ``2 * t1``.</span>
+<span class="sd">        time: duration of the error, in the units of ``t1`` and ``t2``.</span>
+<span class="sd">        excited_population: equilibrium population of ``|1&gt;``, in ``[0, 1]``.</span>
 
-<span class="sd">        from mpstab.models.noise import ThermalRelaxationError</span>
+<span class="sd">    Example::</span>
+
+<span class="sd">        from mpstab import ThermalRelaxationError</span>
 
 <span class="sd">        idle = ThermalRelaxationError(t1=100e-6, t2=80e-6, time=50e-9)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -633,11 +652,14 @@
 <span class="sd">    subterms. Add it with no gate, optionally restricted to some qubits;</span>
 <span class="sd">    errors on the same qubit compose.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ::</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        p0: probability of reading a ``0`` as ``1``, in ``[0, 1]``.</span>
+<span class="sd">        p1: probability of reading a ``1`` as ``0``, in ``[0, 1]``; ``p0`` if</span>
+<span class="sd">            not given.</span>
 
-<span class="sd">        from mpstab.models.noise import NoiseModel, ReadoutError</span>
+<span class="sd">    Example::</span>
+
+<span class="sd">        from mpstab import NoiseModel, ReadoutError</span>
 
 <span class="sd">        noise = NoiseModel()</span>
 <span class="sd">        noise.add(ReadoutError(0.02))                    # every qubit</span>
@@ -668,11 +690,12 @@
 <span class="sd">    ``p``, so ``|0&gt;`` is prepared as ``|1&gt;``. Add it with no gate, optionally</span>
 <span class="sd">    restricted to some qubits; it acts on the initial state, before any gate.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ::</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        p: flip probability of each qubit, in ``[0, 1]``.</span>
 
-<span class="sd">        from mpstab.models.noise import NoiseModel, StatePreparationError</span>
+<span class="sd">    Example::</span>
+
+<span class="sd">        from mpstab import NoiseModel, StatePreparationError</span>
 
 <span class="sd">        noise = NoiseModel().add(StatePreparationError(0.01))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -920,20 +943,21 @@
 <span class="sd">    gives the same noisy circuit as a qibo density-matrix circuit, for exact</span>
 <span class="sd">    reference values.</span>
 
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    ::</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        rules: the rules added so far, in order.</span>
+
+<span class="sd">    Example::</span>
 
 <span class="sd">        from qibo import gates</span>
-<span class="sd">        from mpstab import HSMPO</span>
-<span class="sd">        from mpstab.models.ansatze import KickedIsing</span>
-<span class="sd">        from mpstab.models.noise import (</span>
+<span class="sd">        from mpstab import (</span>
+<span class="sd">            HSMPO,</span>
 <span class="sd">            AmplitudeDampingError,</span>
 <span class="sd">            CoherentError,</span>
 <span class="sd">            DepolarizingError,</span>
 <span class="sd">            NoiseModel,</span>
 <span class="sd">            PauliError,</span>
 <span class="sd">        )</span>
+<span class="sd">        from mpstab.models.ansatze import KickedIsing</span>
 
 <span class="sd">        chain = [(0, 1), (1, 2), (2, 3)]</span>
 <span class="sd">        noise = NoiseModel()</span>
@@ -963,23 +987,22 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Put ``error`` after every gate of type ``gate`` (all gates if ``None``).</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        error : PauliError, DepolarizingError, CoherentError, KrausError, \</span>
-<span class="sd">AmplitudeDampingError, ThermalRelaxationError, ReadoutError or \</span>
-<span class="sd">StatePreparationError</span>
-<span class="sd">            The error to insert. Readout and preparation errors take no gate.</span>
-<span class="sd">        gate : qibo gate class or sequence of them, optional</span>
-<span class="sd">            Only gates of these types get the error. Measurements never do.</span>
-<span class="sd">        qubits : int or sequence of int, optional</span>
-<span class="sd">            Restrict the error to these qubits. A single-qubit error acts only</span>
-<span class="sd">            on the gate&#39;s qubits in this set; an error spanning the whole gate</span>
-<span class="sd">            applies only to gates entirely inside it.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            error: the error to insert. Readout and preparation errors take no</span>
+<span class="sd">                gate.</span>
+<span class="sd">            gate: qibo gate class, or sequence of them; only gates of these</span>
+<span class="sd">                types get the error. Measurements never do.</span>
+<span class="sd">            qubits: restrict the error to these qubits. A single-qubit error</span>
+<span class="sd">                acts only on the gate&#39;s qubits in this set; an error spanning</span>
+<span class="sd">                the whole gate applies only to gates entirely inside it.</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        NoiseModel</span>
+<span class="sd">        Returns:</span>
 <span class="sd">            ``self``, so calls can be chained.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: if ``error`` is not an mpstab error.</span>
+<span class="sd">            ValueError: if a :class:`ReadoutError` or a</span>
+<span class="sd">                :class:`StatePreparationError` is given a ``gate``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">_GATE_ERRORS</span> <span class="o">+</span> <span class="n">_UNANCHORED_ERRORS</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">_UNANCHORED_ERRORS</span><span class="p">):</span>
@@ -1012,19 +1035,13 @@
 <span class="sd">        spectator; a two-qubit one acts on each ``(gate qubit, spectator)``</span>
 <span class="sd">        edge, in that order, as ``ZZ`` crosstalk from a driven qubit does.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        error : PauliError, DepolarizingError, CoherentError, KrausError, \</span>
-<span class="sd">AmplitudeDampingError or ThermalRelaxationError</span>
-<span class="sd">            The error, on one qubit or on two.</span>
-<span class="sd">        coupling : iterable of (int, int)</span>
-<span class="sd">            The coupling graph, as qubit pairs.</span>
-<span class="sd">        gate : qibo gate class or sequence of them, optional</span>
-<span class="sd">            Only gates of these types cause the crosstalk.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            error: the error, on one qubit or on two.</span>
+<span class="sd">            coupling: the coupling graph, as qubit pairs.</span>
+<span class="sd">            gate: qibo gate class, or sequence of them; only gates of these</span>
+<span class="sd">                types cause the crosstalk.</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        NoiseModel</span>
+<span class="sd">        Returns:</span>
 <span class="sd">            ``self``, so calls can be chained.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">_GATE_ERRORS</span><span class="p">)</span>
@@ -1048,25 +1065,17 @@
 <span class="sd">        Moments are an in-order layering of the gate queue: a gate lands one</span>
 <span class="sd">        moment after the last gate on any of its qubits, and never before the</span>
 <span class="sd">        gate queued ahead of it, so a circuit queued layer by layer gets its</span>
-<span class="sd">        layers as moments. A</span>
-<span class="sd">        single-qubit error acts on every idle qubit of every moment, before</span>
-<span class="sd">        its first gate and after its last one included. A two-qubit error,</span>
+<span class="sd">        layers as moments. A single-qubit error acts on every idle qubit of</span>
+<span class="sd">        every moment, before its first gate and after its last one included. A two-qubit error,</span>
 <span class="sd">        such as an always-on ``ZZ`` coupling, acts on each ``coupling`` edge</span>
 <span class="sd">        whose two qubits are both idle.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        error : PauliError, DepolarizingError, CoherentError, KrausError, \</span>
-<span class="sd">AmplitudeDampingError or ThermalRelaxationError</span>
-<span class="sd">            The error, on one qubit or on two.</span>
-<span class="sd">        qubits : int or sequence of int, optional</span>
-<span class="sd">            Restrict the error to these qubits.</span>
-<span class="sd">        coupling : iterable of (int, int), optional</span>
-<span class="sd">            The coupling graph, needed by two-qubit errors.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            error: the error, on one qubit or on two.</span>
+<span class="sd">            qubits: restrict the error to these qubits.</span>
+<span class="sd">            coupling: the coupling graph, needed by two-qubit errors.</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        NoiseModel</span>
+<span class="sd">        Returns:</span>
 <span class="sd">            ``self``, so calls can be chained.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">_GATE_ERRORS</span><span class="p">)</span>
@@ -1153,8 +1162,6 @@
 <span class="sd">        term with ``w`` non-identity factors on asymmetric qubits into its</span>
 <span class="sd">        ``2**w`` subterms, the empty one adding to the constant.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.hamiltonians</span><span class="w"> </span><span class="kn">import</span> <span class="n">pauli_terms</span>
-
         <span class="n">constant</span><span class="p">,</span> <span class="n">terms</span> <span class="o">=</span> <span class="n">pauli_terms</span><span class="p">(</span><span class="n">observable</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>
         <span class="n">scale</span><span class="p">,</span> <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readout_maps</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
         <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1213,9 +1220,7 @@
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">KrausChannel</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">gates</span><span class="o">.</span><span class="n">KrausChannel</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">qubits</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">kraus</span><span class="p">))</span>
     <span class="n">support</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">generator</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span> <span class="o">!=</span> <span class="s2">&quot;I&quot;</span><span class="p">]</span>
-    <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">]])</span>
-    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">support</span><span class="p">:</span>
-        <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">PAULI_MATRICES</span><span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="n">q</span><span class="p">]])</span>
+    <span class="n">matrix</span> <span class="o">=</span> <span class="n">pauli_matrix</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">support</span><span class="p">))</span>
     <span class="n">unitary</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">angle</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">matrix</span><span class="p">))</span>
         <span class="o">-</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">angle</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">matrix</span>

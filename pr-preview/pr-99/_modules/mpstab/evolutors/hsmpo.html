@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -214,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../user_guide/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -240,7 +242,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -276,12 +283,13 @@
           <h1>Source code for mpstab.evolutors.hsmpo</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;The hybrid stabilizer-MPO surrogate of a quantum circuit.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">MISSING</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">fields</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">MISSING</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">replace</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">stim</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">QuimbEngine</span><span class="p">,</span>
@@ -289,14 +297,14 @@
     <span class="n">StimEngine</span><span class="p">,</span>
     <span class="n">TensorNetworkEngine</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines.tensor_networks.quimb</span><span class="w"> </span><span class="kn">import</span> <span class="n">_qibo_circuit_to_quimb</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.gradient</span><span class="w"> </span><span class="kn">import</span> <span class="n">analytic_gradient</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize_expectation_dmrg</span><span class="p">,</span> <span class="n">minimize_parameters</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">gate_angle</span><span class="p">,</span> <span class="n">gate_generator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.hamiltonians</span><span class="w"> </span><span class="kn">import</span> <span class="n">Observable</span><span class="p">,</span> <span class="n">pauli_terms</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">Ansatz</span><span class="p">,</span> <span class="n">CircuitAnsatz</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">conjugate</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">light_cone</span> <span class="k">as</span> <span class="n">pauli_light_cone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.compile</span><span class="w"> </span><span class="kn">import</span> <span class="n">compile_noise</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.mc_noise_estimator</span><span class="w"> </span><span class="kn">import</span> <span class="n">noisy_expectation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">conjugate</span><span class="p">,</span> <span class="n">pauli_light_cone</span>
 
 
 <div class="viewcode-block" id="HSMPO">
@@ -494,41 +502,14 @@
 <span class="sd">        ``magic_gates``: the gate&#39;s generator conjugated by the first</span>
 <span class="sd">        ``breakpoint`` gates of ``clifford_circuit`` is ``sign * generator``.</span>
 
-<span class="sd">        With a :class:`~mpstab.engines.StimEngine` the Clifford circuit is</span>
-<span class="sd">        simulated once, a segment at a time, so dressing every gate costs one</span>
-<span class="sd">        pass over the circuit. Other engines backpropagate each generator</span>
-<span class="sd">        through its own prefix, which is quadratic in the circuit length.</span>
+<span class="sd">        The stabilizers engine does the dressing</span>
+<span class="sd">        (:meth:`~mpstab.engines.StabilizersEngine.backpropagate_at`).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stab_engine</span><span class="p">,</span> <span class="n">StimEngine</span><span class="p">):</span>
-            <span class="n">dressed</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">breakpoint_index</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">magic_gates</span><span class="p">:</span>
-                <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clifford_subcircuit</span><span class="p">(</span><span class="n">clifford_circuit</span><span class="p">,</span> <span class="n">breakpoint_index</span><span class="p">)</span>
-                <span class="n">dressed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">stab_engine</span><span class="o">.</span><span class="n">backpropagate</span><span class="p">(</span>
-                        <span class="n">gate_generator</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">),</span> <span class="n">prefix</span>
-                    <span class="p">)</span>
-                <span class="p">)</span>
-            <span class="k">return</span> <span class="n">dressed</span>
-
-        <span class="n">instructions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stab_engine</span><span class="o">.</span><span class="n">instructions</span><span class="p">(</span><span class="n">clifford_circuit</span><span class="p">)</span>
-        <span class="n">simulator</span> <span class="o">=</span> <span class="n">stim</span><span class="o">.</span><span class="n">TableauSimulator</span><span class="p">()</span>
-        <span class="n">simulator</span><span class="o">.</span><span class="n">do</span><span class="p">(</span><span class="n">stim</span><span class="o">.</span><span class="n">Circuit</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;I </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
-
-        <span class="n">dressed</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">simulated</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">inverse</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">breakpoint_index</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">magic_gates</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">breakpoint_index</span> <span class="o">&lt;</span> <span class="n">simulated</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Magic gates must be listed in circuit order.&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">breakpoint_index</span> <span class="o">&gt;</span> <span class="n">simulated</span> <span class="ow">or</span> <span class="n">inverse</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="c1"># Every Clifford gate up to this magic gate, in one stim call.</span>
-                <span class="n">segment</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">instructions</span><span class="p">[</span><span class="n">simulated</span><span class="p">:</span><span class="n">breakpoint_index</span><span class="p">])</span>
-                <span class="n">simulator</span><span class="o">.</span><span class="n">do</span><span class="p">(</span><span class="n">stim</span><span class="o">.</span><span class="n">Circuit</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">segment</span><span class="p">)))</span>
-                <span class="n">simulated</span> <span class="o">=</span> <span class="n">breakpoint_index</span>
-                <span class="c1"># current_inverse_tableau() is U^dag for the Clifford prefix U.</span>
-                <span class="n">inverse</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">current_inverse_tableau</span><span class="p">()</span>
-            <span class="n">dressed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conjugate</span><span class="p">(</span><span class="n">gate_generator</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">),</span> <span class="n">inverse</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">dressed</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stab_engine</span><span class="o">.</span><span class="n">backpropagate_at</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">gate_generator</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">magic_gates</span><span class="p">],</span>
+            <span class="p">[</span><span class="n">breakpoint_index</span> <span class="k">for</span> <span class="n">breakpoint_index</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">magic_gates</span><span class="p">],</span>
+            <span class="n">clifford_circuit</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_evolve_original</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -727,11 +708,6 @@
 <span class="sd">            :class:`~mpstab.models.noise.NoisyExpectation`, with the value in ``mean``</span>
 <span class="sd">            and its standard error in ``stderr``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">replace</span>
-
-        <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.compile</span><span class="w"> </span><span class="kn">import</span> <span class="n">compile_noise</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.noise.estimator</span><span class="w"> </span><span class="kn">import</span> <span class="n">noisy_expectation</span>
-
         <span class="n">constant</span><span class="p">,</span> <span class="n">terms</span> <span class="o">=</span> <span class="n">noise</span><span class="o">.</span><span class="n">readout_observable</span><span class="p">(</span><span class="n">observable</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span>
         <span class="n">compiled</span> <span class="o">=</span> <span class="n">compile_noise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">noise</span><span class="o">.</span><span class="n">events</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ansatz</span><span class="o">.</span><span class="n">circuit</span><span class="p">))</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">noisy_expectation</span><span class="p">(</span>
@@ -779,7 +755,7 @@
 <span class="sd">            return_partitions: also return the magic gates, the Clifford-only</span>
 <span class="sd">                circuit, the sampled full circuit and the evolved MPS.</span>
 <span class="sd">            light_cone: skip the dressed rotations that cannot affect the</span>
-<span class="sd">                observable (:func:`~mpstab.pauli.light_cone`). This is exact,</span>
+<span class="sd">                observable (:func:`~mpstab.pauli.pauli_light_cone`). This is exact,</span>
 <span class="sd">                and with a bond-dimension cap it also spares those rotations&#39;</span>
 <span class="sd">                truncation error.</span>
 
@@ -829,7 +805,10 @@
 <span class="sd">        :data:`_PROGRESS_DELAY` seconds.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">generator</span><span class="p">,</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">_progress_bar</span><span class="p">(</span>
-            <span class="n">rotations</span><span class="p">,</span> <span class="n">state_mps</span><span class="p">,</span> <span class="n">description</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">progress</span>
+            <span class="n">rotations</span><span class="p">,</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">bond_dimension</span><span class="p">(</span><span class="n">state_mps</span><span class="p">),</span>
+            <span class="n">description</span><span class="p">,</span>
+            <span class="n">enabled</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">progress</span><span class="p">,</span>
         <span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">pauli_rot</span><span class="p">(</span>
                 <span class="n">state_circuit</span><span class="o">=</span><span class="n">state_mps</span><span class="p">,</span>
@@ -868,11 +847,11 @@
 <span class="sd">        Truncation fidelity of running the whole circuit as a plain MPS, with no</span>
 <span class="sd">        stabilizer help: the baseline the hybrid representation improves on.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">_qibo_circuit_to_quimb</span><span class="p">(</span>
-            <span class="n">nqubits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span>
-            <span class="n">qibo_circ</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ansatz</span><span class="o">.</span><span class="n">circuit</span><span class="p">,</span>
-            <span class="n">max_bond</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_bond_dimension</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">fidelity_estimate</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">circuit_truncation_fidelity</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initial_state</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ansatz</span><span class="o">.</span><span class="n">circuit</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_bond_dimension</span><span class="p">,</span>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="HSMPO.truncation_fidelity">
 <a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.truncation_fidelity">[docs]</a>
@@ -941,11 +920,9 @@
 <span class="sd">            ``num_sweeps`` and ``energy_history``.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            NotImplementedError: with a tensor-network engine other than</span>
-<span class="sd">                :class:`~mpstab.engines.QuimbEngine`, or an unimplemented method.</span>
+<span class="sd">            NotImplementedError: with a tensor-network engine that does not</span>
+<span class="sd">                implement :meth:`~mpstab.engines.TensorNetworkEngine.minimize_energy`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="p">,</span> <span class="n">QuimbEngine</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;DMRG optimization requires QuimbEngine.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;dmrg&quot;</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown method </span><span class="si">{</span><span class="n">method</span><span class="si">!r}</span><span class="s2">, expected &#39;dmrg&#39;.&quot;</span><span class="p">)</span>
 
@@ -975,18 +952,16 @@
 <span class="n">_PROGRESS_DELAY</span> <span class="o">=</span> <span class="mf">1.0</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_progress_bar</span><span class="p">(</span><span class="n">rotations</span><span class="p">,</span> <span class="n">state_mps</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_progress_bar</span><span class="p">(</span><span class="n">rotations</span><span class="p">,</span> <span class="n">bond</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Iterate over ``rotations``, drawing a progress bar with the bond dimension</span>
-<span class="sd">    of ``state_mps`` once the loop has run for :data:`_PROGRESS_DELAY` seconds.</span>
+<span class="sd">    Iterate over ``rotations``, drawing a progress bar once the loop has run</span>
+<span class="sd">    for :data:`_PROGRESS_DELAY` seconds, with the bond dimension ``bond()``</span>
+<span class="sd">    returns when it is not ``None``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">rotations</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rotations</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">enabled</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">rotations</span><span class="p">:</span>
         <span class="k">yield from</span> <span class="n">rotations</span>
         <span class="k">return</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
-
-    <span class="n">bond</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">state_mps</span><span class="p">,</span> <span class="s2">&quot;max_bond&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">every</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">rotations</span><span class="p">)</span> <span class="o">//</span> <span class="mi">200</span><span class="p">)</span>  <span class="c1"># refresh chi ~200 times at most</span>
     <span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span>
         <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">rotations</span><span class="p">),</span>
@@ -1001,8 +976,10 @@
     <span class="p">)</span> <span class="k">as</span> <span class="n">bar</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">step</span><span class="p">,</span> <span class="n">rotation</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rotations</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
             <span class="k">yield</span> <span class="n">rotation</span>
-            <span class="k">if</span> <span class="n">bond</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">step</span> <span class="o">%</span> <span class="n">every</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">step</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">rotations</span><span class="p">)):</span>
-                <span class="n">bar</span><span class="o">.</span><span class="n">set_postfix_str</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;chi=</span><span class="si">{</span><span class="n">bond</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">refresh</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">step</span> <span class="o">%</span> <span class="n">every</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">step</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">rotations</span><span class="p">):</span>
+                <span class="n">chi</span> <span class="o">=</span> <span class="n">bond</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">chi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">bar</span><span class="o">.</span><span class="n">set_postfix_str</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;chi=</span><span class="si">{</span><span class="n">chi</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">refresh</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
 </pre></div>
         </article>

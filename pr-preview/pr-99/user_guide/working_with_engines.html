@@ -11,6 +11,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=71654716" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -215,6 +216,7 @@
 <li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ansatze_catalogue.html">Ansatz Catalogue</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
@@ -241,7 +243,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/noise.html">Noise</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
 </ul>
 
 </div>
@@ -348,6 +355,27 @@ network. Engines are passed at construction, or swapped later with
 
 <span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">circuit</span><span class="p">,</span> <span class="n">max_bond_dimension</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
 <span class="c1"># Uses Quimb tensor network engine by default</span>
+</pre></div>
+</div>
+</section>
+<section id="native-engines">
+<h3>Native Engines<a class="headerlink" href="#native-engines" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">NativeStabilizersEngine</span></code> and <code class="docutils literal notranslate"><span class="pre">NativeTensorNetworkEngine</span></code> are pure-Python
+implementations of the same interfaces, meant to be read: they show what a
+stabilizers engine and a tensor-network engine actually do, without stim or
+quimb in the way. They give the same results, more slowly, and the native
+tensor-network engine supports neither DMRG nor the head/tail split of
+<code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">NativeStabilizersEngine</span><span class="p">,</span> <span class="n">NativeTensorNetworkEngine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
+
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span>
+    <span class="n">ansatz</span><span class="o">=</span><span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+    <span class="n">stab_engine</span><span class="o">=</span><span class="n">NativeStabilizersEngine</span><span class="p">(),</span>
+    <span class="n">tn_engine</span><span class="o">=</span><span class="n">NativeTensorNetworkEngine</span><span class="p">(),</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">simulator</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="s2">&quot;ZZZZZ&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </section>
@@ -471,6 +499,7 @@ network. Engines are passed at construction, or swapped later with
 <li><a class="reference internal" href="#available-engines">Available Engines</a><ul>
 <li><a class="reference internal" href="#stabilizer-engines">Stabilizer Engines</a></li>
 <li><a class="reference internal" href="#tensor-network-engines">Tensor Network Engines</a></li>
+<li><a class="reference internal" href="#native-engines">Native Engines</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#engine-configuration">Engine Configuration</a></li>
