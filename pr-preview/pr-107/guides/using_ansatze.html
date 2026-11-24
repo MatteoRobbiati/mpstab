@@ -1,0 +1,533 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Ansatz Catalogue" href="ansatze_catalogue.html"><link rel="prev" title="Working with Engines" href="working_with_engines.html">
+        <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Using Ansätze - Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=71654716" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../_static/mpstab_logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">Documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/noise.html">Noisy simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/advanced_noise.html">Device-level noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/topology.html">Coupling topologies</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api/evolutors.html">Evolutors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/qpu.html">QPU</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/error_mitigation.html">Error Mitigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/qibo_tools.html">Qibo tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/guides/using_ansatze.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="using-ansatze">
+<h1>Using Ansätze<a class="headerlink" href="#using-ansatze" title="Link to this heading">¶</a></h1>
+<p>Ansätze are pre-built quantum circuit patterns that serve as templates for quantum algorithms.
+Out HSMPO surrogate works around a provided ansatz, but, as you know from previous examples, a simple Qibo circuit works too.
+This is because we internally take care of constructing a proper ansatz around the provided circuit.</p>
+<section id="available-ansatze">
+<h2>Available Ansätze<a class="headerlink" href="#available-ansatze" title="Link to this heading">¶</a></h2>
+<p>In MPSTAB, we provide a few precomputed ansätze, for example Hardware Efficient or Floquet Dynamics inspired.
+More remarkably, we provide two, more abstract, models: a first general wrapper, which can be used to transform
+any Qibo circuit into an Mpstab ansatz (CircuitAnsatz), and a more complicated ansatz, which allows to provide
+more information about the quantum hardware and, then, recover a compiled and transpiled ansatz (TranspiledAnsatz). This second
+model is particularly relevant in contexts where one wants to have control of the number of gates executed
+on a real quantum device.</p>
+<p>The <a class="reference internal" href="ansatze_catalogue.html"><span class="doc">Ansatz Catalogue</span></a> lists every ansatz with its physical description and
+the parameters that tune its magic and its entanglement.</p>
+<section id="circuitansatz">
+<h3>CircuitAnsatz<a class="headerlink" href="#circuitansatz" title="Link to this heading">¶</a></h3>
+<p>Wrap any existing Qibo circuit as an ansatz:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">CircuitAnsatz</span>
+
+<span class="c1"># Create a custom circuit</span>
+<span class="n">circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+    <span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+    <span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">RY</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">0.5</span><span class="p">))</span>
+<span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="c1"># Wrap as ansatz</span>
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">CircuitAnsatz</span><span class="p">(</span><span class="n">qibo_circuit</span><span class="o">=</span><span class="n">circuit</span><span class="p">)</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="circuit-library-ansatze">
+<h3>Circuit-library ansätze<a class="headerlink" href="#circuit-library-ansatze" title="Link to this heading">¶</a></h3>
+<p>MPSTAB ships a small library of textbook circuits — <code class="docutils literal notranslate"><span class="pre">QFT</span></code>, <code class="docutils literal notranslate"><span class="pre">QFTPhaseKernel</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Grover</span></code>, <code class="docutils literal notranslate"><span class="pre">QPE</span></code>, <code class="docutils literal notranslate"><span class="pre">QAE</span></code> and <code class="docutils literal notranslate"><span class="pre">TrotterIsing</span></code> — useful as HSMPO/HQSMPO
+benchmarks. They are written with high-level gates (<code class="docutils literal notranslate"><span class="pre">CU1</span></code>, <code class="docutils literal notranslate"><span class="pre">SWAP</span></code>,
+<code class="docutils literal notranslate"><span class="pre">TOFFOLI</span></code>, <code class="docutils literal notranslate"><span class="pre">RZZ</span></code>, …) and, by default, transpiled to a native gate set on
+construction, so every non-Clifford gate becomes an <code class="docutils literal notranslate"><span class="pre">rz</span></code> rotation that HSMPO
+can consume — you never hand-decompose anything:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">QFT</span><span class="p">,</span> <span class="n">TrotterIsing</span><span class="p">,</span> <span class="n">Grover</span>
+
+<span class="c1"># Quantum Fourier Transform on 6 qubits (transpiled by default)</span>
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">QFT</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">)</span>
+<span class="n">simulator</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="s2">&quot;Z&quot;</span> <span class="o">*</span> <span class="mi">6</span><span class="p">)</span>
+
+<span class="c1"># Trotterized transverse-field Ising evolution</span>
+<span class="n">ising</span> <span class="o">=</span> <span class="n">TrotterIsing</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+<span class="c1"># Grover search; QPE/QAE take ``n_counting`` and add one work qubit</span>
+<span class="n">grover</span> <span class="o">=</span> <span class="n">Grover</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Pass <code class="docutils literal notranslate"><span class="pre">transpile=False</span></code> to keep the raw high-level circuit for inspection
+(HSMPO itself requires the transpiled form). These pair naturally with
+<code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> and its cut-index split — see <a class="reference internal" href="../api/engines.html"><span class="doc">Engines</span></a>.</p>
+</section>
+</section>
+<section id="choosing-the-couplings">
+<h2>Choosing the couplings<a class="headerlink" href="#choosing-the-couplings" title="Link to this heading">¶</a></h2>
+<p>Every ansatz with two-qubit gates takes a <code class="docutils literal notranslate"><span class="pre">graph</span></code> field: the pairs of qubits
+it couples, as a <a class="reference internal" href="../api/models.html#mpstab.models.topology.Topology" title="mpstab.models.topology.Topology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Topology</span></code></a> or anything that describes one, such as a
+name, a list of edges or a <code class="docutils literal notranslate"><span class="pre">networkx</span></code> graph. The single-qubit part of the
+ansatz stays the same; the two-qubit gates go on the edges, a layer of
+disjoint edges at a time. <code class="docutils literal notranslate"><span class="pre">ansatz.topology</span></code> reads back the pairs the circuit
+couples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span><span class="p">,</span> <span class="n">RampedKickedIsing</span>
+
+<span class="c1"># the same kicked Ising ansatz on a 3 x 4 lattice instead of a chain</span>
+<span class="n">lattice</span> <span class="o">=</span> <span class="n">RampedKickedIsing</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">delta_h</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="s2">&quot;grid&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">lattice</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">depth</span><span class="p">)</span>  <span class="c1"># 4 layers of disjoint bonds per step</span>
+
+<span class="c1"># any list of edges</span>
+<span class="n">pairs</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">)])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">pairs</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>  <span class="c1"># ((0, 3), (1, 4), (2, 5))</span>
+</pre></div>
+</div>
+<p>To run the circuit on a device without routing, build the ansatz on the
+coupling map of the device, or on part of it, and check it with
+<a class="reference internal" href="../api/models.html#mpstab.models.topology.Topology.is_subgraph_of" title="mpstab.models.topology.Topology.is_subgraph_of"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Topology.is_subgraph_of()</span></code></a>. A provider lists each coupled pair in both
+directions; <a class="reference internal" href="../api/models.html#mpstab.models.topology.Topology.from_device" title="mpstab.models.topology.Topology.from_device"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Topology.from_device()</span></code></a> reads it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">Topology</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">RampedKickedIsing</span>
+
+<span class="n">coupling_map</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+<span class="n">device</span> <span class="o">=</span> <span class="n">Topology</span><span class="o">.</span><span class="n">from_device</span><span class="p">(</span><span class="n">coupling_map</span><span class="p">)</span>
+
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">RampedKickedIsing</span><span class="p">(</span>
+    <span class="n">nqubits</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">delta_h</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">device</span>
+<span class="p">)</span>
+<span class="k">assert</span> <span class="n">ansatz</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">is_subgraph_of</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="ansatze_catalogue.html"><span class="doc">Ansatz Catalogue</span></a> lists the default couplings of each ansatz, and
+the tutorial <a class="reference internal" href="../tutorials/topology.html"><span class="doc">Coupling topologies</span></a> shows how the choice of the graph
+changes the cost of HSMPO at fixed magic.</p>
+</section>
+<section id="building-custom-ansatze">
+<h2>Building Custom Ansätze<a class="headerlink" href="#building-custom-ansatze" title="Link to this heading">¶</a></h2>
+<p>Extend the <code class="docutils literal notranslate"><span class="pre">Ansatz</span></code> class for custom patterns. Let the ansatz take a
+<code class="docutils literal notranslate"><span class="pre">graph</span></code> and place its two-qubit gates on the layers of the corresponding
+<a class="reference internal" href="../api/models.html#mpstab.models.topology.Topology" title="mpstab.models.topology.Topology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Topology</span></code></a>: the same class then runs on a ring, a lattice or the
+coupling map of a device:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gates</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span><span class="p">,</span> <span class="n">Topology</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">Ansatz</span>
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LayeredRY</span><span class="p">(</span><span class="n">Ansatz</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Random RY rotations on every qubit, then a CZ on every coupled pair.&quot;&quot;&quot;</span>
+
+    <span class="n">nlayers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">graph</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="s2">&quot;ring&quot;</span>  <span class="c1"># anything Topology.coerce accepts</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__post_init__</span><span class="p">()</span>  <span class="c1"># creates the empty circuit</span>
+        <span class="n">topology</span> <span class="o">=</span> <span class="n">Topology</span><span class="o">.</span><span class="n">coerce</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">RY</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)))</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">topology</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">layer</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">CZ</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
+
+
+<span class="n">ansatz</span> <span class="o">=</span> <span class="n">LayeredRY</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="s2">&quot;grid&quot;</span><span class="p">)</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">ansatz</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">simulator</span><span class="o">.</span><span class="n">expectation</span><span class="p">(</span><span class="s2">&quot;ZZIIII&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="the-ansatz-partitioning">
+<h2>The ansatz partitioning<a class="headerlink" href="#the-ansatz-partitioning" title="Link to this heading">¶</a></h2>
+<p>An HSMPO surrogate is constructed grouping all the Clifford operations in the circuit and
+rewriting the representation of the unitary in terms of new - global - rotations. All this
+procedure, that is well described in the original HSMPO paper, requires a fine partitioning
+of the original quantum circuit, and a reconstruction of a series of operations alternately
+handled by the stabilizers and the tensor network engines. Our ansätze provide a built int
+method to partitionate and recover all these features of the provided circuit.</p>
+</section>
+<section id="further-reading">
+<h2>Further Reading<a class="headerlink" href="#further-reading" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://qibo.science/">Qibo Circuit Documentation</a></p></li>
+<li><p><a class="reference internal" href="../api/models.html"><span class="doc">Models &amp; Methods</span></a></p></li>
+<li><p>Research papers on ansatz design and VQA algorithms</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="ansatze_catalogue.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Ansatz Catalogue</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="working_with_engines.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Working with Engines</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Matteo Robbiati, Giulio Crognaletti, Mattia Robbiano, Roberto Di Lauro, Michele Grossi
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Using Ansätze</a><ul>
+<li><a class="reference internal" href="#available-ansatze">Available Ansätze</a><ul>
+<li><a class="reference internal" href="#circuitansatz">CircuitAnsatz</a></li>
+<li><a class="reference internal" href="#circuit-library-ansatze">Circuit-library ansätze</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#choosing-the-couplings">Choosing the couplings</a></li>
+<li><a class="reference internal" href="#building-custom-ansatze">Building Custom Ansätze</a></li>
+<li><a class="reference internal" href="#the-ansatz-partitioning">The ansatz partitioning</a></li>
+<li><a class="reference internal" href="#further-reading">Further Reading</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/katex.min.js?v=5cc8ed51"></script>
+    <script src="../_static/auto-render.min.js?v=af98beb9"></script>
+    <script src="../_static/katex_autorenderer.js?v=bebc588a"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>
