@@ -16,12 +16,12 @@ class HeadSynthesis(ABC):
     pure-Clifford residual, applied last.
 
     Subclasses are frozen dataclasses holding their own options, so an instance
-    is hashable and :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.resynthesize_head`
+    is hashable and :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.resynthesize_head`
     can cache resyntheses on it. They implement :meth:`_synthesize`.
     """
 
     #: Short name, reported as
-    #: :attr:`~mpstab.evolutors.hsynthsmpo.ResynthesizedHead.method`.
+    #: :attr:`~mpstab.evolutors.hqsmpo.ResynthesizedHead.method`.
     name: ClassVar[str]
 
     def synthesize(

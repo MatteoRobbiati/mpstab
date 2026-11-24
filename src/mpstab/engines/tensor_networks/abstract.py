@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Iterable
 
 #: What each method takes and returns is engine-specific: an engine may
 #: represent states and operators however it likes, as long as the objects it
@@ -25,7 +25,7 @@ class TensorNetworkEngine(ABC):
     when that feature is used:
 
     - :meth:`conjugate_operator` and :meth:`operator_site_arrays`: the
-      head/tail split of :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`;
+      head/tail split of :class:`~mpstab.evolutors.hqsmpo.HQSMPO`;
     - :meth:`pauli_sum_mpo` and :meth:`minimize_energy`: DMRG;
     - :meth:`circuit_truncation_fidelity`: the pure-tensor-network baseline of
       :attr:`~mpstab.evolutors.hsmpo.HSMPO.truncation_fidelity_pure_tn`.
@@ -69,6 +69,17 @@ class TensorNetworkEngine(ABC):
         """
         return [self.expval(state_circuit, self.pauli_mpo(p)) for p in paulis]
 
+    def pauli_transitions(self, bra_state: Any, ket_state: Any, paulis) -> list:
+        """
+        Normalized transition amplitudes ``<bra|P|ket>`` of many Pauli
+        strings between two states, in order: each state is divided by its
+        own norm.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not compute transition amplitudes, "
+            "which non-Pauli noise channels need."
+        )
+
     @abstractmethod
     def pauli_rot(
         self, state_circuit: Any, generator: str, angle: float, max_bond_dimension: int
@@ -106,10 +117,11 @@ class TensorNetworkEngine(ABC):
         return copy.deepcopy(state_circuit)
 
     @abstractmethod
-    def squared_norm(self, state_circuit: Any) -> float:
+    def squared_norm(self, state_circuit: Any):
         """
         ``<psi|psi>``: 1 for an exact state, lower by the weight truncation
-        has discarded.
+        has discarded. A float, or a backend scalar on autodiff backends so it
+        stays differentiable.
         """
 
     def bond_dimension(self, state_circuit: Any) -> int | None:
@@ -128,13 +140,30 @@ class TensorNetworkEngine(ABC):
         """
         raise self._unsupported("operator conjugation (conjugate_operator)")
 
+    def conjugate_operator_many(
+        self, operator: Any, rotations: Iterable, max_bond_dimension: int
+    ):
+        """
+        Conjugate ``operator`` by each ``(generator, angle)`` rotation in turn,
+        as repeated :meth:`conjugate_operator` calls would: the first rotation
+        is folded first, i.e. it ends up innermost.
+
+        Engines override it to keep the operator in a working form across the
+        whole sequence instead of converting it on every call.
+        """
+        for generator, angle in rotations:
+            operator = self.conjugate_operator(
+                operator, generator, angle, max_bond_dimension
+            )
+        return operator
+
     def operator_site_arrays(self, operator: Any) -> list:
         """
         The operator's site tensors as numpy arrays ordered
         ``(left, right, out, in)``, boundary bonds as singleton axes.
 
         This is how an operator leaves the engine: the Pauli-basis expansion,
-        the shadow and TN-ICE estimators and the operator norms in
+        the shadow estimator and the operator norms in
         :mod:`~mpstab.qpu.measurement.pauli_expansion` all work on these
         arrays, whatever engine folded the operator.
         """

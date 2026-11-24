@@ -3,7 +3,7 @@
 A kicked Ising circuit runs under depolarizing noise after every gate, with a
 correlated ZZ dephasing term after every CNOT and coherent ZZ crosstalk. For
 several noise strengths the script prints the noiseless value, the noisy value
-from the hybrid surrogate (``mpstab.noise``) and the exact value from a qibo
+from the hybrid surrogate (``mpstab.models.noise``) and the exact value from a qibo
 density-matrix simulation, with timings.
 
 At this width the exact density matrix is far cheaper: the point of the
@@ -19,10 +19,14 @@ import time
 import numpy as np
 from qibo import gates
 
-from mpstab import HSMPO
-from mpstab.hamiltonians import pauli_string_to_hamiltonian
+from mpstab import (
+    HSMPO,
+    CoherentError,
+    NoiseModel,
+    PauliError,
+    pauli_string_to_hamiltonian,
+)
 from mpstab.models.ansatze import KickedIsing
-from mpstab.noise import CoherentError, NoiseModel, PauliError
 
 NQUBITS = 8
 OBSERVABLE = "ZIIIIIIZ"

@@ -1,7 +1,7 @@
 Head Synthesis by Clifford Extraction
 =====================================
 
-``HSynthSMPO`` splits a circuit into a *head*, run on the device, and a
+``HQSMPO`` splits a circuit into a *head*, run on the device, and a
 *tail*, folded classically into the observable. The head is a list of dressed
 Pauli rotations, and has to become a circuit. This page explains the
 ``"extraction"`` synthesis, which needs no extra dependency and can be told
@@ -77,11 +77,11 @@ Usage
 
 .. code-block:: python
 
-    from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+    from mpstab import HQSMPO
     from mpstab.models.ansatze import ParametricKickedIsing
     from mpstab.qpu import ExtractionSynthesis, PauliSampling
 
-    hs = HSynthSMPO(
+    hs = HQSMPO(
         ansatz=ParametricKickedIsing(nqubits=6, n_steps=3, delta_h=0.2),
         # connectivity: None (all-to-all) | "line" | [(q0, q1), ...]
         head_synthesis=ExtractionSynthesis(connectivity="line"),

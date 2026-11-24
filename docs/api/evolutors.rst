@@ -32,14 +32,14 @@ to an MPS as dressed Pauli rotations.
     print(f"Expectation value: {result}")
     print(f"Fidelity: {fidelity}")
 
-HSynthSMPO: Head/Tail Split
+HQSMPO: Head/Tail Split
 ---------------------------
 
 Splits the dressed-rotation chain in two: a head resynthesized into a circuit a
 device can run, and a tail folded into the observable. See
 :doc:`../guides/rustiq_resynthesis`.
 
-.. automodule:: mpstab.evolutors.hsynthsmpo
+.. automodule:: mpstab.evolutors.hqsmpo
    :members:
    :undoc-members:
    :show-inheritance:
@@ -64,4 +64,4 @@ For more practical examples, see:
 
 - :doc:`../guides/quickstart`
 - :doc:`../guides/fidelity_and_approximation`
-- :doc:`../examples/introduction`
+- :doc:`../tutorials/introduction`

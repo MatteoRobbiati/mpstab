@@ -9,8 +9,8 @@ import numpy as np
 import pytest
 from utils import dense_expectation, magic_gates
 
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.evolutors.hsmpo import HSMPO
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
 from mpstab.models.ansatze import KickedIsing, ParametricKickedIsing
 
 
@@ -121,7 +121,7 @@ def test_clifford_angles_must_be_multiples_of_half_pi():
 @pytest.mark.parametrize("cut_index", [0, 7, 18])
 def test_head_tail_split_matches_statevector(cut_index):
     ansatz = ParametricKickedIsing(nqubits=6, n_steps=3, delta_h=0.2)
-    evolutor = HSynthSMPO.rotations_only(ansatz)
+    evolutor = HQSMPO.rotations_only(ansatz)
     result = evolutor.expectation_at_cut("IZZIII", cut_index, method="simulation")
     assert result.value == pytest.approx(
         dense_expectation(_state(ansatz), "IZZIII"), abs=1e-8

@@ -73,14 +73,10 @@ Below is an interactive notebook demonstrating DMRG optimization on the Heisenbe
    from qibo import hamiltonians
    from qibo.symbols import X, Y, Z
    from mpstab.models.ansatze import HardwareEfficient
-   from mpstab.evolutors.hsmpo import HSMPO
+   from mpstab import HSMPO
    from mpstab.engines import QuimbEngine, StimEngine
 
-.. toctree::
-   :maxdepth: 1
-   :caption: Interactive Examples
-
-   ../examples/dmrg_optimization_heisenberg
+The :doc:`../tutorials/ground_states` tutorial runs these steps end to end.
 
 Getting Started with DMRG
 -------------------------
@@ -93,7 +89,7 @@ Here's the basic workflow for optimizing any Hamiltonian with DMRG:
 .. code-block:: python
 
    from mpstab.models.ansatze import HardwareEfficient
-   from mpstab.evolutors.hsmpo import HSMPO
+   from mpstab import HSMPO
    from mpstab.engines import QuimbEngine, StimEngine
 
    # 1. Create ansatz and HSMPO, with its engines

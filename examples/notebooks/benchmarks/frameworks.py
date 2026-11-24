@@ -1,34 +1,58 @@
-"""Helpers for ``frameworks.ipynb``: one circuit, three simulators.
+"""Helpers for the benchmark notebooks: one circuit, three simulators.
 
 Every runner takes the same qibo circuit, the same list of
-:mod:`mpstab.noise` events and the same observable, and returns a dict with at
-least ``value`` and ``time`` (seconds, construction included):
+:mod:`mpstab.models.noise` events and the same observable, and returns a dict
+with at least ``value`` and ``time`` (seconds, construction included):
 
 - :func:`run_mpstab` / :func:`run_mpstab_noisy` -- the HSMPO surrogate;
 - :func:`run_qibojit` -- qibo's numba backend, statevector without noise and
   density matrix with it: the exact reference;
 - :class:`PauliPropagation` -- PauliPropagation.jl through juliacall, a
-  truncated Heisenberg-picture Pauli-sum simulator.
+  truncated Heisenberg-picture Pauli-sum simulator, and :class:`IsolatedPP`,
+  the same in a child process with a timeout.
 
 Observables are a Pauli string (qubit 0 leftmost) or a ``{pauli: coefficient}``
 dict. Noise is limited to what all three can express: a uniform depolarizing
 channel per qubit and Pauli rotations (e.g. ZZ crosstalk).
+
+The module also holds the exact free-fermion reference used by
+``free_fermions.ipynb`` and the plotting helpers shared by the notebooks.
+Importing it silences qibo's INFO log, juliacall's IPython banner and the
+spurious floating-point warnings NumPy's Accelerate matmul emits on macOS.
 """
 
 from __future__ import annotations
 
+import os
+import sys
 import time
+import warnings
+from pathlib import Path
+
+# juliacall prints a banner when it detects IPython; the benchmarks do not need
+# its IPython extension.
+os.environ.setdefault("PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION", "no")
 
 import numpy as np
 from qibo import Circuit, gates, symbols
+from qibo.config import log
 from qibo.hamiltonians import SymbolicHamiltonian
 
 from mpstab import HSMPO
 from mpstab.engines import QuimbEngine
+from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.models.ansatze import HardwareEfficient, KickedIsing
-from mpstab.noise.compile import compile_noise
-from mpstab.noise.events import CoherentRotation, PauliChannel
-from mpstab.noise.mc_noise_estimator import noisy_expectation
+from mpstab.models.noise.compile import compile_noise
+from mpstab.models.noise.events import CoherentRotation, PauliChannel
+from mpstab.models.noise.mc_noise_estimator import noisy_expectation
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))  # examples/
+from plotting import COLORS  # noqa: E402
+
+log.setLevel("WARNING")
+# NumPy >= 2 on Apple's Accelerate raises divide/overflow/invalid warnings in
+# matmul on perfectly finite inputs; the results are correct.
+warnings.filterwarnings("ignore", r".* encountered in matmul", RuntimeWarning)
 
 # -- Circuits and noise ---------------------------------------------------------
 
@@ -45,6 +69,24 @@ def hardware_efficient(n: int, layers: int, seed: int = 0):
     # HardwareEfficient draws its angles from NumPy's global generator.
     np.random.seed(seed)
     return HardwareEfficient(nqubits=n, nlayers=layers).circuit
+
+
+def echo_circuit(n: int, steps: int, theta_h=0.7, theta_z=0.3):
+    """``steps`` kicked Ising steps ``U`` followed by ``U^dagger``: the identity."""
+    forward = kicked_ising(n, steps, theta_h=theta_h, theta_z=theta_z)
+    return forward + forward.invert()
+
+
+def free_fermion_circuit(n: int, steps: int, theta_h, theta_j=np.pi / 2):
+    """``RZ(theta_h)`` on every qubit, then ``RXX(theta_j)`` on every bond, ``steps`` times."""
+    circuit = Circuit(n)
+    for _ in range(steps):
+        for q in range(n):
+            circuit.add(gates.RZ(q, theta=theta_h))
+        for start in (0, 1):  # even bonds, then odd bonds (they commute)
+            for q in range(start, n - 1, 2):
+                circuit.add(gates.RXX(q, q + 1, theta=theta_j))
+    return circuit
 
 
 def noise_events(circuit: Circuit, p: float = 0.0, crosstalk: float = 0.0):
@@ -125,6 +167,11 @@ def run_mpstab(circuit, observable, max_bond=None, light_cone=True, svd_cutoff=N
         fidelity=hsmpo.tn_engine.squared_norm(state),
         magic=len(hsmpo.magic_gates),
     )
+
+
+def run_mpstab_exact(circuit, observable):
+    """:func:`run_mpstab` with no bond cap and no SVD cutoff: no approximation at all."""
+    return run_mpstab(circuit, observable, max_bond=None, svd_cutoff=0.0)
 
 
 def run_mpstab_noisy(
@@ -352,42 +399,170 @@ def _isolated_worker(lines, warmup_lines, nqubits, observable, options, queue):
     pp = PauliPropagation(warmup=False)
     # Compile for this width and gate set on a short prefix, untimed.
     pp.run_lines(warmup_lines, nqubits, observable, repeats=1)
+    queue.put("ready")
     queue.put(pp.run_lines(lines, nqubits, observable, repeats=1, **options))
+
+
+#: Longest wait for a child Julia process to start and compile, in seconds.
+PP_STARTUP_LIMIT = 900
 
 
 def run_pp_isolated(circuit, events, observable, timeout, warmup_gates=None, **options):
     """
-    :meth:`PauliPropagation.run` in a child process, abandoned after
-    ``timeout`` seconds: Julia cannot be interrupted from Python, and a
-    propagation that blows up can run for hours. Returns ``None`` on timeout.
+    :meth:`PauliPropagation.run` in a child process, abandoned if the
+    propagation takes more than ``timeout`` seconds: Julia cannot be
+    interrupted from Python, and a propagation that blows up can run for
+    hours. Returns ``None`` on timeout.
 
-    The child compiles ``propagate`` on the first ``warmup_gates`` gates (one
-    Floquet step is enough: same width, same gate types) before timing the
-    full circuit once. Call it under ``if __name__ == "__main__":``.
+    The child starts Julia and compiles ``propagate`` on the first
+    ``warmup_gates`` gates (one Floquet step is enough: same width, same gate
+    types) before the clock starts; then it propagates the full circuit once.
+    Call it under ``if __name__ == "__main__":`` outside notebooks.
     """
     import multiprocessing as mp
+    import queue as queues
 
     lines = PauliPropagation._circuit(circuit, events)
     warmup_lines = lines[: warmup_gates or 4 * circuit.nqubits]
     context = mp.get_context("spawn")
-    queue = context.Queue()
+    channel = context.Queue()
     process = context.Process(
         target=_isolated_worker,
-        args=(lines, warmup_lines, circuit.nqubits, observable, options, queue),
+        args=(lines, warmup_lines, circuit.nqubits, observable, options, channel),
     )
     process.start()
-    process.join(timeout)
-    if process.is_alive():
-        process.kill()
-        process.join()
+    try:
+        channel.get(timeout=PP_STARTUP_LIMIT)  # "ready": Julia started and compiled
+        return channel.get(timeout=timeout)
+    except queues.Empty:
         return None
-    return queue.get() if not queue.empty() else None
+    finally:
+        if process.is_alive():
+            process.kill()
+        process.join()
 
 
-# -- Sweeps and plots -----------------------------------------------------------
+class IsolatedPP:
+    """
+    :func:`run_pp_isolated` for sweeps of growing cost.
 
-#: Fixed colour per framework, so every plot reads the same way.
-COLORS = {"mpstab": "#2a78d6", "qibojit": "#eb6834", "PauliPropagation": "#1baf7a"}
+    Each call runs one truncation threshold on one circuit and returns a row
+    (``method``, ``value``, ``error``, ``time``, ``timed_out``). Once a
+    threshold times out, later calls with that threshold are skipped (NaN
+    time, ``timed_out=False``): the sweeps only make circuits harder.
+    """
+
+    def __init__(self, timeout: float):
+        self.timeout = timeout
+        self.gave_up = set()
+
+    def __call__(
+        self, circuit, observable, threshold, reference, warmup_gates=None, events=()
+    ):
+        method = f"PauliPropagation {threshold:.0e}"
+        row = dict(
+            method=method, value=np.nan, error=np.nan, time=np.nan, timed_out=False
+        )
+        if threshold in self.gave_up:
+            return row
+        result = run_pp_isolated(
+            circuit,
+            list(events),
+            observable,
+            timeout=self.timeout,
+            warmup_gates=warmup_gates,
+            min_abs_coeff=threshold,
+        )
+        if result is None:
+            self.gave_up.add(threshold)
+            row["timed_out"] = True
+            return row
+        row.update(
+            value=result["value"],
+            error=abs(result["value"] - reference),
+            time=result["time"],
+        )
+        return row
+
+
+# -- Exact free-fermion reference -------------------------------------------------
+
+
+def majorana_form(pauli: str):
+    """``pauli = phase * c_{a_1} ... c_{a_m}``, with ``a_1 < ... < a_m``."""
+    phase, word = 1 + 0j, []
+    for i, label in enumerate(pauli):
+        if label == "Z":
+            phase *= -1j
+            word += [2 * i, 2 * i + 1]
+        elif label in "XY":
+            phase *= (-1j) ** i  # the Jordan-Wigner string Z_0 ... Z_{i-1}
+            word += list(range(2 * i)) + [2 * i if label == "X" else 2 * i + 1]
+    for end in range(len(word) - 1, 0, -1):  # sort: -1 per swap of distinct modes
+        for k in range(end):
+            if word[k] > word[k + 1]:
+                word[k], word[k + 1] = word[k + 1], word[k]
+                phase = -phase
+    reduced = []
+    for a in word:  # c^2 = 1
+        if reduced and reduced[-1] == a:
+            reduced.pop()
+        else:
+            reduced.append(a)
+    return phase, reduced
+
+
+def pfaffian(matrix) -> complex:
+    """Pfaffian of an antisymmetric matrix (pivoted Parlett-Reid)."""
+    a = np.array(matrix, dtype=complex)
+    n = a.shape[0]
+    if n % 2:
+        return 0.0
+    result = 1.0 + 0j
+    for k in range(0, n - 1, 2):
+        pivot = k + 1 + int(np.argmax(np.abs(a[k, k + 1 :])))
+        if pivot != k + 1:
+            a[[k + 1, pivot]] = a[[pivot, k + 1]]
+            a[:, [k + 1, pivot]] = a[:, [pivot, k + 1]]
+            result = -result
+        if a[k, k + 1] == 0:
+            return 0.0
+        result *= a[k, k + 1]
+        if k + 2 < n:
+            tau = a[k, k + 2 :] / a[k, k + 1]
+            column = a[k + 2 :, k + 1].copy()
+            a[k + 2 :, k + 2 :] += np.outer(tau, column) - np.outer(column, tau)
+    return result
+
+
+def majorana_covariance(circuit) -> np.ndarray:
+    """Majorana covariance ``Gamma_ab = i/2 <[c_a, c_b]>`` of ``circuit|0...0>``."""
+    n = circuit.nqubits
+    gamma = np.zeros((2 * n, 2 * n))
+    for i in range(n):  # Z_i = +1  <=>  <c_2i c_2i+1> = i
+        gamma[2 * i, 2 * i + 1], gamma[2 * i + 1, 2 * i] = -1.0, 1.0
+    for gate in circuit.queue:
+        phase, modes = majorana_form(gate_generator(gate, n))
+        if len(modes) != 2:
+            raise ValueError(f"{gate.name} is not a free-fermion gate")
+        angle = np.sign(phase.imag) * gate_angle(gate)
+        c, s = np.cos(angle), np.sin(angle)
+        rotation = np.array([[c, s], [-s, c]])
+        gamma[modes, :] = rotation @ gamma[modes, :]
+        gamma[:, modes] = gamma[:, modes] @ rotation.T
+    return gamma
+
+
+def free_fermion_expectation(gamma, pauli: str) -> float:
+    """``<pauli>`` from the Majorana covariance ``gamma``, by Wick's theorem."""
+    phase, modes = majorana_form(pauli)
+    if len(modes) % 2:
+        return 0.0  # odd parity vanishes
+    value = pfaffian(-1j * gamma[np.ix_(modes, modes)]) if modes else 1.0
+    return float((phase * value).real)
+
+
+# -- Sweeps -------------------------------------------------------------------------
 
 #: Widest exact qibojit simulation: a statevector of 2^26 complex128 is 1 GiB,
 #: and a density matrix of 13 qubits is the same size.
@@ -412,7 +587,7 @@ def compare(
     ``pauli_propagation`` a :class:`PauliPropagation`; pass ``None`` to skip
     either. qibojit is also skipped above ``qibojit_max_qubits`` (default:
     :data:`QIBOJIT_MAX_QUBITS`). Returns one row per simulator, with
-    ``error = |value - qibojit|`` when qibojit ran.
+    ``error = |value - qibojit|`` when qibojit ran (NaN for qibojit itself).
     """
     n = circuit.nqubits
     rows = []
@@ -443,10 +618,14 @@ def compare(
     reference = dict(rows).get("qibojit", {}).get("value")
     return [
         dict(
-            framework=name,
+            method=name,
             n=n,
             gates=len(circuit.queue),
-            error=np.nan if reference is None else abs(result["value"] - reference),
+            error=(
+                np.nan
+                if reference is None or name == "qibojit"
+                else abs(result["value"] - reference)
+            ),
             **result,
         )
         for name, result in rows
@@ -457,56 +636,182 @@ def sweep(cases, label="x", **options):
     """
     :func:`compare` over ``cases``, an iterable of ``(x, circuit, events,
     observable)``, as a pandas DataFrame with an ``x`` column named ``label``.
-    Prints one line per case as it goes.
     """
     import pandas as pd
 
     rows = []
     for x, circuit, events, observable in cases:
-        case = compare(circuit, events, observable, **options)
-        for row in case:
+        for row in compare(circuit, events, observable, **options):
             row[label] = x
-        rows += case
-        summary = "  ".join(f"{r['framework']} {r['time']:.3g}s" for r in case)
-        print(f"{label}={x}: {summary}", flush=True)
+            rows.append(row)
     return pd.DataFrame(rows)
 
 
-def plot(df, x="n", title=None):
-    """Wall time and error against qibojit, one line per framework."""
+def tradeoff(
+    circuit, events, observable, reference, mpstab_settings, pp_thresholds, pp
+):
+    """
+    Error and time of mpstab and Pauli propagation over their accuracy knobs:
+    ``mpstab_settings`` are bond dimensions (noiseless) or sample counts
+    (noisy), ``pp_thresholds`` values of ``min_abs_coeff``.
+    """
+    import pandas as pd
+
+    rows = []
+    for setting in mpstab_settings:
+        if events:
+            r = run_mpstab_noisy(circuit, events, observable, n_samples=setting, seed=0)
+        else:
+            r = run_mpstab(circuit, observable, max_bond=setting)
+        rows.append(
+            dict(
+                method="mpstab",
+                setting=setting,
+                time=r["time"],
+                error=abs(r["value"] - reference),
+            )
+        )
+    for threshold in pp_thresholds:
+        r = pp.run(circuit, events, observable, min_abs_coeff=threshold)
+        rows.append(
+            dict(
+                method="PauliPropagation",
+                setting=threshold,
+                time=r["time"],
+                error=abs(r["value"] - reference),
+            )
+        )
+    return pd.DataFrame(rows)
+
+
+# -- Plots ----------------------------------------------------------------------------
+
+#: One color per simulator, from the shared mpstab palette.
+FAMILY_COLORS = {
+    "mpstab": COLORS["blue"],
+    "PauliPropagation": COLORS["red"],
+    "qibojit": COLORS["black"],
+}
+#: Variants of one simulator (bond dimensions, thresholds) share its color and
+#: differ by marker and line style, in this order.
+VARIANT_MARKERS = ["o", "s", "^", "D"]
+VARIANT_LINES = ["-", "--", ":", "-."]
+#: Errors below this are drawn at it, so exact zeros stay on a log axis.
+ERROR_FLOOR = 1e-16
+
+
+def method_styles(methods) -> dict:
+    """
+    A matplotlib style per method name. The family is the first word of the
+    name (``"mpstab $\\chi$=64"`` belongs to ``mpstab``) and sets the color;
+    the n-th variant of a family gets the n-th marker and line style.
+    """
+    seen, styles = {}, {}
+    for method in methods:
+        family = method.split()[0]
+        i = seen.get(family, 0)
+        seen[family] = i + 1
+        styles[method] = dict(
+            color=FAMILY_COLORS[family],
+            marker=VARIANT_MARKERS[i % len(VARIANT_MARKERS)],
+            linestyle=VARIANT_LINES[i % len(VARIANT_LINES)],
+            label=method,
+        )
+    return styles
+
+
+def plot_methods(df, x, xlabel, title=None, timeout=None, stderr=False):
+    """
+    Error (left) and wall time (right) against ``x``, one line per method.
+
+    ``df`` has columns ``method``, ``x``, ``error`` and ``time``; rows with a
+    NaN error (exact references) are left out of the error panel. Rows with
+    ``timed_out`` set are drawn as "x" markers at ``timeout`` on the time
+    panel. With ``stderr``, mpstab's statistical error is added as a dotted
+    line on the error panel.
+    """
     import matplotlib.pyplot as plt
 
-    fig, (ax_time, ax_error) = plt.subplots(
-        1, 2, figsize=(11, 4), constrained_layout=True
-    )
-    for name, group in df.groupby("framework", sort=False):
-        group = group.sort_values(x)
-        style = dict(
-            color=COLORS.get(name), marker="o", markersize=6, linewidth=2, label=name
-        )
-        ax_time.plot(group[x], group["time"], **style)
-        errors = group.dropna(subset=["error"])
-        if len(errors) and name != "qibojit":  # the reference: zero by definition
-            # exact zeros would vanish on a log axis
-            ax_error.plot(errors[x], errors["error"].clip(lower=1e-17), **style)
-        if (
-            "stderr" in group
-            and group["stderr"].notna().any()
-            and group["stderr"].max() > 0
-        ):
+    fig, (ax_error, ax_time) = plt.subplots(1, 2, figsize=(13, 5.4))
+    styles = method_styles(df["method"].unique())
+    for method, d in df.groupby("method", sort=False):
+        d = d.sort_values(x)
+        style = styles[method]
+        done = d.dropna(subset=["time"])
+        ax_time.plot(done[x], done["time"], **style)
+        errors = done.dropna(subset=["error"])
+        if len(errors):
+            ax_error.plot(errors[x], errors["error"].clip(lower=ERROR_FLOOR), **style)
+        if stderr and "stderr" in d and d["stderr"].notna().any():
             ax_error.plot(
-                group[x],
-                group["stderr"],
-                color=COLORS.get(name),
-                linestyle="--",
-                linewidth=1.5,
-                label=f"{name} stderr",
+                d[x],
+                d["stderr"],
+                color=style["color"],
+                linestyle=":",
+                label=f"{method} stderr",
             )
-    ax_time.set(yscale="log", xlabel=x, ylabel="wall time [s]", title="time")
-    ax_error.set(yscale="log", xlabel=x, ylabel="|value - qibojit|", title="error")
+        if "timed_out" in d and d["timed_out"].any():
+            hit = d[d["timed_out"].astype(bool)]
+            ax_time.plot(
+                hit[x], [timeout] * len(hit), "X", color=style["color"], markersize=13
+            )
+    if "timed_out" in df and df["timed_out"].any():
+        ax_time.axhline(
+            timeout,
+            color=COLORS["gray"],
+            linestyle=":",
+            label=f"timeout ({timeout:g} s)",
+        )
+    for ax in (ax_error, ax_time):
+        ax.set_xticks(sorted(df[x].unique()))
+    ax_error.set(yscale="log", xlabel=xlabel, ylabel="|value - exact|", title="Error")
+    ax_time.set(yscale="log", xlabel=xlabel, ylabel="wall time (s)", title="Time")
+    # One legend for both panels, below them, so it never hides a curve.
+    legend = {}
     for ax in (ax_time, ax_error):
-        ax.grid(alpha=0.3)
-        ax.legend(frameon=False)
+        for handle, label in zip(*ax.get_legend_handles_labels()):
+            legend.setdefault(label, handle)
+    fig.legend(
+        legend.values(),
+        legend.keys(),
+        loc="outside lower center",
+        ncol=len(legend) if len(legend) <= 4 else -(-len(legend) // 2),
+    )
     if title:
         fig.suptitle(title)
-    return fig
+    plt.show()
+
+
+def plot_tradeoff(panels):
+    """
+    Error against wall time, one panel per ``(title, df)`` from :func:`tradeoff`,
+    each point labelled with the value of its accuracy knob.
+    """
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1, len(panels), figsize=(13, 5))
+    for ax, (title, df) in zip(np.atleast_1d(axes), panels):
+        styles = method_styles(df["method"].unique())
+        # mpstab's labels go left of its points, Pauli propagation's right.
+        for side, (method, d) in zip((-1, 1), df.groupby("method", sort=False)):
+            ax.plot(d["time"], d["error"].clip(lower=ERROR_FLOOR), **styles[method])
+            for _, row in d.iterrows():
+                ax.annotate(
+                    f"{row['setting']:g}",
+                    (row["time"], max(row["error"], ERROR_FLOOR)),
+                    textcoords="offset points",
+                    xytext=(9 * side, 0),
+                    ha="left" if side > 0 else "right",
+                    va="center",
+                    color=styles[method]["color"],
+                )
+        ax.set(
+            xscale="log",
+            yscale="log",
+            xlabel="wall time (s)",
+            ylabel="|value - exact|",
+            title=title,
+        )
+        ax.margins(x=0.15)
+        ax.legend()
+    plt.show()

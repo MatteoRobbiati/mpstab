@@ -19,10 +19,10 @@ from mpstab.engines import (
     QuimbEngine,
     StimEngine,
 )
-from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient, KickedIsing
 from mpstab.models.metrics import meyer_wallach_mps
-from mpstab.noise import DepolarizingError, NoiseModel
+from mpstab.models.noise import DepolarizingError, NoiseModel
 
 
 @pytest.mark.parametrize("observable", ["ZZZZZ", "ZZIXI", "XYIZX"])
@@ -98,9 +98,9 @@ def test_noise_with_native_stabilizers_matches_stim():
     assert native.mean == pytest.approx(stim.mean, abs=1e-10)
 
 
-def test_hsynthsmpo_with_native_stabilizers():
+def test_hqsmpo_with_native_stabilizers():
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz, stab_engine=NativeStabilizersEngine())
+    hs = HQSMPO(ansatz, stab_engine=NativeStabilizersEngine())
     result = hs.expectation_at_cut("ZZZZ", 2, method="simulation")
     expected = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str="ZZZZ")
     assert np.real(result.value) == pytest.approx(expected, abs=1e-8)
@@ -108,7 +108,7 @@ def test_hsynthsmpo_with_native_stabilizers():
 
 def test_native_tensor_network_has_no_operator_conjugation():
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    hs = HSynthSMPO(ansatz, tn_engine=NativeTensorNetworkEngine())
+    hs = HQSMPO(ansatz, tn_engine=NativeTensorNetworkEngine())
     with pytest.raises(NotImplementedError, match="QuimbEngine"):
         hs.expectation_at_cut("ZZZZ", 2, method="simulation")
 

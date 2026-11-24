@@ -18,8 +18,8 @@ from mpstab.evolutors.optimization import minimize_expectation_dmrg
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
-from mpstab.noise.compile import compile_noise
-from mpstab.noise.mc_noise_estimator import noisy_expectation
+from mpstab.models.noise.compile import compile_noise
+from mpstab.models.noise.mc_noise_estimator import noisy_expectation
 from mpstab.pauli import conjugate, pauli_light_cone
 
 
@@ -255,14 +255,15 @@ class HSMPO:
         angles, so the noisy value is an average of noiseless HSMPO values:
         patterns with zero and one fault are summed exactly, those with two or
         more are sampled. Coherent errors join the rotation chain like magic
-        gates. Only the rotations and faults in the observable's light cone are
-        kept, which is exact. Readout errors multiply each term by ``1 - 2 p``
-        per noisy qubit it acts on.
+        gates. A general channel, such as amplitude damping, adds transition
+        amplitudes between two sign patterns, one for the ket and one for the
+        bra. Only the rotations and faults in the light cone are kept, which is
+        exact. Readout errors are folded into the observable's terms.
 
         Args:
             observable: a Pauli string or any other format
                 :func:`~mpstab.hamiltonians.pauli_terms` accepts.
-            noise: a :class:`~mpstab.noise.NoiseModel`.
+            noise: a :class:`~mpstab.models.noise.NoiseModel`.
             n_samples: fault configurations sampled for two or more faults. With
                 ``0`` that stratum is dropped, biasing the mean by at most
                 ``stratum_weights[2]`` times the sum of the absolute coefficients.
@@ -272,7 +273,7 @@ class HSMPO:
                 second to start, so use it for large runs.
 
         Returns:
-            :class:`~mpstab.noise.NoisyExpectation`, with the value in ``mean``
+            :class:`~mpstab.models.noise.NoisyExpectation`, with the value in ``mean``
             and its standard error in ``stderr``.
         """
         constant, terms = noise.readout_observable(observable, self.nqubits)

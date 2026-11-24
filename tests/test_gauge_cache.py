@@ -1,9 +1,12 @@
 """The numpy fast path of QuimbEngine caches the MPS gauge on the state; these
 are cases where a stale cache used to give silently wrong expectations."""
 
+import copy
+
 import numpy as np
 import pytest
 import quimb.tensor as qtn
+from qibo import Circuit
 
 from mpstab.pauli import pauli_matrix
 
@@ -57,3 +60,39 @@ def test_extra_tensor_is_not_ignored(quimb_engine, mps):
     except ValueError:
         return
     np.testing.assert_allclose(value, exact, atol=1e-12)
+
+
+def _evolved_state(engine, n=4):
+    """An MPS built and rotated through the engine, its gauge cached."""
+    state = engine.build_circuit_mps(n, Circuit(n))
+    for generator, angle in [("XXII", 0.7), ("IYZI", 1.1), ("IIXY", 0.4)]:
+        engine.pauli_rot(state, generator, angle, max_bond_dimension=None)
+    return state
+
+
+@pytest.mark.parametrize("site", range(4))
+def test_squared_norm_of_deep_copy_written_in_place(quimb_engine, site):
+    state = _evolved_state(quimb_engine)
+    copied = copy.deepcopy(state)
+    copied[site].data[...] *= 2.0
+    np.testing.assert_allclose(
+        quimb_engine.squared_norm(copied),
+        copied.norm(squared=True).real,
+        atol=1e-12,
+    )
+
+
+@pytest.mark.parametrize("site", range(4))
+def test_pauli_expvals_of_deep_copy_written_in_place(quimb_engine, site):
+    state = _evolved_state(quimb_engine)
+    copied = copy.deepcopy(state)
+    copied[site].data[...] = np.einsum("pq,...q->...p", G, copied[site].data)
+    paulis = ["ZZII", "IXYI", "IIZX", "YIIZ"]
+    psi = copied.to_dense().ravel()
+    exact = [
+        (psi.conj() @ pauli_matrix(p) @ psi).real / (psi.conj() @ psi).real
+        for p in paulis
+    ]
+    np.testing.assert_allclose(
+        quimb_engine.pauli_expvals(copied, paulis), exact, atol=1e-12
+    )

@@ -1,11 +1,11 @@
 """
-`HSynthSMPO.expectation_at_cut`: the one measurement entry point, over its
-shot-based routes ("pauli", "shadows" and "tnice"), against the reference-only
+`HQSMPO.expectation_at_cut`: the one measurement entry point, over its
+shot-based routes ("pauli" and "shadows"), against the reference-only
 classical `expectation_at_cut(method="simulation")` / `expectation`.
 
 `test_pauli_sampling.py` already checks the Pauli-sampling machinery in
 isolation (coefficient extraction, the sampler, QWC grouping); these tests sit
-one layer up, at the `HSynthSMPO` integration: that both routes reproduce the
+one layer up, at the `HQSMPO` integration: that both routes reproduce the
 exact value within a few `total_error`, for a Pauli string and for a
 `SymbolicHamiltonian`; that the resynthesis Clifford-tail fold is load-bearing
 (disabling it breaks the estimate); that a bare object with only
@@ -23,15 +23,10 @@ from qibo import get_backend
 from qibo.hamiltonians import SymbolicHamiltonian
 from qibo.symbols import X, Z
 
-from mpstab.evolutors.hsynthsmpo import ExpectationResult, HSynthSMPO, ResynthesizedHead
+from mpstab.evolutors.hqsmpo import HQSMPO, ExpectationResult, ResynthesizedHead
 from mpstab.models.ansatze import HardwareEfficient
-from mpstab.qpu import (
-    ClassicalShadows,
-    PauliSampling,
-    QiboSimulator,
-    estimate,
-    execute_plan,
-)
+from mpstab.qibo_tools import StatevectorExactSimulator
+from mpstab.qpu import ClassicalShadows, PauliSampling, estimate, run_plan
 from mpstab.qpu.measurement.pauli import _antihermitian_norm
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
@@ -45,7 +40,7 @@ _STIM_2Q = {"CNOT": "CX", "CZ": "CZ"}
 
 def _hs(nqubits, nlayers=2, seed=0, max_bond_dimension=None):
     np.random.seed(seed)
-    return HSynthSMPO(
+    return HQSMPO(
         ansatz=HardwareEfficient(nqubits=nqubits, nlayers=nlayers),
         max_bond_dimension=max_bond_dimension,
     )
@@ -116,9 +111,9 @@ def _resynthesis_with_trailing_residual(hs, cut_index, n_trailing=3):
     )
 
 
-class _TrailingResidualHSynthSMPO(HSynthSMPO):
+class _TrailingResidualHQSMPO(HQSMPO):
     """
-    HSynthSMPO whose resynthesis is rustiq-free but leaves a non-trivial
+    HQSMPO whose resynthesis is rustiq-free but leaves a non-trivial
     residual (see :func:`_resynthesis_with_trailing_residual`). With
     ``drop_residual`` the same head is returned with an identity residual, so
     the device runs the head alone and nothing folds the residual back in.
@@ -137,7 +132,7 @@ class _TrailingResidualHSynthSMPO(HSynthSMPO):
 
 def _hs_trailing_residual(nqubits=4, nlayers=3, seed=0):
     np.random.seed(seed)
-    return _TrailingResidualHSynthSMPO(
+    return _TrailingResidualHQSMPO(
         ansatz=HardwareEfficient(nqubits=nqubits, nlayers=nlayers)
     )
 
@@ -167,7 +162,7 @@ def test_unknown_method_raises():
 
 
 # ---------------------------------------------------------------------------
-# Staged pipeline: plan -> execute_plan -> estimate
+# Staged pipeline: plan -> run_plan -> estimate
 # ---------------------------------------------------------------------------
 
 
@@ -187,7 +182,7 @@ def test_plan_rejects_simulation():
         hs.plan("ZZZ", 0, method="simulation", n_shots=100)
 
 
-@pytest.mark.parametrize("method", ["pauli", "shadows", "tnice"])
+@pytest.mark.parametrize("method", ["pauli", "shadows"])
 def test_staged_pipeline_matches_expectation_at_cut(method, xy_observable):
     # The three stages by hand give exactly what expectation_at_cut gives in
     # one call, with the same seed and the same simulator seed.
@@ -208,9 +203,8 @@ def test_staged_pipeline_matches_expectation_at_cut(method, xy_observable):
         seed=3,
         out_folder=False,
     )
-    frequencies = execute_plan(QiboSimulator(), plan)
-    kwargs = {"seed": 3} if method == "tnice" else {}
-    staged = estimate(plan, frequencies, **kwargs)
+    frequencies = run_plan(plan, StatevectorExactSimulator())
+    staged = estimate(plan, frequencies)
 
     assert staged.value == pytest.approx(one_call.value, abs=1e-12)
     assert staged.stderr == pytest.approx(one_call.stderr, abs=1e-12)
@@ -272,79 +266,6 @@ def test_both_routes_match_hsmpo_for_symbolic_hamiltonian(cut_fraction):
 
     assert abs(pauli.value - exact) <= 4 * pauli.total_error + 1e-3, pauli
     assert abs(shadows.value - exact) <= 4 * shadows.total_error + 1e-3, shadows
-
-
-@pytest.mark.parametrize("cut_fraction", [0.0, 0.5, 1.0])
-def test_tnice_matches_simulation_for_pauli_string(cut_fraction, xy_observable):
-    """
-    ``"tnice"`` shares its circuits and shots with ``"shadows"`` (same seed,
-    same call shape) -- see ``ClassicalShadows.build_plan`` -- and only replaces
-    the fixed canonical-dual post-processing with the MPS-optimized
-    estimator, so the two routes are compared here on identical measurement
-    data.
-    """
-    hs = _hs(4, nlayers=2)
-    n_dressed = len(hs.magic_gates)
-    cut_index = int(round(cut_fraction * n_dressed))
-    exact = hs.expectation_at_cut(xy_observable, cut_index, method="simulation").value
-
-    result = hs.expectation_at_cut(
-        xy_observable,
-        cut_index,
-        method="tnice",
-        n_shots=30000,
-        seed=2,
-        tail_handling="append_to_head_circuit",
-    )
-    if abs(result.value - exact) > 4 * result.total_error + 1e-6:
-        # Seen failing only on the Linux CI. Report what is needed to tell an
-        # estimator bug from a platform effect: the same measurement data through
-        # the fixed canonical-dual ("shadows") post-processing, and the BLAS.
-        shadows = hs.expectation_at_cut(
-            xy_observable,
-            cut_index,
-            method="shadows",
-            n_shots=30000,
-            seed=2,
-            tail_handling="append_to_head_circuit",
-        )
-        # Same shots, other tnice settings: 0 sweeps is the unbiased canonical-dual
-        # seed, so it separates "the optimization breaks it" from the data.
-        variants = {}
-        for label, kwargs in (
-            ("sweeps=0", {"n_sweeps": 0}),
-            ("sweeps=1", {"n_sweeps": 1}),
-            ("sweeps=2", {"n_sweeps": 2}),
-            ("lam=0.9999", {"lam": 0.9999}),
-        ):
-            variants[label] = hs.expectation_at_cut(
-                xy_observable,
-                cut_index,
-                method="tnice",
-                n_shots=30000,
-                seed=2,
-                tail_handling="append_to_head_circuit",
-                **kwargs,
-            ).value
-        try:
-            blas = np.show_config(mode="dicts")["Build Dependencies"]["blas"]
-        except Exception:  # pragma: no cover - diagnostics only
-            blas = "unknown"
-        pytest.fail(
-            f"tnice {result}\nexact {exact:+.6f}\nshadows {shadows}\n"
-            f"tnice variants {variants}\nblas {blas}"
-        )
-
-
-def test_tnice_appended_nontrivial_tail_matches_simulation(xy_observable):
-    hs = _hs_trailing_residual()
-    cut_index = len(hs.magic_gates) - 3
-
-    exact = hs.expectation_at_cut(xy_observable, cut_index, method="simulation").value
-    result = hs.expectation_at_cut(
-        xy_observable, cut_index, method="tnice", n_shots=30000, seed=1
-    )
-    assert abs(result.value - exact) <= 4 * result.total_error, result
 
 
 # ---------------------------------------------------------------------------
@@ -421,8 +342,7 @@ def test_post_head_mpo_with_residual_matches_appended_residual(xy_observable):
     assert abs(dense_expval(resynthesis.circuit, tail, sign) - exact) > 1e-3
 
 
-@pytest.mark.parametrize("method", ["shadows", "tnice"])
-def test_fold_tail_handling_matches_simulation(xy_observable, method):
+def test_fold_tail_handling_matches_simulation(xy_observable):
     hs = _hs_trailing_residual()
     cut_index = len(hs.magic_gates) - 3
     resynthesis = hs.resynthesize_head(cut_index)
@@ -431,7 +351,7 @@ def test_fold_tail_handling_matches_simulation(xy_observable, method):
     result = hs.expectation_at_cut(
         xy_observable,
         cut_index,
-        method=method,
+        method="shadows",
         n_shots=30000,
         seed=1,
         tail_handling="fold",
@@ -526,7 +446,7 @@ def test_bare_object_with_execute_circuits_works_as_backend():
     assert result.n_shots > 0
 
 
-def test_execute_plan_rejects_a_backend_that_drops_results():
+def test_run_plan_rejects_a_backend_that_drops_results():
     class DroppingBackend:
         def execute_circuits(self, circuits, nshots):
             return [circuit(nshots=nshots).frequencies() for circuit in circuits[1:]]
@@ -534,7 +454,7 @@ def test_execute_plan_rejects_a_backend_that_drops_results():
     hs = _hs(4)
     plan = hs.plan("ZZZZ", 2, method="shadows", n_shots=20, seed=0, out_folder=False)
     with pytest.raises(ValueError, match="DroppingBackend"):
-        execute_plan(DroppingBackend(), plan)
+        run_plan(plan, DroppingBackend())
 
 
 # ---------------------------------------------------------------------------
@@ -542,7 +462,7 @@ def test_execute_plan_rejects_a_backend_that_drops_results():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("method", ["pauli", "shadows", "tnice"])
+@pytest.mark.parametrize("method", ["pauli", "shadows"])
 def test_expectation_at_cut_requires_exactly_one_of_shots_or_epsilon(method):
     hs = _hs(3)
     with pytest.raises(ValueError):
@@ -570,7 +490,9 @@ def test_epsilon_sizes_a_nonzero_shot_budget():
 def test_no_orphan_imports_of_deleted_modules():
 
     src = pathlib.Path(__file__).resolve().parents[1] / "src"
-    forbidden = ("mpstab.measurements", "mpstab.models.noise", "models.noise")
+    # mpstab.models.noise was a qibo-noise layer, deleted; the name now holds
+    # the HSMPO noise package, so only mpstab.measurements stays forbidden.
+    forbidden = ("mpstab.measurements",)
     offenders = [
         (str(path), token)
         for path in src.rglob("*.py")

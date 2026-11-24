@@ -78,7 +78,8 @@ def test_expectation_matches_qibo_full_pauli_sweep():
 def test_expectation_from_partition_with_qubit_scaling():
     times = []
 
-    for nqubits in [4, 12, 24]:
+    # Sizes far apart, so the cost gap dwarfs timing noise on CI runners.
+    for nqubits in [4, 64, 256]:
         ans = HardwareEfficient(nqubits=nqubits, nlayers=3)
         hs = HSMPO(ansatz=ans)
         initial_time = time.time()
