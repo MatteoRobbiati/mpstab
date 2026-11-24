@@ -32,10 +32,16 @@ Example
     import numpy as np
     from qibo import gates
 
-    from mpstab import HSMPO
+    from mpstab import (
+        HSMPO,
+        DepolarizingError,
+        NoiseModel,
+        PauliError,
+        cdr,
+        noisy_value,
+        vncdr,
+    )
     from mpstab.models.ansatze import HardwareEfficient
-    from mpstab.models.error_mitigation import cdr, noisy_value, vncdr
-    from mpstab.models.noise import DepolarizingError, NoiseModel, PauliError
 
     ansatz = HardwareEfficient(nqubits=4, nlayers=2)
     ansatz.circuit.set_parameters(
@@ -81,26 +87,44 @@ vnCDR map, fitted on every training measurement, corrects every setting
 
 .. code-block:: python
 
-    from mpstab import HQSMPO
-    from mpstab.models.error_mitigation import VnCDRMitigation
-    from mpstab.qpu import NoisySimulator, execute_plan
+    from mpstab import (
+        HQSMPO,
+        DensityMatrixNoiseSimulator,
+        VnCDRMitigation,
+        run_plan,
+    )
 
     model = HQSMPO(ansatz, head_synthesis="extraction")
     mitigation = VnCDRMitigation(n_training_circuits=8, training_settings=3)
     plan = mitigation.build_plan(model, hamiltonian, cut_index, n_shots=50_000, seed=0)
 
-    counts = execute_plan(NoisySimulator(noise), plan)  # or run plan.circuits on a device
+    counts = run_plan(plan, DensityMatrixNoiseSimulator(noise))  # or run plan.circuits on a device
     result = plan.estimate(counts)
     print(result.unmitigated, result.measurement_mitigated, result.value)
 
 API
 ---
 
-.. automodule:: mpstab.models.error_mitigation.plan
+Data-driven methods
+^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: mpstab.models.error_mitigation.data_driven_methods.cdr
+   :members: cdr
+
+.. automodule:: mpstab.models.error_mitigation.data_driven_methods.vncdr
+   :members: vncdr
+
+.. automodule:: mpstab.models.error_mitigation.data_driven_methods.regression
+   :members: MitigationNoiseMap, noisy_value
+
+.. automodule:: mpstab.models.error_mitigation.data_driven_methods.plan
    :members: VnCDRMitigation, MitigationPlan, MitigatedResult, mitigated_expectation_at_cut
 
-.. automodule:: mpstab.models.error_mitigation.cdr
-   :members: MitigationNoiseMap, cdr, vncdr, noisy_value
+.. automodule:: mpstab.models.error_mitigation.data_driven_methods.training
+   :members: training_circuits
 
-.. automodule:: mpstab.models.error_mitigation.training
-   :members: training_circuits, fold_circuit
+Noise amplification
+^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: mpstab.models.error_mitigation.folding
+   :members: fold_circuit

@@ -18,7 +18,7 @@ the cost of that saving (see ``resynthesize_head``'s docstring).
 import numpy as np
 import stim
 
-from mpstab.evolutors.hqsmpo import HQSMPO
+from mpstab import HQSMPO
 from mpstab.models.ansatze import HardwareEfficient
 
 np.random.seed(42)

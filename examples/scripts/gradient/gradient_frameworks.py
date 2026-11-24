@@ -44,6 +44,8 @@ Python 3.12 environment::
 
 import argparse
 import json
+import pathlib
+import sys
 import time
 
 import numpy as np
@@ -346,7 +348,11 @@ def plot(results, args):
     """Time per gradient against the number of qubits, one line per method."""
     import matplotlib.pyplot as plt
 
-    from mpstab.plotting import COLORS, set_style
+    # examples/, home of the plot style
+
+    sys.path.append(str(pathlib.Path(__file__).parents[2]))
+
+    from plotting import COLORS, set_style
 
     set_style()
     figure, axis = plt.subplots(figsize=(12, 6))

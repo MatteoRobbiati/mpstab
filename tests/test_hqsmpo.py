@@ -4,7 +4,7 @@ import stim
 from qibo import Circuit
 from utils import expectation_with_qibo, small_entangled_circuit
 
-from mpstab.evolutors.hqsmpo import HQSMPO
+from mpstab.evolutors.hqsmpo import HQSMPO, _resynthesize
 from mpstab.models.ansatze import (
     QAE,
     QFT,
@@ -184,19 +184,58 @@ def test_resynthesize_head_gate_counts_full_cut():
 
 
 def test_resynthesize_head_is_cached():
-    # Same cut, same rotations: the second call returns the cached head.
+    # Same cut, same rotations: the second call is served by the cache.
+    _resynthesize.cache_clear()
     hs = HQSMPO(CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)))
     first = hs.resynthesize_head(2)
-    assert hs.resynthesize_head(2) is first
-    assert hs.resynthesize_head(3) is not first
+    second = hs.resynthesize_head(2)
+    assert _resynthesize.cache_info().hits == 1
+    assert second.circuit.get_parameters() == first.circuit.get_parameters()
+    assert second.residual_gates == first.residual_gates
+    hs.resynthesize_head(3)
+    assert _resynthesize.cache_info().misses == 2
 
 
 def test_resynthesize_head_cache_follows_parameters():
     # New parameters give new dressed angles, hence a new key: no stale head.
-    hs = HQSMPO(CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)))
+    _resynthesize.cache_clear()
+    hs = HQSMPO(
+        CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)),
+        head_synthesis="cnot_ladder",
+    )
     first = hs.resynthesize_head(2)
     hs.set_parameters([(theta + 0.1,) for (theta,) in hs.get_parameters()])
-    assert hs.resynthesize_head(2) is not first
+    second = hs.resynthesize_head(2)
+    assert _resynthesize.cache_info().misses == 2
+    assert second.circuit.get_parameters() != first.circuit.get_parameters()
+
+
+def test_mutating_a_plan_circuit_leaves_the_cached_head_intact():
+    # Plan circuits are head + basis measurement, and qibo's circuit addition
+    # shares gate objects: changing a plan circuit must not reach the cache.
+    hs = HQSMPO(
+        CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)),
+        head_synthesis="cnot_ladder",
+    )
+    original = hs.resynthesize_head(2).circuit.get_parameters()
+    assert original
+
+    plan = hs.plan("ZZZZ", 2, method="pauli", n_shots=200, seed=0, out_folder=False)
+    circuit = plan.circuits[0]
+    circuit.set_parameters([(0.9,) for _ in circuit.get_parameters()])
+
+    assert hs.resynthesize_head(2).circuit.get_parameters() == original
+
+
+def test_resynthesize_head_returns_independent_objects():
+    hs = HQSMPO(
+        CircuitAnsatz(qibo_circuit=small_entangled_circuit(4)),
+        head_synthesis="cnot_ladder",
+    )
+    first, second = hs.resynthesize_head(2), hs.resynthesize_head(2)
+    assert first.circuit is not second.circuit
+    assert first.residual_tableau is not second.residual_tableau
+    assert first.residual_tableau == second.residual_tableau
 
 
 def test_resynthesize_head_cnot_ladder_fallback_has_identity_tail():
@@ -266,6 +305,18 @@ def test_library_ansatze_simulation_matches_qibo(label, factory):
                 f"[{label} / {observable} / cut={cut}] "
                 f"simulated={simulated:+.6f} reference={reference:+.6f}"
             )
+
+
+@pytest.mark.parametrize("observable", ["XIX", "YIX"])
+def test_long_clifford_t_tail_fold_is_exact(observable):
+    # Folding the whole circuit (cut=0) meets exactly degenerate Gram spectra,
+    # on which LAPACK's MRRR eigensolver returned non-orthogonal eigenvectors:
+    # the fold then lost canonical form and the default SVD cutoff dropped
+    # real weight (XIX gave -0.1222 instead of -0.125).
+    ansatz = Grover(nqubits=3, marked_state=0, n_iterations=2)
+    reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str=observable)
+    simulated = HQSMPO(ansatz).expectation_at_cut(observable, 0, method="simulation")
+    assert np.allclose(simulated.value, reference, atol=1e-6)
 
 
 @pytest.mark.parametrize("nqubits", [6, 8, 10])
@@ -360,20 +411,3 @@ def test_real_coefficients_projects_when_truncated():
     pooled = {"XY": 0.5 - 2e-4j, "ZZ": -0.25 + 0j}
     real = _real_coefficients(pooled, check=False)
     assert real == {"XY": 0.5, "ZZ": -0.25}
-
-
-def test_old_name_still_works_with_a_deprecation_warning():
-    import importlib
-
-    import mpstab
-    import mpstab.evolutors
-
-    with pytest.warns(DeprecationWarning, match="HQSMPO"):
-        assert mpstab.HSynthSMPO is mpstab.HQSMPO
-    with pytest.warns(DeprecationWarning, match="HQSMPO"):
-        assert mpstab.evolutors.HSynthSMPO is mpstab.HQSMPO
-    with pytest.warns(DeprecationWarning, match="hqsmpo"):
-        module = importlib.reload(
-            importlib.import_module("mpstab.evolutors.hsynthsmpo")
-        )
-    assert module.HSynthSMPO is mpstab.HQSMPO

@@ -15,17 +15,19 @@ import time
 import numpy as np
 from qibo import gates
 
-from mpstab import HSMPO
-from mpstab.models.ansatze import KickedIsing
-from mpstab.models.error_mitigation import cdr, noisy_value, vncdr
-from mpstab.models.noise import (
+from mpstab import (
+    HSMPO,
     CoherentError,
     DepolarizingError,
     NoiseModel,
     ReadoutError,
     StatePreparationError,
     ThermalRelaxationError,
+    cdr,
+    noisy_value,
+    vncdr,
 )
+from mpstab.models.ansatze import KickedIsing
 
 HERE = pathlib.Path(__file__).parent
 DATA, FIGURE = HERE / "cdr_scatter.npz", HERE / "cdr_scatter.png"
@@ -114,7 +116,8 @@ def compute():
 def plot():
     import matplotlib.pyplot as plt
 
-    from mpstab.plotting import COLORS, set_style
+    sys.path.append(str(HERE.parents[1]))  # examples/, home of the plot style
+    from plotting import COLORS, set_style
 
     set_style()
     d = np.load(DATA)

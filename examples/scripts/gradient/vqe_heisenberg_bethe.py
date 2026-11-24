@@ -21,6 +21,8 @@ e.g. ``--nqubits 40 --nlayers 6 --max-bond 64``.
 """
 
 import argparse
+import pathlib
+import sys
 import time
 from functools import reduce
 
@@ -32,7 +34,10 @@ from qibo.config import log
 from scipy.optimize import fsolve
 
 from mpstab import HSMPO
-from mpstab.plotting import COLORS, set_style
+
+# examples/, home of the plot style
+sys.path.append(str(pathlib.Path(__file__).parents[2]))
+from plotting import COLORS, set_style
 
 
 def heisenberg(nqubits: int) -> dict:

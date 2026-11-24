@@ -37,6 +37,8 @@ script installs through juliapkg::
 
 import argparse
 import json
+import pathlib
+import sys
 import time
 
 import juliapkg
@@ -291,7 +293,11 @@ def plot(results, args):
     """Time, gradient error and each method's own truncation estimate, against n."""
     import matplotlib.pyplot as plt
 
-    from mpstab.plotting import COLORS, set_style
+    # examples/, home of the plot style
+
+    sys.path.append(str(pathlib.Path(__file__).parents[2]))
+
+    from plotting import COLORS, set_style
 
     set_style()
     chis = sorted(
@@ -357,7 +363,11 @@ def plot_tradeoff(results, args, sizes=(16, 20, 32, 40, 60)):
     """
     import matplotlib.pyplot as plt
 
-    from mpstab.plotting import COLORS, set_style
+    # examples/, home of the plot style
+
+    sys.path.append(str(pathlib.Path(__file__).parents[2]))
+
+    from plotting import COLORS, set_style
 
     set_style()
     sizes = [n for n in sizes if any(r["n"] == n for r in results)][-3:]

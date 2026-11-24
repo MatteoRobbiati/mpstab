@@ -19,10 +19,14 @@ import time
 import numpy as np
 from qibo import gates
 
-from mpstab import HSMPO
-from mpstab.hamiltonians import pauli_string_to_hamiltonian
+from mpstab import (
+    HSMPO,
+    CoherentError,
+    NoiseModel,
+    PauliError,
+    pauli_string_to_hamiltonian,
+)
 from mpstab.models.ansatze import KickedIsing
-from mpstab.models.noise import CoherentError, NoiseModel, PauliError
 
 NQUBITS = 8
 OBSERVABLE = "ZIIIIIIZ"

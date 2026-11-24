@@ -102,7 +102,7 @@ pip install ".[pytorch,jax]"
 ### Basic Circuit Simulation
 
 ```python
-from mpstab.evolutors.hsmpo import HSMPO
+from mpstab import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
 
 # Create a quantum circuit ansatz

@@ -8,16 +8,32 @@ from typing import Any
 import numpy as np
 from qibo.gates.abstract import ParametrizedGate
 from quimb.tensor import (
+    DMRG2,
     CircuitMPS,
     MatrixProductOperator,
     MatrixProductState,
     MPO_identity,
     MPO_product_operator,
+    bonds,
 )
 
 from mpstab.engines.tensor_networks import _mps_kernels as kernels
 from mpstab.engines.tensor_networks.abstract import TensorNetworkEngine
 from mpstab.pauli import PAULI_MATRICES
+
+# jax and torch are optional quimb backends.
+try:
+    import jax.numpy as jnp
+
+    from mpstab.engines.tensor_networks._jax_linalg import (
+        install as _install_jax_linalg,
+    )
+except ImportError:
+    jnp = None
+try:
+    import torch
+except ImportError:
+    torch = None
 
 #: qibo gate names mapped to their quimb equivalents.
 GATE_MAP = {
@@ -85,10 +101,10 @@ class _CanonicalMPS:
     exact array object held by each site, and trusted only while the MPS holds
     exactly those arrays and no other tensor. The cached arrays are read-only,
     so anything else that changes the MPS has to replace them, and the next
-    view then re-canonicalizes from scratch. ``deepcopy`` preserves the
-    array identities, so copies keep their cached gauge, but numpy hands the
-    copies back writable: write into a deep copy's arrays and the gauge goes
-    stale.
+    view then re-canonicalizes from scratch. ``deepcopy`` keeps the cached
+    gauge pointing at the copy's arrays, but numpy hands those copies back
+    writable, so a writable array also invalidates the cache: a deep copy is
+    re-canonicalized once, whether or not anything wrote into it.
 
     Arrays are loaded lazily, and only the ones a kernel changed are written
     back, so the cost of an operation scales with the sites it touches.
@@ -102,9 +118,13 @@ class _CanonicalMPS:
         if gauge is not None:
             center, tids, arrays, inds = gauge
             # Exactly L tensors: an extra one (``gate_(..., contract=False)``)
-            # changes the state while leaving the site arrays untouched.
+            # changes the state while leaving the site arrays untouched. And
+            # still read-only: a deep copy's arrays are writable, so they may
+            # have been written into.
             if len(tids) == self.L == len(tensor_map) and all(
-                tid in tensor_map and tensor_map[tid].data is array
+                tid in tensor_map
+                and tensor_map[tid].data is array
+                and not array.flags.writeable
                 for tid, array in zip(tids, arrays)
             ):
                 self.center, self.tids, self.inds = center, tids, inds
@@ -288,25 +308,22 @@ def _pauli_sum_mpo(paulis: list[str], coefficients) -> MatrixProductOperator:
 def _array_module(backend: str):
     """The array module of a quimb backend: numpy, ``jax.numpy`` or torch."""
     if backend == "numpy":
-        import numpy
-
-        return numpy
+        return np
+    if backend not in ("jax", "torch"):
+        raise ValueError(
+            f"Unsupported quimb backend {backend!r}, expected 'numpy', 'jax' or 'torch'."
+        )
+    module = jnp if backend == "jax" else torch
+    if module is None:
+        raise ImportError(
+            f"The {backend!r} quimb backend needs {backend}: "
+            f'pip install "mpstab[{"pytorch" if backend == "torch" else "jax"}]"'
+        )
     if backend == "jax":
-        import jax.numpy
-
-        from ._jax_linalg import install
-
         # jax's SVD derivative is nan on repeated zero singular values, which
         # an MPS evolved from a product state hits at its first compressions.
-        install()
-        return jax.numpy
-    if backend == "torch":
-        import torch
-
-        return torch
-    raise ValueError(
-        f"Unsupported quimb backend {backend!r}, expected 'numpy', 'jax' or 'torch'."
-    )
+        _install_jax_linalg()
+    return module
 
 
 class QuimbEngine(TensorNetworkEngine):
@@ -600,15 +617,22 @@ class QuimbEngine(TensorNetworkEngine):
 
     def squared_norm(self, state_circuit: MatrixProductState):
         """
-        ``<psi|psi>``. On the numpy backend it is read off the orthogonality
-        center of the cached canonical form, no full contraction needed.
+        ``<psi|psi>`` of the MPS. On the numpy backend it is read off the
+        orthogonality center of the cached canonical form, no full contraction
+        needed; other backends return quimb's backend scalar, so it stays
+        differentiable.
+
+        On the numpy backend, when the state has no valid cached canonical form
+        (a fresh state, or one changed outside the engine), it is
+        canonicalized in place first: its tensors are transposed and
+        gauge-transformed, the state itself is unchanged.
         """
         if not self._fast:
-            return super().squared_norm(state_circuit)
+            return state_circuit.norm(squared=True)
         view = _CanonicalMPS(state_circuit)
         norm = kernels.squared_norm(view, view.center)
         view.commit()
-        return norm
+        return float(norm)
 
     @property
     def truncation_cutoff(self) -> float:
@@ -724,3 +748,78 @@ class QuimbEngine(TensorNetworkEngine):
                 cutoff=cutoff,
             )
         return _sites_to_mpo(sites, operator)
+
+    def bond_dimension(self, state_circuit: MatrixProductState) -> int:
+        """The largest bond dimension of the MPS."""
+        return state_circuit.max_bond()
+
+    def operator_site_arrays(self, operator: MatrixProductOperator) -> list:
+        """
+        The MPO's site tensors as numpy arrays ordered ``(left, right, k, b)``,
+        ``k`` the upper (output) and ``b`` the lower (input) index.
+        """
+        arrays = []
+        for site in range(operator.L):
+            tensor = operator[site]
+            left = list(bonds(operator[site - 1], tensor)) if site > 0 else []
+            right = (
+                list(bonds(tensor, operator[site + 1])) if site < operator.L - 1 else []
+            )
+            order = left + right + [operator.upper_ind(site), operator.lower_ind(site)]
+            array = np.asarray(tensor.transpose(*order).data, dtype=complex)
+            if not left:
+                array = array[None, ...]
+            if not right:
+                array = array[:, None, ...]
+            arrays.append(array)
+        return arrays
+
+    def pauli_sum_mpo(self, terms: dict) -> MatrixProductOperator:
+        """
+        The MPO of ``sum_P c_P P``.
+
+        Raises:
+            ValueError: if ``terms`` is empty.
+        """
+        if not terms:
+            raise ValueError("Cannot build the MPO of an empty Pauli sum.")
+        mpos = [c * self.pauli_mpo(p) for p, c in terms.items()]
+        total = mpos[0]
+        for mpo in mpos[1:]:
+            total = total + mpo
+        return total
+
+    def minimize_energy(
+        self,
+        operator: MatrixProductOperator,
+        initial_state: MatrixProductState,
+        bond_dims: list,
+        cutoff: float,
+        tol: float,
+        max_sweeps: int,
+        verbosity: int,
+    ) -> dict:
+        """Two-site DMRG with quimb's ``DMRG2``, on a copy of ``initial_state``."""
+        dmrg = DMRG2(
+            operator,
+            bond_dims=bond_dims,
+            cutoffs=cutoff,
+            p0=copy.deepcopy(initial_state),
+        )
+        converged = dmrg.solve(tol=tol, max_sweeps=max_sweeps, verbosity=verbosity)
+        return {
+            "state": dmrg.state,
+            "energy": float(np.real(dmrg.energy)),
+            "converged": converged,
+            "energy_history": [
+                float(np.real(e)) for e in getattr(dmrg, "energies", None) or []
+            ],
+        }
+
+    def circuit_truncation_fidelity(
+        self, nqubits: int, circuit, max_bond_dimension: int | None
+    ) -> float:
+        """quimb's ``CircuitMPS.fidelity_estimate`` after running ``circuit``."""
+        return _qibo_circuit_to_quimb(
+            nqubits=nqubits, qibo_circ=circuit, max_bond=max_bond_dimension
+        ).fidelity_estimate()

@@ -41,8 +41,7 @@ from mpstab.engines import QuimbEngine
 from mpstab.evolutors.optimization import adjoint_kernel
 from mpstab.evolutors.utils import gate_angle
 from mpstab.hamiltonians import Observable, pauli_terms
-from mpstab.pauli import anticommutation
-from mpstab.pauli import light_cone as pauli_light_cone
+from mpstab.pauli import anticommutation, pauli_light_cone
 
 
 @dataclass
@@ -120,7 +119,7 @@ def analytic_gradient(
         ``hsmpo.get_parameters()``. All of them by default.
     light_cone : bool, optional
         Drop the rotations outside the observable's light cone
-        (:func:`~mpstab.pauli.light_cone`) first. This is exact: a parameter
+        (:func:`~mpstab.pauli.pauli_light_cone`) first. This is exact: a parameter
         whose rotations all fall outside has zero derivative.
     method : str, optional
         ``"adjoint"`` (default) or ``"flips"``.

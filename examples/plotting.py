@@ -1,10 +1,10 @@
-"""The plot style shared by the mpstab tutorials and benchmarks.
+"""The plot style shared by the mpstab tutorials, notebooks and scripts.
 
 Call :func:`set_style` once, before plotting, and pick colors from
 :data:`COLORS`::
 
     import matplotlib.pyplot as plt
-    from mpstab.plotting import COLORS, set_style
+    from plotting import COLORS, set_style
 
     set_style()
     plt.plot(x, y, "o-", color=COLORS["blue"], label="mpstab")
@@ -15,6 +15,9 @@ browser and on a slide.
 
 Requires matplotlib, which is not a dependency of mpstab itself.
 """
+
+import matplotlib.pyplot as plt
+from cycler import cycler
 
 #: The four series colors, plus the gray for reference lines and the grid.
 COLORS = {
@@ -77,9 +80,6 @@ STYLE = {
 
 def set_style():
     """Apply the mpstab plot style to matplotlib, for every following figure."""
-    import matplotlib.pyplot as plt
-    from cycler import cycler
-
     style = dict(STYLE)
     style["axes.prop_cycle"] = cycler(color=CYCLE)
     plt.rcParams.update(style)

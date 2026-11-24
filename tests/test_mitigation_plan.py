@@ -1,4 +1,4 @@
-"""Tests for mpstab.models.error_mitigation.plan: vnCDR on HQSMPO plans."""
+"""Tests for mpstab.models.error_mitigation.data_driven_methods.plan: vnCDR on HQSMPO plans."""
 
 import numpy as np
 import pytest
@@ -13,9 +13,10 @@ from mpstab.models.error_mitigation import (
     VnCDRMitigation,
     mitigated_expectation_at_cut,
 )
-from mpstab.models.error_mitigation.plan import _spread
+from mpstab.models.error_mitigation.data_driven_methods.plan import _spread
 from mpstab.models.noise import DepolarizingError, NoiseModel, ReadoutError
-from mpstab.qpu import NoisySimulator, QiboSimulator, execute_plan
+from mpstab.qibo_tools import DensityMatrixNoiseSimulator, StatevectorExactSimulator
+from mpstab.qpu import run_plan
 
 OBSERVABLE = "IZZI"
 
@@ -54,7 +55,10 @@ def test_plan_layout(model):
     n_settings = len(plan.target.circuits)
     kinds = [m.kind for m in plan.measurements]
     assert kinds.count("target") == 2 * n_settings
-    assert kinds.count("training") == 5 * 2 * 2
+    # Each training circuit measures its settings of nonzero noiseless value.
+    informative = (np.abs(plan.training_group_exact) > 1e-12).sum(axis=1)
+    assert n_settings <= 2
+    assert kinds.count("training") == 2 * sum(k or n_settings for k in informative)
     assert kinds.count("calibration") == 6
     assert len(plan.circuits) == len(plan.shots) == len(plan.measurements)
     assert plan.circuits[:n_settings] == plan.target.circuits
@@ -70,7 +74,7 @@ def test_noiseless_run_matches_the_plan(model):
         calibration_shots=4000,
     )
     plan = mitigation.build_plan(model, OBSERVABLE, _cut(model), n_shots=20000, seed=1)
-    result = plan.estimate(execute_plan(QiboSimulator(), plan))
+    result = plan.estimate(run_plan(plan, StatevectorExactSimulator()))
     reference = _plan_reference(model, plan)
     assert isinstance(result, MitigatedResult)
     assert abs(result.unmitigated - reference) < 5 * result.stderr + 0.02
@@ -94,7 +98,7 @@ def test_mitigation_reduces_the_error(model):
         calibration_shots=20000,
     )
     plan = mitigation.build_plan(model, OBSERVABLE, _cut(model), n_shots=30000, seed=2)
-    result = plan.estimate(execute_plan(NoisySimulator(noise, seed=0), plan))
+    result = plan.estimate(run_plan(plan, DensityMatrixNoiseSimulator(noise, seed=0)))
     reference = _plan_reference(model, plan)
     unmitigated = abs(result.unmitigated - reference)
     assert abs(result.measurement_mitigated - reference) < unmitigated
@@ -124,12 +128,38 @@ def test_training_settings_are_informative_and_distinct(model):
         assert all(abs(plan.training_group_exact[i, g]) > 1e-12 for g in drawn)
 
 
+def test_all_settings_skip_zero_contributions(model):
+    mitigation = VnCDRMitigation(
+        noise_levels=(1, 3),
+        n_training_circuits=8,
+        replacement_method="random",
+        training_settings=None,
+        training_shots=1000,
+    )
+    plan = mitigation.build_plan(model, HAMILTONIAN, _cut(model), n_shots=2000, seed=0)
+    informative = np.abs(plan.training_group_exact) > 1e-12
+    # Some training circuits have settings worth nothing, else this tests nothing.
+    assert not informative.all()
+    for i in range(8):
+        for level in plan.noise_levels:
+            draws = [
+                (m.group, n)
+                for m, n in zip(plan.measurements, plan.shots)
+                if m.kind == "training" and m.level == level and m.training_index == i
+            ]
+            assert sum(n for _, n in draws) == mitigation.training_shots
+            if informative[i].any():
+                assert sorted(g for g, _ in draws) == list(
+                    np.flatnonzero(informative[i])
+                )
+
+
 def test_pooled_fit_uses_one_point_per_circuit_and_setting(model):
     mitigation = VnCDRMitigation(
         n_training_circuits=5, replacement_method="random", training_settings=2
     )
     plan = mitigation.build_plan(model, HAMILTONIAN, _cut(model), n_shots=4000, seed=1)
-    result = plan.estimate(execute_plan(QiboSimulator(), plan))
+    result = plan.estimate(run_plan(plan, StatevectorExactSimulator()))
     n_points = sum(
         1 for m in plan.measurements if m.kind == "training" and m.level == 1
     )
@@ -148,7 +178,9 @@ def test_calibration_undoes_asymmetric_readout(model):
     )
     plan = mitigation.build_plan(model, OBSERVABLE, _cut(model), n_shots=200000, seed=0)
     assert sum(m.kind == "calibration" for m in plan.measurements) == 6
-    result = plan.estimate(execute_plan(NoisySimulator(readout_only, seed=0), plan))
+    result = plan.estimate(
+        run_plan(plan, DensityMatrixNoiseSimulator(readout_only, seed=0))
+    )
     reference = _plan_reference(model, plan)
     assert abs(result.unmitigated - reference) > 0.1
     assert abs(result.measurement_mitigated - reference) < 0.02
@@ -180,7 +212,7 @@ def test_noisy_simulator_readout_flips():
     circuit = Circuit(3)
     circuit.add(gates.M(0, 1, 2))
     certain_flip = NoiseModel().add(ReadoutError(1.0, 0.0), qubits=[1])
-    (frequencies,) = NoisySimulator(certain_flip, seed=0).execute_circuits(
+    (frequencies,) = DensityMatrixNoiseSimulator(certain_flip, seed=0).execute_circuits(
         [circuit], 50
     )
     assert frequencies == {"010": 50}
@@ -191,7 +223,7 @@ def test_noisy_simulator_without_noise_matches_the_state():
     circuit.add(gates.RY(0, theta=1.1))
     circuit.add(gates.CNOT(0, 1))
     circuit.add(gates.M(0, 1, basis=[gates.X, gates.Z]))
-    (frequencies,) = NoisySimulator(NoiseModel(), seed=0).execute_circuits(
+    (frequencies,) = DensityMatrixNoiseSimulator(NoiseModel(), seed=0).execute_circuits(
         [circuit], 200000
     )
     parity = sum(
@@ -202,6 +234,42 @@ def test_noisy_simulator_without_noise_matches_the_state():
     state.add(gates.CNOT(0, 1))
     exact = pauli_string_to_hamiltonian("XZ").expectation_from_state(state().state())
     assert parity / 200000 == pytest.approx(exact, abs=0.01)
+
+
+def test_noisy_simulator_follows_a_mutated_noise_model():
+    circuit = Circuit(1)
+    circuit.add(gates.X(0))
+    circuit.add(gates.M(0))
+    nshots = 2000
+    noise = NoiseModel()
+    simulator = DensityMatrixNoiseSimulator(noise, seed=0)
+    (noiseless,) = simulator.execute_circuits([circuit], nshots)
+    assert noiseless == {"1": nshots}
+    # NoiseModel.add mutates the model the simulator holds.
+    noise.add(DepolarizingError(0.5))
+    (mutated,) = simulator.execute_circuits([circuit], nshots)
+    (fresh,) = DensityMatrixNoiseSimulator(noise, seed=1).execute_circuits(
+        [circuit], nshots
+    )
+    # Binomial counts: the difference of two runs has std sqrt(2 n p (1 - p)).
+    ones = fresh["1"] / nshots
+    sigma = np.sqrt(2 * nshots * ones * (1 - ones))
+    assert abs(mutated["1"] - fresh["1"]) < 4 * sigma
+    assert mutated["0"] > 0
+
+
+def test_noisy_simulator_reuses_probabilities_of_an_unchanged_model():
+    circuit = Circuit(2)
+    circuit.add(gates.H(0))
+    circuit.add(gates.CNOT(0, 1))
+    circuit.add(gates.M(0, 1))
+    simulator = DensityMatrixNoiseSimulator(
+        NoiseModel().add(DepolarizingError(0.1)), seed=0
+    )
+    for _ in range(3):
+        simulator.execute_circuits([circuit], 100)
+    assert len(simulator._probabilities) == 1
+    assert len(simulator._states) == 1
 
 
 @pytest.mark.parametrize("gate", [gates.SX, gates.SXDG])

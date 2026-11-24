@@ -13,33 +13,13 @@ Ansätze are pre-built quantum circuit patterns used as templates for quantum al
    :undoc-members:
    :show-inheritance:
 
-**Available Ansätze**:
+**Available Ansätze**: see :doc:`../user_guide/ansatze_catalogue` for the full list,
+with the physical description of each ansatz and the parameters that tune its
+magic and its entanglement (also exposed as the ``magic_parameters`` and
+``entanglement_parameters`` class attributes).
 
-*Wrappers & structural:*
-
-- ``Ansatz``: Abstract base class for all ansätze
-- ``CircuitAnsatz``: Wrapper for Qibo circuits
-- ``TranspiledAnsatz``: Wrap a circuit and transpile it into a device's native gates
-
-*Variational patterns:*
-
-- ``HardwareEfficient``: Industry-standard RY + CZ pattern for NISQ devices
-- ``HardwareEfficientBrickwork``: Brickwork RY/RZ + CZ pattern with a ring-closing bond
-- ``HammingWeightPreserving``: RBS-based Hamming-weight-preserving ansatz
-- ``FloquetAnsatz``: Floquet echo circuit with tunable magic
-- ``KickedIsing``: Kicked Ising chain with RX/RZ kicks and CNOT-RZ-CNOT couplings, already in HSMPO form
-- ``ParametricKickedIsing``: Kicked Ising chain at a Clifford point plus deviations; only the deviations are magic gates
-
-*Circuit library (textbook algorithms, for HSMPO/HQSMPO benchmarks):*
-
-- ``QFT``: Quantum Fourier Transform
-- ``QFTPhaseKernel``: QFT followed by a diagonal RZ phase kernel
-- ``Grover``: Grover search (oracle + diffuser iterations)
-- ``QPE``: Quantum Phase Estimation
-- ``QAE``: Quantum Amplitude Estimation
-- ``TrotterIsing``: First-order Trotter evolution of the transverse-field Ising model
-
-The circuit-library ansätze are written with high-level gates (``CU1``, ``SWAP``,
+The circuit-library ansätze (``QFT``, ``QFTPhaseKernel``, ``Grover``, ``QPE``,
+``QAE``, ``TrotterIsing``) are written with high-level gates (``CU1``, ``SWAP``,
 ``TOFFOLI``, ``RZZ``, …) and, by default, transpiled to a native gate set on
 construction so every non-Clifford gate becomes an ``rz`` rotation that HSMPO
 understands — no manual decomposition needed. Pass ``transpile=False`` to keep the

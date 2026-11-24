@@ -27,7 +27,7 @@ from qibo import set_backend
 from mpstab import HSMPO
 from mpstab.evolutors.gradient import analytic_gradient
 from mpstab.models.ansatze import HardwareEfficient
-from mpstab.pauli import light_cone
+from mpstab.pauli import pauli_light_cone
 
 
 def ring_zz(nqubits: int) -> dict:
@@ -69,7 +69,7 @@ def _light_cone_size(hsmpo, observable, partitions) -> int:
     rotations = hsmpo._dress(partitions["magic_gates"], clifford)
     dressed = hsmpo.stab_engine.backpropagate_many(observable, clifford)
     return len(
-        light_cone(
+        pauli_light_cone(
             [generator for generator, _ in rotations],
             [pauli for pauli, _ in dressed],
             hsmpo.nqubits,

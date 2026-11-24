@@ -23,18 +23,11 @@ passed to :class:`~mpstab.evolutors.hqsmpo.HQSMPO`::
     model = HQSMPO(ansatz, head_synthesis=ExtractionSynthesis(connectivity="line"))
     result = model.expectation_at_cut(H, cut_index, method=ClassicalShadows(), n_shots=10_000)
 
-Importing this package never requires the optional ``rustiq`` dependency, which
-:mod:`~mpstab.qpu.synthesis.rustiq` imports lazily.
+Importing this package never requires the optional ``rustiq`` dependency:
+:mod:`~mpstab.qpu.synthesis.rustiq` only needs it when it synthesises.
 """
 
-from mpstab.qpu.execution import (
-    NoisySimulator,
-    QiboSimulator,
-    circuit_to_qasm,
-    execute_plan,
-    plan_to_qasm,
-    save_circuits,
-)
+from mpstab.qpu.execution import circuit_to_qasm, plan_to_qasm, run_plan, save_circuits
 from mpstab.qpu.measurement import (
     ClassicalShadows,
     ExpectationResult,
@@ -58,13 +51,11 @@ __all__ = [
     "HeadSynthesis",
     "MeasurementMethod",
     "MeasurementPlan",
-    "NoisySimulator",
     "PauliSampling",
-    "QiboSimulator",
     "RustiqSynthesis",
     "circuit_to_qasm",
     "estimate",
-    "execute_plan",
     "plan_to_qasm",
+    "run_plan",
     "save_circuits",
 ]

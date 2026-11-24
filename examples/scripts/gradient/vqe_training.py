@@ -25,6 +25,8 @@ exact methods, where the shift rule is only run for its first steps.
 """
 
 import argparse
+import pathlib
+import sys
 import time
 
 import matplotlib.pyplot as plt
@@ -33,7 +35,10 @@ from qibo import set_backend
 
 from mpstab import HSMPO
 from mpstab.models.ansatze import HardwareEfficient
-from mpstab.plotting import COLORS, set_style
+
+# examples/, home of the plot style
+sys.path.append(str(pathlib.Path(__file__).parents[2]))
+from plotting import COLORS, set_style
 
 
 def tfim_ring(nqubits: int, field: float) -> dict:

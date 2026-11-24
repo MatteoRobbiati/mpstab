@@ -5,8 +5,8 @@ import quimb as qu
 import quimb.tensor as qtn
 from qibo import Circuit, gates
 
+from mpstab import HSMPO
 from mpstab.engines.tensor_networks.quimb import QuimbEngine
-from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.models.ansatze import CircuitAnsatz
 
 # ==========================================

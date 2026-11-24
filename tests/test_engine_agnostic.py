@@ -1,0 +1,177 @@
+"""
+Nothing outside a tensor-network engine may look inside its states or
+operators.
+
+``OpaqueEngine`` runs quimb underneath but hands out its states and operators
+in boxes with no attributes, so any code that reaches into them instead of
+going through the :class:`~mpstab.engines.TensorNetworkEngine` interface fails
+here. A new engine (tenpy, ...) then only has to implement that interface.
+"""
+
+import numpy as np
+import pytest
+from qibo import gates
+from utils import small_entangled_circuit
+
+from mpstab import HSMPO
+from mpstab.engines import QuimbEngine, TensorNetworkEngine
+from mpstab.evolutors.hqsmpo import HQSMPO
+from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient, KickedIsing
+from mpstab.models.metrics import meyer_wallach_mps, stabilizer_renyi_entropy_mps
+from mpstab.models.noise import DepolarizingError, NoiseModel
+from mpstab.qibo_tools import StatevectorExactSimulator
+from mpstab.qpu.execution import run_plan
+from mpstab.qpu.measurement import ClassicalShadows, PauliSampling
+
+
+class _Box:
+    """An engine object with nothing to reach into."""
+
+    __slots__ = ("inner",)
+
+    def __init__(self, inner):
+        self.inner = inner
+
+
+class OpaqueEngine(TensorNetworkEngine):
+    """QuimbEngine behind boxes: only the interface sees the quimb objects."""
+
+    def __init__(self):
+        self.quimb = QuimbEngine(svd_cutoff=0.0)
+
+    def build_circuit_mps(self, n, initial_state_circuit, max_bond_dimension=None):
+        return _Box(
+            self.quimb.build_circuit_mps(n, initial_state_circuit, max_bond_dimension)
+        )
+
+    def pauli_mpo(self, pauli_string):
+        return _Box(self.quimb.pauli_mpo(pauli_string))
+
+    def expval(self, state_circuit, operator):
+        return self.quimb.expval(state_circuit.inner, operator.inner)
+
+    def pauli_rot(self, state_circuit, generator, angle, max_bond_dimension):
+        self.quimb.pauli_rot(state_circuit.inner, generator, angle, max_bond_dimension)
+
+    def copy_state(self, state_circuit):
+        return _Box(self.quimb.copy_state(state_circuit.inner))
+
+    def squared_norm(self, state_circuit):
+        return self.quimb.squared_norm(state_circuit.inner)
+
+    def conjugate_operator(self, operator, generator, angle, max_bond_dimension):
+        return _Box(
+            self.quimb.conjugate_operator(
+                operator.inner, generator, angle, max_bond_dimension
+            )
+        )
+
+    def operator_site_arrays(self, operator):
+        return self.quimb.operator_site_arrays(operator.inner)
+
+    def pauli_sum_mpo(self, terms):
+        return _Box(self.quimb.pauli_sum_mpo(terms))
+
+    def minimize_energy(self, operator, initial_state, **options):
+        result = self.quimb.minimize_energy(
+            operator.inner, initial_state.inner, **options
+        )
+        return {**result, "state": _Box(result["state"])}
+
+    def circuit_truncation_fidelity(self, nqubits, circuit, max_bond_dimension):
+        return self.quimb.circuit_truncation_fidelity(
+            nqubits, circuit, max_bond_dimension
+        )
+
+
+def _pair(ansatz, cls=HSMPO, **kwargs):
+    """The same model on quimb and on the opaque engine."""
+    reference = cls(ansatz, tn_engine=QuimbEngine(svd_cutoff=0.0), **kwargs)
+    opaque = cls(ansatz, tn_engine=OpaqueEngine(), **kwargs)
+    return reference, opaque
+
+
+def test_hsmpo_expectation_and_fidelities():
+    reference, opaque = _pair(
+        HardwareEfficient(nqubits=5, nlayers=3), max_bond_dimension=2
+    )
+    expected = reference.expectation("ZZIXI", return_fidelity=True)
+    assert opaque.expectation("ZZIXI", return_fidelity=True) == pytest.approx(expected)
+    assert opaque.truncation_fidelity() == pytest.approx(
+        reference.truncation_fidelity()
+    )
+    assert opaque.truncation_fidelity_pure_tn == pytest.approx(
+        reference.truncation_fidelity_pure_tn
+    )
+
+
+def test_metrics():
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
+    reference, opaque = _pair(ansatz)
+    assert meyer_wallach_mps(opaque) == pytest.approx(meyer_wallach_mps(reference))
+    expected = stabilizer_renyi_entropy_mps(reference, alpha=2, n_samples=200, seed=0)
+    assert stabilizer_renyi_entropy_mps(
+        opaque, alpha=2, n_samples=200, seed=0
+    ) == pytest.approx(expected)
+
+
+def test_noisy_expectation():
+    reference, opaque = _pair(KickedIsing(nqubits=5))
+    noise = NoiseModel().add(DepolarizingError(0.02), gates.CNOT)
+    observable = {"ZZIII": 0.7, "IXIXI": -0.4}
+    expected = reference.noisy_expectation(observable, noise, n_samples=100, seed=1)
+    result = opaque.noisy_expectation(observable, noise, n_samples=100, seed=1)
+    assert result.mean == pytest.approx(expected.mean)
+    np.testing.assert_allclose(result.fidelities, expected.fidelities)
+
+
+def test_dmrg():
+    reference, opaque = _pair(HardwareEfficient(nqubits=4, nlayers=2))
+    options = dict(bond_dims=[4], max_sweeps=2, verbosity=0)
+    hamiltonian = {"ZZII": 1.0, "IXXI": 0.5, "IIZZ": -0.3}
+    expected = reference.minimize_expectation(hamiltonian, **options)["energy"]
+    assert opaque.minimize_expectation(hamiltonian, **options)[
+        "energy"
+    ] == pytest.approx(expected, abs=1e-8)
+
+
+def test_hqsmpo_simulation_and_tail_truncation():
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
+    reference, opaque = _pair(ansatz, cls=HQSMPO, max_bond_dimension=2)
+    expected = reference.expectation_at_cut("ZZZZ", 2, method="simulation")
+    result = opaque.expectation_at_cut("ZZZZ", 2, method="simulation")
+    assert result.value == pytest.approx(expected.value)
+    assert result.state_fidelity == pytest.approx(expected.state_fidelity)
+    assert result.truncation_l2 == pytest.approx(expected.truncation_l2)
+
+    expected_tail = reference.tail_truncation("ZZZZ", 1, 1, exact=True)
+    tail = opaque.tail_truncation("ZZZZ", 1, 1, exact=True)
+    assert tail.fidelity_estimate == pytest.approx(expected_tail.fidelity_estimate)
+    assert tail.relative_frobenius_error == pytest.approx(
+        expected_tail.relative_frobenius_error, abs=1e-7
+    )
+
+
+@pytest.mark.parametrize(
+    "method", [ClassicalShadows(), PauliSampling()], ids=["shadows", "pauli"]
+)
+def test_device_routes(method):
+    ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
+    reference, opaque = _pair(ansatz, cls=HQSMPO, head_synthesis="cnot_ladder")
+    plans = [
+        model.plan(
+            {"ZZZZ": 1.0, "XIXI": 0.5},
+            2,
+            method=method,
+            n_shots=200,
+            seed=3,
+            out_folder=False,
+        )
+        for model in (reference, opaque)
+    ]
+    # Identical circuits, so the same counts serve both plans.
+    frequencies = run_plan(plans[0], StatevectorExactSimulator())
+    expected, result = (
+        method.estimate(plan, frequencies, seed=7).value for plan in plans
+    )
+    assert result == pytest.approx(expected)
