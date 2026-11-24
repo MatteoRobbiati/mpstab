@@ -136,8 +136,11 @@ class HardwareEfficient(Ansatz):
             for q in range(self.nqubits):
                 self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
             if self.entangling:
-                for q in range(self.nqubits):
-                    self.circuit.add(gates.CZ(q, (q + 1) % self.nqubits))
+                # the ring; on 2 qubits it is the single bond (0, 1), since
+                # CZ(0, 1) CZ(1, 0) would cancel out
+                n = self.nqubits
+                for q in range(n if n > 2 else n - 1):
+                    self.circuit.add(gates.CZ(q, (q + 1) % n))
 
 
 @dataclass
@@ -547,10 +550,17 @@ class HammingWeightPreserving(Ansatz):
             self._connect_qubits(jumpsize=2, start_from=3)
 
     def _connect_qubits(self, jumpsize: int, start_from: int) -> None:
-        """Add RBS gates between qubit pairs (q, (q+jumpsize) % nqubits)."""
+        """
+        Add RBS gates between qubit pairs (q, (q+jumpsize) % nqubits).
+
+        A pair that wraps onto itself (``jumpsize`` a multiple of ``nqubits``,
+        i.e. a jump of 2 on 2 qubits) is skipped, with no angle drawn.
+        """
         for q in range(start_from, self.nqubits, jumpsize + 1):
             q0 = q
             q1 = (q + jumpsize) % self.nqubits
+            if q1 == q0:
+                continue
             theta = np.random.uniform(-np.pi, np.pi)
             self.circuit += self._rbs_decomposition(q0, q1, theta)
 
@@ -792,30 +802,6 @@ class _CompiledAnsatz(Ansatz):
 
     def _build_circuit(self) -> Circuit:
         raise NotImplementedError
-
-
-@dataclass(kw_only=True)
-class TranspiledAnsatz(_CompiledAnsatz):
-    """
-    An existing circuit transpiled to the native gates and connectivity of a
-    device.
-
-    Args:
-        original_circuit: the circuit to transpile.
-        native_gates: native gates of the device. Defaults to
-            ``[GPI2, RZ, Z, CZ]``.
-        connectivity: device topology. ``None`` ignores connectivity constraints.
-    """
-
-    original_circuit: Circuit
-    nqubits: int = field(init=False)
-
-    def __post_init__(self):
-        self.nqubits = self.original_circuit.nqubits
-        super().__post_init__()
-
-    def _build_circuit(self) -> Circuit:
-        return self.original_circuit
 
 
 @dataclass(kw_only=True)
