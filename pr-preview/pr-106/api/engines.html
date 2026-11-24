@@ -204,14 +204,24 @@
 <li class="toctree-l1"><a class="reference internal" href="../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorials &amp; Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../examples/introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/noise.html">Noisy simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/advanced_noise.html">Device-level noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/using_ansatze.html">Using Ansätze</a></li>
@@ -226,7 +236,9 @@
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="qpu.html">QPU</a></li>
 <li class="toctree-l1"><a class="reference internal" href="noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="models.html">Models &amp; Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
@@ -377,7 +389,7 @@ a no-op on the Pauli frame.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code></p>
 <p>MPS evolution and MPO expectation values via quimb.</p>
 <p>Besides evolving states, it conjugates operators, which
-<a class="reference internal" href="evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO" title="mpstab.evolutors.hsynthsmpo.HSynthSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HSynthSMPO</span></code></a>’s head/tail split needs,
+<a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO" title="mpstab.evolutors.hqsmpo.HQSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HQSMPO</span></code></a>’s head/tail split needs,
 and its MPS feeds quimb’s DMRG.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_rotation">
@@ -421,8 +433,20 @@ compressed to <code class="docutils literal notranslate"><span class="pre">max_b
 and the exact operator rank of a scrambled observable grows
 exponentially, so folding a long tail accrues truncation error. Keeping
 this exact is only affordable for modest tail lengths; see
-<a class="reference internal" href="evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO.tail_truncation" title="mpstab.evolutors.hsynthsmpo.HSynthSMPO.tail_truncation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tail_truncation()</span></code></a> to
+<a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.tail_truncation" title="mpstab.evolutors.hqsmpo.HQSMPO.tail_truncation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tail_truncation()</span></code></a> to
 quantify it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.conjugate_operator_many">
+<span class="sig-name descname"><span class="pre">conjugate_operator_many</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductOperator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_dimension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.conjugate_operator_many"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.conjugate_operator_many" title="Link to this definition">¶</a></dt>
+<dd><p>Conjugate <code class="docutils literal notranslate"><span class="pre">operator</span></code> by each <code class="docutils literal notranslate"><span class="pre">(generator,</span> <span class="pre">angle)</span></code> rotation in turn,
+the first one innermost, as repeated <a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.conjugate_operator" title="mpstab.engines.tensor_networks.quimb.QuimbEngine.conjugate_operator"><code class="xref py py-meth docutils literal notranslate"><span class="pre">conjugate_operator()</span></code></a> calls.</p>
+<p>On the numpy backend the MPO is unpacked once into canonical site
+arrays, and each conjugation touches only its generator’s window
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">operator_conjugation()</span></code>), with the same truncation
+rule as quimb’s <code class="docutils literal notranslate"><span class="pre">compress</span></code>, so a whole tail costs about as much as
+evolving a state through it. Other backends go through quimb.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -509,6 +533,19 @@ numpy backend, a list of backend scalars otherwise.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions">
+<span class="sig-name descname"><span class="pre">pauli_transitions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bra_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ket_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paulis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.pauli_transitions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions" title="Link to this definition">¶</a></dt>
+<dd><p>Normalized transition amplitudes <code class="docutils literal notranslate"><span class="pre">&lt;bra|P|ket&gt;</span></code> of many Pauli strings
+between two states, each divided by the norms of both states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A complex array on the numpy backend, a list of backend scalars
+otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.rotation_operator">
 <span class="sig-name descname"><span class="pre">rotation_operator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.rotation_operator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.rotation_operator" title="Link to this definition">¶</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">exp(-i</span> <span class="pre">angle/2</span> <span class="pre">generator)</span></code> in a form <a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_rotation" title="mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_rotation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">apply_rotation()</span></code></a> accepts:
@@ -518,8 +555,15 @@ windowed kernel, and the backend MPO otherwise.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm">
-<span class="sig-name descname"><span class="pre">squared_norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.squared_norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">&lt;psi|psi&gt;</span></code> of the MPS.</p>
+<span class="sig-name descname"><span class="pre">squared_norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.squared_norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&lt;psi|psi&gt;</span></code> of the MPS. On the numpy backend it is read off the
+orthogonality center of the cached canonical form, no full contraction
+needed; other backends return quimb’s backend scalar, so it stays
+differentiable.</p>
+<p>On the numpy backend, when the state has no valid cached canonical form
+(a fresh state, or one changed outside the engine), it is
+canonicalized in place first: its tensors are transposed and
+gauge-transformed, the state itself is unchanged.</p>
 </dd></dl>
 
 </dd></dl>
@@ -534,7 +578,7 @@ torch backend.</p>
 of what an engine does rather than for performance. They give the same
 expectation values as stim and quimb, but are slower and cover less: the
 native tensor-network engine has no operator-side conjugation (so no head/tail
-split in <a class="reference internal" href="evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO" title="mpstab.evolutors.hsynthsmpo.HSynthSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HSynthSMPO</span></code></a>) and no DMRG.</p>
+split in <a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO" title="mpstab.evolutors.hqsmpo.HQSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HQSMPO</span></code></a>) and no DMRG.</p>
 <p id="module-mpstab.engines.stabilizers.native.engine">Pure-Python stabilizers engine.</p>
 <dl class="py data">
 <dt class="sig sig-object py" id="mpstab.engines.stabilizers.native.engine.GATE_TABLEAUS">
@@ -578,7 +622,7 @@ tableau per gate, on the XZ-encoded Pauli arithmetic of
 to be read rather than to be fast: use
 <code class="xref py py-class docutils literal notranslate"><span class="pre">QuimbEngine</span></code> for real workloads. Supports state-side evolution and expectation values. Operator-side
 conjugation, and so the whole head/tail split of
-<a class="reference internal" href="evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO" title="mpstab.evolutors.hsynthsmpo.HSynthSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HSynthSMPO</span></code></a>, needs
+<a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO" title="mpstab.evolutors.hqsmpo.HQSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HQSMPO</span></code></a>, needs
 <code class="xref py py-class docutils literal notranslate"><span class="pre">QuimbEngine</span></code>.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.build_circuit_mps">
@@ -685,7 +729,7 @@ truncation fidelities.</p></td>
 <td><p>Optional, with a generic default an engine may override for speed.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">conjugate_operator</span></code>, <code class="docutils literal notranslate"><span class="pre">operator_site_arrays</span></code></p></td>
-<td><p>Optional: the head/tail split of <code class="docutils literal notranslate"><span class="pre">HSynthSMPO</span></code> and its measurement
+<td><p>Optional: the head/tail split of <code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> and its measurement
 routes. Operators leave the engine only as numpy site arrays.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pauli_sum_mpo</span></code>, <code class="docutils literal notranslate"><span class="pre">minimize_energy</span></code></p></td>
@@ -733,7 +777,7 @@ it. The default replays each prefix through <code class="docutils literal notran
 <h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="../guides/working_with_engines.html"><span class="doc">Working with Engines</span></a> - Engine selection guide</p></li>
-<li><p><a class="reference internal" href="../examples/introduction.html"><span class="doc">A quick introduction to HSMPO</span></a> - Practical examples</p></li>
+<li><p><a class="reference internal" href="../tutorials/introduction.html"><span class="doc">A quick introduction to mpstab</span></a> - Practical examples</p></li>
 </ul>
 </section>
 </section>
@@ -814,6 +858,7 @@ it. The default replays each prefix through <code class="docutils literal notran
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.build_circuit_mps"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.build_circuit_mps()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.circuit_truncation_fidelity"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.circuit_truncation_fidelity()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.conjugate_operator"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.conjugate_operator()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.conjugate_operator_many"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.conjugate_operator_many()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.copy_state"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.copy_state()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.expval"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.expval()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.minimize_energy"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.minimize_energy()</span></code></a></li>
@@ -822,6 +867,7 @@ it. The default replays each prefix through <code class="docutils literal notran
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_mpo"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_mpo()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_rot"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_rot()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_sum_mpo"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_sum_mpo()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_transitions()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.rotation_operator"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.rotation_operator()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.squared_norm()</span></code></a></li>
 </ul>

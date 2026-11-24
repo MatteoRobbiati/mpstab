@@ -204,14 +204,24 @@
 <li class="toctree-l1"><a class="reference internal" href="theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorials &amp; Examples</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../examples/introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/noise.html">Noisy simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/advanced_noise.html">Device-level noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 <li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="using_ansatze.html">Using Ansätze</a></li>
@@ -226,7 +236,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/engines.html">Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/qpu.html">QPU</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/models.html">Models &amp; Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
@@ -272,7 +284,7 @@
         <article role="main" id="furo-main-content">
           <section id="hardware-resynthesis-with-rustiq">
 <h1>Hardware Resynthesis with rustiq<a class="headerlink" href="#hardware-resynthesis-with-rustiq" title="Link to this heading">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">HSynthSMPO</span></code> can resynthesize its dressed Pauli rotations into a circuit
+<p><code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> can resynthesize its dressed Pauli rotations into a circuit
 made of hardware-native gates, using the low-level <a class="reference external" href="https://github.com/smartiel/rustiq">rustiq</a> Pauli-network synthesis API. This is
 the circuit you would actually run on a real device; it is never used for the
 classical expectation value, which always applies the exact rotations (to the
@@ -305,11 +317,11 @@ is generally <em>not</em> Clifford), this property lets <code class="docutils li
 </section>
 <section id="basic-usage">
 <h2>Basic usage<a class="headerlink" href="#basic-usage" title="Link to this heading">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsynthsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSynthSMPO</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HQSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
 
 <span class="n">ansatz</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">nlayers</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="n">hs</span> <span class="o">=</span> <span class="n">HSynthSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="p">)</span>
+<span class="n">hs</span> <span class="o">=</span> <span class="n">HQSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="p">)</span>
 
 <span class="c1"># Resynthesize ALL dressed rotations into a hardware-native circuit, and</span>
 <span class="c1"># measure it with a finite shot budget -- there is no exact route.</span>
@@ -332,10 +344,10 @@ resynthesis cost grows as more of the circuit is included:</p>
 </pre></div>
 </div>
 <p>A partial cut leaves a pure-Clifford residual (<code class="docutils literal notranslate"><span class="pre">resynth.residual_tableau</span></code>): the
-<code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> route of <a class="reference internal" href="../api/evolutors.html#mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut" title="mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation_at_cut()</span></code></a>
+<code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> route of <a class="reference internal" href="../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut" title="mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut"><code class="xref py py-meth docutils literal notranslate"><span class="pre">expectation_at_cut()</span></code></a>
 folds it into the sampled Pauli terms automatically before grouping (see the
-module docstring of <a class="reference internal" href="../api/evolutors.html#module-mpstab.evolutors.hsynthsmpo" title="mpstab.evolutors.hsynthsmpo"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.evolutors.hsynthsmpo</span></code></a>); the <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>
-and <code class="docutils literal notranslate"><span class="pre">&quot;tnice&quot;</span></code> routes take a <code class="docutils literal notranslate"><span class="pre">tail_handling</span></code> option
+module docstring of <a class="reference internal" href="../api/evolutors.html#module-mpstab.evolutors.hqsmpo" title="mpstab.evolutors.hqsmpo"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.evolutors.hqsmpo</span></code></a>); the <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>
+route takes a <code class="docutils literal notranslate"><span class="pre">tail_handling</span></code> option
 (<code class="docutils literal notranslate"><span class="pre">ClassicalShadows(tail_handling=&quot;fold&quot;)</span></code>, or <code class="docutils literal notranslate"><span class="pre">tail_handling=&quot;fold&quot;</span></code> next to
 <code class="docutils literal notranslate"><span class="pre">method=&quot;shadows&quot;</span></code>):
 <code class="docutils literal notranslate"><span class="pre">&quot;append_to_head_circuit&quot;</span></code> (default) runs the residual as extra gates, while
@@ -346,7 +358,7 @@ the residual spreads Pauli weight, which can raise the shadow variance by
 orders of magnitude – compare <code class="docutils literal notranslate"><span class="pre">shadow_variance_from_mpo</span></code> of the two tail
 operators against the residual’s two-qubit gate count before choosing. Rotations left out of the resynthesis entirely are
 still non-Clifford and get folded approximately into the tail MPO – see
-<a class="reference internal" href="fidelity_and_approximation.html"><span class="doc">Fidelity and Approximation</span></a> and <code class="docutils literal notranslate"><span class="pre">HSynthSMPO.tail_truncation</span></code>.</p>
+<a class="reference internal" href="fidelity_and_approximation.html"><span class="doc">Fidelity and Approximation</span></a> and <code class="docutils literal notranslate"><span class="pre">HQSMPO.tail_truncation</span></code>.</p>
 </section>
 </section>
 

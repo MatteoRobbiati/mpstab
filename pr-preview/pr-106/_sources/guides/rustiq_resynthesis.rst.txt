@@ -1,7 +1,7 @@
 Hardware Resynthesis with rustiq
 =================================
 
-``HSynthSMPO`` can resynthesize its dressed Pauli rotations into a circuit
+``HQSMPO`` can resynthesize its dressed Pauli rotations into a circuit
 made of hardware-native gates, using the low-level `rustiq
 <https://github.com/smartiel/rustiq>`_ Pauli-network synthesis API. This is
 the circuit you would actually run on a real device; it is never used for the
@@ -42,11 +42,11 @@ Basic usage
 
 .. code-block:: python
 
-    from mpstab.evolutors.hsynthsmpo import HSynthSMPO
+    from mpstab import HQSMPO
     from mpstab.models.ansatze import HardwareEfficient
 
     ansatz = HardwareEfficient(nqubits=6, nlayers=2)
-    hs = HSynthSMPO(ansatz)
+    hs = HQSMPO(ansatz)
 
     # Resynthesize ALL dressed rotations into a hardware-native circuit, and
     # measure it with a finite shot budget -- there is no exact route.
@@ -70,10 +70,10 @@ resynthesis cost grows as more of the circuit is included:
         print(resynth.n_gates, resynth.n_two_qubit_gates)
 
 A partial cut leaves a pure-Clifford residual (``resynth.residual_tableau``): the
-``"pauli"`` route of :meth:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO.expectation_at_cut`
+``"pauli"`` route of :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut`
 folds it into the sampled Pauli terms automatically before grouping (see the
-module docstring of :mod:`mpstab.evolutors.hsynthsmpo`); the ``"shadows"``
-and ``"tnice"`` routes take a ``tail_handling`` option
+module docstring of :mod:`mpstab.evolutors.hqsmpo`); the ``"shadows"``
+route takes a ``tail_handling`` option
 (``ClassicalShadows(tail_handling="fold")``, or ``tail_handling="fold"`` next to
 ``method="shadows"``):
 ``"append_to_head_circuit"`` (default) runs the residual as extra gates, while
@@ -84,4 +84,4 @@ the residual spreads Pauli weight, which can raise the shadow variance by
 orders of magnitude -- compare ``shadow_variance_from_mpo`` of the two tail
 operators against the residual's two-qubit gate count before choosing. Rotations left out of the resynthesis entirely are
 still non-Clifford and get folded approximately into the tail MPO -- see
-:doc:`fidelity_and_approximation` and ``HSynthSMPO.tail_truncation``.
+:doc:`fidelity_and_approximation` and ``HQSMPO.tail_truncation``.

@@ -203,14 +203,24 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../guides/quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorials &amp; Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../examples/introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/noise.html">Noisy simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/advanced_noise.html">Device-level noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../guides/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../guides/using_ansatze.html">Using Ansätze</a></li>
@@ -225,7 +235,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/engines.html">Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/qpu.html">QPU</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api/models.html">Models &amp; Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
@@ -292,14 +304,8 @@
     <span class="n">truncation_error_estimate</span><span class="p">,</span>
 <span class="p">)</span>
 
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_qubitwise_commuting</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Whether ``a`` and ``b`` agree at every qubit where neither is ``I``.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="s2">&quot;I&quot;</span> <span class="ow">or</span> <span class="n">y</span> <span class="o">==</span> <span class="s2">&quot;I&quot;</span> <span class="ow">or</span> <span class="n">x</span> <span class="o">==</span> <span class="n">y</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_merge_setting</span><span class="p">(</span><span class="n">setting</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">a</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="s2">&quot;I&quot;</span> <span class="k">else</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">setting</span><span class="p">,</span> <span class="n">string</span><span class="p">))</span>
+<span class="c1">#: ``&quot;I&quot;`` as a byte, in the byte arrays :func:`group_qwc` compares.</span>
+<span class="n">_IDENTITY</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="s2">&quot;I&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="QWCGroup">
@@ -334,28 +340,43 @@
 <span class="sd">        resolved to ``Z``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">strings</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">strings</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">strings</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">()</span>
     <span class="n">order</span> <span class="o">=</span> <span class="p">(</span>
         <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">strings</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span>
         <span class="k">else</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">strings</span><span class="p">)),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="o">-</span><span class="nb">abs</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
     <span class="p">)</span>
 
-    <span class="n">settings</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Greedy first fit: each string joins the first setting it qubit-wise</span>
+    <span class="c1"># commutes with (they agree wherever neither is I), filling in that</span>
+    <span class="c1"># setting&#39;s I&#39;s, else opens a new one. Every open setting is tested at</span>
+    <span class="c1"># once, on byte arrays.</span>
+    <span class="n">letters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">strings</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+    <span class="n">letters</span> <span class="o">=</span> <span class="n">letters</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">strings</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">letters</span><span class="p">)</span>  <span class="c1"># at most one setting per string</span>
     <span class="n">members</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">order</span><span class="p">:</span>
-        <span class="n">string</span> <span class="o">=</span> <span class="n">strings</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">setting</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">settings</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">_qubitwise_commuting</span><span class="p">(</span><span class="n">setting</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
-                <span class="n">settings</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="n">_merge_setting</span><span class="p">(</span><span class="n">setting</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span>
-                <span class="n">members</span><span class="p">[</span><span class="n">group</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
-                <span class="k">break</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">letters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">support</span> <span class="o">=</span> <span class="n">row</span> <span class="o">!=</span> <span class="n">_IDENTITY</span>
+        <span class="n">open_settings</span> <span class="o">=</span> <span class="n">settings</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">),</span> <span class="n">support</span><span class="p">]</span>
+        <span class="n">fits</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">open_settings</span> <span class="o">==</span> <span class="n">_IDENTITY</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">open_settings</span> <span class="o">==</span> <span class="n">row</span><span class="p">[</span><span class="n">support</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">fits</span><span class="p">))</span> <span class="k">if</span> <span class="n">members</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">members</span> <span class="ow">and</span> <span class="n">fits</span><span class="p">[</span><span class="n">group</span><span class="p">]:</span>
+            <span class="n">settings</span><span class="p">[</span><span class="n">group</span><span class="p">,</span> <span class="n">support</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">support</span><span class="p">]</span>
+            <span class="n">members</span><span class="p">[</span><span class="n">group</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">strings</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">settings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
-            <span class="n">members</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">string</span><span class="p">])</span>
+            <span class="n">settings</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">)]</span> <span class="o">=</span> <span class="n">row</span>
+            <span class="n">members</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">strings</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
 
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
-        <span class="n">QWCGroup</span><span class="p">(</span><span class="n">setting</span><span class="o">=</span><span class="n">setting</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;I&quot;</span><span class="p">,</span> <span class="s2">&quot;Z&quot;</span><span class="p">),</span> <span class="n">members</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">group_members</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">setting</span><span class="p">,</span> <span class="n">group_members</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">members</span><span class="p">)</span>
+        <span class="n">QWCGroup</span><span class="p">(</span>
+            <span class="n">setting</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="n">g</span><span class="p">]</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;I&quot;</span><span class="p">,</span> <span class="s2">&quot;Z&quot;</span><span class="p">),</span>
+            <span class="n">members</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">group_members</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">group_members</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">members</span><span class="p">)</span>
     <span class="p">)</span></div>
 
 

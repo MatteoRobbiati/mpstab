@@ -203,14 +203,24 @@
 <li class="toctree-l1"><a class="reference internal" href="../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorials &amp; Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../examples/introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/noise.html">Noisy simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/advanced_noise.html">Device-level noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../guides/using_ansatze.html">Using Ansätze</a></li>
@@ -225,7 +235,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/engines.html">Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/qpu.html">QPU</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/models.html">Models &amp; Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
@@ -268,28 +280,36 @@
 <li><a href="mpstab/engines/stabilizers/stim.html">mpstab.engines.stabilizers.stim</a></li>
 <li><a href="mpstab/engines/tensor_networks/native/engine.html">mpstab.engines.tensor_networks.native.engine</a></li>
 <li><a href="mpstab/engines/tensor_networks/quimb.html">mpstab.engines.tensor_networks.quimb</a></li>
+<li><a href="mpstab/evolutors/hqsmpo.html">mpstab.evolutors.hqsmpo</a></li>
 <li><a href="mpstab/evolutors/hsmpo.html">mpstab.evolutors.hsmpo</a></li>
-<li><a href="mpstab/evolutors/hsynthsmpo.html">mpstab.evolutors.hsynthsmpo</a></li>
 <li><a href="mpstab/evolutors/optimization.html">mpstab.evolutors.optimization</a></li>
 <li><a href="mpstab/evolutors/utils.html">mpstab.evolutors.utils</a></li>
 <li><a href="mpstab/hamiltonians.html">mpstab.hamiltonians</a></li>
 <li><a href="mpstab/models/ansatze.html">mpstab.models.ansatze</a></li>
+<li><a href="mpstab/models/error_mitigation/data_driven_methods/cdr.html">mpstab.models.error_mitigation.data_driven_methods.cdr</a></li>
+<li><a href="mpstab/models/error_mitigation/data_driven_methods/plan.html">mpstab.models.error_mitigation.data_driven_methods.plan</a></li>
+<li><a href="mpstab/models/error_mitigation/data_driven_methods/regression.html">mpstab.models.error_mitigation.data_driven_methods.regression</a></li>
+<li><a href="mpstab/models/error_mitigation/data_driven_methods/training.html">mpstab.models.error_mitigation.data_driven_methods.training</a></li>
+<li><a href="mpstab/models/error_mitigation/data_driven_methods/vncdr.html">mpstab.models.error_mitigation.data_driven_methods.vncdr</a></li>
+<li><a href="mpstab/models/error_mitigation/folding.html">mpstab.models.error_mitigation.folding</a></li>
 <li><a href="mpstab/models/metrics.html">mpstab.models.metrics</a></li>
+<li><a href="mpstab/models/noise/compile.html">mpstab.models.noise.compile</a></li>
+<li><a href="mpstab/models/noise/events.html">mpstab.models.noise.events</a></li>
+<li><a href="mpstab/models/noise/mc_noise_estimator.html">mpstab.models.noise.mc_noise_estimator</a></li>
+<li><a href="mpstab/models/noise/model.html">mpstab.models.noise.model</a></li>
 <li><a href="mpstab/models/utils.html">mpstab.models.utils</a></li>
-<li><a href="mpstab/noise/compile.html">mpstab.noise.compile</a></li>
-<li><a href="mpstab/noise/events.html">mpstab.noise.events</a></li>
-<li><a href="mpstab/noise/mc_noise_estimator.html">mpstab.noise.mc_noise_estimator</a></li>
-<li><a href="mpstab/noise/model.html">mpstab.noise.model</a></li>
 <li><a href="mpstab/pauli.html">mpstab.pauli</a></li>
+<li><a href="mpstab/qibo_tools/provided_backends/mpstab_backend.html">mpstab.qibo_tools.provided_backends.mpstab_backend</a></li>
+<li><a href="mpstab/qibo_tools/utilized_backends/density_matrix_noise_simulator.html">mpstab.qibo_tools.utilized_backends.density_matrix_noise_simulator</a></li>
+<li><a href="mpstab/qibo_tools/utilized_backends/statevector_exact_simulator.html">mpstab.qibo_tools.utilized_backends.statevector_exact_simulator</a></li>
+<li><a href="mpstab/qpu/execution/backend.html">mpstab.qpu.execution.backend</a></li>
 <li><a href="mpstab/qpu/execution/qasm.html">mpstab.qpu.execution.qasm</a></li>
-<li><a href="mpstab/qpu/execution/simulator.html">mpstab.qpu.execution.simulator</a></li>
 <li><a href="mpstab/qpu/execution/storage.html">mpstab.qpu.execution.storage</a></li>
 <li><a href="mpstab/qpu/measurement.html">mpstab.qpu.measurement</a></li>
 <ul><li><a href="mpstab/qpu/measurement/abstract.html">mpstab.qpu.measurement.abstract</a></li>
 <li><a href="mpstab/qpu/measurement/pauli.html">mpstab.qpu.measurement.pauli</a></li>
 <li><a href="mpstab/qpu/measurement/pauli_expansion.html">mpstab.qpu.measurement.pauli_expansion</a></li>
 <li><a href="mpstab/qpu/measurement/shadows.html">mpstab.qpu.measurement.shadows</a></li>
-<li><a href="mpstab/qpu/measurement/tnice.html">mpstab.qpu.measurement.tnice</a></li>
 </ul><li><a href="mpstab/qpu/synthesis.html">mpstab.qpu.synthesis</a></li>
 <ul><li><a href="mpstab/qpu/synthesis/abstract.html">mpstab.qpu.synthesis.abstract</a></li>
 <li><a href="mpstab/qpu/synthesis/cnot_ladder.html">mpstab.qpu.synthesis.cnot_ladder</a></li>

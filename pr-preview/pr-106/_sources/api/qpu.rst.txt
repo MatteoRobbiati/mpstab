@@ -1,7 +1,7 @@
 QPU
 ===
 
-Everything needed to run an :class:`~mpstab.evolutors.hsynthsmpo.HSynthSMPO`
+Everything needed to run an :class:`~mpstab.evolutors.hqsmpo.HQSMPO`
 head/tail split on a quantum device. The pipeline is three steps, one
 subpackage each, and every circuit is decided classically before anything
 reaches a backend.
@@ -59,10 +59,6 @@ bars. One module per method.
    :members:
    :show-inheritance:
 
-.. automodule:: mpstab.qpu.measurement.tnice
-   :members:
-   :show-inheritance:
-
 .. automodule:: mpstab.qpu.measurement.pauli_expansion
    :members:
    :show-inheritance:
@@ -75,9 +71,8 @@ device.
 
 .. automodule:: mpstab.qpu.execution
 
-.. automodule:: mpstab.qpu.execution.simulator
+.. automodule:: mpstab.qpu.execution.backend
    :members:
-   :show-inheritance:
 
 .. automodule:: mpstab.qpu.execution.qasm
    :members:

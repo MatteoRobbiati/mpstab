@@ -26,10 +26,14 @@ Among our core features:
 
 .. toctree::
    :maxdepth: 2
-   :caption: Tutorials & Examples
+   :caption: Tutorials
 
-   examples/introduction
-   examples/state_metrics
+   tutorials/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Guides
+
    guides/dmrg_optimization
    guides/qibo_backend_provider
    guides/working_with_engines
@@ -47,7 +51,9 @@ Among our core features:
    api/engines
    api/qpu
    api/noise
+   api/error_mitigation
    api/pauli
+   api/qibo_tools
    api/models
 
 .. toctree::

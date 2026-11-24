@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="DMRG Optimization of the XXZ Model" href="../examples/dmrg_optimization_heisenberg.html"><link rel="prev" title="State metrics on an HSMPO: comparison with Qibo" href="../examples/state_metrics.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="MPSTAB as a Qibo Backend Provider" href="qibo_backend_provider.html"><link rel="prev" title="mpstab, qibojit and PauliPropagation.jl: who wins where" href="../tutorials/frameworks.html">
         <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
@@ -205,14 +205,24 @@
 <li class="toctree-l1"><a class="reference internal" href="theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Tutorials &amp; Examples</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../examples/introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/noise.html">Noisy simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/advanced_noise.html">Device-level noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">DMRG Optimization of Quantum Hamiltonians</a></li>
 <li class="toctree-l1"><a class="reference internal" href="qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="working_with_engines.html">Working with Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="using_ansatze.html">Using Ansätze</a></li>
@@ -227,7 +237,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../api/engines.html">Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/qpu.html">QPU</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api/models.html">Models &amp; Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
@@ -336,17 +348,12 @@ For an introduction to mpstab, see the <a href="quickstart.html">Quickstart</a> 
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">hamiltonians</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">qibo.symbols</span><span class="w"> </span><span class="kn">import</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuimbEngine</span><span class="p">,</span> <span class="n">StimEngine</span>
 </pre></div>
 </div>
 </div>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Interactive Examples</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
-</ul>
-</div>
+<p>The <a class="reference internal" href="../tutorials/ground_states.html"><span class="doc">Ground states with DMRG</span></a> tutorial runs these steps end to end.</p>
 </section>
 <section id="getting-started-with-dmrg">
 <h2>Getting Started with DMRG<a class="headerlink" href="#getting-started-with-dmrg" title="Link to this heading">¶</a></h2>
@@ -354,7 +361,7 @@ For an introduction to mpstab, see the <a href="quickstart.html">Quickstart</a> 
 <h3>Basic Workflow<a class="headerlink" href="#basic-workflow" title="Link to this heading">¶</a></h3>
 <p>Here’s the basic workflow for optimizing any Hamiltonian with DMRG:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuimbEngine</span><span class="p">,</span> <span class="n">StimEngine</span>
 
 <span class="c1"># 1. Create ansatz and HSMPO, with its engines</span>
@@ -463,23 +470,23 @@ convergence and improve accuracy.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="../examples/dmrg_optimization_heisenberg.html">
+          <a class="next-page" href="qibo_backend_provider.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">DMRG Optimization of the XXZ Model</div>
+                <div class="title">MPSTAB as a Qibo Backend Provider</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="../examples/state_metrics.html">
+          <a class="prev-page" href="../tutorials/frameworks.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">State metrics on an HSMPO: comparison with Qibo</div>
+                <div class="title">mpstab, qibojit and PauliPropagation.jl: who wins where</div>
                 
               </div>
             </a>
