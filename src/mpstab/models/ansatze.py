@@ -4,13 +4,14 @@ import random
 from abc import ABC
 from copy import deepcopy
 from dataclasses import dataclass, field
+from itertools import combinations
 from typing import ClassVar, List, Optional, Tuple
 
-import networkx as nx
 import numpy as np
 from qibo import Circuit, gates
 from qibo.models import QFT as qibo_qft
 
+from mpstab.models.topology import Edge, GraphLike, Topology
 from mpstab.models.utils import (
     DEFAULT_NATIVE_GATES,
     hardware_compatible_circuit,
@@ -58,6 +59,36 @@ class Ansatz(ABC):
     @property
     def nparams(self):
         return len(self.circuit.get_parameters())
+
+    @property
+    def topology(self) -> Topology:
+        """
+        The pairs of qubits the circuit couples, read off its gates.
+
+        Every gate acting on two or more qubits couples each pair of them
+        (measurements excepted); each pair is listed once, in the orientation
+        and order of its first gate. This is what the circuit needs from a
+        device, whatever pattern or ``graph`` built it: the circuit runs on a
+        device without routing when
+        ``ansatz.topology.is_subgraph_of(device)``. It can differ from the
+        ``graph`` field, for example when ``bond_density`` drops some bonds.
+
+        The qubits are named by the wire names of the circuit when these are
+        integers: after routing on a device, the gates still act on wire
+        indices and ``circuit.wire_names`` holds the device qubit of each wire,
+        so the topology is the one on the device.
+        """
+        circuit = self.circuit
+        names = list(circuit.wire_names)
+        if not all(isinstance(name, int) for name in names):
+            names = list(range(circuit.nqubits))
+        pairs = [
+            (names[a], names[b])
+            for gate in circuit.queue
+            if not isinstance(gate, gates.M)
+            for a, b in combinations(gate.qubits, 2)
+        ]
+        return Topology.from_graph(pairs, nqubits=max(names, default=-1) + 1)
 
     def partitionate_circuit(
         self,
@@ -120,27 +151,53 @@ def _add_rzz(circuit: Circuit, a: int, b: int, theta: float) -> None:
     circuit.add(gates.CNOT(a, b))
 
 
+def _topology(graph: Optional[GraphLike], nqubits: int) -> Optional[Topology]:
+    """The :class:`.Topology` of a ``graph`` field, or ``None``."""
+    return None if graph is None else Topology.coerce(graph, nqubits)
+
+
 @dataclass
 class HardwareEfficient(Ansatz):
-    """Layers of random RY rotations, each followed by a ring of CZ gates."""
+    """
+    Layers of random RY rotations, each followed by CZ gates on the couplings.
+
+    Args:
+        nqubits: number of qubits.
+        nlayers: number of rotation-and-entangle layers.
+        entangling: whether to add the CZ gates.
+        graph: the couplings, any input of :meth:`.Topology.coerce` (a name
+            such as ``"grid"``, a list of edges, a graph); a CZ on every edge,
+            layer by layer. ``None`` (default) keeps the ring
+            ``CZ(q, q+1 mod n)`` in qubit order.
+    """
 
     nlayers: int = 1
     entangling: bool = True
+    graph: Optional[GraphLike] = field(default=None, kw_only=True)
 
     magic_parameters: ClassVar[Tuple[str, ...]] = ("nlayers",)
-    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers", "entangling")
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = (
+        "nlayers",
+        "entangling",
+        "graph",
+    )
 
     def __post_init__(self):
         super().__post_init__()
+        topology = _topology(self.graph, self.nqubits)
+        if topology is None:
+            # the ring; on 2 qubits it is the single bond (0, 1), since
+            # CZ(0, 1) CZ(1, 0) would cancel out
+            n = self.nqubits
+            bonds = [(q, (q + 1) % n) for q in range(n if n > 2 else n - 1)]
+        else:
+            bonds = [bond for layer in topology.layers for bond in layer]
         for _ in range(self.nlayers):
             for q in range(self.nqubits):
                 self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
             if self.entangling:
-                # the ring; on 2 qubits it is the single bond (0, 1), since
-                # CZ(0, 1) CZ(1, 0) would cancel out
-                n = self.nqubits
-                for q in range(n if n > 2 else n - 1):
-                    self.circuit.add(gates.CZ(q, (q + 1) % n))
+                for a, b in bonds:
+                    self.circuit.add(gates.CZ(a, b))
 
 
 @dataclass
@@ -157,18 +214,34 @@ class HardwareEfficientBrickwork(Ansatz):
     A final layer of RY rotations closes the circuit.  The ring-closing CZ(0, n-1)
     in the odd sublayer creates long-range entanglement.
 
+    With a ``graph``, each brickwork layer has one sublayer per layer of
+    disjoint bonds of the topology (RY+RZ on all qubits, then CZ on those
+    bonds), so a chain gives the two sublayers above without the ring closure.
+
     Args:
         nqubits: Number of qubits.
         nlayers: Number of full brickwork layers.
+        graph: the couplings, any input of :meth:`.Topology.coerce`;
+            ``None`` (default) keeps the pattern above.
     """
 
     nlayers: int = 1
+    graph: Optional[GraphLike] = field(default=None, kw_only=True)
 
     magic_parameters: ClassVar[Tuple[str, ...]] = ("nlayers",)
-    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers",)
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers", "graph")
 
     def __post_init__(self):
         super().__post_init__()
+        topology = _topology(self.graph, self.nqubits)
+        if topology is not None:
+            for _ in range(self.nlayers):
+                for layer in topology.layers:
+                    self._rotations(gates.RY, gates.RZ)
+                    for a, b in layer:
+                        self.circuit.add(gates.CZ(q0=a, q1=b))
+            self._rotations(gates.RY)
+            return
         for _ in range(self.nlayers):
             for q in range(self.nqubits):
                 self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
@@ -186,6 +259,12 @@ class HardwareEfficientBrickwork(Ansatz):
         for q in range(self.nqubits):
             self.circuit.add(gates.RY(q=q, theta=np.random.uniform(-np.pi, np.pi)))
 
+    def _rotations(self, *kinds) -> None:
+        """Random rotations of each kind on every qubit, one kind after the other."""
+        for kind in kinds:
+            for q in range(self.nqubits):
+                self.circuit.add(kind(q=q, theta=np.random.uniform(-np.pi, np.pi)))
+
 
 @dataclass
 class _KickedIsingBase(Ansatz):
@@ -193,21 +272,33 @@ class _KickedIsingBase(Ansatz):
     Step structure shared by the kicked Ising ansätze.
 
     Each of the ``n_steps`` steps kicks every qubit (:meth:`_kick`), then applies
-    the :math:`R_{ZZ}` couplings (:meth:`_coupling`) on the bonds of
-    :meth:`_coupling_layers`, layer by layer. A subclass sets the kick and
-    coupling angles; the geometry and the bond dilution are overridden by
-    :meth:`_coupling_layers` and :meth:`_keep_bond` alone.
+    the :math:`R_{ZZ}` couplings (:meth:`_coupling`) on the edges of ``graph``,
+    layer by layer (:attr:`.Topology.layers`). A subclass sets the kick and
+    coupling angles; the bond dilution is set by :meth:`_keep_bond`.
+
+    ``graph`` is any input of :meth:`.Topology.coerce`: a name (``"chain"``,
+    ``"ring"``, ``"star"``, ``"grid"``, ``"grid:RxC"``, ``"complete"``), a list
+    of edges, a ``networkx`` graph or a :class:`.Topology`, such as one built
+    with :meth:`.Topology.from_device`. It is the interaction graph of the
+    model; the circuit runs on a device without routing when every pair of
+    ``graph`` is coupled on the chip (:meth:`.Topology.is_subgraph_of`).
+    At the Clifford point, with the default
+    Clifford angles, one step prepares a graph state of ``graph`` up to local
+    Cliffords, so the topology sets how fast the stabilizer part entangles at
+    fixed magic.
     """
 
     n_steps: int = 1
+    graph: GraphLike = field(default="chain", kw_only=True)
 
     def __post_init__(self):
         super().__post_init__()
+        self._topology = Topology.coerce(self.graph, self.nqubits)
         self._validate()
         for step in range(self.n_steps):
             for q in range(self.nqubits):
                 self._kick(step, q)
-            for layer in self._coupling_layers():
+            for layer in self._topology.layers:
                 for a, b in layer:
                     if self._keep_bond():
                         self._coupling(a, b)
@@ -215,11 +306,15 @@ class _KickedIsingBase(Ansatz):
     def _validate(self) -> None:
         """Check the fields before any gate is added."""
 
-    def _coupling_layers(self) -> List[List[tuple]]:
-        """The bonds of one step, layer by layer: even bonds, then odd bonds."""
-        return [
-            [(q, q + 1) for q in range(start, self.nqubits - 1, 2)] for start in (0, 1)
-        ]
+    @property
+    def edges(self) -> List[Edge]:
+        """The edges of ``graph``, in order; ``bond_density`` may skip some."""
+        return list(self._topology.edges)
+
+    @property
+    def coupling_depth(self) -> int:
+        """Number of layers of disjoint bonds of ``graph`` in one step."""
+        return self._topology.depth
 
     def _keep_bond(self) -> bool:
         """Whether the next coupling is applied."""
@@ -235,7 +330,7 @@ class _KickedIsingBase(Ansatz):
 @dataclass
 class KickedIsing(_KickedIsingBase):
     r"""
-    Build a kicked Ising circuit on an open chain.
+    Build a kicked Ising circuit, by default on an open chain.
 
     Each of the ``n_steps`` steps applies the kicks :math:`R_X(\theta_h)` and
     then :math:`R_Z(\theta_z)` on every qubit, followed by the couplings
@@ -255,6 +350,8 @@ class KickedIsing(_KickedIsingBase):
         theta_h: angle of the transverse kicks :math:`R_X`.
         theta_z: angle of the longitudinal kicks :math:`R_Z`.
         theta_j: angle of the :math:`R_{ZZ}` couplings.
+        graph: the couplings, any input of :meth:`.Topology.coerce`
+            (default: the open chain).
     """
 
     theta_h: float = 0.8
@@ -266,6 +363,7 @@ class KickedIsing(_KickedIsingBase):
         "n_steps",
         "theta_h",
         "theta_j",
+        "graph",
     )
 
     def _kick(self, step: int, qubit: int) -> None:
@@ -321,6 +419,8 @@ class ParametricKickedIsing(_KickedIsingBase):
         delta_z: angle of the longitudinal kicks :math:`R_Z` (Clifford point: 0).
         clifford_h: Clifford angle of the transverse kicks, a multiple of pi/2.
         clifford_j: Clifford angle of the couplings, a multiple of pi/2.
+        graph: the couplings, any input of :meth:`.Topology.coerce`
+            (default: the open chain).
     """
 
     delta_h: float = 0.1
@@ -334,6 +434,7 @@ class ParametricKickedIsing(_KickedIsingBase):
         "n_steps",
         "clifford_h",
         "clifford_j",
+        "graph",
     )
 
     def _validate(self) -> None:
@@ -428,6 +529,8 @@ class RampedKickedIsing(ParametricKickedIsing):
         bond_density: probability of keeping each coupling, in ``(0, 1]``.
         disorder: relative spread of the transverse deviations across the kicks.
         seed: seed of the random draws.
+        graph: the couplings, any input of :meth:`.Topology.coerce`
+            (default: the open chain); ``bond_density`` applies to its edges.
     """
 
     delta_h_last: Optional[float] = None
@@ -486,13 +589,13 @@ class StarKickedIsing(RampedKickedIsing):
     chain needs (on a 10-qubit IQM Star, 6 steps: about 20 MOVE gates against
     about 100 for the chain).
 
+    It is :class:`RampedKickedIsing` with ``graph="star"``.
+
     Args: as :class:`RampedKickedIsing`; ``bond_density`` applies to the
     hub-leaf couplings.
     """
 
-    def _coupling_layers(self) -> List[List[tuple]]:
-        """The hub-leaf bonds of one step, as a single layer."""
-        return [[(0, leaf) for leaf in range(1, self.nqubits)]]
+    graph: GraphLike = field(default="star", kw_only=True)
 
 
 @dataclass
@@ -524,15 +627,22 @@ class HammingWeightPreserving(Ansatz):
     different starting offsets to explore both nearest- and next-nearest-
     neighbour correlations with circular boundary conditions.
 
+    With a ``graph``, each layer puts one RBS gate on every edge of the
+    topology, layer of disjoint bonds after layer; RBS preserves the Hamming
+    weight on any pair, so any topology keeps the half-filling sector.
+
     Args:
         nqubits: Number of qubits (must be even).
         nlayers: Number of RBS layers.
+        graph: the couplings, any input of :meth:`.Topology.coerce`;
+            ``None`` (default) keeps the pattern above.
     """
 
     nlayers: int = 1
+    graph: Optional[GraphLike] = field(default=None, kw_only=True)
 
     magic_parameters: ClassVar[Tuple[str, ...]] = ("nlayers",)
-    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers",)
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers", "graph")
 
     def __post_init__(self):
         if self.nqubits % 2 != 0:
@@ -542,6 +652,14 @@ class HammingWeightPreserving(Ansatz):
         super().__post_init__()
         for q in range(self.nqubits // 2):
             self.circuit.add(gates.X(q=q))
+        topology = _topology(self.graph, self.nqubits)
+        if topology is not None:
+            for _ in range(self.nlayers):
+                for layer in topology.layers:
+                    for a, b in layer:
+                        theta = np.random.uniform(-np.pi, np.pi)
+                        self.circuit += self._rbs_decomposition(a, b, theta)
+            return
         for _ in range(self.nlayers):
             self._connect_qubits(jumpsize=1, start_from=0)
             self._connect_qubits(jumpsize=1, start_from=1)
@@ -594,6 +712,9 @@ class FloquetAnsatz(Ansatz):
         target_qubit (int): this is the qubit, in the circuit, on which we perform
             the final local measurement (and the one on which we apply H and RZ).
         decompose_rzz (bool): if ``True``, RZZ is decomposed into CNOTs and RZ.
+        graph: the couplings of a Floquet layer, any input of
+            :meth:`.Topology.coerce`; one sublayer per layer of disjoint bonds.
+            The default, the open chain, gives the even and the odd sublayer.
     """
 
     nlayers: int = 2
@@ -601,12 +722,14 @@ class FloquetAnsatz(Ansatz):
     theta: float = 0.5 * np.pi
     target_qubit: int = 1
     decompose_rzz: bool = True
+    graph: GraphLike = field(default="chain", kw_only=True)
 
     magic_parameters: ClassVar[Tuple[str, ...]] = ("b", "theta")
-    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers", "b")
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("nlayers", "b", "graph")
 
     def __post_init__(self):
         super().__post_init__()
+        self._topology = Topology.coerce(self.graph, self.nqubits)
 
         self.half_sandwich = Circuit(self.nqubits)
         for _ in range(self.nlayers):
@@ -618,25 +741,17 @@ class FloquetAnsatz(Ansatz):
         self.circuit += self.half_sandwich.invert()
 
     def _build_floquet_layer(self) -> Circuit:
-        """Construct one Floquet layer over all links."""
+        """Construct one Floquet layer over all links, one sublayer per layer of bonds."""
         layer = Circuit(self.nqubits)
-        layer += self._build_sublayer("even")
-        layer += self._build_sublayer("odd")
+        for bonds in self._topology.layers:
+            layer += self._build_sublayer(bonds)
         return layer
 
-    def _build_sublayer(self, parity: str):
-        """Helper function to build a sub-layer composing a Floquet layer."""
+    def _build_sublayer(self, bonds):
+        """One sublayer of a Floquet layer: kicks and RZZ on each of ``bonds``."""
         layer = Circuit(self.nqubits)
 
-        if parity == "even":
-            qubits = range(0, self.nqubits - 1, 2)
-        elif parity == "odd":
-            qubits = range(1, self.nqubits - 1, 2)
-        else:
-            raise ValueError("Please set `parity` to be 'odd' or 'even'.")
-
-        for q1 in qubits:
-            q2 = q1 + 1
+        for q1, q2 in bonds:
             layer.add(gates.RZ(q=q1, theta=0.25 * np.pi))
             layer.add(gates.RX(q=q1, theta=self.b))
             layer.add(gates.RZ(q=q2, theta=0.25 * np.pi))
@@ -779,14 +894,15 @@ class _CompiledAnsatz(Ansatz):
             :class:`TranspiledAnsatz`). If ``False``, keep the raw high-level
             circuit.
         native_gates: Target native gate set for transpilation.
-        connectivity: Optional device connectivity graph for transpilation.
+        connectivity: Optional coupling map of the device, for
+            transpilation; see :func:`.hardware_compatible_circuit`.
     """
 
     transpile: bool = True
     native_gates: Optional[List] = field(
         default_factory=lambda: list(DEFAULT_NATIVE_GATES)
     )
-    connectivity: Optional[nx.Graph] = None
+    connectivity: Optional[GraphLike] = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -812,11 +928,11 @@ class TranspiledAnsatz(_CompiledAnsatz):
 
     Args:
         original_circuit: The circuit to be transpiled.
-        native_gates: Optional[List]: list of native gates of the used device.
-            Default is [gates.GPI2, gates.RZ, gates.Z, gates.CZ].
-        connectivity: Optional[nx.Graph]: graph representing the topology of the
-            used device. Default is None and in this case the transpilation
-            does not take into account any connectivity constraint.
+        native_gates: list of native gates of the device. Default is
+            ``[gates.GPI2, gates.RZ, gates.Z, gates.CZ]``.
+        connectivity: the coupling map of the device, see
+            :func:`.hardware_compatible_circuit`. ``None`` (default) ignores
+            connectivity constraints.
     """
 
     original_circuit: Circuit
@@ -1010,10 +1126,11 @@ class QAE(_CompiledAnsatz):
 
 @dataclass(kw_only=True)
 class TrotterIsing(_CompiledAnsatz):
-    """First-order Trotter evolution of the 1D transverse-field Ising model.
+    """First-order Trotter evolution of the transverse-field Ising model.
 
-        H = -J sum_j Z_j Z_{j+1} - h sum_j X_j   (open boundaries)
+        H = -J sum_{(i,j) in E} Z_i Z_j - h sum_j X_j
 
+    on the edges ``E`` of ``graph``; by default the open chain, in bond order.
     Each step applies ZZ rotations (via RZZ) then transverse-field RX rotations,
     producing a long structured sequence of magic rotations between Cliffords.
 
@@ -1022,22 +1139,31 @@ class TrotterIsing(_CompiledAnsatz):
         dt: Time step.
         J: Coupling strength.
         h: Transverse field strength.
+        graph: the interaction graph, any input of :meth:`.Topology.coerce`;
+            RZZ on its edges, layer of disjoint bonds after layer. ``None``
+            (default) is the open chain, bonds in order ``(0, 1), (1, 2), ...``.
     """
 
     n_steps: int = 4
     dt: float = 0.2
     J: float = 1.0
     h: float = 0.5
+    graph: Optional[GraphLike] = None
 
     magic_parameters: ClassVar[Tuple[str, ...]] = ("dt", "J", "h")
-    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("n_steps", "dt", "J")
+    entanglement_parameters: ClassVar[Tuple[str, ...]] = ("n_steps", "dt", "J", "graph")
 
     def _build_circuit(self) -> Circuit:
         n = self.nqubits
         circuit = Circuit(n)
+        topology = _topology(self.graph, n)
+        if topology is None:
+            bonds = [(j, j + 1) for j in range(n - 1)]
+        else:
+            bonds = [bond for layer in topology.layers for bond in layer]
         for _ in range(self.n_steps):
-            for j in range(n - 1):
-                circuit.add(gates.RZZ(j, j + 1, theta=-2 * self.J * self.dt))
+            for a, b in bonds:
+                circuit.add(gates.RZZ(a, b, theta=-2 * self.J * self.dt))
             for j in range(n):
                 circuit.add(gates.RX(j, theta=-2 * self.h * self.dt))
         return circuit

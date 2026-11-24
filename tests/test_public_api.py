@@ -29,6 +29,7 @@ HOMES = {
         "training_circuits",
         "vncdr",
     ],
+    "mpstab.models.topology": ["Topology"],
     "mpstab.qpu.execution.backend": ["run_plan"],
     "mpstab.qibo_tools": ["DensityMatrixNoiseSimulator", "StatevectorExactSimulator"],
 }

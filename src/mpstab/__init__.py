@@ -3,7 +3,8 @@ Hybrid stabilizer-MPO simulation of quantum circuits.
 
 The objects of a typical workflow are importable from here: the simulators
 (:class:`HSMPO`, :class:`HQSMPO`), noise models and their errors, error
-mitigation, and the backends running measurement plans. Ansatze are in
+mitigation, the backends running measurement plans, and :class:`Topology`,
+which pairs of qubits an ansatz couples. Ansatze are in
 :mod:`mpstab.models.ansatze`, measurement and synthesis options in
 :mod:`mpstab.qpu`, engines in :mod:`mpstab.engines`.
 """
@@ -31,6 +32,7 @@ from mpstab.models.noise import (
     StatePreparationError,
     ThermalRelaxationError,
 )
+from mpstab.models.topology import Topology
 from mpstab.qibo_tools import (
     DensityMatrixNoiseSimulator,
     MetaBackend,
@@ -63,6 +65,8 @@ __all__ = [
     "noisy_value",
     "training_circuits",
     "vncdr",
+    # coupling topologies
+    "Topology",
     # running measurement plans
     "run_plan",
     "DensityMatrixNoiseSimulator",

@@ -46,6 +46,17 @@ form.
 
 See :doc:`../guides/using_ansatze` for detailed examples.
 
+Coupling Topologies
+-------------------
+
+Which pairs of qubits an ansatz couples: named lattices, any graph, or the
+coupling map of a device. Every ansatz with two-qubit couplings takes one
+through its ``graph`` field.
+
+.. automodule:: mpstab.models.topology
+   :members:
+   :show-inheritance:
+
 Entanglement Metrics & Analysis
 --------------------------------
 
@@ -89,6 +100,7 @@ Grover                        Grover search
 QPE                           Quantum Phase Estimation
 QAE                           Quantum Amplitude Estimation
 TrotterIsing                  Trotterized transverse-field Ising evolution
+Topology                      Which pairs of qubits an ansatz couples
 meyer_wallach_mps             Meyer-Wallach entanglement of an HSMPO state
 stabilizer_renyi_entropy_mps  Sampled stabilizer Renyi entropy of an HSMPO
                               state

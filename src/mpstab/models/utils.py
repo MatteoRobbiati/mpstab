@@ -13,6 +13,8 @@ from qibo.transpiler.placer import Random
 from qibo.transpiler.router import ShortestPaths
 from qibo.transpiler.unroller import NativeGates, Unroller
 
+from mpstab.models.topology import GraphLike, Topology
+
 DEFAULT_NATIVE_GATES = (gates.GPI2, gates.RZ, gates.Z, gates.CZ)
 
 # Clifford angles a non-Clifford gate may be snapped to, per gate family.
@@ -24,15 +26,21 @@ _GPI2_CLIFFORD_ANGLES = np.arange(4) * np.pi / 2.0
 def hardware_compatible_circuit(
     circuit: Circuit,
     native_gates: Optional[List] = DEFAULT_NATIVE_GATES,
-    connectivity: Optional[nx.Graph] = None,
+    connectivity: GraphLike | None = None,
 ) -> Circuit:
     """
-    Unroll ``circuit`` into ``native_gates`` and, given a ``connectivity``
-    graph, place and route it on that topology too.
+    Unroll ``circuit`` into ``native_gates`` and, given a ``connectivity``,
+    place and route it on that topology too.
+
+    ``connectivity`` is the coupling map of the device: a ``networkx.Graph``
+    or anything :meth:`.Topology.from_device` reads (a name is built on the
+    qubits of ``circuit``).
     """
     unroller = Unroller(NativeGates(0).from_gatelist(list(native_gates)))
     if connectivity is None:
         return unroller(circuit)
+    if not isinstance(connectivity, nx.Graph):
+        connectivity = Topology.from_device(connectivity, circuit.nqubits).to_networkx()
     pipeline = Passes(
         [Preprocessing(), Random(), ShortestPaths(), unroller],
         connectivity=connectivity,

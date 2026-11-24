@@ -20,7 +20,7 @@ constructor fields that act as magic and entanglement knobs::
     RampedKickedIsing.magic_parameters
     # ('delta_h', 'delta_j', 'delta_z', 'delta_h_last', 'delta_z_last', 'disorder')
     RampedKickedIsing.entanglement_parameters
-    # ('n_steps', 'clifford_h', 'clifford_j', 'bond_density')
+    # ('n_steps', 'clifford_h', 'clifford_j', 'graph', 'bond_density')
 
 A field may be in both lists. A generic rotation angle makes a magic gate and,
 through the couplings, also changes the entangling power. The
@@ -48,27 +48,27 @@ Summary
    * - ``HardwareEfficient``
      - Generic variational circuit
      - ``nlayers`` (random angles)
-     - ``nlayers``, ``entangling``
+     - ``nlayers``, ``entangling``, ``graph``
    * - ``HardwareEfficientBrickwork``
      - Brickwork variational circuit
      - ``nlayers`` (random angles)
-     - ``nlayers``
+     - ``nlayers``, ``graph``
    * - ``HammingWeightPreserving``
      - Particle-number-conserving circuit
      - ``nlayers`` (random angles)
-     - ``nlayers``
+     - ``nlayers``, ``graph``
    * - ``FloquetAnsatz``
      - Floquet echo of a kicked chain
      - ``b``, ``theta``
-     - ``nlayers``, ``b``
+     - ``nlayers``, ``b``, ``graph``
    * - ``KickedIsing``
      - Kicked Ising chain
      - ``theta_h``, ``theta_z``, ``theta_j``
-     - ``n_steps``, ``theta_h``, ``theta_j``
+     - ``n_steps``, ``theta_h``, ``theta_j``, ``graph``
    * - ``ParametricKickedIsing``
      - Kicked Ising chain near a Clifford point
      - ``delta_h``, ``delta_j``, ``delta_z``
-     - ``n_steps``, ``clifford_h``, ``clifford_j``
+     - ``n_steps``, ``clifford_h``, ``clifford_j``, ``graph``
    * - ``RampedKickedIsing``
      - Kicked Ising chain with a time-dependent drive
      - as above, plus ``delta_h_last``, ``delta_z_last``, ``disorder``
@@ -80,7 +80,7 @@ Summary
    * - ``TrotterIsing``
      - Transverse-field Ising time evolution
      - ``dt``, ``J``, ``h``
-     - ``n_steps``, ``dt``, ``J``
+     - ``n_steps``, ``dt``, ``J``, ``graph``
    * - ``QFT``
      - Quantum Fourier transform
      - none (fixed)
@@ -108,6 +108,60 @@ Summary
 
 ``nqubits`` scales both resources for every ansatz and is not listed.
 
+Coupling topology
+-----------------
+
+Every ansatz with two-qubit couplings takes a ``graph`` field: the pairs of
+qubits it couples, as anything
+:meth:`.Topology.coerce` accepts — a
+name (``"chain"``, ``"ring"``, ``"star"``, ``"grid"``, ``"grid:RxC"``,
+``"complete"``), a list of edges, a ``networkx`` or ``rustworkx`` graph, or a
+:class:`.Topology`. The entangling gates go on its
+edges, layer of disjoint bonds after layer; the single-qubit part of each
+ansatz is unchanged.
+
+``graph`` says where the ansatz puts its gates. To run the circuit on a
+device without routing, every pair of ``graph`` must be coupled on the chip
+(:meth:`.Topology.is_subgraph_of`): the simplest way is to build the ansatz on
+the coupling map of the device, or on part of it. A device whose qubits couple
+only through a shared resonator has no qubit-qubit couplings: use
+``graph="star"``, with a qubit standing for the hub (``StarKickedIsing``)::
+
+    from mpstab.models.ansatze import HardwareEfficient, RampedKickedIsing
+    from mpstab import Topology
+
+    RampedKickedIsing(nqubits=20, n_steps=6, delta_h=0.4, graph="grid")  # 4 x 5
+
+    # a device coupling map lists each pair in both directions
+    coupling_map = [(0, 1), (1, 0), (1, 2), (2, 1), (1, 3), (3, 1)]
+    device = Topology.from_device(coupling_map)
+    HardwareEfficient(nqubits=device.nqubits, nlayers=3, graph=device)
+
+The graph is an entanglement knob at fixed magic: at the Clifford point of a
+kicked Ising ansatz, one step prepares the graph state of ``graph`` up to local
+Cliffords. The defaults keep each ansatz's historical pattern, gate for gate:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Ansatz
+     - ``graph`` default
+   * - kicked Ising family, ``FloquetAnsatz``
+     - ``"chain"`` (``StarKickedIsing``: ``"star"``)
+   * - ``HardwareEfficient``
+     - ``None``: the ring ``CZ(q, q+1 mod n)`` in qubit order
+   * - ``HardwareEfficientBrickwork``
+     - ``None``: even bonds, then odd bonds plus ``CZ(0, n-1)``
+   * - ``HammingWeightPreserving``
+     - ``None``: RBS gates at distances 1 and 2, periodic
+   * - ``TrotterIsing``
+     - ``None``: the open chain, bonds in order
+
+The algorithm ansätze (``QFT``, ``Grover``, ``QPE``, ``QAE``) have no coupling
+pattern to choose; their ``connectivity`` field, used to route the transpiled
+circuit, accepts the same inputs as ``graph``.
+
 Class hierarchy
 ---------------
 
@@ -123,18 +177,17 @@ Class hierarchy
     │   ├── KickedIsing               whole angles as gates
     │   └── ParametricKickedIsing     Clifford angle + deviation
     │       └── RampedKickedIsing     deviations ramped over the steps, disorder, dilution
-    │           └── StarKickedIsing   hub-leaf couplings instead of a chain
+    │           └── StarKickedIsing   graph="star" by default
     └── _CompiledAnsatz               build a high-level circuit, transpile it
         ├── TranspiledAnsatz
         ├── QFT, QFTPhaseKernel
         ├── Grover, QPE, QAE
         └── TrotterIsing
 
-The kicked Ising ansätze share the loop of ``_KickedIsingBase``. A subclass
-only says how a qubit is kicked (``_kick``), how a bond is coupled
-(``_coupling``), which bonds exist (``_coupling_layers``) and whether a bond
-is kept (``_keep_bond``). For example, ``StarKickedIsing`` only overrides
-``_coupling_layers``. The circuit-library ansätze share ``_CompiledAnsatz``:
+The kicked Ising ansätze share the loop of ``_KickedIsingBase``, which couples
+the edges of ``graph`` layer by layer. A subclass only says how a qubit is
+kicked (``_kick``), how a bond is coupled (``_coupling``) and whether a bond is
+kept (``_keep_bond``). ``StarKickedIsing`` only changes the default ``graph``. The circuit-library ansätze share ``_CompiledAnsatz``:
 they only implement ``_build_circuit``, and the transpilation to native gates
 is done once in the base class.
 
