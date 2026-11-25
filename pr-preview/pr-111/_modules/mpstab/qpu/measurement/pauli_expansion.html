@@ -11,7 +11,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=e4716fdc" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=c6f62e29" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -375,6 +375,10 @@
 
 
 
+<span class="c1"># Relative size below which a weight is floating-point noise, not signal.</span>
+<span class="n">_WEIGHT_ROUNDOFF</span> <span class="o">=</span> <span class="mf">1e-12</span>
+
+
 <div class="viewcode-block" id="fold_fidelity">
 <a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.measurement.pauli_expansion.fold_fidelity">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">fold_fidelity</span><span class="p">(</span><span class="n">mpo</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
@@ -391,12 +395,19 @@
 <a class="viewcode-back" href="../../../../api/qpu.html#mpstab.qpu.measurement.pauli_expansion.fold_truncation_l2">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">fold_truncation_l2</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">mpo</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    ``|c| sqrt(1 - fold_fidelity)``: a term&#39;s share of the bias of folding its</span>
-<span class="sd">    tail at a finite bond dimension, from the norm the fold lost.</span>
+<span class="sd">    ``|c| sqrt(1 - fold_fidelity)``: a term&#39;s share of the bias of truncating</span>
+<span class="sd">    its tail fold (bond cap or SVD cutoff), from the norm the fold lost.</span>
+
+<span class="sd">    A lost share ``1 - fold_fidelity`` at or below :data:`_WEIGHT_ROUNDOFF`</span>
+<span class="sd">    (``1e-12``, the floor :func:`truncation_error_estimate` uses) is rounding</span>
+<span class="sd">    drift, not truncation, and reads as 0: an exact fold drifts by ~1e-14,</span>
+<span class="sd">    which the square root would turn into a spurious ~1e-7. The price is a</span>
+<span class="sd">    resolution of ``|c| * 1e-6`` per term.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">coefficient</span><span class="p">)</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">fold_fidelity</span><span class="p">(</span><span class="n">mpo</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)))</span>
-    <span class="p">)</span></div>
+    <span class="n">lost</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">fold_fidelity</span><span class="p">(</span><span class="n">mpo</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lost</span> <span class="o">&lt;=</span> <span class="n">_WEIGHT_ROUNDOFF</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">coefficient</span><span class="p">)</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">lost</span><span class="p">))</span></div>
 
 
 
@@ -552,10 +563,6 @@
 
     <span class="k">return</span> <span class="n">_ensemble</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">drawn</span><span class="p">)),</span> <span class="n">total_weight</span><span class="p">)</span></div>
 
-
-
-<span class="c1"># Relative size below which a weight is floating-point noise, not signal.</span>
-<span class="n">_WEIGHT_ROUNDOFF</span> <span class="o">=</span> <span class="mf">1e-12</span>
 
 
 <div class="viewcode-block" id="truncation_error_estimate">

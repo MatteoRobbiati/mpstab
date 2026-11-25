@@ -11,7 +11,7 @@
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=e4716fdc" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=c6f62e29" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -612,8 +612,8 @@
             <span class="c1"># From here on the tail is plain arrays, whatever the engine.</span>
             <span class="n">operator</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">operator_site_arrays</span><span class="p">(</span><span class="n">operator</span><span class="p">)</span>
             <span class="n">mpo_terms</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">pauli</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">sign</span><span class="p">,</span> <span class="n">operator</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">max_bond_dimension</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">truncation_l2</span> <span class="o">+=</span> <span class="n">fold_truncation_l2</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">operator</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>
+            <span class="c1"># Measured whatever the bond cap: the SVD cutoff truncates too.</span>
+            <span class="n">truncation_l2</span> <span class="o">+=</span> <span class="n">fold_truncation_l2</span><span class="p">(</span><span class="n">coefficient</span><span class="p">,</span> <span class="n">operator</span><span class="p">,</span> <span class="n">nqubits</span><span class="p">)</span>
 
         <span class="n">head</span> <span class="o">=</span> <span class="n">resynthesis</span><span class="o">.</span><span class="n">circuit</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">trivial_residual</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">tail_handling</span> <span class="o">==</span> <span class="s2">&quot;append_to_head_circuit&quot;</span><span class="p">:</span>

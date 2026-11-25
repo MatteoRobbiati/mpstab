@@ -12,7 +12,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=e4716fdc" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=c6f62e29" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -315,14 +315,23 @@ of tensor networks, <code class="docutils literal notranslate"><span class="pre"
 but contain non-trivial non-stabilizer resources. The hybrid stabilizer-MPO
 representation was introduced in <a class="reference external" href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604">this work from Mello, Santini and Collura</a>.</p>
 <div class="hero-buttons">
-  <a class="hero-button primary" href="quickstart.html">Quick start</a>
-  <a class="hero-button" href="installation.html">Installation</a>
-  <a class="hero-button" href="https://github.com/MatteoRobbiati/mpstab">GitHub</a>
+  <a class="hero-button primary" href="quickstart.html">
+    <span>Quick start</span>
+    <svg class="hero-icon arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+  <a class="hero-button" href="installation.html">
+    <svg class="hero-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7.5M4.8 7 8 10.2 11.2 7M3 13h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Installation</span>
+  </a>
+  <a class="hero-button" href="https://github.com/MatteoRobbiati/mpstab">
+    <svg class="hero-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+    <span>GitHub</span>
+  </a>
 </div></div>
 <figure class="align-center" id="id1">
-<a class="only-light reference internal image-reference" href="_images/stab_ent.svg"><img alt="Where mpstab sits among classical simulation methods." class="only-light" src="_images/stab_ent.svg" style="width: 520px;" />
+<a class="only-light reference internal image-reference" href="_images/stab_ent.svg"><img alt="Where mpstab sits among classical simulation methods." class="only-light" src="_images/stab_ent.svg" style="width: 420px;" />
 </a>
-<a class="only-dark reference internal image-reference" href="_images/stab_ent_dark.svg"><img alt="Where mpstab sits among classical simulation methods." class="only-dark" src="_images/stab_ent_dark.svg" style="width: 520px;" />
+<a class="only-dark reference internal image-reference" href="_images/stab_ent_dark.svg"><img alt="Where mpstab sits among classical simulation methods." class="only-dark" src="_images/stab_ent_dark.svg" style="width: 420px;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Where classical simulators reach. Statevector methods are limited by the
@@ -335,38 +344,39 @@ that are both highly entangled and moderately non-stabilizer.</span><a class="he
 <h2>Core features<a class="headerlink" href="#core-features" title="Link to this heading">¶</a></h2>
 <p>The HSMPO formalism is implemented on top of state-of-the-art stabilizer and
 tensor network simulators, used as operative engines.</p>
-<div class="feature-grid docutils container">
-<div class="feature-card docutils container">
-<p><strong>Hybrid evolution</strong></p>
-<p>Combine stabilizer and tensor network engines for efficient simulation.</p>
-</div>
-<div class="feature-card docutils container">
-<p><strong>Qibo integration</strong></p>
-<p>A native custom backend runs Qibo circuits with <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> algorithms;
-Qibo circuits and observables are supported as well.</p>
-</div>
-<div class="feature-card docutils container">
-<p><strong>Scalable Clifford simulation</strong></p>
-<p>Simulate pure Clifford circuits with hundreds of qubits.</p>
-</div>
-<div class="feature-card docutils container">
-<p><strong>Advanced metrics</strong></p>
-<p>Built-in tools for entanglement entropies, fidelity bounds and circuit
-analysis.</p>
-</div>
-</div>
-</section>
+<div class="feature-grid">
+  <div class="feature-card">
+    <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7.5 12 12l9-4.5L12 3Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/></svg></span>
+    <p class="feature-title">Hybrid evolution</p>
+    <p>Combine stabilizer and tensor network engines for efficient simulation.</p>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0V8Z"/><path d="M12 17v4"/></svg></span>
+    <p class="feature-title">Qibo integration</p>
+    <p>A native custom backend runs Qibo circuits with <code>mpstab</code> algorithms; Qibo circuits and observables are supported as well.</p>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+    <p class="feature-title">Scalable Clifford simulation</p>
+    <p>Simulate pure Clifford circuits with hundreds of qubits.</p>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 4-6"/><path d="M4 21h16"/></svg></span>
+    <p class="feature-title">Advanced metrics</p>
+    <p>Built-in tools for entanglement entropies, fidelity bounds and circuit analysis.</p>
+  </div>
+</div></section>
 <section id="explore-the-documentation">
 <h2>Explore the documentation<a class="headerlink" href="#explore-the-documentation" title="Link to this heading">¶</a></h2>
 <details class="nav-section">
-<summary><span class="nav-title">Getting started</span>
+<summary><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15c-1.5 1.5-2 4-2 6 2 0 4.5-.5 6-2"/><path d="M9 15 6 12c1-4 4.5-8.5 12-9 0 7.5-5 11-9 12Z"/><circle cx="14.5" cy="9.5" r="1.5"/></svg></span><span class="nav-title">Getting started</span>
 <span class="nav-hint">Install mpstab and run a first simulation</span></summary><ul class="simple">
 <li><p><a class="reference internal" href="installation.html"><span class="doc">Installation</span></a></p></li>
 <li><p><a class="reference internal" href="quickstart.html"><span class="doc">Quick Start Guide</span></a></p></li>
 </ul>
 </details>
 <details class="nav-section">
-<summary><span class="nav-title">Methods</span>
+<summary><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20"/><path d="M9 8h7"/></svg></span><span class="nav-title">Methods</span>
 <span class="nav-hint">The theory behind the HSMPO formalism</span></summary><ul class="simple">
 <li><p><a class="reference internal" href="methods/theory_background.html"><span class="doc">Theoretical Background, a snapshot</span></a></p></li>
 <li><p><a class="reference internal" href="methods/fidelity_and_approximation.html"><span class="doc">Fidelity and Approximation</span></a></p></li>
@@ -374,7 +384,7 @@ analysis.</p>
 </ul>
 </details>
 <details class="nav-section">
-<summary><span class="nav-title">User guide</span>
+<summary><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/></svg></span><span class="nav-title">User guide</span>
 <span class="nav-hint">Backends, engines, ansätze and optimization</span></summary><ul class="simple">
 <li><p><a class="reference internal" href="user_guide/qibo_backend_provider.html"><span class="doc">MPSTAB as a Qibo Backend Provider</span></a></p></li>
 <li><p><a class="reference internal" href="user_guide/working_with_engines.html"><span class="doc">Working with Engines</span></a></p></li>
@@ -384,9 +394,8 @@ analysis.</p>
 </ul>
 </details>
 <details class="nav-section">
-<summary><span class="nav-title">Tutorials</span>
+<summary><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m9 9 2.5 2.5L9 14"/><path d="M13 15h3"/></svg></span><span class="nav-title">Tutorials</span>
 <span class="nav-hint">Runnable notebooks, one idea at a time</span></summary><ul class="simple">
-<li><p><a class="reference internal" href="tutorials/index.html"><span class="doc">Tutorials</span></a></p></li>
 <li><p><a class="reference internal" href="tutorials/introduction.html"><span class="doc">A quick introduction to mpstab</span></a></p></li>
 <li><p><a class="reference internal" href="tutorials/noise.html"><span class="doc">Pauli noise simulation</span></a></p></li>
 <li><p><a class="reference internal" href="tutorials/advanced_noise.html"><span class="doc">Non-unital noise simulation</span></a></p></li>
@@ -400,7 +409,7 @@ analysis.</p>
 </ul>
 </details>
 <details class="nav-section">
-<summary><span class="nav-title">API reference</span>
+<summary><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 7-5 5 5 5"/><path d="m16 7 5 5-5 5"/><path d="m14 4-4 16"/></svg></span><span class="nav-title">API reference</span>
 <span class="nav-hint">Every public class and function</span></summary><ul class="simple">
 <li><p><a class="reference internal" href="api/evolutors.html"><span class="doc">Evolutors</span></a></p></li>
 <li><p><a class="reference internal" href="api/engines.html"><span class="doc">Engines</span></a></p></li>
@@ -415,7 +424,7 @@ analysis.</p>
 </ul>
 </details>
 <details class="nav-section">
-<summary><span class="nav-title">About</span>
+<summary><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></span><span class="nav-title">About</span>
 <span class="nav-hint">Publications and source code</span></summary><ul class="simple">
 <li><p><a class="reference internal" href="publications.html"><span class="doc">Publications</span></a></p></li>
 <li><p><a class="reference external" href="https://github.com/MatteoRobbiati/mpstab">GitHub repository</a>: issues and
