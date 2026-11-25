@@ -109,6 +109,26 @@ class Ansatz(ABC):
         return (magic_gates, clifford_circuit), full_circuit
 
 
+def _layered(circuit: Circuit) -> Circuit:
+    """
+    The same circuit queued layer by layer: each gate in the earliest moment
+    after every gate before it on its qubits, gates of one moment in their
+    original order. Only gates on disjoint qubits change places, so the
+    unitary is the same.
+    """
+    depth = [0] * circuit.nqubits
+    moments = []
+    for gate in circuit.queue:
+        moment = max((depth[q] for q in gate.qubits), default=0)
+        for q in gate.qubits:
+            depth[q] = moment + 1
+        moments.append(moment)
+    layered = Circuit(circuit.nqubits)
+    for index in sorted(range(len(moments)), key=lambda i: moments[i]):
+        layered.add(circuit.queue[index])
+    return layered
+
+
 def _add_rzz(circuit: Circuit, a: int, b: int, theta: float) -> None:
     """Add ``R_ZZ(theta)`` on ``a``, ``b`` as ``CNOT · RZ(theta) on b · CNOT``.
 
@@ -208,6 +228,9 @@ class _KickedIsingBase(Ansatz):
                 for a, b in layer:
                     if self._keep_bond():
                         self._coupling(a, b)
+        # Built qubit by qubit; queued layer by layer, the same circuit has its
+        # layers as moments, which is what idle noise counts.
+        self._circuit = _layered(self._circuit)
 
     def _validate(self) -> None:
         """Check the fields before any gate is added."""

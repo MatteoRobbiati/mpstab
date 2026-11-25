@@ -509,6 +509,7 @@ class _Rule:
     gate: tuple[type, ...] | None = None
     qubits: frozenset[int] | None = None
     coupling: tuple[tuple[int, int], ...] | None = None
+    durations: tuple[tuple[type, float], ...] | None = None
 
     def scaled(self, factor: float) -> _Rule:
         return replace(self, error=self.error.scaled(factor))
@@ -575,6 +576,8 @@ class _Rule:
             raise ValueError(
                 f"Two-qubit idle noise ({type(self.error).__name__}) needs coupling=."
             )
+        if self.durations is not None:
+            return self._timed_idle_events(circuit, layers, history, allowed, pairs)
         events = []
         for moment, busy in enumerate(layers):
             idle = allowed - busy
@@ -587,6 +590,59 @@ class _Rule:
                 # in-order layering puts it before the next one on each qubit.
                 anchor = max(_last_before(history, q, moment) for q in support)
                 events.append(self.error._event(anchor, support, n))
+        return events
+
+    def _duration(self, gate) -> float:
+        for kind, duration in self.durations:
+            if isinstance(gate, kind):
+                return duration
+        raise ValueError(
+            f"Idle noise with durations= has no duration for {type(gate).__name__}."
+        )
+
+    def _timed_idle_events(self, circuit, layers, history, allowed, pairs):
+        """
+        Idle noise for the time each qubit is not driven: a moment lasts as
+        long as its longest gate, a qubit idles for that minus its own gate's
+        time, and the error is scaled to that time over the longest duration.
+        """
+        n = circuit.nqubits
+        queue = circuit.queue
+        longest = max(duration for _, duration in self.durations)
+        own = [dict() for _ in layers]  # qubit -> (its gate's index, duration)
+        for q in range(n):
+            for moment, index in history[q]:
+                own[moment][q] = (index, self._duration(queue[index]))
+        events = []
+        for moment, gates_on in enumerate(own):
+            length = max((d for _, d in gates_on.values()), default=0.0)
+            if length <= 0:
+                continue
+            if pairs:
+                supports = [
+                    ((u, v), length)
+                    for u, v in self.coupling
+                    if {u, v} <= allowed and u not in gates_on and v not in gates_on
+                ]
+            else:
+                supports = [
+                    ((q,), length - gates_on.get(q, (None, 0.0))[1])
+                    for q in sorted(allowed)
+                ]
+            for support, idle in supports:
+                if idle <= 0:
+                    continue
+                anchor = max(
+                    (
+                        gates_on[q][0]
+                        if q in gates_on
+                        else _last_before(history, q, moment)
+                    )
+                    for q in support
+                )
+                events.append(
+                    self.error.scaled(idle / longest)._event(anchor, support, n)
+                )
         return events
 
 
@@ -738,6 +794,7 @@ class NoiseModel:
         error: GateError,
         qubits: int | Sequence[int] | None = None,
         coupling: Iterable[tuple[int, int]] | None = None,
+        durations: dict[type, float] | None = None,
     ) -> NoiseModel:
         """
         Put ``error`` on the qubits left idle in each moment of the circuit.
@@ -750,13 +807,34 @@ class NoiseModel:
         such as an always-on ``ZZ`` coupling, acts on each ``coupling`` edge
         whose two qubits are both idle.
 
+        Without ``durations`` every moment counts the same and ``error`` is the
+        error of one moment. With them, a moment lasts as long as its longest
+        gate, and a qubit idles for that time minus its own gate's, so a
+        layer of virtual ``RZ`` (duration 0) adds nothing and a qubit next to
+        a long two-qubit gate idles through it; ``error`` is then the error
+        for the longest duration given, scaled by ``error.scaled`` to each
+        idle time (exact for relaxation times and coherent angles, to first
+        order for probabilities).
+
         Args:
             error: the error, on one qubit or on two.
             qubits: restrict the error to these qubits.
             coupling: the coupling graph, needed by two-qubit errors.
+            durations: gate type to its duration, in any unit; every gate type
+                of the circuit needs one.
 
         Returns:
             ``self``, so calls can be chained.
+
+        Example::
+
+            from qibo import gates
+            from mpstab import NoiseModel, ThermalRelaxationError
+
+            idle = ThermalRelaxationError(t1=100e-6, t2=80e-6, time=150e-9)
+            noise = NoiseModel().add_idle(
+                idle, durations={gates.CZ: 150e-9, gates.RX: 30e-9, gates.RZ: 0.0}
+            )
         """
         self._check(error, _GATE_ERRORS)
         self.rules.append(
@@ -765,6 +843,7 @@ class NoiseModel:
                 error,
                 qubits=_qubit_set(qubits),
                 coupling=None if coupling is None else _coupling(coupling),
+                durations=None if durations is None else tuple(durations.items()),
             )
         )
         return self

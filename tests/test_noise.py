@@ -942,3 +942,30 @@ def test_causal_cone_drops_unreachable_kraus_locations():
     result = hsmpo.noisy_expectation("ZZII", noise, n_samples=3000, seed=12)
     exact = _model_expectation_exact(noise, circuit, {"ZZII": 1.0})
     assert abs(result.mean - exact) <= 4 * result.stderr + 1e-10
+
+
+def test_timed_idle_follows_gate_durations():
+    circuit = Circuit(3)
+    circuit.add(gates.RX(0, theta=0.3))  # moment 0: 30 ns, qubits 1 and 2 idle
+    circuit.add(gates.RZ(1, theta=0.2))  # moment 0 too: virtual, idles 30 ns
+    circuit.add(gates.CZ(0, 1))  # moment 1: 150 ns, qubit 2 idles
+    circuit.add(gates.RZ(2, theta=0.1))  # moment 1, virtual: qubit 2 idles anyway
+    circuit.add(gates.RZ(0, theta=0.4))  # moment 2: all virtual, 0 ns
+    durations = {gates.CZ: 150.0, gates.RX: 30.0, gates.RZ: 0.0}
+    error = ThermalRelaxationError(t1=1e4, t2=8e3, time=150.0)
+    events = NoiseModel().add_idle(error, durations=durations).events(circuit)
+    by_qubit = {}
+    for event in events:
+        (q,) = event.qubits
+        by_qubit.setdefault(q, []).append(event)
+    # Kraus operators of the relaxation for the expected idle times.
+    expected = {1: [30.0], 2: [30.0, 150.0]}
+    assert 0 not in by_qubit
+    for q, times in expected.items():
+        assert len(by_qubit[q]) == len(times)
+        for event, time in zip(by_qubit[q], times):
+            reference = ThermalRelaxationError(t1=1e4, t2=8e3, time=time).kraus
+            assert all(np.allclose(a, b) for a, b in zip(event.kraus, reference))
+
+    with pytest.raises(ValueError, match="no duration"):
+        NoiseModel().add_idle(error, durations={gates.CZ: 1.0}).events(circuit)
