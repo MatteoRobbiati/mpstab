@@ -4,7 +4,9 @@ from functools import reduce
 
 import numpy as np
 import pytest
-from qibo import Circuit, gates
+from qibo import Circuit, gates, symbols
+from qibo.derivative import parameter_shift
+from qibo.hamiltonians import SymbolicHamiltonian
 from utils import construct_symbolic_hamiltonian
 
 from mpstab import HSMPO
@@ -20,43 +22,28 @@ def _matrix(pauli: str) -> np.ndarray:
     return reduce(np.kron, [PAULI_MATRICES[label] for label in pauli])
 
 
-def _exact_expectation(circuit: Circuit, observable: dict) -> float:
-    state = circuit().state()
-    return sum(
-        c * np.real(np.vdot(state, _matrix(p) @ state)) for p, c in observable.items()
+def _hamiltonian(observable: dict) -> SymbolicHamiltonian:
+    """A ``{pauli_string: coefficient}`` observable as a qibo Hamiltonian."""
+    form = 0
+    for pauli, coefficient in observable.items():
+        term = coefficient
+        for qubit, label in enumerate(pauli):
+            if label != "I":
+                term *= getattr(symbols, label)(qubit)
+        form += term
+    return SymbolicHamiltonian(form, nqubits=len(next(iter(observable))))
+
+
+def _exact_gradient(circuit: Circuit, observable) -> np.ndarray:
+    """qibo's parameter-shift rule on its statevector, which is exact."""
+    if not isinstance(observable, SymbolicHamiltonian):
+        observable = _hamiltonian(observable)
+    return np.array(
+        [
+            parameter_shift(circuit, observable, i)
+            for i in range(len(circuit.get_parameters()))
+        ]
     )
-
-
-def _exact_gradient(circuit: Circuit, observable: dict) -> np.ndarray:
-    """The parameter-shift rule on qibo's statevector, which is exact."""
-    parameters = np.array([p[0] for p in circuit.get_parameters()])
-    gradient = np.zeros(len(parameters))
-    for i in range(len(parameters)):
-        shift = np.zeros(len(parameters))
-        shift[i] = np.pi / 2
-        circuit.set_parameters(parameters + shift)
-        plus = _exact_expectation(circuit, observable)
-        circuit.set_parameters(parameters - shift)
-        minus = _exact_expectation(circuit, observable)
-        gradient[i] = (plus - minus) / 2
-    circuit.set_parameters(parameters)
-    return gradient
-
-
-def _shifted_circuits_gradient(hsmpo: HSMPO, observable) -> np.ndarray:
-    """The parameter-shift rule through HSMPO.expectation on shifted circuits."""
-    parameters = np.array([p[0] for p in hsmpo.get_parameters()])
-    gradient = np.zeros(len(parameters))
-    for i in range(len(parameters)):
-        shift = np.zeros(len(parameters))
-        shift[i] = np.pi / 2
-        hsmpo.set_parameters(parameters + shift)
-        plus = hsmpo.expectation(observable)
-        hsmpo.set_parameters(parameters - shift)
-        minus = hsmpo.expectation(observable)
-        gradient[i] = (plus - minus) / 2
-    hsmpo.set_parameters(parameters)
-    return gradient
 
 
 def _generic_circuit(nqubits: int = 5, nlayers: int = 3, seed: int = 0) -> Circuit:
@@ -91,9 +78,6 @@ def test_gradient_generic_chain(light_cone, method):
     np.testing.assert_allclose(
         gradient, _exact_gradient(circuit, OBSERVABLE), atol=1e-10
     )
-    np.testing.assert_allclose(
-        gradient, _shifted_circuits_gradient(hsmpo, OBSERVABLE), atol=1e-10
-    )
 
 
 @pytest.mark.parametrize("method", METHODS)
@@ -101,22 +85,10 @@ def test_gradient_symbolic_hamiltonian(method):
     """Several terms with a constant, as a qibo SymbolicHamiltonian."""
     circuit = _generic_circuit(nlayers=2, seed=1)
     hamiltonian = construct_symbolic_hamiltonian(nqubits=5, n_terms=6)
-    hsmpo = HSMPO(circuit)
-
-    parameters = np.array([p[0] for p in circuit.get_parameters()])
-    expected = np.zeros(len(parameters))
-    for i in range(len(parameters)):
-        values = []
-        for sign in (1, -1):
-            shifted = parameters.copy()
-            shifted[i] += sign * np.pi / 2
-            circuit.set_parameters(shifted)
-            values.append(hamiltonian.expectation(circuit().state()))
-        expected[i] = (values[0] - values[1]) / 2
-    circuit.set_parameters(parameters)
-
     np.testing.assert_allclose(
-        hsmpo.gradient(hamiltonian, method=method), expected, atol=1e-10
+        HSMPO(circuit).gradient(hamiltonian, method=method),
+        _exact_gradient(circuit, hamiltonian),
+        atol=1e-10,
     )
 
 
@@ -205,7 +177,7 @@ def test_gradient_gate_queued_twice_sums_its_rotations(method):
     values = []
     for sign in (1, -1):
         shared.parameters = (0.6 + sign * epsilon,)
-        values.append(_exact_expectation(circuit, observable))
+        values.append(_hamiltonian(observable).expectation(circuit().state()))
     shared.parameters = (0.6,)
     expected = (values[0] - values[1]) / (2 * epsilon)
 
@@ -234,11 +206,17 @@ def test_gradient_decomposed_controlled_rotation():
     gradient = HSMPO(circuit(theta / 2, -theta / 2)).gradient(observable)
     derivative = 0.5 * gradient[1] - 0.5 * gradient[2]
 
-    controlled = Circuit(2)
-    controlled.add(gates.RX(0, theta=0.7))
-    controlled.add(gates.CRY(0, 1, theta=theta))
-    expected = _exact_gradient(controlled, observable)[1]
-    assert derivative == pytest.approx(expected, abs=1e-10)
+    # qibo has no shift rule for a controlled rotation, whose generator has
+    # three eigenvalues: compare with a central difference instead.
+    epsilon = 1e-6
+    values = []
+    for sign in (1, -1):
+        controlled = Circuit(2)
+        controlled.add(gates.RX(0, theta=0.7))
+        controlled.add(gates.CRY(0, 1, theta=theta + sign * epsilon))
+        values.append(_hamiltonian(observable).expectation(controlled().state()))
+    expected = (values[0] - values[1]) / (2 * epsilon)
+    assert derivative == pytest.approx(expected, abs=1e-8)
 
 
 @pytest.mark.parametrize("angle", [0.0, np.pi / 2, -np.pi])
