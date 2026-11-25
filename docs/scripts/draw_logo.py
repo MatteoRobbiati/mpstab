@@ -2,8 +2,9 @@
 
 The chain runs pommel, grip, the crossguard from its lower to its upper end,
 the upper edge of the blade, the tip, and back along the lower edge, where it
-ends. Black (white on dark) bonds and outlines, light-blue tensors, and the name in heavy
-capitals, as in the original logo. Run from the repository root::
+ends. Black (white on dark) bonds and outlines, tensors in the light blue of
+the original logo mixed, irregularly, with the red and yellow of the landing
+page figure, and the name in heavy capitals. Run from the repository root::
 
     python docs/scripts/draw_logo.py
 
@@ -27,10 +28,31 @@ from matplotlib.patches import Circle
 OUT = Path(__file__).resolve().parents[1] / "_static" / "logo"
 AVENIR = Path("/System/Library/Fonts/Avenir Next.ttc")
 
-BLUE = "#A7C7FF"  # the tensors, as in the original logo
+BLUE = "#A7C7FF"  # the tensors of the original logo
+RED = "#FFA7A7"  # the stabilizer region of docs/stab_ent.svg
+YELLOW = "#FFE38A"  # its statevector region, a little deeper
+# One color per tensor, in chain order: mostly blue, with red and yellow
+# scattered by hand rather than in a pattern.
+COLORS = [
+    BLUE,
+    YELLOW,
+    BLUE,
+    RED,  # pommel, grip, crossguard
+    BLUE,
+    BLUE,
+    YELLOW,
+    BLUE,
+    RED,  # upper edge of the blade
+    BLUE,  # tip
+    YELLOW,
+    BLUE,
+    BLUE,
+    RED,
+    YELLOW,  # lower edge, back to the guard
+]
 THEMES = {"light": "#000000", "dark": "#FFFFFF"}  # bonds, outlines and name
 
-RADIUS = 0.2
+RADIUS = 0.29
 LINE = 3.2  # points
 
 
@@ -76,8 +98,8 @@ def draw(ink: str, font: FontProperties):
         solid_capstyle="round",
         zorder=1,
     )
-    for x, y in nodes:
-        ax.add_patch(Circle((x, y), RADIUS, fc=BLUE, ec=ink, lw=LINE, zorder=2))
+    for (x, y), color in zip(nodes, COLORS, strict=True):
+        ax.add_patch(Circle((x, y), RADIUS, fc=color, ec=ink, lw=LINE, zorder=2))
     # The name sits above the blade, between the crossguard and the tip.
     left, right = nodes[4][0] - RADIUS, nodes[9][0] + RADIUS
     ax.text(
