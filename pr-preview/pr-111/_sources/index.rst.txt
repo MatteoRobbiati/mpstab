@@ -1,4 +1,4 @@
-mpstab: a cutting-edge quantum circuit simulator
+MPStab: a cutting-edge quantum circuit simulator
 ================================================
 
 .. container:: hero
@@ -54,22 +54,32 @@ tensor network simulators, used as operative engines.
      <div class="feature-card">
        <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7.5 12 12l9-4.5L12 3Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/></svg></span>
        <p class="feature-title">Hybrid evolution</p>
-       <p>Combine stabilizer and tensor network engines for efficient simulation.</p>
+       <p>Stabilizer and tensor network engines, combined.</p>
      </div>
      <div class="feature-card">
        <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0V8Z"/><path d="M12 17v4"/></svg></span>
        <p class="feature-title">Qibo integration</p>
-       <p>A native custom backend runs Qibo circuits with <code>mpstab</code> algorithms; Qibo circuits and observables are supported as well.</p>
+       <p>Run Qibo circuits and observables natively.</p>
      </div>
      <div class="feature-card">
-       <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
-       <p class="feature-title">Scalable Clifford simulation</p>
-       <p>Simulate pure Clifford circuits with hundreds of qubits.</p>
+       <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l2.5-6 4 13 3-9 2 4H22"/></svg></span>
+       <p class="feature-title">Fast noise simulation</p>
+       <p>Pauli, coherent and non-unital noise, no density matrix.</p>
+     </div>
+     <div class="feature-card">
+       <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+       <p class="feature-title">Error mitigation</p>
+       <p>Clifford data regression, trained with HSMPO.</p>
+     </div>
+     <div class="feature-card">
+       <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20c4 0 6-16 10-16s4 8 8 8"/><path d="M5 9h8"/><circle cx="9" cy="9" r="1.2"/></svg></span>
+       <p class="feature-title">Analytic gradients</p>
+       <p>Every parameter in one forward and one backward pass.</p>
      </div>
      <div class="feature-card">
        <span class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 4-6"/><path d="M4 21h16"/></svg></span>
        <p class="feature-title">Advanced metrics</p>
-       <p>Built-in tools for entanglement entropies, fidelity bounds and circuit analysis.</p>
+       <p>Entanglement entropies and fidelity bounds.</p>
      </div>
    </div>
 
