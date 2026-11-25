@@ -551,35 +551,6 @@ and its standard error in <code class="docutils literal notranslate"><span class
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">nqubits</span></span><a class="headerlink" href="#mpstab.evolutors.hsmpo.HSMPO.nqubits" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="mpstab.evolutors.hsmpo.HSMPO.optimize_parameters">
-<span class="sig-name descname"><span class="pre">optimize_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SymbolicHamiltonian</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'adam'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">gradient_options</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/mpstab/evolutors/hsmpo.html#HSMPO.optimize_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.hsmpo.HSMPO.optimize_parameters" title="Link to this definition">¶</a></dt>
-<dd><p>Minimize <code class="docutils literal notranslate"><span class="pre">observable</span></code> over the circuit parameters, a VQE on the
-surrogate, with the analytic gradient. Unlike
-<a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.minimize_expectation" title="mpstab.evolutors.hsmpo.HSMPO.minimize_expectation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">minimize_expectation()</span></code></a>, which optimizes the MPS itself, this
-returns parameters of the circuit, to run anywhere.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>observable</strong> – the Hamiltonian, in any format
-<a class="reference internal" href="pauli.html#mpstab.hamiltonians.pauli_terms" title="mpstab.hamiltonians.pauli_terms"><code class="xref py py-func docutils literal notranslate"><span class="pre">pauli_terms()</span></code></a> accepts.</p></li>
-<li><p><strong>method</strong> – <code class="docutils literal notranslate"><span class="pre">&quot;adam&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;lbfgs&quot;</span></code>.</p></li>
-<li><p><strong>max_steps</strong> – maximum number of gradient evaluations.</p></li>
-<li><p><strong>learning_rate</strong> – Adam’s step size.</p></li>
-<li><p><strong>tol</strong> – stop once the largest derivative is below it.</p></li>
-<li><p><strong>callback</strong> – called as <code class="docutils literal notranslate"><span class="pre">callback(step,</span> <span class="pre">energy,</span> <span class="pre">parameters)</span></code>.</p></li>
-<li><p><strong>gradient_options</strong> – forwarded to <a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.gradient" title="mpstab.evolutors.hsmpo.HSMPO.gradient"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code></a>, e.g.
-<code class="docutils literal notranslate"><span class="pre">costate_bond</span></code> or <code class="docutils literal notranslate"><span class="pre">groups</span></code>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">energy</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">energy_history</span></code>,
-<code class="docutils literal notranslate"><span class="pre">num_steps</span></code> and <code class="docutils literal notranslate"><span class="pre">converged</span></code>. The instance is left at the best
-parameters found.</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py attribute">
 <dt class="sig sig-object py" id="mpstab.evolutors.hsmpo.HSMPO.progress">
 <span class="sig-name descname"><span class="pre">progress</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#mpstab.evolutors.hsmpo.HSMPO.progress" title="Link to this definition">¶</a></dt>
@@ -624,7 +595,9 @@ cached MPS with them.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="mpstab.evolutors.hsmpo.HSMPO.set_parameters">
 <span class="sig-name descname"><span class="pre">set_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/evolutors/hsmpo.html#HSMPO.set_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.hsmpo.HSMPO.set_parameters" title="Link to this definition">¶</a></dt>
-<dd><p>Set the circuit’s parameters and rebuild the cached MPS to match.</p>
+<dd><p>Set the circuit’s parameters and re-partition the circuit. The cached
+MPS is rebuilt on its next use, so a training loop that only calls
+<a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.gradient" title="mpstab.evolutors.hsmpo.HSMPO.gradient"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code></a> never pays for it.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1227,10 +1200,9 @@ needing only the working truncation, with no exact reference built.</p></li>
 <h2>Gradients<a class="headerlink" href="#gradients" title="Link to this heading">¶</a></h2>
 <p>Analytic gradients of the HSMPO surrogate, whose cost does not grow with the
 number of parameters (one forward pass and one backward pass), instead of the two
-shifted circuits per parameter of the parameter-shift rule. Gradient-based
-training of the circuit parameters is in <a class="reference internal" href="#module-mpstab.evolutors.optimization" title="mpstab.evolutors.optimization"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.evolutors.optimization</span></code></a>
-(<code class="xref py py-meth docutils literal notranslate"><span class="pre">optimize_parameters()</span></code>).
-The <a class="reference internal" href="../tutorials/vqe_gradients.html"><span class="doc">Training a VQE with analytic gradients</span></a> tutorial trains a VQE with it.</p>
+shifted circuits per parameter of the parameter-shift rule. They plug into any
+optimizer; the <a class="reference internal" href="../tutorials/vqe_gradients.html"><span class="doc">Training a VQE with analytic gradients</span></a> tutorial trains a VQE with
+them.</p>
 <p id="module-mpstab.evolutors.gradient">Analytic gradients of the HSMPO surrogate, from the sign-flip rule of its faults.</p>
 <p>In the Clifford frame the state is <code class="docutils literal notranslate"><span class="pre">|psi&gt;</span> <span class="pre">=</span> <span class="pre">R_R</span> <span class="pre">...</span> <span class="pre">R_1</span> <span class="pre">|init&gt;</span></code>, with dressed
 rotations <code class="docutils literal notranslate"><span class="pre">R_j</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">phi_j/2</span> <span class="pre">G_j)</span></code>, and the observable is
@@ -1395,8 +1367,8 @@ or, with <code class="docutils literal notranslate"><span class="pre">&quot;adjo
 </section>
 <section id="module-mpstab.evolutors.optimization">
 <span id="optimization"></span><h2>Optimization<a class="headerlink" href="#module-mpstab.evolutors.optimization" title="Link to this heading">¶</a></h2>
-<p>Optimization of an HSMPO: DMRG over its MPS, and gradient-based training of
-its circuit parameters with a fused adjoint kernel.</p>
+<p>Optimization of an HSMPO’s MPS with DMRG, and the fused adjoint kernel of
+its analytic gradient.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="mpstab.evolutors.optimization.adjoint_kernel">
 <span class="sig-prename descclassname"><span class="pre">mpstab.evolutors.optimization.</span></span><span class="sig-name descname"><span class="pre">adjoint_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">engine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">costate_bond</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/evolutors/optimization.html#adjoint_kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.optimization.adjoint_kernel" title="Link to this definition">¶</a></dt>
@@ -1468,40 +1440,6 @@ offset and identity terms.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>ValueError</strong> – if the Hamiltonian has no non-identity terms.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="mpstab.evolutors.optimization.minimize_parameters">
-<span class="sig-prename descclassname"><span class="pre">mpstab.evolutors.optimization.</span></span><span class="sig-name descname"><span class="pre">minimize_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hsmpo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SymbolicHamiltonian</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'adam'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">gradient_options</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/evolutors/optimization.html#minimize_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.evolutors.optimization.minimize_parameters" title="Link to this definition">¶</a></dt>
-<dd><p>Minimize an observable over the circuit parameters of an HSMPO, with its
-analytic gradient (<code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code>).</p>
-<p>Each step only re-partitions the circuit at the new parameters and runs
-one gradient, whose forward pass also gives the energy: the cached MPS is
-rebuilt once, at the end, for the best parameters found.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>hsmpo</strong> – the <a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO" title="mpstab.evolutors.hsmpo.HSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HSMPO</span></code></a> to train. Its
-parameters are left at the best ones found.</p></li>
-<li><p><strong>observable</strong> – the Hamiltonian, in any format
-<a class="reference internal" href="pauli.html#mpstab.hamiltonians.pauli_terms" title="mpstab.hamiltonians.pauli_terms"><code class="xref py py-func docutils literal notranslate"><span class="pre">pauli_terms()</span></code></a> accepts.</p></li>
-<li><p><strong>method</strong> – <code class="docutils literal notranslate"><span class="pre">&quot;adam&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;lbfgs&quot;</span></code> (scipy’s L-BFGS-B).</p></li>
-<li><p><strong>initial_parameters</strong> – where to start, the current parameters by default.</p></li>
-<li><p><strong>max_steps</strong> – maximum number of gradient evaluations.</p></li>
-<li><p><strong>learning_rate</strong> – Adam’s step size.</p></li>
-<li><p><strong>tol</strong> – stop once the largest derivative is below it (Adam), or with
-this gradient tolerance (L-BFGS).</p></li>
-<li><p><strong>callback</strong> – called as <code class="docutils literal notranslate"><span class="pre">callback(step,</span> <span class="pre">energy,</span> <span class="pre">parameters)</span></code> after each
-gradient evaluation.</p></li>
-<li><p><strong>gradient_options</strong> – forwarded to <code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code>, e.g.
-<code class="docutils literal notranslate"><span class="pre">costate_bond</span></code> or <code class="docutils literal notranslate"><span class="pre">groups</span></code>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A dict with <code class="docutils literal notranslate"><span class="pre">energy</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">energy_history</span></code>,
-<code class="docutils literal notranslate"><span class="pre">num_steps</span></code> and <code class="docutils literal notranslate"><span class="pre">converged</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1629,7 +1567,6 @@ gradient evaluation.</p></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.noisy_expectation"><code class="docutils literal notranslate"><span class="pre">HSMPO.noisy_expectation()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.nparams"><code class="docutils literal notranslate"><span class="pre">HSMPO.nparams</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.nqubits"><code class="docutils literal notranslate"><span class="pre">HSMPO.nqubits</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.optimize_parameters"><code class="docutils literal notranslate"><span class="pre">HSMPO.optimize_parameters()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.progress"><code class="docutils literal notranslate"><span class="pre">HSMPO.progress</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.rotations_only"><code class="docutils literal notranslate"><span class="pre">HSMPO.rotations_only()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.hsmpo.HSMPO.set_engines"><code class="docutils literal notranslate"><span class="pre">HSMPO.set_engines()</span></code></a></li>
@@ -1694,7 +1631,6 @@ gradient evaluation.</p></li>
 <li><a class="reference internal" href="#module-mpstab.evolutors.optimization">Optimization</a><ul>
 <li><a class="reference internal" href="#mpstab.evolutors.optimization.adjoint_kernel"><code class="docutils literal notranslate"><span class="pre">adjoint_kernel()</span></code></a></li>
 <li><a class="reference internal" href="#mpstab.evolutors.optimization.minimize_expectation_dmrg"><code class="docutils literal notranslate"><span class="pre">minimize_expectation_dmrg()</span></code></a></li>
-<li><a class="reference internal" href="#mpstab.evolutors.optimization.minimize_parameters"><code class="docutils literal notranslate"><span class="pre">minimize_parameters()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-mpstab.evolutors.utils">Utilities</a><ul>

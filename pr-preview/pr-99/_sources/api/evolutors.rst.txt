@@ -49,10 +49,9 @@ Gradients
 
 Analytic gradients of the HSMPO surrogate, whose cost does not grow with the
 number of parameters (one forward pass and one backward pass), instead of the two
-shifted circuits per parameter of the parameter-shift rule. Gradient-based
-training of the circuit parameters is in :mod:`mpstab.evolutors.optimization`
-(:meth:`~mpstab.HSMPO.optimize_parameters`).
-The :doc:`../tutorials/vqe_gradients` tutorial trains a VQE with it.
+shifted circuits per parameter of the parameter-shift rule. They plug into any
+optimizer; the :doc:`../tutorials/vqe_gradients` tutorial trains a VQE with
+them.
 
 .. automodule:: mpstab.evolutors.gradient
    :members:
