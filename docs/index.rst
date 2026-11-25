@@ -29,7 +29,6 @@ Among our core features:
 
    methods/theory_background
    methods/fidelity_and_approximation
-   methods/analytic_gradients
    methods/hqsmpo/index
 
 .. toctree::
