@@ -30,7 +30,10 @@ still need shifted circuits.
 
 from __future__ import annotations
 
+import os
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -80,6 +83,8 @@ def analytic_gradient(
     light_cone: bool = True,
     method: str = "adjoint",
     costate_bond: int | None = None,
+    groups: int = 1,
+    n_workers: int | None = None,
 ) -> AnalyticGradient:
     """
     Gradient of ``hsmpo.expectation(observable)`` with respect to the circuit
@@ -129,6 +134,21 @@ def analytic_gradient(
         none. Capping it at the state's own bond is about twice as fast, for
         roughly twice the gradient error; a larger cap gains nothing, since
         the state's truncation then dominates.
+    groups : int, optional
+        Split the observable's terms into this many blocks of neighbouring
+        terms (by the centre of their support) and differentiate each block on
+        its own light cone; the gradient is linear in the terms, so the sum is
+        exact. A block's cone is narrower than the union of all of them and
+        carries less entanglement: once the union saturates the bond cap,
+        blocks are faster and, at the same cap, more accurate. While the bond
+        stays below the cap the union is cheaper, since the blocks' cones
+        overlap. One block (default) uses the union.
+    n_workers : int, optional
+        Processes the blocks run on, ``min(groups, os.cpu_count())`` by
+        default. The pool is started on first use, which costs about a second
+        per process, and kept for later calls with the same ``n_workers``, so a
+        training loop pays it once. Each process holds the checkpoints of its
+        blocks, so fewer workers bound the memory.
 
     Returns
     -------
@@ -173,10 +193,6 @@ def analytic_gradient(
     _check_parameters(parameters, rotations_of, trainable)
 
     constant, terms = pauli_terms(observable, nqubits)
-    observables = hsmpo.stab_engine.backpropagate_many(terms, hsmpo.clifford_circuit)
-    weights = np.array([c * s for c, (_, s) in zip(terms.values(), observables)])
-    observables = [pauli for pauli, _ in observables]
-
     generators = [generator for generator, _ in dressed]
     angles = np.array(
         [
@@ -185,74 +201,170 @@ def analytic_gradient(
         ],
         dtype=float,
     )
-    kept = np.arange(len(generators))
-    if light_cone:
-        kept = pauli_light_cone(generators, observables, nqubits)
-    position = np.full(len(generators), -1)
-    position[kept] = np.arange(len(kept))
-    generators = [generators[j] for j in kept]
-    angles = angles[kept]
-
-    # The kept rotations to differentiate.
-    sites = sorted({position[j] for p in parameters for j in rotations_of[p]} - {-1})
-    chain = _Chain(hsmpo, generators, angles)
-    derivatives = np.zeros(len(generators))
-    fidelities = []
-    engine = hsmpo.tn_engine
+    wanted = sorted({j for p in parameters for j in rotations_of[p]})
     if costate_bond is None and hsmpo.max_bond_dimension is not None:
         costate_bond = 2 * hsmpo.max_bond_dimension
+
+    chains = []
+    for group in _neighbour_groups(list(terms), groups):
+        backpropagated = hsmpo.stab_engine.backpropagate_many(
+            {pauli: terms[pauli] for pauli in group}, hsmpo.clifford_circuit
+        )
+        weights = np.array(
+            [terms[pauli] * s for pauli, (_, s) in zip(group, backpropagated)]
+        )
+        observables = [pauli for pauli, _ in backpropagated]
+        kept = np.arange(len(generators))
+        if light_cone:
+            kept = pauli_light_cone(generators, observables, nqubits)
+        chains.append(
+            (
+                kept,
+                [generators[j] for j in kept],
+                angles[kept],
+                np.flatnonzero(np.isin(kept, wanted)).tolist(),
+                observables,
+                weights,
+            )
+        )
+
+    shared = (hsmpo.tn_engine, hsmpo.initial_mps(), hsmpo.max_bond_dimension)
+    jobs = [(*shared, *chain[1:], method, costate_bond) for chain in chains]
+    if n_workers is None:
+        n_workers = min(groups, os.cpu_count() or 1)
+    n_workers = max(1, min(n_workers, len(jobs)))
+    if n_workers > 1:
+        try:
+            outcomes = list(_pool(n_workers).map(_on_chain, *zip(*jobs)))
+        except BrokenProcessPool:
+            _POOL.clear()  # start a fresh pool on the next call
+            raise
+    else:
+        outcomes = [_on_chain(*job) for job in jobs]
+
+    derivatives = np.zeros(len(generators))
+    value, n_rotations, fidelities = constant, 0, []
+    for chain, (
+        group_value,
+        group_derivatives,
+        group_rotations,
+        group_fidelities,
+    ) in zip(chains, outcomes):
+        derivatives[chain[0]] += group_derivatives
+        value += group_value
+        n_rotations += group_rotations
+        fidelities.extend(group_fidelities)
+
+    values = np.array(
+        [
+            sum(dressed[j][1] * derivatives[j] for j in rotations_of[p])
+            for p in parameters
+        ]
+    )
+    return AnalyticGradient(
+        values=values,
+        value=value,
+        n_rotations=n_rotations,
+        fidelities=np.array(fidelities),
+    )
+
+
+def _neighbour_groups(paulis, groups):
+    """
+    ``paulis`` split into ``groups`` blocks of consecutive terms, after sorting
+    them by the centre of their support, so each block sits in one region.
+    """
+    groups = max(1, min(groups, len(paulis)))
+    if groups == 1:
+        return [paulis]
+    order = np.argsort([_support_centre(pauli) for pauli in paulis], kind="stable")
+    return [[paulis[i] for i in block] for block in np.array_split(order, groups)]
+
+
+def _support_centre(pauli: str) -> float:
+    """
+    Centre of the shortest arc of the qubit ring that covers the support, so a
+    term closing a periodic chain, such as ``Z_{n-1} Z_0``, sits at its end
+    rather than in the middle.
+    """
+    n = len(pauli)
+    sites = [q for q, label in enumerate(pauli) if label != "I"] or [0]
+    gaps = np.diff(sites + [sites[0] + n])
+    widest = int(np.argmax(gaps))
+    start = sites[(widest + 1) % len(sites)]
+    return (start + (n - gaps[widest]) / 2) % n
+
+
+#: The process pool of :func:`analytic_gradient`, kept across calls.
+_POOL: dict = {}
+
+
+def _pool(n_workers: int) -> ProcessPoolExecutor:
+    """A pool of ``n_workers`` processes, started once and reused."""
+    if _POOL.get("size") != n_workers:
+        if _POOL:
+            _POOL["executor"].shutdown()
+        _POOL.update(size=n_workers, executor=ProcessPoolExecutor(n_workers))
+    return _POOL["executor"]
+
+
+def _on_chain(
+    engine,
+    initial_mps,
+    max_bond,
+    generators,
+    angles,
+    sites,
+    observables,
+    weights,
+    method,
+    costate_bond,
+):
+    """
+    Value and derivatives of ``sum_t weights_t <observables_t>`` on one
+    rotation chain; the derivatives are filled at ``sites`` only.
+    """
+    derivatives = np.zeros(len(generators))
     if (
         method == "adjoint"
         and sites
         and observables
         and isinstance(engine, QuimbEngine)
         and engine._fast
-        and nqubits > 1
+        and initial_mps.L > 1
     ):
-        value, derivatives, n_rotations, fidelities = adjoint_kernel(
+        return adjoint_kernel(
             engine,
-            hsmpo.initial_mps(),
+            initial_mps,
             generators,
             angles,
             sites,
             observables,
             weights,
-            hsmpo.max_bond_dimension,
+            max_bond,
             costate_bond,
         )
-    else:
-        base = chain.state(np.zeros(len(generators), dtype=bool))
-        value = 0.0
-        if observables:
-            value = float(
-                np.real(
-                    np.dot(
-                        weights,
-                        np.asarray(engine.pauli_expvals(base, observables), complex),
-                    )
+    chain = _Chain(engine, initial_mps, max_bond, generators, angles)
+    base = chain.state(np.zeros(len(generators), dtype=bool))
+    value = 0.0
+    if observables:
+        value = float(
+            np.real(
+                np.dot(
+                    weights,
+                    np.asarray(engine.pauli_expvals(base, observables), complex),
                 )
             )
-        if sites and observables:
-            if method == "adjoint":
-                fidelities = _adjoint(
-                    chain, sites, observables, weights, costate_bond, derivatives
-                )
-            else:
-                _flips(chain, sites, observables, weights, derivatives)
-        n_rotations = chain.n_rotations
-        fidelities = chain.fidelities + fidelities
-
-    values = np.zeros(len(parameters))
-    for i, p in enumerate(parameters):
-        for j in rotations_of[p]:
-            if position[j] >= 0:
-                values[i] += dressed[j][1] * derivatives[position[j]]
-    return AnalyticGradient(
-        values=values,
-        value=constant + value,
-        n_rotations=n_rotations,
-        fidelities=np.array(fidelities),
-    )
+        )
+    fidelities = []
+    if sites and observables:
+        if method == "adjoint":
+            fidelities = _adjoint(
+                chain, sites, observables, weights, costate_bond, derivatives
+            )
+        else:
+            _flips(chain, sites, observables, weights, derivatives)
+    return value, derivatives, chain.n_rotations, chain.fidelities + fidelities
 
 
 def _adjoint(chain, sites, observables, weights, costate_bond, derivatives):
@@ -363,11 +475,11 @@ class _Chain:
     per sign.
     """
 
-    def __init__(self, hsmpo, generators, angles):
-        self.engine = hsmpo.tn_engine
-        self.max_bond = hsmpo.max_bond_dimension
+    def __init__(self, engine, initial_mps, max_bond, generators, angles):
+        self.engine = engine
+        self.max_bond = max_bond
         self.generators, self.angles = generators, angles
-        self.checkpoints = [hsmpo.initial_mps()]
+        self.checkpoints = [initial_mps]
         self.operators = {}
         self.current = None
         self.n_rotations = 0

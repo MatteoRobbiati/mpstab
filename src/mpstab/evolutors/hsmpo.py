@@ -257,7 +257,10 @@ class HSMPO:
         light_cone: bool = True,
         method: str = "adjoint",
         costate_bond: int | None = None,
-    ) -> np.ndarray:
+        groups: int = 1,
+        n_workers: int | None = None,
+        return_value: bool = False,
+    ):
         """
         Gradient of :meth:`expectation` with respect to the circuit parameters,
         analytically, instead of the two shifted circuits per parameter of the
@@ -280,46 +283,41 @@ class HSMPO:
             costate_bond: bond cap of the adjoint costate, twice
                 ``max_bond_dimension`` by default; ``max_bond_dimension``
                 itself is about twice as fast, for twice the error.
+            groups: differentiate the observable's terms in this many blocks of
+                neighbouring terms, each on its own, narrower light cone. Faster
+                and more accurate once the union of the cones saturates
+                ``max_bond_dimension``; one block (default) uses the union.
+            n_workers: processes the blocks run on in parallel,
+                ``min(groups, os.cpu_count())`` by default. The pool starts on
+                the first call (about a second per process) and is reused.
+            return_value: also return the expectation value, which the
+                gradient's forward pass computes anyway: what a training step
+                needs. It is exact like :meth:`expectation`, but evaluated on
+                the light-cone chain at the parameters of the last partition
+                (:meth:`set_parameters`), not on the cached MPS.
 
         Returns:
-            One derivative per requested parameter.
+            One derivative per requested parameter, or ``(value, gradient)``
+            with ``return_value``.
 
         Raises:
             ValueError: if a requested parameter's gate sits at a Clifford
                 angle, so that it was absorbed into the tableau and has no
                 rotation to differentiate.
         """
-        return analytic_gradient(
-            self, observable, parameters, light_cone, method, costate_bond
-        ).values
-
-    def value_and_gradient(
-        self,
-        observable: Observable,
-        light_cone: bool = True,
-        method: str = "adjoint",
-        costate_bond: int | None = None,
-    ) -> Tuple[float, np.ndarray]:
-        """
-        :meth:`expectation` and :meth:`gradient` together, from one pass of the
-        circuit: what a training step needs.
-
-        The value is evaluated on the chain the gradient uses, restricted to
-        the observable's light cone, so it is exact like :meth:`expectation`
-        but needs no cached MPS: it follows the circuit's parameters at the
-        last partition (:meth:`set_parameters`).
-
-        Args:
-            observable, light_cone, method, costate_bond: as in
-                :meth:`gradient`.
-
-        Returns:
-            ``(value, gradient)``, one derivative per parameter.
-        """
         result = analytic_gradient(
-            self, observable, None, light_cone, method, costate_bond
+            self,
+            observable,
+            parameters,
+            light_cone,
+            method,
+            costate_bond,
+            groups,
+            n_workers,
         )
-        return result.value, result.values
+        if return_value:
+            return result.value, result.values
+        return result.values
 
     def optimize_parameters(
         self,
@@ -346,7 +344,7 @@ class HSMPO:
             tol: stop once the largest derivative is below it.
             callback: called as ``callback(step, energy, parameters)``.
             gradient_options: forwarded to :meth:`gradient`, e.g.
-                ``costate_bond``.
+                ``costate_bond`` or ``groups``.
 
         Returns:
             A dict with ``energy``, ``parameters``, ``energy_history``,

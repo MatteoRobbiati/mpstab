@@ -205,7 +205,7 @@ def minimize_parameters(
 ):
     """
     Minimize an observable over the circuit parameters of an HSMPO, with its
-    analytic gradient (:meth:`~mpstab.HSMPO.value_and_gradient`).
+    analytic gradient (:meth:`~mpstab.HSMPO.gradient`).
 
     Each step only re-partitions the circuit at the new parameters and runs
     one gradient, whose forward pass also gives the energy: the cached MPS is
@@ -224,9 +224,8 @@ def minimize_parameters(
             this gradient tolerance (L-BFGS).
         callback: called as ``callback(step, energy, parameters)`` after each
             gradient evaluation.
-        gradient_options: forwarded to
-            :func:`~mpstab.evolutors.gradient.analytic_gradient`, e.g.
-            ``costate_bond``.
+        gradient_options: forwarded to :meth:`~mpstab.HSMPO.gradient`, e.g.
+            ``costate_bond`` or ``groups``.
 
     Returns:
         A dict with ``energy``, ``parameters``, ``energy_history``,
@@ -241,7 +240,9 @@ def minimize_parameters(
     def value_and_gradient(parameters):
         hsmpo.ansatz.circuit.set_parameters(parameters)
         hsmpo._partition()
-        value, gradient = hsmpo.value_and_gradient(observable, **gradient_options)
+        value, gradient = hsmpo.gradient(
+            observable, return_value=True, **gradient_options
+        )
         history.append(value)
         nonlocal best
         if value < best[0]:

@@ -5,7 +5,7 @@ Both differentiate the energy of the transverse-field Ising ring
 :class:`~mpstab.models.ansatze.HardwareEfficient` ansatz (per layer, an RY on
 every qubit then a ring of CZ), at the same random parameters:
 
-- mpstab: :meth:`~mpstab.HSMPO.value_and_gradient`, the adjoint gradient on
+- mpstab: :meth:`~mpstab.HSMPO.gradient`, the adjoint gradient on
   the hybrid stabilizer-MPS surrogate, at bond dimension ``chi``;
 - PauliPropagation.jl: the Hamiltonian propagated backwards through the
   circuit, differentiated with a compiled ReverseDiff tape as in the package's
@@ -205,7 +205,7 @@ def main():
             if n <= args.exact_up_to:
                 reference = HSMPO(circuit, progress=False)
                 reference.set_engines(tn_engine=QuimbEngine(svd_cutoff=0.0))
-                _, exact_mpstab = reference.value_and_gradient(terms)
+                exact_mpstab = reference.gradient(terms)
                 check = f"  (vs exact HSMPO {relative_error(exact, exact_mpstab):.0e})"
             print(
                 f"  {'PP no truncation':>26}: {elapsed:8.3f} s "

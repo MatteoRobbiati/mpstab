@@ -343,12 +343,25 @@ def test_pauli_transitions_match_dense_states():
 
 
 @pytest.mark.parametrize("method", METHODS)
-def test_value_and_gradient(method):
+def test_gradient_return_value(method):
     """The value comes from the gradient's own pass and equals expectation()."""
     hsmpo = HSMPO(_generic_circuit(nlayers=2, seed=6))
-    value, gradient = hsmpo.value_and_gradient(OBSERVABLE, method=method)
+    value, gradient = hsmpo.gradient(OBSERVABLE, method=method, return_value=True)
     assert value == pytest.approx(hsmpo.expectation(OBSERVABLE), abs=1e-10)
     np.testing.assert_allclose(gradient, hsmpo.gradient(OBSERVABLE), atol=1e-10)
+
+
+@pytest.mark.parametrize("method", METHODS)
+@pytest.mark.parametrize("groups", [2, 3, 100])
+def test_gradient_groups(method, groups):
+    """Blocks of terms on their own light cones sum to the union's gradient."""
+    hsmpo = HSMPO(_generic_circuit(nlayers=2, seed=6))
+    value, gradient = hsmpo.gradient(
+        OBSERVABLE, method=method, groups=groups, return_value=True
+    )
+    reference, expected = hsmpo.gradient(OBSERVABLE, method=method, return_value=True)
+    assert value == pytest.approx(reference, abs=1e-10)
+    np.testing.assert_allclose(gradient, expected, atol=1e-10)
 
 
 @pytest.mark.parametrize("method", ["adam", "lbfgs"])
