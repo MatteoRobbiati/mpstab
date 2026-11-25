@@ -243,9 +243,9 @@ def test_zero_noise_reproduces_expectation(make_ansatz):
     compiled = compile_noise(hsmpo, events)
 
     result = noisy_expectation(compiled, "ZZIII", n_samples=100, seed=0)
-    # Bit-exact without the light cone; with it, fewer rotations round differently.
+    # Commuting rotations are reordered for the kernels, so equal up to rounding.
     unrestricted = noisy_expectation(compiled, "ZZIII", n_samples=0, light_cone=False)
-    assert unrestricted.mean == hsmpo.expectation("ZZIII")
+    assert unrestricted.mean == pytest.approx(hsmpo.expectation("ZZIII"), abs=1e-14)
     assert result.mean == pytest.approx(hsmpo.expectation("ZZIII"), abs=1e-14)
     assert result.stratum_weights == (1.0, 0.0, 0.0)
     assert result.n_patterns == 1
@@ -634,9 +634,14 @@ def test_single_kraus_location_is_exact(make_ansatz):
         ),
     ]
     for event in events:
-        result = noisy_expectation(compile_noise(hsmpo, [event]), observable)
+        compiled = compile_noise(hsmpo, [event])
+        result = noisy_expectation(compiled, observable)
         assert result.n_samples == 0
-        assert result.n_transitions > 0
+        if len(compiled.block_probs):
+            # Relaxation with T2 <= T1: a Pauli and reset mixture, no coherence.
+            assert len(compiled.coherence_weights) == 0
+        else:
+            assert result.n_transitions > 0
         exact = _events_exact(circuit, [event], observable)
         assert result.mean == pytest.approx(exact, abs=1e-10)
 

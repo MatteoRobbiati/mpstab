@@ -13,6 +13,12 @@ a Pauli channel compiled as above, and pairs ``(A, B)`` of its off-diagonal
 entries, the coherences. A coherence acts on the ket with ``A'`` and on the
 bra with ``B'``, so it flips the ket's and the bra's rotation signs
 differently and contributes a transition amplitude between the two.
+
+A one-qubit channel that is a convex mixture of Paulis and resets, such as
+thermal relaxation with ``T2 <= T1``, is compiled as that mixture instead:
+Pauli faults plus reset blocks, each a whole channel acting with a
+probability. A block's terms are its own ``chi`` entries, evaluated together,
+so its weights stay probabilities and no quasi-probability arises.
 """
 
 from __future__ import annotations
@@ -23,6 +29,7 @@ from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
 from qibo import gates
+from scipy.optimize import linprog
 
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.models.noise.events import (
@@ -32,6 +39,7 @@ from mpstab.models.noise.events import (
     PauliChannel,
 )
 from mpstab.pauli import (
+    PAULI_MATRICES,
     _anticommuting,
     _symplectic,
     anticommutation,
@@ -41,6 +49,10 @@ from mpstab.pauli import (
 
 if TYPE_CHECKING:
     from mpstab.evolutors.hsmpo import HSMPO
+
+
+def _empty_flips(n_rotations: int) -> np.ndarray:
+    return np.zeros((0, n_rotations), dtype=bool)
 
 
 @dataclass
@@ -54,7 +66,8 @@ class CompiledNoise:
     Pauli of a location with nonzero probability: a term of the Pauli channel,
     or a diagonal entry of the Kraus channel's process matrix. Each coherence
     is a pair of distinct Paulis with a nonzero off-diagonal entry, stored
-    once for the pair. Both are stored in location order.
+    once for the pair. Each block is a reset acting with a probability, kept
+    whole. All three are stored in location order.
 
     Attributes:
         hsmpo: the surrogate supplying the engines and the initial MPS. It is
@@ -66,8 +79,8 @@ class CompiledNoise:
         fault_probs: probability of each fault, shape ``(F,)``.
         fault_location: location index of each fault, shape ``(F,)``,
             nondecreasing.
-        location_probs: probability that each location faults at all, shape
-            ``(L,)``.
+        location_probs: probability that each location acts at all, by a
+            fault or a block, shape ``(L,)``.
         flips: boolean ``(F, R)`` matrix, ``True`` where a fault flips the sign
             of a rotation's angle.
         coherence_ket: dressed Pauli ``A'`` of each coherence, unsigned, length
@@ -81,7 +94,18 @@ class CompiledNoise:
         ket_flips: boolean ``(C, R)`` matrix: the rotations ``A'`` flips.
         bra_flips: boolean ``(C, R)`` matrix: the rotations ``B'`` flips.
         location_position: rotations applied before each location, shape
-            ``(L,)``, nondecreasing.
+            ``(L,)``, nondecreasing; ``None`` once the chain is reordered.
+        block_probs: probability of each block, shape ``(B,)``.
+        block_location: location index of each block, shape ``(B,)``,
+            nondecreasing.
+        block_kets, block_bras: dressed ``A'`` and ``B'`` of each term
+            ``chi[A, B] A rho B`` of each block, both orientations of every
+            pair and the diagonal included.
+        block_coefficients: complex ``chi[A, B]`` of each term, times the
+            dressing signs, one array per block; the channel the block applies
+            is ``sum chi[A, B] A rho B``, trace preserving.
+        block_ket_flips, block_bra_flips: boolean ``(terms, R)`` matrix per
+            block, the rotations each term's ``A'`` and ``B'`` flip.
     """
 
     hsmpo: HSMPO
@@ -99,13 +123,19 @@ class CompiledNoise:
     ket_flips: np.ndarray | None = None
     bra_flips: np.ndarray | None = None
     location_position: np.ndarray | None = None
+    block_probs: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    block_location: np.ndarray = field(default_factory=lambda: np.zeros(0, int))
+    block_kets: list[list[str]] = field(default_factory=list)
+    block_bras: list[list[str]] = field(default_factory=list)
+    block_coefficients: list[np.ndarray] = field(default_factory=list)
+    block_ket_flips: list[np.ndarray] = field(default_factory=list)
+    block_bra_flips: list[np.ndarray] = field(default_factory=list)
 
     def __post_init__(self):
-        empty = np.zeros((0, len(self.generators)), dtype=bool)
         if self.ket_flips is None:
-            self.ket_flips = empty
+            self.ket_flips = _empty_flips(len(self.generators))
         if self.bra_flips is None:
-            self.bra_flips = empty
+            self.bra_flips = _empty_flips(len(self.generators))
 
     @property
     def nqubits(self) -> int:
@@ -167,12 +197,12 @@ class CompiledNoise:
         expectation value unchanged, so it is folded into its location's
         no-fault probability, and locations left with nothing are dropped.
 
-        A location with coherences is dropped whole when all its Paulis pass
-        the same test: the channel then commutes through to the observable,
-        where trace preservation makes it the identity. Otherwise its Paulis
-        spread the observable, so they join the light cone, which may keep
-        more rotations and locations; this is repeated until nothing changes.
-        Every step is exact for this observable.
+        A location with coherences or blocks is dropped whole when all its
+        Paulis pass the same test: the channel then commutes through to the
+        observable, where trace preservation makes it the identity. Otherwise
+        its Paulis spread the observable, so they join the light cone, which
+        may keep more rotations and locations; this is repeated until nothing
+        changes. Every step is exact for this observable.
 
         Args:
             dressed_paulis: dressed observable terms, from
@@ -182,20 +212,32 @@ class CompiledNoise:
             A new :class:`CompiledNoise`; this one is left untouched.
         """
         dressed_paulis = list(dressed_paulis)
-        if len(self.coherence_weights):
-            kept, relevant, coherent = self._causal_cone(dressed_paulis)
+        if len(self.coherence_weights) or len(self.block_probs):
+            kept, relevant, coherent, blocks = self._causal_cone(dressed_paulis)
         else:
             kept = pauli_light_cone(self.generators, dressed_paulis, self.nqubits)
             relevant = self.flips[:, kept].any(axis=1) | self.observable_flips(
                 dressed_paulis
             ).any(axis=1)
             coherent = np.zeros(0, dtype=bool)
+            blocks = np.zeros(0, dtype=bool)
 
         old_locations = np.union1d(
-            self.fault_location[relevant], self.coherence_location[coherent]
-        )
+            np.union1d(
+                self.fault_location[relevant], self.coherence_location[coherent]
+            ),
+            self.block_location[blocks],
+        ).astype(int)
         location = np.searchsorted(old_locations, self.fault_location[relevant])
+        block_location = np.searchsorted(old_locations, self.block_location[blocks])
         probs = self.fault_probs[relevant]
+        block_probs = self.block_probs[blocks]
+        location_probs = np.bincount(
+            location, weights=probs, minlength=len(old_locations)
+        ) + np.bincount(
+            block_location, weights=block_probs, minlength=len(old_locations)
+        )
+        chosen = np.flatnonzero(blocks)
         return replace(
             self,
             generators=[self.generators[j] for j in kept],
@@ -203,9 +245,7 @@ class CompiledNoise:
             fault_paulis=[p for p, r in zip(self.fault_paulis, relevant) if r],
             fault_probs=probs,
             fault_location=location,
-            location_probs=np.bincount(
-                location, weights=probs, minlength=len(old_locations)
-            ),
+            location_probs=location_probs,
             flips=self.flips[relevant][:, kept],
             coherence_ket=[p for p, c in zip(self.coherence_ket, coherent) if c],
             coherence_bra=[p for p, c in zip(self.coherence_bra, coherent) if c],
@@ -220,6 +260,31 @@ class CompiledNoise:
                 if self.location_position is None
                 else np.searchsorted(kept, self.location_position[old_locations])
             ),
+            block_probs=block_probs,
+            block_location=block_location,
+            block_kets=[self.block_kets[b] for b in chosen],
+            block_bras=[self.block_bras[b] for b in chosen],
+            block_coefficients=[self.block_coefficients[b] for b in chosen],
+            block_ket_flips=[self.block_ket_flips[b][:, kept] for b in chosen],
+            block_bra_flips=[self.block_bra_flips[b][:, kept] for b in chosen],
+        )
+
+    def reordered(self, order: np.ndarray) -> CompiledNoise:
+        """
+        The same circuit with its rotations in ``order``, valid when only the
+        product of each sign pattern's rotations matters and ``order`` only
+        swaps commuting rotations. ``location_position`` no longer applies.
+        """
+        return replace(
+            self,
+            generators=[self.generators[j] for j in order],
+            angles=self.angles[order],
+            flips=self.flips[:, order],
+            ket_flips=self.ket_flips[:, order],
+            bra_flips=self.bra_flips[:, order],
+            location_position=None,
+            block_ket_flips=[f[:, order] for f in self.block_ket_flips],
+            block_bra_flips=[f[:, order] for f in self.block_bra_flips],
         )
 
     def _causal_cone(self, dressed_paulis: list[str]):
@@ -229,11 +294,12 @@ class CompiledNoise:
 
         - a rotation is kept if it anticommutes with ``S``, and joins it;
         - a fault is relevant if it anticommutes with ``S``;
-        - a location with coherences is active if any of its Paulis does, and
-          then its coherences' Paulis join ``S``, as ``B O A`` spreads ``O``.
+        - a location with coherences or blocks is active if any of its Paulis
+          does, and then their Paulis join ``S``, as ``B O A`` spreads ``O``.
 
         Returns ``(kept rotations, relevant faults, coherences of active
-        locations)`` as an index array and two boolean masks.
+        locations, blocks of active locations)`` as an index array and three
+        boolean masks.
         """
         n = self.nqubits
         cone = _PauliSet(n)
@@ -242,15 +308,21 @@ class CompiledNoise:
         fault_x, fault_z = _symplectic(self.fault_paulis, n)
         ket_x, ket_z = _symplectic(self.coherence_ket, n)
         bra_x, bra_z = _symplectic(self.coherence_bra, n)
+        block_paulis = [
+            _symplectic(list(kets) + list(bras), n)
+            for kets, bras in zip(self.block_kets, self.block_bras)
+        ]
 
         n_locations = len(self.location_probs)
         fault_starts = np.searchsorted(self.fault_location, np.arange(n_locations + 1))
         coherence_starts = np.searchsorted(
             self.coherence_location, np.arange(n_locations + 1)
         )
+        block_starts = np.searchsorted(self.block_location, np.arange(n_locations + 1))
         kept = np.zeros(len(self.generators), dtype=bool)
         relevant = np.zeros(len(self.fault_paulis), dtype=bool)
         coherent = np.zeros(len(self.coherence_weights), dtype=bool)
+        blocks = np.zeros(len(self.block_probs), dtype=bool)
 
         location = n_locations - 1
         for position in range(len(self.generators), -1, -1):
@@ -259,15 +331,23 @@ class CompiledNoise:
                 coherences = slice(
                     coherence_starts[location], coherence_starts[location + 1]
                 )
+                own_blocks = range(block_starts[location], block_starts[location + 1])
                 relevant[faults] = cone.anticommutes(fault_x[faults], fault_z[faults])
-                if coherences.stop > coherences.start and (
+                spreading = coherences.stop > coherences.start or len(own_blocks)
+                if spreading and (
                     relevant[faults].any()
                     or cone.anticommutes(ket_x[coherences], ket_z[coherences]).any()
                     or cone.anticommutes(bra_x[coherences], bra_z[coherences]).any()
+                    or any(
+                        cone.anticommutes(*block_paulis[b]).any() for b in own_blocks
+                    )
                 ):
                     coherent[coherences] = True
                     cone.add(ket_x[coherences], ket_z[coherences])
                     cone.add(bra_x[coherences], bra_z[coherences])
+                    for b in own_blocks:
+                        blocks[b] = True
+                        cone.add(*block_paulis[b])
                 location -= 1
             j = position - 1
             if (
@@ -276,7 +356,7 @@ class CompiledNoise:
             ):
                 kept[j] = True
                 cone.add(generator_x[j : j + 1], generator_z[j : j + 1])
-        return np.flatnonzero(kept), relevant, coherent
+        return np.flatnonzero(kept), relevant, coherent, blocks
 
 
 class _PauliSet:
@@ -304,7 +384,9 @@ class _PauliSet:
         return _anticommuting(x, z, self.x[: self.size], self.z[: self.size]).any(1)
 
 
-def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
+def compile_noise(
+    hsmpo: HSMPO, events: Sequence[NoiseEvent], positive_mixtures: bool = True
+) -> CompiledNoise:
     """
     Dress the noise events of a circuit with its Clifford frame.
 
@@ -320,6 +402,12 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
         events: the noise, as :class:`~mpstab.models.noise.PauliChannel`,
             :class:`~mpstab.models.noise.CoherentRotation` and
             :class:`~mpstab.models.noise.events.KrausChannel` events.
+        positive_mixtures: compile a one-qubit Kraus channel that is a convex
+            mixture of Paulis and resets (:func:`pauli_reset_mixture`), such as
+            thermal relaxation with ``T2 <= T1``, as Pauli faults and reset
+            blocks, whose weights are probabilities, instead of faults and
+            coherences, whose weights are a quasi-probability. Same channel,
+            lower variance.
 
     Returns:
         The :class:`CompiledNoise`.
@@ -370,9 +458,11 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
     rotations = []  # (index into to_dress, angle), in chain order
     faults = []  # (index into to_dress, probability, location, chain position)
     coherences = []  # (ket index, bra index, weight, location, chain position)
+    blocks = []  # (probability, [(ket index, bra index, weight)], location, position)
     location_probs, location_position = [], []
     magic_gates = []
     n_cliffords = 0
+    mixtures = {}  # Kraus operators (as bytes) -> mixture, computed once
 
     def dress(pauli: str) -> int:
         to_dress.append(pauli)
@@ -384,12 +474,27 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
             if isinstance(event, CoherentRotation):
                 rotations.append((dress(event.generator), event.angle))
                 continue
+            mixture = None
             if isinstance(event, KrausChannel):
-                terms, pairs = _kraus_terms(event, nqubits)
+                if positive_mixtures and len(event.qubits) == 1:
+                    key = b"".join(k.tobytes() for k in event.kraus)
+                    if key not in mixtures:
+                        mixtures[key] = pauli_reset_mixture(event.kraus)
+                    mixture = mixtures[key]
+                if mixture is not None:
+                    terms = [
+                        (_full_label(event.qubits, label, nqubits), p)
+                        for label, p in mixture.items()
+                        if label in "XYZ"
+                    ]
+                    pairs = []
+                else:
+                    terms, pairs = _kraus_terms(event, nqubits)
             else:
                 terms, pairs = event.full_width_terms(nqubits), []
             terms = [(p, prob) for p, prob in terms if prob > 0]
-            if not terms and not pairs:
+            resets = [] if mixture is None else _reset_blocks(event, mixture, nqubits)
+            if not terms and not pairs and not resets:
                 continue
             location = len(location_probs)
             for pauli, prob in terms:
@@ -398,7 +503,12 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
                 coherences.append(
                     (dress(a), dress(b), weight, location, len(rotations))
                 )
-            location_probs.append(sum(prob for _, prob in terms))
+            for prob, block_terms in resets:
+                dressed_terms = [(dress(a), dress(b), w) for a, b, w in block_terms]
+                blocks.append((prob, dressed_terms, location, len(rotations)))
+            location_probs.append(
+                sum(prob for _, prob in terms) + sum(prob for prob, _ in resets)
+            )
             location_position.append(len(rotations))
 
     add_events(-1)
@@ -442,6 +552,21 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
             np.array(positions, dtype=int)[:, None] <= np.arange(len(generators))
         )
 
+    block_kets, block_bras, block_coefficients = [], [], []
+    block_ket_flips, block_bra_flips = [], []
+    for _, block_terms, _, position in blocks:
+        block_kets.append([dressed[k][0] for k, _, _ in block_terms])
+        block_bras.append([dressed[b][0] for _, b, _ in block_terms])
+        block_coefficients.append(
+            np.array(
+                [w * dressed[k][1] * dressed[b][1] for k, b, w in block_terms],
+                dtype=complex,
+            )
+        )
+        positions = [position] * len(block_terms)
+        block_ket_flips.append(later_flips(block_kets[-1], positions))
+        block_bra_flips.append(later_flips(block_bras[-1], positions))
+
     return CompiledNoise(
         hsmpo=hsmpo,
         generators=generators,
@@ -458,7 +583,22 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
         ket_flips=later_flips(kets, coherence_position),
         bra_flips=later_flips(bras, coherence_position),
         location_position=np.array(location_position, dtype=int),
+        block_probs=np.array([prob for prob, _, _, _ in blocks], dtype=float),
+        block_location=np.array([loc for _, _, loc, _ in blocks], dtype=int),
+        block_kets=block_kets,
+        block_bras=block_bras,
+        block_coefficients=block_coefficients,
+        block_ket_flips=block_ket_flips,
+        block_bra_flips=block_bra_flips,
     )
+
+
+def _full_label(qubits: Sequence[int], label: str, nqubits: int) -> str:
+    """``label`` on ``qubits`` as a full-width Pauli string."""
+    labels = ["I"] * nqubits
+    for qubit, pauli in zip(qubits, label):
+        labels[qubit] = pauli
+    return "".join(labels)
 
 
 def _kraus_terms(event: KrausChannel, nqubits: int):
@@ -472,18 +612,111 @@ def _kraus_terms(event: KrausChannel, nqubits: int):
             f"KrausChannel acts on qubits {event.qubits}, outside a "
             f"{nqubits}-qubit circuit."
         )
-
-    def full(label: str) -> str:
-        labels = ["I"] * nqubits
-        for qubit, pauli in zip(event.qubits, label):
-            labels[qubit] = pauli
-        return "".join(labels)
-
     terms, pairs = [], []
     for (a, b), value in event.chi.items():
         if a == b:
             if set(a) != {"I"}:
-                terms.append((full(a), float(value.real)))
+                terms.append((_full_label(event.qubits, a, nqubits), float(value.real)))
         elif a < b:
-            pairs.append((full(a), full(b), complex(value)))
+            pairs.append(
+                (
+                    _full_label(event.qubits, a, nqubits),
+                    _full_label(event.qubits, b, nqubits),
+                    complex(value),
+                )
+            )
     return terms, pairs
+
+
+# -- Positive mixtures of Paulis and resets -----------------------------------------
+
+#: Kraus operators of the resets to |0> and to |1>.
+_RESETS = {
+    "R0": (np.array([[1, 0], [0, 0]], complex), np.array([[0, 1], [0, 0]], complex)),
+    "R1": (np.array([[0, 0], [0, 1]], complex), np.array([[0, 0], [1, 0]], complex)),
+}
+
+
+def _transfer_matrix(kraus) -> np.ndarray:
+    """Pauli transfer matrix ``R[P, Q] = Tr(P E(Q)) / 2`` of a one-qubit channel."""
+    paulis = [PAULI_MATRICES[p] for p in "IXYZ"]
+    return np.array(
+        [
+            [
+                np.trace(p @ sum(k @ q @ k.conj().T for k in kraus)).real / 2
+                for q in paulis
+            ]
+            for p in paulis
+        ]
+    )
+
+
+def pauli_reset_mixture(kraus, tolerance: float = 1e-12) -> dict[str, float] | None:
+    """
+    Write a one-qubit channel as a convex mixture of the Paulis and the two
+    resets, if it is one.
+
+    Thermal relaxation is such a mixture exactly when ``T2 <= T1``; amplitude
+    damping, and relaxation with ``T2 > T1``, are not. The mixture is not
+    unique: among those reproducing the Pauli transfer matrix, the linear
+    program picks the one with the largest identity weight, the lightest for
+    the sampler. For relaxation towards excited population ``p_e < 1/2`` it
+    resets to ``|0>`` with probability ``gamma (1 - 2 p_e)`` only, the net
+    translation, and leaves the rest to Pauli faults.
+
+    Args:
+        kraus: the channel's ``2 x 2`` Kraus operators.
+        tolerance: largest allowed entry of the transfer-matrix residual.
+
+    Returns:
+        ``{"I", "X", "Y", "Z", "R0", "R1"} -> probability`` without the zero
+        ones, or ``None`` if the channel is not such a mixture or needs no
+        reset (a Pauli channel, already handled exactly).
+    """
+    target = _transfer_matrix(kraus)
+    labels = ["I", "X", "Y", "Z", "R0", "R1"]
+    basis = [_transfer_matrix((PAULI_MATRICES[p],)) for p in "IXYZ"]
+    basis += [_transfer_matrix(_RESETS[r]) for r in ("R0", "R1")]
+    program = linprog(
+        c=-np.eye(len(labels))[0],
+        A_eq=np.array([b.ravel() for b in basis]).T,
+        b_eq=target.ravel(),
+        bounds=[(0, None)] * len(labels),
+        method="highs",
+    )
+    if not program.success:
+        return None
+    # The solver meets the equalities only to its own tolerance: re-solve them
+    # exactly on the support it chose.
+    matrix = np.array([b.ravel() for b in basis]).T
+    support = program.x > 1e-9
+    weights = np.zeros(len(labels))
+    weights[support] = np.linalg.lstsq(matrix[:, support], target.ravel(), rcond=None)[
+        0
+    ]
+    if (weights < -tolerance).any():
+        return None
+    weights = np.clip(weights, 0.0, None)
+    residual = target - sum(w * b for w, b in zip(weights, basis))
+    if np.abs(residual).max() > tolerance or weights[4:].sum() <= tolerance:
+        return None
+    return {label: float(w) for label, w in zip(labels, weights) if w > tolerance}
+
+
+def _reset_blocks(event: KrausChannel, mixture: dict, nqubits: int):
+    """``[(probability, [(A, B, chi[A, B])])]``, one per reset of ``mixture``."""
+    blocks = []
+    for name in ("R0", "R1"):
+        if name not in mixture:
+            continue
+        chi = KrausChannel(event.after_gate, event.qubits, _RESETS[name]).chi
+        terms = [
+            (
+                _full_label(event.qubits, a, nqubits),
+                _full_label(event.qubits, b, nqubits),
+                complex(value),
+            )
+            for (a, b), value in chi.items()
+        ]
+        blocks.append((mixture[name], terms))
+    return blocks
