@@ -22,7 +22,7 @@ from mpstab.pauli import pauli_matrix
 CACHE = RESULTS / "reference.json"
 
 
-def key(n, steps, scale, zz_khz, obs):
+def reference_key(n, steps, scale, zz_khz, obs):
     return f"n={n},steps={steps},scale={scale:g},zz={zz_khz:g},obs={obs}"
 
 
@@ -53,7 +53,7 @@ def exact_value(n, steps, scale, zz_khz, obs_kind):
 
 def cached(n, steps, scale, zz_khz=50.0, obs_kind="ZZ_mid"):
     table = json.loads(CACHE.read_text()) if CACHE.exists() else {}
-    k = key(n, steps, scale, zz_khz, obs_kind)
+    k = reference_key(n, steps, scale, zz_khz, obs_kind)
     if k not in table:
         start = time.perf_counter()
         value = exact_value(n, steps, scale, zz_khz, obs_kind)

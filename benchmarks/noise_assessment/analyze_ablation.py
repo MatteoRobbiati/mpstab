@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from bench_estimator_run import build, observable
 from common import RESULTS, summarize
-from reference_exact import key as ref_key
+from reference_exact import reference_key
 
 from mpstab import HSMPO
 from mpstab.hamiltonians import pauli_terms
@@ -63,7 +63,7 @@ def main():
         if (n, steps, scale) not in masses:
             masses[n, steps, scale] = cone_mass(n, steps, scale)
         cone = masses[n, steps, scale]
-        exact = refs[ref_key(n, steps, scale, 50.0, "ZZ_mid")]
+        exact = refs[reference_key(n, steps, scale, 50.0, "ZZ_mid")]
         small = [r for r in rs if r["seed"] < 3]
         large = [r for r in rs if r["seed"] == 3]
         if not small:
