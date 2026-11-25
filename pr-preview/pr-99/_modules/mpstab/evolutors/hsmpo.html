@@ -561,7 +561,10 @@
         <span class="n">light_cone</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adjoint&quot;</span><span class="p">,</span>
         <span class="n">costate_bond</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">groups</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">n_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">return_value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Gradient of :meth:`expectation` with respect to the circuit parameters,</span>
 <span class="sd">        analytically, instead of the two shifted circuits per parameter of the</span>
@@ -584,49 +587,41 @@
 <span class="sd">            costate_bond: bond cap of the adjoint costate, twice</span>
 <span class="sd">                ``max_bond_dimension`` by default; ``max_bond_dimension``</span>
 <span class="sd">                itself is about twice as fast, for twice the error.</span>
+<span class="sd">            groups: differentiate the observable&#39;s terms in this many blocks of</span>
+<span class="sd">                neighbouring terms, each on its own, narrower light cone. Faster</span>
+<span class="sd">                and more accurate once the union of the cones saturates</span>
+<span class="sd">                ``max_bond_dimension``; one block (default) uses the union.</span>
+<span class="sd">            n_workers: processes the blocks run on in parallel,</span>
+<span class="sd">                ``min(groups, os.cpu_count())`` by default. The pool starts on</span>
+<span class="sd">                the first call (about a second per process) and is reused.</span>
+<span class="sd">            return_value: also return the expectation value, which the</span>
+<span class="sd">                gradient&#39;s forward pass computes anyway: what a training step</span>
+<span class="sd">                needs. It is exact like :meth:`expectation`, but evaluated on</span>
+<span class="sd">                the light-cone chain at the parameters of the last partition</span>
+<span class="sd">                (:meth:`set_parameters`), not on the cached MPS.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            One derivative per requested parameter.</span>
+<span class="sd">            One derivative per requested parameter, or ``(value, gradient)``</span>
+<span class="sd">            with ``return_value``.</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: if a requested parameter&#39;s gate sits at a Clifford</span>
 <span class="sd">                angle, so that it was absorbed into the tableau and has no</span>
 <span class="sd">                rotation to differentiate.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">analytic_gradient</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">light_cone</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">costate_bond</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">values</span></div>
-
-
-<div class="viewcode-block" id="HSMPO.value_and_gradient">
-<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.value_and_gradient">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">value_and_gradient</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">,</span>
-        <span class="n">light_cone</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adjoint&quot;</span><span class="p">,</span>
-        <span class="n">costate_bond</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        :meth:`expectation` and :meth:`gradient` together, from one pass of the</span>
-<span class="sd">        circuit: what a training step needs.</span>
-
-<span class="sd">        The value is evaluated on the chain the gradient uses, restricted to</span>
-<span class="sd">        the observable&#39;s light cone, so it is exact like :meth:`expectation`</span>
-<span class="sd">        but needs no cached MPS: it follows the circuit&#39;s parameters at the</span>
-<span class="sd">        last partition (:meth:`set_parameters`).</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            observable, light_cone, method, costate_bond: as in</span>
-<span class="sd">                :meth:`gradient`.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            ``(value, gradient)``, one derivative per parameter.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">analytic_gradient</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">light_cone</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">costate_bond</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">observable</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="p">,</span>
+            <span class="n">light_cone</span><span class="p">,</span>
+            <span class="n">method</span><span class="p">,</span>
+            <span class="n">costate_bond</span><span class="p">,</span>
+            <span class="n">groups</span><span class="p">,</span>
+            <span class="n">n_workers</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">values</span></div>
+        <span class="k">if</span> <span class="n">return_value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">values</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">values</span></div>
 
 
 <div class="viewcode-block" id="HSMPO.optimize_parameters">
@@ -656,7 +651,7 @@
 <span class="sd">            tol: stop once the largest derivative is below it.</span>
 <span class="sd">            callback: called as ``callback(step, energy, parameters)``.</span>
 <span class="sd">            gradient_options: forwarded to :meth:`gradient`, e.g.</span>
-<span class="sd">                ``costate_bond``.</span>
+<span class="sd">                ``costate_bond`` or ``groups``.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            A dict with ``energy``, ``parameters``, ``energy_history``,</span>

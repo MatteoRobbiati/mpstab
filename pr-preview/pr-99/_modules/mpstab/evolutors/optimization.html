@@ -501,7 +501,7 @@
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Minimize an observable over the circuit parameters of an HSMPO, with its</span>
-<span class="sd">    analytic gradient (:meth:`~mpstab.HSMPO.value_and_gradient`).</span>
+<span class="sd">    analytic gradient (:meth:`~mpstab.HSMPO.gradient`).</span>
 
 <span class="sd">    Each step only re-partitions the circuit at the new parameters and runs</span>
 <span class="sd">    one gradient, whose forward pass also gives the energy: the cached MPS is</span>
@@ -520,9 +520,8 @@
 <span class="sd">            this gradient tolerance (L-BFGS).</span>
 <span class="sd">        callback: called as ``callback(step, energy, parameters)`` after each</span>
 <span class="sd">            gradient evaluation.</span>
-<span class="sd">        gradient_options: forwarded to</span>
-<span class="sd">            :func:`~mpstab.evolutors.gradient.analytic_gradient`, e.g.</span>
-<span class="sd">            ``costate_bond``.</span>
+<span class="sd">        gradient_options: forwarded to :meth:`~mpstab.HSMPO.gradient`, e.g.</span>
+<span class="sd">            ``costate_bond`` or ``groups``.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A dict with ``energy``, ``parameters``, ``energy_history``,</span>
@@ -537,7 +536,9 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">value_and_gradient</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
         <span class="n">hsmpo</span><span class="o">.</span><span class="n">ansatz</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
         <span class="n">hsmpo</span><span class="o">.</span><span class="n">_partition</span><span class="p">()</span>
-        <span class="n">value</span><span class="p">,</span> <span class="n">gradient</span> <span class="o">=</span> <span class="n">hsmpo</span><span class="o">.</span><span class="n">value_and_gradient</span><span class="p">(</span><span class="n">observable</span><span class="p">,</span> <span class="o">**</span><span class="n">gradient_options</span><span class="p">)</span>
+        <span class="n">value</span><span class="p">,</span> <span class="n">gradient</span> <span class="o">=</span> <span class="n">hsmpo</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span>
+            <span class="n">observable</span><span class="p">,</span> <span class="n">return_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">gradient_options</span>
+        <span class="p">)</span>
         <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
         <span class="k">nonlocal</span> <span class="n">best</span>
         <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="n">best</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
