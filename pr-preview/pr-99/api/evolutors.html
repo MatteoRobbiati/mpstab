@@ -209,7 +209,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../methods/analytic_gradients.html">Analytic gradients</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../methods/hqsmpo/index.html">Hybrid quantum-classical execution: HQSMPO</a><input aria-label="Toggle navigation of Hybrid quantum-classical execution: HQSMPO" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../methods/hqsmpo/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../methods/hqsmpo/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
@@ -1241,8 +1240,7 @@ number of parameters (one forward pass and one backward pass), instead of the tw
 shifted circuits per parameter of the parameter-shift rule. Gradient-based
 training of the circuit parameters is in <a class="reference internal" href="#module-mpstab.evolutors.optimization" title="mpstab.evolutors.optimization"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.evolutors.optimization</span></code></a>
 (<code class="xref py py-meth docutils literal notranslate"><span class="pre">optimize_parameters()</span></code>).
-How the gradient is computed, and benchmarks against other frameworks, are in
-the <a class="reference internal" href="../methods/analytic_gradients.html"><span class="doc">Analytic gradients</span></a> guide.</p>
+The <a class="reference internal" href="../tutorials/vqe_gradients.html"><span class="doc">Training a VQE with analytic gradients</span></a> tutorial trains a VQE with it.</p>
 <p id="module-mpstab.evolutors.gradient">Analytic gradients of the HSMPO surrogate, from the sign-flip rule of its faults.</p>
 <p>In the Clifford frame the state is <code class="docutils literal notranslate"><span class="pre">|psi&gt;</span> <span class="pre">=</span> <span class="pre">R_R</span> <span class="pre">...</span> <span class="pre">R_1</span> <span class="pre">|init&gt;</span></code>, with dressed
 rotations <code class="docutils literal notranslate"><span class="pre">R_j</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">phi_j/2</span> <span class="pre">G_j)</span></code>, and the observable is
