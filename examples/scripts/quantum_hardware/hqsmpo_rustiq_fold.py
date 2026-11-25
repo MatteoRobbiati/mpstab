@@ -31,7 +31,7 @@ ansatz = HardwareEfficient(nqubits=NQUBITS, nlayers=NLAYERS)
 
 # rotations_only skips the eager MPS precompute in __post_init__ -- only the
 # dressed rotations are needed here, so construction stays cheap regardless of
-# system size (see docs/guides/rustiq_resynthesis.rst).
+# system size (see docs/methods/rustiq_resynthesis.rst).
 hs = HQSMPO.rotations_only(ansatz)
 n_dressed = len(hs.magic_gates)
 print(f"qubits={NQUBITS}  layers={NLAYERS}  dressed rotations={n_dressed}")

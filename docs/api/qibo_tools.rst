@@ -8,7 +8,7 @@ Provided backends
 -----------------
 
 What mpstab gives qibo: mpstab as a qibo backend, see
-:doc:`../guides/qibo_backend_provider`.
+:doc:`../user_guide/qibo_backend_provider`.
 
 .. automodule:: mpstab.qibo_tools.provided_backends.mpstab_backend
    :members: MPStabBackend, MetaBackend

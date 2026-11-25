@@ -69,15 +69,30 @@ class TensorNetworkEngine(ABC):
         """
         return [self.expval(state_circuit, self.pauli_mpo(p)) for p in paulis]
 
-    def pauli_transitions(self, bra_state: Any, ket_state: Any, paulis) -> list:
+    def pauli_transitions(
+        self, bra_state: Any, ket_state: Any, paulis, normalize: bool = True
+    ) -> list:
         """
-        Normalized transition amplitudes ``<bra|P|ket>`` of many Pauli
-        strings between two states, in order: each state is divided by its
+        Transition amplitudes ``<bra|P|ket>`` of many Pauli strings between
+        two states, in order. With ``normalize`` each state is divided by its
         own norm.
         """
         raise NotImplementedError(
             f"{type(self).__name__} does not compute transition amplitudes, "
-            "which non-Pauli noise channels need."
+            "which analytic gradients and non-Pauli noise channels need; use "
+            "QuimbEngine."
+        )
+
+    def apply_pauli_sum(
+        self, state_circuit: Any, paulis, coefficients, max_bond_dimension
+    ):
+        """
+        A new state ``sum_t c_t P_t |state>``, compressed to
+        ``max_bond_dimension``; the input state is left untouched.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not apply Pauli sums to a state, which "
+            "the adjoint gradient needs; use QuimbEngine or method='flips'."
         )
 
     @abstractmethod
