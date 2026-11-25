@@ -37,12 +37,36 @@ HQSMPO: Head/Tail Split
 
 Splits the dressed-rotation chain in two: a head resynthesized into a circuit a
 device can run, and a tail folded into the observable. See
-:doc:`../guides/rustiq_resynthesis`.
+:doc:`../methods/hqsmpo/rustiq_resynthesis`.
 
 .. automodule:: mpstab.evolutors.hqsmpo
    :members:
    :undoc-members:
    :show-inheritance:
+
+Gradients
+---------
+
+Analytic gradients of the HSMPO surrogate, whose cost does not grow with the
+number of parameters (one forward pass and one backward pass), instead of the two
+shifted circuits per parameter of the parameter-shift rule. They plug into any
+optimizer; the :doc:`../tutorials/vqe_gradients` tutorial trains a VQE with
+them.
+
+.. automodule:: mpstab.evolutors.gradient
+   :members:
+   :show-inheritance:
+
+**Usage Example**::
+
+    import numpy as np
+    from mpstab import HSMPO
+    from mpstab.models.ansatze import HardwareEfficient
+
+    np.random.seed(0)
+    surrogate = HSMPO(HardwareEfficient(nqubits=6, nlayers=2))
+    gradient = surrogate.gradient({"ZZIIII": 1.0, "IIXXII": 0.5})
+    print(gradient.shape)  # one derivative per parameter: (12,)
 
 Optimization
 ------------
@@ -62,6 +86,6 @@ Utilities
 
 For more practical examples, see:
 
-- :doc:`../guides/quickstart`
-- :doc:`../guides/fidelity_and_approximation`
+- :doc:`../quickstart`
+- :doc:`../methods/fidelity_and_approximation`
 - :doc:`../tutorials/introduction`

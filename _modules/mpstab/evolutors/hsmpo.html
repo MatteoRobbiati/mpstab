@@ -3,14 +3,15 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
-        <link rel="prefetch" href="../../../_static/mpstab_logo.png" as="image">
+        <link rel="prefetch" href="../../../_static/logo/mpstab_logo_light.svg" as="image">
+        <link rel="prefetch" href="../../../_static/logo/mpstab_logo_dark.svg" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
         <title>mpstab.evolutors.hsmpo - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=71654716" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=96a91925" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -186,7 +187,8 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   <div class="sidebar-logo-container">
-    <img class="sidebar-logo" src="../../../_static/mpstab_logo.png" alt="Logo"/>
+    <img class="sidebar-logo only-light" src="../../../_static/logo/mpstab_logo_light.svg" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../../_static/logo/mpstab_logo_dark.svg" alt="Dark Logo"/>
   </div>
   
   <span class="sidebar-brand-text">Documentation</span>
@@ -200,34 +202,41 @@
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../methods/hqsmpo/index.html">Hybrid quantum-classical execution: HQSMPO</a><input aria-label="Toggle navigation of Hybrid quantum-classical execution: HQSMPO" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../methods/hqsmpo/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../methods/hqsmpo/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../tutorials/introduction.html">A quick introduction to mpstab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/noise.html">Noisy simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/advanced_noise.html">Device-level noise</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/noise.html">Pauli noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/advanced_noise.html">Non-unital noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/error_mitigation.html">Data-driven error mitigation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../tutorials/ground_states.html">Ground states with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/working_with_engines.html">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/ansatze_catalogue.html">Ansatz Catalogue</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -243,6 +252,7 @@
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../publications.html">Publications</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/MatteoRobbiati/mpstab">GitHub repository</a></li>
 </ul>
 
 </div>
@@ -292,6 +302,7 @@
     <span class="n">StimEngine</span><span class="p">,</span>
     <span class="n">TensorNetworkEngine</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.gradient</span><span class="w"> </span><span class="kn">import</span> <span class="n">analytic_gradient</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize_expectation_dmrg</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">gate_angle</span><span class="p">,</span> <span class="n">gate_generator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.hamiltonians</span><span class="w"> </span><span class="kn">import</span> <span class="n">Observable</span><span class="p">,</span> <span class="n">pauli_terms</span>
@@ -482,19 +493,28 @@
 <span class="sd">        Dressed ``(generator, signed_angle)`` of each ``(breakpoint, gate)`` in</span>
 <span class="sd">        ``magic_gates``, conjugated by the first ``breakpoint`` gates of</span>
 <span class="sd">        ``clifford_circuit``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">generator</span><span class="p">,</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">gate_angle</span><span class="p">(</span><span class="n">gate</span><span class="p">))</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">generator</span><span class="p">,</span> <span class="n">sign</span><span class="p">),</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">gate</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_dress_generators</span><span class="p">(</span><span class="n">magic_gates</span><span class="p">,</span> <span class="n">clifford_circuit</span><span class="p">),</span> <span class="n">magic_gates</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_dress_generators</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">magic_gates</span><span class="p">,</span> <span class="n">clifford_circuit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Dressed ``(generator, sign)`` of each ``(breakpoint, gate)`` in</span>
+<span class="sd">        ``magic_gates``: the gate&#39;s generator conjugated by the first</span>
+<span class="sd">        ``breakpoint`` gates of ``clifford_circuit`` is ``sign * generator``.</span>
 
 <span class="sd">        The stabilizers engine does the dressing</span>
 <span class="sd">        (:meth:`~mpstab.engines.StabilizersEngine.backpropagate_at`).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">dressed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stab_engine</span><span class="o">.</span><span class="n">backpropagate_at</span><span class="p">(</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stab_engine</span><span class="o">.</span><span class="n">backpropagate_at</span><span class="p">(</span>
             <span class="p">[</span><span class="n">gate_generator</span><span class="p">(</span><span class="n">gate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">magic_gates</span><span class="p">],</span>
             <span class="p">[</span><span class="n">breakpoint_index</span> <span class="k">for</span> <span class="n">breakpoint_index</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">magic_gates</span><span class="p">],</span>
             <span class="n">clifford_circuit</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="p">[</span>
-            <span class="p">(</span><span class="n">generator</span><span class="p">,</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">gate_angle</span><span class="p">(</span><span class="n">gate</span><span class="p">))</span>
-            <span class="k">for</span> <span class="p">(</span><span class="n">generator</span><span class="p">,</span> <span class="n">sign</span><span class="p">),</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">gate</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dressed</span><span class="p">,</span> <span class="n">magic_gates</span><span class="p">)</span>
-        <span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_evolve_original</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -530,6 +550,78 @@
         <span class="k">if</span> <span class="n">return_fidelity</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">expval</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">squared_norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">original_circuit_mps</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">expval</span></div>
+
+
+<div class="viewcode-block" id="HSMPO.gradient">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.gradient">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gradient</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">light_cone</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;adjoint&quot;</span><span class="p">,</span>
+        <span class="n">costate_bond</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">groups</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">n_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">return_value</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gradient of :meth:`expectation` with respect to the circuit parameters,</span>
+<span class="sd">        analytically, instead of the two shifted circuits per parameter of the</span>
+<span class="sd">        parameter-shift rule: its cost does not grow with the number of</span>
+<span class="sd">        parameters. See</span>
+<span class="sd">        :func:`~mpstab.evolutors.gradient.analytic_gradient`, which also</span>
+<span class="sd">        reports the rotations applied and the truncation fidelities.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observable: a Pauli string or any other format</span>
+<span class="sd">                :func:`~mpstab.hamiltonians.pauli_terms` accepts.</span>
+<span class="sd">            parameters: indices into :meth:`get_parameters` to differentiate,</span>
+<span class="sd">                all of them by default.</span>
+<span class="sd">            light_cone: drop the rotations that cannot affect the observable</span>
+<span class="sd">                first, which is exact.</span>
+<span class="sd">            method: ``&quot;adjoint&quot;`` (default), one forward pass and one</span>
+<span class="sd">                backward pass of a costate of twice the bond dimension; or</span>
+<span class="sd">                ``&quot;flips&quot;``, one shifted tail per parameter, with no costate to</span>
+<span class="sd">                truncate.</span>
+<span class="sd">            costate_bond: bond cap of the adjoint costate, twice</span>
+<span class="sd">                ``max_bond_dimension`` by default; ``max_bond_dimension``</span>
+<span class="sd">                itself is about twice as fast, for twice the error.</span>
+<span class="sd">            groups: differentiate the observable&#39;s terms in this many blocks of</span>
+<span class="sd">                neighbouring terms, each on its own, narrower light cone. Faster</span>
+<span class="sd">                and more accurate once the union of the cones saturates</span>
+<span class="sd">                ``max_bond_dimension``; one block (default) uses the union.</span>
+<span class="sd">            n_workers: processes the blocks run on in parallel,</span>
+<span class="sd">                ``min(groups, os.cpu_count())`` by default. The pool starts on</span>
+<span class="sd">                the first call (about a second per process) and is reused.</span>
+<span class="sd">            return_value: also return the expectation value, which the</span>
+<span class="sd">                gradient&#39;s forward pass computes anyway: what a training step</span>
+<span class="sd">                needs. It is exact like :meth:`expectation`, but evaluated on</span>
+<span class="sd">                the light-cone chain at the parameters of the last partition</span>
+<span class="sd">                (:meth:`set_parameters`), not on the cached MPS.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            One derivative per requested parameter, or ``(value, gradient)``</span>
+<span class="sd">            with ``return_value``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if a requested parameter&#39;s gate sits at a Clifford</span>
+<span class="sd">                angle, so that it was absorbed into the tableau and has no</span>
+<span class="sd">                rotation to differentiate.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">analytic_gradient</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">observable</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="p">,</span>
+            <span class="n">light_cone</span><span class="p">,</span>
+            <span class="n">method</span><span class="p">,</span>
+            <span class="n">costate_bond</span><span class="p">,</span>
+            <span class="n">groups</span><span class="p">,</span>
+            <span class="n">n_workers</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">values</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">values</span></div>
 
 
 <div class="viewcode-block" id="HSMPO.noisy_expectation">
@@ -746,10 +838,28 @@
 <div class="viewcode-block" id="HSMPO.set_parameters">
 <a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.set_parameters">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set the circuit&#39;s parameters and rebuild the cached MPS to match.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the circuit&#39;s parameters and re-partition the circuit. The cached</span>
+<span class="sd">        MPS is rebuilt on its next use, so a training loop that only calls</span>
+<span class="sd">        :meth:`gradient` never pays for it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ansatz</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">original_circuit_mps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evolve_original</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_partition</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;original_circuit_mps&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stale_mps</span> <span class="o">=</span> <span class="kc">True</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="c1"># Only reached for missing attributes: rebuild the MPS that</span>
+        <span class="c1"># set_parameters dropped, on first use.</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;original_circuit_mps&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_stale_mps&quot;</span><span class="p">):</span>
+            <span class="n">mps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_mps</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_rotations</span><span class="p">(</span><span class="n">mps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dressed_rotations</span><span class="p">(),</span> <span class="s2">&quot;building MPS&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">original_circuit_mps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stale_mps</span> <span class="o">=</span> <span class="n">mps</span><span class="p">,</span> <span class="kc">False</span>
+            <span class="k">return</span> <span class="n">mps</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">!r}</span><span class="s2"> object has no attribute </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="HSMPO.minimize_expectation">
 <a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hsmpo.HSMPO.minimize_expectation">[docs]</a>
@@ -863,7 +973,14 @@
             
           </div>
           <div class="right-details">
-            
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/MatteoRobbiati/mpstab" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
           </div>
         </div>
         

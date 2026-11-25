@@ -5,6 +5,20 @@ mpstab: a cutting-edge quantum circuit simulator
 
 By combining the efficiency of Clifford stabilizers with the expressiveness of Tensor Networks, ``mpstab`` allows researchers to simulate circuits that are "mostly Clifford" but contain non-trivial non-stabilizer resources. The hybrid stabilizer-MPO representation was introduced in `this work from Mello, Santini and Collura  <https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604>`_.
 
+**Source code:** `github.com/MatteoRobbiati/mpstab <https://github.com/MatteoRobbiati/mpstab>`_.
+Issues and contributions are welcome there.
+
+.. figure:: stab_ent.svg
+   :align: center
+   :width: 520px
+   :class: light-card
+   :alt: Where mpstab sits among classical simulation methods.
+
+   Where classical simulators reach. Statevector methods are limited by the
+   number of qubits, stabilizer methods by non-stabilizerness (magic), and
+   tensor networks by entanglement. The HSMPO formalism of mpstab covers states
+   that are both highly entangled and moderately non-stabilizer.
+
 Core Features
 -------------
 
@@ -21,27 +35,31 @@ Among our core features:
    :caption: Getting Started
 
    installation
-   guides/theory_background
-   guides/quickstart
+   quickstart
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Methods
+
+   methods/theory_background
+   methods/fidelity_and_approximation
+   methods/hqsmpo/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User guide
+
+   user_guide/qibo_backend_provider
+   user_guide/working_with_engines
+   user_guide/using_ansatze
+   user_guide/ansatze_catalogue
+   user_guide/dmrg_optimization
 
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials
 
    tutorials/index
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Guides
-
-   guides/dmrg_optimization
-   guides/qibo_backend_provider
-   guides/working_with_engines
-   guides/using_ansatze
-   guides/ansatze_catalogue
-   guides/fidelity_and_approximation
-   guides/rustiq_resynthesis
-   guides/clifford_extraction_synthesis
 
 .. toctree::
    :maxdepth: 2
@@ -61,6 +79,7 @@ Among our core features:
    :caption: About
 
    publications
+   GitHub repository <https://github.com/MatteoRobbiati/mpstab>
 
 Indices and tables
 ==================

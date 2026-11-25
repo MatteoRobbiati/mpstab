@@ -3,14 +3,15 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html">
-        <link rel="prefetch" href="../../../../_static/mpstab_logo.png" as="image">
+        <link rel="prefetch" href="../../../../_static/logo/mpstab_logo_light.svg" as="image">
+        <link rel="prefetch" href="../../../../_static/logo/mpstab_logo_dark.svg" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
         <title>mpstab.engines.tensor_networks.quimb - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=71654716" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=96a91925" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -186,7 +187,8 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
   <div class="sidebar-logo-container">
-    <img class="sidebar-logo" src="../../../../_static/mpstab_logo.png" alt="Logo"/>
+    <img class="sidebar-logo only-light" src="../../../../_static/logo/mpstab_logo_light.svg" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../../../_static/logo/mpstab_logo_dark.svg" alt="Dark Logo"/>
   </div>
   
   <span class="sidebar-brand-text">Documentation</span>
@@ -200,34 +202,41 @@
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../methods/hqsmpo/index.html">Hybrid quantum-classical execution: HQSMPO</a><input aria-label="Toggle navigation of Hybrid quantum-classical execution: HQSMPO" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../methods/hqsmpo/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../methods/hqsmpo/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/introduction.html">A quick introduction to mpstab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/noise.html">Noisy simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/advanced_noise.html">Device-level noise</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/noise.html">Pauli noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/advanced_noise.html">Non-unital noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/error_mitigation.html">Data-driven error mitigation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/ground_states.html">Ground states with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/working_with_engines.html">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/ansatze_catalogue.html">Ansatz Catalogue</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -243,6 +252,7 @@
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../publications.html">Publications</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/MatteoRobbiati/mpstab">GitHub repository</a></li>
 </ul>
 
 </div>
@@ -347,6 +357,12 @@
 
 <span class="c1">#: quimb&#39;s default singular-value cutoff (``&quot;rsum2&quot;`` mode) when compressing.</span>
 <span class="n">_QUIMB_DEFAULT_CUTOFF</span> <span class="o">=</span> <span class="mf">1e-10</span>
+
+<span class="c1">#: Relative cutoff for compressions meant to be exact up to roundoff.</span>
+<span class="n">_EXACT_CUTOFF</span> <span class="o">=</span> <span class="mf">1e-14</span>
+
+<span class="c1">#: Pauli strings stacked into one block-diagonal MPO before compressing it.</span>
+<span class="n">_PAULI_SUM_CHUNK</span> <span class="o">=</span> <span class="mi">64</span>
 
 <span class="c1">#: Attribute marking an MPO built by :meth:`QuimbEngine.pauli_mpo` with the</span>
 <span class="c1">#: Pauli string it represents. quimb&#39;s ``copy`` drops it, so any arithmetic on</span>
@@ -555,6 +571,28 @@
     <span class="k">return</span> <span class="n">circuit</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_pauli_sum_mpo</span><span class="p">(</span><span class="n">paulis</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">coefficients</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MatrixProductOperator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ``sum_t c_t P_t`` as an MPO: block-diagonal site tensors, one block per</span>
+<span class="sd">    string, compressed once to its exact rank.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nqubits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">paulis</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">coefficients</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coefficients</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+    <span class="n">sites</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">PAULI_MATRICES</span><span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paulis</span><span class="p">])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)]</span>
+    <span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">coefficients</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>  <span class="c1"># (term, up, down)</span>
+    <span class="k">if</span> <span class="n">nqubits</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">MatrixProductOperator</span><span class="p">([</span><span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)])</span>
+    <span class="n">arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">sites</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">paulis</span><span class="p">),</span> <span class="o">*</span><span class="n">site</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+        <span class="n">block</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">paulis</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">paulis</span><span class="p">))]</span> <span class="o">=</span> <span class="n">site</span>
+        <span class="n">arrays</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>  <span class="c1"># (left, right, up, down)</span>
+    <span class="n">arrays</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sites</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">operator</span> <span class="o">=</span> <span class="n">MatrixProductOperator</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span>
+    <span class="n">operator</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">cutoff</span><span class="o">=</span><span class="n">_EXACT_CUTOFF</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">operator</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_array_module</span><span class="p">(</span><span class="n">backend</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The array module of a quimb backend: numpy, ``jax.numpy`` or torch.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">&quot;numpy&quot;</span><span class="p">:</span>
@@ -747,11 +785,15 @@
 <div class="viewcode-block" id="QuimbEngine.pauli_transitions">
 <a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">pauli_transitions</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">bra_state</span><span class="p">:</span> <span class="n">MatrixProductState</span><span class="p">,</span> <span class="n">ket_state</span><span class="p">:</span> <span class="n">MatrixProductState</span><span class="p">,</span> <span class="n">paulis</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">bra_state</span><span class="p">:</span> <span class="n">MatrixProductState</span><span class="p">,</span>
+        <span class="n">ket_state</span><span class="p">:</span> <span class="n">MatrixProductState</span><span class="p">,</span>
+        <span class="n">paulis</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Normalized transition amplitudes ``&lt;bra|P|ket&gt;`` of many Pauli strings</span>
-<span class="sd">        between two states, each divided by the norms of both states.</span>
+<span class="sd">        Transition amplitudes ``&lt;bra|P|ket&gt;`` of many Pauli strings between</span>
+<span class="sd">        two states, with ``normalize`` divided by the norms of both states.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            A complex array on the numpy backend, a list of backend scalars</span>
@@ -759,8 +801,13 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">paulis</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">paulis</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fast</span><span class="p">:</span>
-            <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
-                <span class="n">bra_state</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">ket_state</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+            <span class="n">norm</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                    <span class="n">bra_state</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+                    <span class="o">*</span> <span class="n">ket_state</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">squared</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">normalize</span>
+                <span class="k">else</span> <span class="mf">1.0</span>
             <span class="p">)</span>
             <span class="n">ket</span> <span class="o">=</span> <span class="n">ket_state</span><span class="o">.</span><span class="n">reindex</span><span class="p">({</span><span class="sa">f</span><span class="s2">&quot;k</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;b</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ket_state</span><span class="o">.</span><span class="n">L</span><span class="p">)})</span>
             <span class="k">return</span> <span class="p">[</span>
@@ -781,12 +828,42 @@
 
         <span class="n">bra_sites</span><span class="p">,</span> <span class="n">bra_norm</span> <span class="o">=</span> <span class="n">sites</span><span class="p">(</span><span class="n">bra_state</span><span class="p">)</span>
         <span class="n">ket_sites</span><span class="p">,</span> <span class="n">ket_norm</span> <span class="o">=</span> <span class="n">sites</span><span class="p">(</span><span class="n">ket_state</span><span class="p">)</span>
-        <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">bra_norm</span> <span class="o">*</span> <span class="n">ket_norm</span><span class="p">)</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">kernels</span><span class="o">.</span><span class="n">pauli_transition</span><span class="p">(</span><span class="n">bra_sites</span><span class="p">,</span> <span class="n">ket_sites</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paulis</span><span class="p">],</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">values</span> <span class="o">/</span> <span class="n">norm</span></div>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">kernels</span><span class="o">.</span><span class="n">pauli_transitions</span><span class="p">(</span><span class="n">bra_sites</span><span class="p">,</span> <span class="n">ket_sites</span><span class="p">,</span> <span class="n">paulis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">values</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">bra_norm</span> <span class="o">*</span> <span class="n">ket_norm</span><span class="p">)</span> <span class="k">if</span> <span class="n">normalize</span> <span class="k">else</span> <span class="n">values</span></div>
+
+
+<div class="viewcode-block" id="QuimbEngine.apply_pauli_sum">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_pauli_sum">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_pauli_sum</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">state_circuit</span><span class="p">:</span> <span class="n">MatrixProductState</span><span class="p">,</span>
+        <span class="n">paulis</span><span class="p">,</span>
+        <span class="n">coefficients</span><span class="p">,</span>
+        <span class="n">max_bond_dimension</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MatrixProductState</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A new state ``sum_t c_t P_t |state&gt;``.</span>
+
+<span class="sd">        The terms are stacked into block-diagonal MPOs of</span>
+<span class="sd">        :data:`_PAULI_SUM_CHUNK` terms each, compressed exactly and summed (a</span>
+<span class="sd">        sum of local strings keeps a small bond), and the result is applied to</span>
+<span class="sd">        the state and compressed to ``max_bond_dimension``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">paulis</span><span class="p">,</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">paulis</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)</span>
+        <span class="n">operator</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">paulis</span><span class="p">),</span> <span class="n">_PAULI_SUM_CHUNK</span><span class="p">):</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="n">_PAULI_SUM_CHUNK</span><span class="p">)</span>
+            <span class="n">block</span> <span class="o">=</span> <span class="n">_pauli_sum_mpo</span><span class="p">(</span><span class="n">paulis</span><span class="p">[</span><span class="n">chunk</span><span class="p">],</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">chunk</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">operator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">operator</span> <span class="o">=</span> <span class="n">block</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">operator</span> <span class="o">=</span> <span class="n">operator</span><span class="o">.</span><span class="n">add_MPO</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+                <span class="n">operator</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">cutoff</span><span class="o">=</span><span class="n">_EXACT_CUTOFF</span><span class="p">)</span>
+        <span class="n">operator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_backend</span><span class="p">(</span><span class="n">operator</span><span class="p">)</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">svd_cutoff</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{</span><span class="s2">&quot;cutoff&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">svd_cutoff</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">operator</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+            <span class="n">state_circuit</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_bond</span><span class="o">=</span><span class="n">max_bond_dimension</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="QuimbEngine.pauli_rot">
@@ -875,6 +952,40 @@
         <span class="n">norm</span> <span class="o">=</span> <span class="n">kernels</span><span class="o">.</span><span class="n">squared_norm</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">view</span><span class="o">.</span><span class="n">center</span><span class="p">)</span>
         <span class="n">view</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">truncation_cutoff</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The relative singular-value cutoff rotations are compressed with.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_QUIMB_DEFAULT_CUTOFF</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">svd_cutoff</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">svd_cutoff</span>
+
+<div class="viewcode-block" id="QuimbEngine.site_arrays">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.site_arrays">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">site_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_circuit</span><span class="p">:</span> <span class="n">MatrixProductState</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The state as the form :mod:`._mps_kernels` works on: a list of</span>
+<span class="sd">        ``(left, phys, right)`` arrays in mixed canonical form, and the</span>
+<span class="sd">        orthogonality center. numpy backend only.</span>
+
+<span class="sd">        The arrays are read-only and shared with the state; the kernels never</span>
+<span class="sd">        write into an array, they replace it in the list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">view</span> <span class="o">=</span> <span class="n">_CanonicalMPS</span><span class="p">(</span><span class="n">state_circuit</span><span class="p">)</span>
+        <span class="n">arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">view</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">view</span><span class="o">.</span><span class="n">L</span><span class="p">)]</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">view</span><span class="o">.</span><span class="n">center</span></div>
+
+
+<div class="viewcode-block" id="QuimbEngine.state_from_arrays">
+<a class="viewcode-back" href="../../../../api/engines.html#mpstab.engines.tensor_networks.quimb.QuimbEngine.state_from_arrays">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">state_from_arrays</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MatrixProductState</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;An MPS from ``(left, phys, right)`` site arrays, two sites or more.&quot;&quot;&quot;</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">]</span>  <span class="c1"># (1, p, r) -&gt; (r, p)</span>
+        <span class="n">data</span> <span class="o">+=</span> <span class="p">[</span><span class="n">array</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">1</span> <span class="p">:</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># (l, p, 1) -&gt; (l, p)</span>
+        <span class="k">return</span> <span class="n">MatrixProductState</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;lrp&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="QuimbEngine.copy_state">
@@ -1083,7 +1194,14 @@
             
           </div>
           <div class="right-details">
-            
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/MatteoRobbiati/mpstab" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
           </div>
         </div>
         

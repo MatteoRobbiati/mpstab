@@ -29,6 +29,12 @@ repository.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Gradients and training
+
+   vqe_gradients
+
+.. toctree::
+   :maxdepth: 1
    :caption: Benchmarks
 
    echo

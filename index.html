@@ -4,14 +4,15 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Installation" href="installation.html">
-        <link rel="prefetch" href="_static/mpstab_logo.png" as="image">
+        <link rel="prefetch" href="_static/logo/mpstab_logo_light.svg" as="image">
+        <link rel="prefetch" href="_static/logo/mpstab_logo_dark.svg" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
         <title>Documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=71654716" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=96a91925" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -187,7 +188,8 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="#">
   <div class="sidebar-logo-container">
-    <img class="sidebar-logo" src="_static/mpstab_logo.png" alt="Logo"/>
+    <img class="sidebar-logo only-light" src="_static/logo/mpstab_logo_light.svg" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/logo/mpstab_logo_dark.svg" alt="Dark Logo"/>
   </div>
   
   <span class="sidebar-brand-text">Documentation</span>
@@ -201,34 +203,41 @@
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guides/theory_background.html">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guides/quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="methods/hqsmpo/index.html">Hybrid quantum-classical execution: HQSMPO</a><input aria-label="Toggle navigation of Hybrid quantum-classical execution: HQSMPO" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/introduction.html">A quick introduction to mpstab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/noise.html">Noisy simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/advanced_noise.html">Device-level noise</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/noise.html">Pauli noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/advanced_noise.html">Non-unital noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/error_mitigation.html">Data-driven error mitigation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/ground_states.html">Ground states with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guides/working_with_engines.html">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guides/using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guides/ansatze_catalogue.html">Ansatz Catalogue</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guides/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -244,6 +253,7 @@
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="publications.html">Publications</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/MatteoRobbiati/mpstab">GitHub repository</a></li>
 </ul>
 
 </div>
@@ -264,12 +274,16 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="_sources/index.rst.txt" title="View this page">
+  <a class="muted-link" href="https://github.com/MatteoRobbiati/mpstab/blob/main/docs/index.rst?plain=true" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
-</div>
-<div class="theme-toggle-container theme-toggle-content">
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/MatteoRobbiati/mpstab/edit/main/docs/index.rst" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
               <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
               <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
@@ -286,6 +300,18 @@
 <h1>mpstab: a cutting-edge quantum circuit simulator<a class="headerlink" href="#mpstab-a-cutting-edge-quantum-circuit-simulator" title="Link to this heading">¶</a></h1>
 <p><strong>mpstab</strong> is an open-source Python library designed for high-performance simulation of quantum circuits using a <strong>hybrid Stabilizer-Matrix Product Operator (HSMPO)</strong> formalism.</p>
 <p>By combining the efficiency of Clifford stabilizers with the expressiveness of Tensor Networks, <code class="docutils literal notranslate"><span class="pre">mpstab</span></code> allows researchers to simulate circuits that are “mostly Clifford” but contain non-trivial non-stabilizer resources. The hybrid stabilizer-MPO representation was introduced in <a class="reference external" href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604">this work from Mello, Santini and Collura</a>.</p>
+<p><strong>Source code:</strong> <a class="reference external" href="https://github.com/MatteoRobbiati/mpstab">github.com/MatteoRobbiati/mpstab</a>.
+Issues and contributions are welcome there.</p>
+<figure class="align-center" id="id1">
+<a class="light-card reference internal image-reference" href="_images/stab_ent.svg"><img alt="Where mpstab sits among classical simulation methods." class="light-card" src="_images/stab_ent.svg" style="width: 520px;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Where classical simulators reach. Statevector methods are limited by the
+number of qubits, stabilizer methods by non-stabilizerness (magic), and
+tensor networks by entanglement. The HSMPO formalism of mpstab covers states
+that are both highly entangled and moderately non-stabilizer.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
 <section id="core-features">
 <h2>Core Features<a class="headerlink" href="#core-features" title="Link to this heading">¶</a></h2>
 <p>The HSMPO formalism is implemented here exploiting, as operative engines, the state-of-art stabilizers and tensor network simulators.
@@ -308,20 +334,89 @@ Among our core features:</p>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#verification">Verification</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="guides/theory_background.html">Theoretical Background, a snapshot</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/theory_background.html#classical-simulation-approaches">Classical Simulation Approaches</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/theory_background.html#other-hybrid-techniques">Other Hybrid Techniques</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/theory_background.html#the-hsmpo-ansatz">The HSMPO Ansatz</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/theory_background.html#evolution-rules">Evolution Rules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/theory_background.html#computational-complexity-and-costs">Computational Complexity and Costs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/theory_background.html#numerical-truncation-and-fidelity">Numerical Truncation and Fidelity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#your-first-mpstab-program">Your First MPSTAB Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#simulate-with-bond-dimension-limit">Simulate with Bond Dimension Limit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#use-an-ansatz">Use an Ansatz</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#measure-complex-observables">Measure Complex Observables</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="guides/quickstart.html">Quick Start Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/quickstart.html#your-first-mpstab-program">Your First MPSTAB Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/quickstart.html#simulate-with-bond-dimension-limit">Simulate with Bond Dimension Limit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/quickstart.html#use-an-ansatz">Use an Ansatz</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/quickstart.html#measure-complex-observables">Measure Complex Observables</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/theory_background.html">Theoretical Background, a snapshot</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="methods/theory_background.html#classical-simulation-approaches">Classical Simulation Approaches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/theory_background.html#other-hybrid-techniques">Other Hybrid Techniques</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/theory_background.html#the-hsmpo-ansatz">The HSMPO Ansatz</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/theory_background.html#evolution-rules">Evolution Rules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/theory_background.html#computational-complexity-and-costs">Computational Complexity and Costs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/theory_background.html#numerical-truncation-and-fidelity">Numerical Truncation and Fidelity</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="methods/fidelity_and_approximation.html">Fidelity and Approximation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="methods/fidelity_and_approximation.html#concept-fidelity-lower-bound">Concept: Fidelity Lower Bound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/fidelity_and_approximation.html#accessing-fidelity-information">Accessing Fidelity Information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/fidelity_and_approximation.html#interpreting-fidelity-values">Interpreting Fidelity Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/fidelity_and_approximation.html#benchmarking-hybrid-vs-pure-tensor-network">Benchmarking: Hybrid vs Pure Tensor Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/fidelity_and_approximation.html#practical-guidelines">Practical Guidelines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/fidelity_and_approximation.html#sources-of-fidelity-loss">Sources of Fidelity Loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/fidelity_and_approximation.html#further-reading">Further Reading</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="methods/hqsmpo/index.html">Hybrid quantum-classical execution: HQSMPO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/index.html#the-head-tail-split">The head/tail split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/index.html#three-stages">Three stages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/index.html#usage">Usage</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/qibo_backend_provider.html#what-is-a-backend-provider">What is a Backend Provider?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/qibo_backend_provider.html#computing-hamiltonian-expectation-values">Computing Hamiltonian Expectation Values</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/working_with_engines.html">Working with Engines</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/working_with_engines.html#available-engines">Available Engines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/working_with_engines.html#engine-configuration">Engine Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/working_with_engines.html#tips-for-efficient-simulation">Tips for Efficient Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/working_with_engines.html#example-adaptive-bond-dimension">Example: Adaptive Bond Dimension</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/working_with_engines.html#further-reading">Further Reading</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/using_ansatze.html">Using Ansätze</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/using_ansatze.html#available-ansatze">Available Ansätze</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/using_ansatze.html#building-custom-ansatze">Building Custom Ansätze</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/using_ansatze.html#the-ansatz-partitioning">The ansatz partitioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/using_ansatze.html#further-reading">Further Reading</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/ansatze_catalogue.html">Ansatz Catalogue</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#summary">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#class-hierarchy">Class hierarchy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#variational-circuits">Variational circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#floquet-and-kicked-dynamics">Floquet and kicked dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#circuit-library">Circuit library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#wrappers">Wrappers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/ansatze_catalogue.html#see-also">See also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/dmrg_optimization.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/dmrg_optimization.html#key-advantages">Key Advantages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/dmrg_optimization.html#use-cases">Use Cases</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/dmrg_optimization.html#the-heisenberg-model-example">The Heisenberg Model Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/dmrg_optimization.html#complete-tutorial-notebook">Complete Tutorial Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/dmrg_optimization.html#getting-started-with-dmrg">Getting Started with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/dmrg_optimization.html#advanced-topics">Advanced Topics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/dmrg_optimization.html#see-also">See Also</a></li>
 </ul>
 </li>
 </ul>
@@ -331,85 +426,15 @@ Among our core features:</p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/introduction.html">A quick introduction to mpstab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/noise.html">Noisy simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/advanced_noise.html">Device-level noise</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/noise.html">Pauli noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/advanced_noise.html">Non-unital noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/error_mitigation.html">Data-driven error mitigation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/ground_states.html">Ground states with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
-</ul>
-</li>
-</ul>
-</div>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/dmrg_optimization.html#overview">Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/dmrg_optimization.html#key-advantages">Key Advantages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/dmrg_optimization.html#use-cases">Use Cases</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/dmrg_optimization.html#the-heisenberg-model-example">The Heisenberg Model Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/dmrg_optimization.html#complete-tutorial-notebook">Complete Tutorial Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/dmrg_optimization.html#getting-started-with-dmrg">Getting Started with DMRG</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/dmrg_optimization.html#advanced-topics">Advanced Topics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/dmrg_optimization.html#see-also">See Also</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/qibo_backend_provider.html#what-is-a-backend-provider">What is a Backend Provider?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/qibo_backend_provider.html#computing-hamiltonian-expectation-values">Computing Hamiltonian Expectation Values</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="guides/working_with_engines.html">Working with Engines</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/working_with_engines.html#available-engines">Available Engines</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/working_with_engines.html#engine-configuration">Engine Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/working_with_engines.html#tips-for-efficient-simulation">Tips for Efficient Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/working_with_engines.html#example-adaptive-bond-dimension">Example: Adaptive Bond Dimension</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/working_with_engines.html#further-reading">Further Reading</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="guides/using_ansatze.html">Using Ansätze</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/using_ansatze.html#available-ansatze">Available Ansätze</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/using_ansatze.html#building-custom-ansatze">Building Custom Ansätze</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/using_ansatze.html#the-ansatz-partitioning">The ansatz partitioning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/using_ansatze.html#further-reading">Further Reading</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="guides/ansatze_catalogue.html">Ansatz Catalogue</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/ansatze_catalogue.html#summary">Summary</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/ansatze_catalogue.html#class-hierarchy">Class hierarchy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/ansatze_catalogue.html#variational-circuits">Variational circuits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/ansatze_catalogue.html#floquet-and-kicked-dynamics">Floquet and kicked dynamics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/ansatze_catalogue.html#circuit-library">Circuit library</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/ansatze_catalogue.html#wrappers">Wrappers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/ansatze_catalogue.html#see-also">See also</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="guides/fidelity_and_approximation.html">Fidelity and Approximation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/fidelity_and_approximation.html#concept-fidelity-lower-bound">Concept: Fidelity Lower Bound</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/fidelity_and_approximation.html#accessing-fidelity-information">Accessing Fidelity Information</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/fidelity_and_approximation.html#interpreting-fidelity-values">Interpreting Fidelity Values</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/fidelity_and_approximation.html#benchmarking-hybrid-vs-pure-tensor-network">Benchmarking: Hybrid vs Pure Tensor Network</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/fidelity_and_approximation.html#practical-guidelines">Practical Guidelines</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/fidelity_and_approximation.html#sources-of-fidelity-loss">Sources of Fidelity Loss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/fidelity_and_approximation.html#further-reading">Further Reading</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/rustiq_resynthesis.html#why-foldable">Why “foldable”?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/rustiq_resynthesis.html#basic-usage">Basic usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/rustiq_resynthesis.html#partial-cuts-gate-count-profiling">Partial cuts: gate-count profiling</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides/clifford_extraction_synthesis.html#the-problem">The problem</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/clifford_extraction_synthesis.html#the-idea-do-not-undo">The idea: do not undo</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/clifford_extraction_synthesis.html#which-cnots">Which CNOTs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/clifford_extraction_synthesis.html#usage">Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/clifford_extraction_synthesis.html#the-light-cone-of-the-observable">The light cone of the observable</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides/clifford_extraction_synthesis.html#what-to-expect">What to expect</a></li>
 </ul>
 </li>
 </ul>
@@ -420,6 +445,7 @@ Among our core features:</p>
 <li class="toctree-l1"><a class="reference internal" href="api/evolutors.html">Evolutors</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/evolutors.html#hsmpo-hybrid-stabilizer-mpo">HSMPO: Hybrid Stabilizer MPO</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/evolutors.html#hqsmpo-head-tail-split">HQSMPO: Head/Tail Split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/evolutors.html#gradients">Gradients</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/evolutors.html#module-mpstab.evolutors.optimization">Optimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/evolutors.html#module-mpstab.evolutors.utils">Utilities</a></li>
 </ul>
@@ -483,6 +509,7 @@ Among our core features:</p>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="publications.html">Publications</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/MatteoRobbiati/mpstab">GitHub repository</a></li>
 </ul>
 </div>
 </section>
@@ -523,7 +550,14 @@ Among our core features:</p>
             
           </div>
           <div class="right-details">
-            
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/MatteoRobbiati/mpstab" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
           </div>
         </div>
         

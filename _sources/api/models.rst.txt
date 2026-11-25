@@ -13,7 +13,7 @@ Ansätze are pre-built quantum circuit patterns used as templates for quantum al
    :undoc-members:
    :show-inheritance:
 
-**Available Ansätze**: see :doc:`../guides/ansatze_catalogue` for the full list,
+**Available Ansätze**: see :doc:`../user_guide/ansatze_catalogue` for the full list,
 with the physical description of each ansatz and the parameters that tune its
 magic and its entanglement (also exposed as the ``magic_parameters`` and
 ``entanglement_parameters`` class attributes).
@@ -44,7 +44,7 @@ form.
     simulator = HSMPO(ansatz=ansatz, max_bond_dimension=32)
     result = simulator.expectation("ZZZZZ")
 
-See :doc:`../guides/using_ansatze` for detailed examples.
+See :doc:`../user_guide/using_ansatze` for detailed examples.
 
 Entanglement Metrics & Analysis
 --------------------------------
@@ -97,6 +97,6 @@ stabilizer_renyi_entropy_mps  Sampled stabilizer Renyi entropy of an HSMPO
 Related Documentation
 -----------------------
 
-- :doc:`../guides/using_ansatze` - Ansätze usage guide
-- :doc:`../guides/fidelity_and_approximation` - Understanding approximations
+- :doc:`../user_guide/using_ansatze` - Ansätze usage guide
+- :doc:`../methods/fidelity_and_approximation` - Understanding approximations
 - :doc:`../tutorials/introduction` - Practical examples
