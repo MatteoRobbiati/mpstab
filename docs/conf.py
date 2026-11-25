@@ -34,6 +34,16 @@ html_static_path = ["_static"]  # custom.css (see themed-figure below)
 html_theme_options = {
     "light_logo": "logo/mpstab_logo_light.svg",
     "dark_logo": "logo/mpstab_logo_dark.svg",
+    # Brand colors, from the logo's blue: a deeper shade for contrast on the
+    # light theme, the logo's own on the dark one.
+    "light_css_variables": {
+        "color-brand-primary": "#2f63c4",
+        "color-brand-content": "#2f63c4",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#a7c7ff",
+        "color-brand-content": "#a7c7ff",
+    },
     # "View source" links on every page, and a GitHub icon in the footer.
     "source_repository": "https://github.com/MatteoRobbiati/mpstab/",
     "source_branch": "main",
