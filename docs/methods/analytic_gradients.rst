@@ -3,94 +3,174 @@
 Analytic gradients
 ==================
 
-:meth:`~mpstab.HSMPO.gradient` differentiates an expectation value with
-respect to every parameter of the circuit at once. The cost is about that of
-two evaluations of the energy, however many parameters there are. The
-parameter-shift rule needs two shifted circuits *per parameter*: on 60 qubits
-with 240 parameters, a gradient takes 3 s with mpstab and between 5 and 7
+A variational algorithm, such as a VQE, tunes the angles :math:`\theta` of a
+circuit to minimize an energy :math:`f(\theta) = \langle O \rangle`, and needs
+the gradient :math:`\nabla f` at every step. On a quantum computer the gradient
+comes from the *parameter-shift rule*: two extra circuits per parameter, so a
+circuit with :math:`P` parameters costs :math:`2P` evaluations per step.
+
+:meth:`~mpstab.HSMPO.gradient` computes all the derivatives at once, for about
+the cost of **two** evaluations, however many parameters there are. On 60
+qubits with 240 parameters a gradient takes 3 s with mpstab, against 5 to 7
 minutes with parameter-shift tensor-network gradients in PennyLane or qiboml.
 
-This guide explains how the gradient is computed, what controls its accuracy,
-and how it compares with other frameworks.
+This page builds the method step by step: what mpstab differentiates, why one
+derivative is a transition amplitude, how a single backward pass gives all of
+them, and what limits the accuracy.
 
-How it works
-------------
+Step 1: the circuit as a chain of rotations
+-------------------------------------------
 
-The Clifford frame
-^^^^^^^^^^^^^^^^^^
-
-An HSMPO splits the circuit into a Clifford part, which stim keeps as a
-tableau, and the non-Clifford rotations. Once the rotations are moved through
-the Clifford gates ("dressed"), the state is a chain of Pauli rotations on the
-initial MPS,
+An HSMPO keeps the Clifford gates of a circuit in a stabilizer tableau and the
+non-Clifford rotations in an MPS (see :doc:`theory_background`). Every rotation
+is moved through the Clifford gates that precede it: a Clifford conjugates a
+Pauli string into another Pauli string, so the rotation stays a rotation, about
+a new, *dressed* string. What reaches the MPS is a chain of Pauli rotations,
 
 .. math::
 
    |\psi\rangle = R_R \cdots R_2 R_1 |\mathrm{init}\rangle,
    \qquad R_j = e^{-i \varphi_j G_j / 2},
 
-where each :math:`G_j` is a Pauli string and each angle :math:`\varphi_j` is
-a circuit parameter :math:`\theta` times a dressing sign :math:`s_j = \pm 1`.
-The observable is dressed the same way into a Pauli sum
+where each generator :math:`G_j` is a Pauli string and each angle
+:math:`\varphi_j` is a circuit parameter times a sign :math:`s_j = \pm 1` picked
+up in the dressing. The observable is dressed the same way into a Pauli sum
 :math:`O = \sum_t c_t P_t`, and the energy is
-:math:`f = \langle\psi|O|\psi\rangle / \langle\psi|\psi\rangle`.
 
-The adjoint method
-^^^^^^^^^^^^^^^^^^
+.. math::
 
-Since :math:`\partial_{\varphi_j} R_j = -\tfrac{i}{2} G_j R_j`, write
-:math:`|\psi_j\rangle = R_j \cdots R_1 |\mathrm{init}\rangle` for the state
-after rotation :math:`j` and :math:`T_j = R_R \cdots R_{j+1}` for the rest of
-the chain. Then
+   f = \frac{\langle\psi|\,O\,|\psi\rangle}{\langle\psi|\psi\rangle}.
+
+The denominator is 1 for an exact state; it is kept because a truncated MPS
+loses a little norm. From here on only this chain matters: differentiating the
+circuit means differentiating it.
+
+Step 2: one derivative is a transition amplitude
+------------------------------------------------
+
+A rotation about a Pauli string has a simple derivative,
+
+.. math::
+
+   \frac{\partial R_j}{\partial \varphi_j} = -\frac{i}{2}\, G_j\, R_j,
+
+so differentiating :math:`f` with respect to :math:`\varphi_j` inserts the Pauli
+string :math:`G_j` right after rotation :math:`j`, with a factor
+:math:`-i/2`:
+
+.. themed-figure:: ../_static/figures/derivative_as_fault.svg
+   :align: center
+   :width: 100%
+
+Call :math:`|\psi_j\rangle = R_j \cdots R_1 |\mathrm{init}\rangle` the state
+after rotation :math:`j`, and :math:`T_j = R_R \cdots R_{j+1}` the rotations
+after it, so that :math:`|\psi\rangle = T_j |\psi_j\rangle`. The product rule
+on :math:`\langle\psi|O|\psi\rangle` gives two complex-conjugate terms, hence
+twice a real part:
 
 .. math::
 
    \frac{\partial f}{\partial \varphi_j}
-   = \frac{\operatorname{Im} \langle \lambda_j | G_j | \psi_j \rangle}
-          {\langle\psi|\psi\rangle},
+   = \frac{2\,\mathrm{Re}\,\langle\psi|\, O\, T_j \left(-\tfrac{i}{2} G_j\right) |\psi_j\rangle}{\langle\psi|\psi\rangle}
+   = \frac{\operatorname{Im} \langle \lambda_j |\, G_j\, | \psi_j \rangle}{\langle\psi|\psi\rangle},
    \qquad
    |\lambda_j\rangle = T_j^\dagger \, O \, |\psi\rangle .
 
-The costate :math:`|\lambda_j\rangle` needs no new simulation for each
-:math:`j`: :math:`|\lambda_{j-1}\rangle = R_j^\dagger |\lambda_j\rangle`. So
-the whole gradient takes
+The derivative is the overlap of two states with :math:`G_j` between them: the
+state :math:`|\psi_j\rangle` coming forward from the input, and the
+**costate** :math:`|\lambda_j\rangle`, which is :math:`O|\psi\rangle` brought
+*backwards* through the rotations after :math:`j`.
 
-1. **one forward pass** that applies the rotations to the MPS and keeps a
-   checkpoint after each one (cheap, since the MPS kernels never write into
-   existing tensors and a checkpoint shares them);
-2. **one application of the Hamiltonian**, :math:`O|\psi\rangle`, compressed
-   to the costate bond dimension;
-3. **one backward pass** that undoes the rotations on the costate and reads
+.. admonition:: Check on one qubit
+
+   Take one rotation :math:`R_Y(\varphi)` on :math:`|0\rangle` and
+   :math:`O = Z`, so :math:`f = \cos\varphi`. Here :math:`T` is empty,
+   :math:`|\lambda\rangle = Z|\psi\rangle` and :math:`ZY = -iX`, so
+   :math:`\operatorname{Im}\langle\psi|ZY|\psi\rangle = -\langle\psi|X|\psi\rangle = -\sin\varphi`,
+   which is indeed :math:`\partial_\varphi \cos\varphi`.
+
+Step 3: all derivatives in one backward pass
+--------------------------------------------
+
+Computed one by one, each costate would need its own pass through the end of
+the chain, and the gradient would cost :math:`R` simulations, no better than
+the parameter-shift rule. But consecutive costates differ by a single
+rotation,
+
+.. math::
+
+   |\lambda_{j-1}\rangle = R_j^\dagger\, |\lambda_j\rangle,
+   \qquad |\lambda_R\rangle = O\,|\psi\rangle,
+
+so one sweep from the end of the chain to its start visits all of them. This
+is the *adjoint method*, the same idea as backpropagation in neural networks:
+
+.. themed-figure:: ../_static/figures/adjoint_passes.svg
+   :align: center
+   :width: 100%
+
+The gradient takes
+
+1. **one forward pass**, which applies the rotations to the MPS and keeps the
+   state after each one. A checkpoint is cheap: the MPS kernels replace the
+   tensors a rotation touches instead of writing into them, so consecutive
+   checkpoints share every other tensor;
+2. **one application of the observable**, :math:`O|\psi\rangle`, compressed
+   to the bond dimension of the costate;
+3. **one backward pass**, which undoes the rotations on the costate and reads
    one transition amplitude :math:`\langle\lambda_j|G_j|\psi_j\rangle` per
    rotation.
 
-The energy itself comes out of the forward pass, so a training step needs no
+That is about :math:`2R` rotations, whatever the number of parameters. The
+energy itself comes out of the forward pass, so a training step needs no
 separate evaluation (:meth:`~mpstab.HSMPO.value_and_gradient`).
 
-The chain rule back to the circuit parameters sums
-:math:`s_j \, \partial f / \partial \varphi_j` over the rotations of each
-parameter's gate. Rotations outside the light cone of the observable are
-dropped first, which is exact.
+Step 4: back to the circuit parameters
+--------------------------------------
 
-The sign-flip picture
-^^^^^^^^^^^^^^^^^^^^^
+The derivatives above are with respect to the angles :math:`\varphi_j` of the
+chain. A circuit parameter :math:`\theta` reaches the chain through
+:math:`\varphi_j = s_j\,\theta`, once for each rotation of its gate, so
 
-Moving :math:`G_j` to the end of the chain flips the sign of every later angle
-whose generator anticommutes with it: this is exactly the sign pattern a Pauli
-fault after rotation :math:`j` produces in :mod:`mpstab.models.noise`. Read
-forward, the same formula gives ``method="flips"``, one flipped tail per
-parameter and one transition amplitude per Hamiltonian term. It is slower than
-the adjoint for many parameters, but has no costate to truncate.
+.. math::
 
-Both methods equal the parameter-shift rule: without truncation they agree
-with it to about :math:`10^{-15}` and with the exact statevector gradient to
-about :math:`10^{-10}`.
+   \frac{\partial f}{\partial \theta} = \sum_{j \,\in\, \text{rotations of } \theta} s_j\, \frac{\partial f}{\partial \varphi_j}.
+
+Before any of this, the rotations outside the *light cone* of the observable
+are dropped: going backwards from :math:`O`, a rotation matters only if its
+generator anticommutes with the observable or with a later rotation that
+matters. The others cancel exactly in :math:`\langle\psi|O|\psi\rangle`, and
+their parameters have zero derivative.
+
+The same formula, read as noise
+-------------------------------
+
+Step 2 inserted a Pauli string :math:`G_j` after rotation :math:`j`. That is
+exactly what a Pauli *fault* does in a noisy circuit, and mpstab handles it the
+same way (see the :doc:`../tutorials/noise` tutorial): instead of bringing the
+observable backwards, slide :math:`G_j` forward to the end of the chain. A
+Pauli commutes with a rotation about a commuting string and flips the sign of
+the angle of an anticommuting one, so
+
+.. math::
+
+   \frac{\partial f}{\partial \varphi_j} = \sum_t c_t \operatorname{Im}\, \langle\psi|\, P_t\, G_j\, |\tilde\psi_j\rangle,
+
+where :math:`|\tilde\psi_j\rangle` is the chain with the angles of the later
+rotations that anticommute with :math:`G_j` negated. ``method="flips"``
+evaluates this form: one shifted tail per parameter, one transition amplitude
+per Hamiltonian term. It applies :math:`O(PR)` rotations instead of
+:math:`2R`, but has no costate to compress.
+
+Both methods are exact rewritings of the parameter-shift rule: without
+truncation they agree with it to about :math:`10^{-15}`, and with the exact
+statevector gradient to about :math:`10^{-10}`.
 
 Parameters at Clifford angles
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------
 
 A rotation whose angle is a multiple of :math:`\pi/2` (zero included) is a
-Clifford gate: mpstab absorbs it into the tableau, so it has no rotation in the
+Clifford gate. mpstab absorbs it into the tableau, so it has no rotation in the
 chain to differentiate. Asking for its derivative raises a ``ValueError``
 rather than silently returning zero. Initialize parameters away from those
 values, e.g. with small random angles.
@@ -98,20 +178,21 @@ values, e.g. with small random angles.
 Accuracy and truncation
 -----------------------
 
-With a finite bond dimension :math:`\chi`, the gradient is the gradient of the
-truncated surrogate. Two things set its error:
+With a finite bond dimension :math:`\chi` the gradient is that of the truncated
+surrogate. Two things set its error.
 
 * **The state.** The gradient is an overlap, so its error is of *first* order
   in the truncation error of :math:`|\psi\rangle`, while an energy (and so a
-  parameter-shift gradient) is of second order. At equal :math:`\chi`, the
+  parameter-shift gradient) is of second order. At equal :math:`\chi` the
   adjoint gradient is therefore somewhat less accurate than the
-  parameter-shift one (right panel of the figure below), and the truncation
+  parameter-shift one (right panel of the figure below). The truncation
   fidelity reported by :func:`~mpstab.evolutors.gradient.analytic_gradient`
   tracks its error well.
-* **The costate.** :math:`O|\psi\rangle` is a sum of many Pauli strings and has
-  a larger bond dimension than :math:`|\psi\rangle`. By default it is capped at
-  :math:`2\chi`; ``costate_bond=chi`` is about twice as fast for about twice the
-  error, and going above :math:`2\chi` does not help.
+* **The costate.** :math:`O|\psi\rangle` is a sum of many Pauli strings applied
+  to the state, so it needs a larger bond dimension than :math:`|\psi\rangle`.
+  By default it is capped at :math:`2\chi`; ``costate_bond=chi`` is about twice
+  as fast for about twice the error, and going above :math:`2\chi` does not
+  help.
 
 To check a trained circuit, evaluate the final parameters again at a larger
 bond dimension, as the Bethe-ansatz example below does.
