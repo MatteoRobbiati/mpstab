@@ -1,0 +1,197 @@
+/* mpstab documentation styling on top of Furo. Colors come from Furo's CSS
+   variables (brand colors set in conf.py), so every rule follows the light
+   and dark themes. */
+
+/* -- Figures ---------------------------------------------------------------- */
+
+/* Centre the theme-dependent figures: Furo shows them with display: block,
+   which drops the inline centring of the figure. */
+figure .only-light,
+figure .only-dark {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+figure figcaption {
+  color: var(--color-foreground-secondary);
+  font-size: 0.9em;
+  max-width: 42em;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* -- General polish --------------------------------------------------------- */
+
+h1, h2, h3 {
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-weight: 700;
+}
+
+div.highlight,
+div.admonition,
+div.nbinput,
+div.nboutput {
+  border-radius: 8px;
+}
+
+div.highlight pre {
+  border-radius: 8px;
+}
+
+/* -- Landing page: hero ------------------------------------------------------ */
+
+[role="main"] .hero.container {
+  margin: 0.5rem 0 2rem;
+  padding: 0;
+  overflow: visible;
+}
+
+[role="main"] .hero-lead.container {
+  margin: 0;
+  padding: 0;
+}
+
+.hero-lead p {
+  font-size: 1.2em;
+  line-height: 1.55;
+}
+
+.hero-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+
+a.hero-button {
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid var(--color-background-border);
+  border-radius: 999px;
+  color: var(--color-foreground-primary);
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+a.hero-button:hover {
+  border-color: var(--color-brand-primary);
+  color: var(--color-brand-primary);
+}
+
+a.hero-button.primary {
+  background: var(--color-brand-primary);
+  border-color: var(--color-brand-primary);
+  color: var(--color-background-primary);
+}
+
+a.hero-button.primary:hover {
+  filter: brightness(1.08);
+  color: var(--color-background-primary);
+}
+
+/* -- Landing page: feature cards --------------------------------------------- */
+
+/* Furo's "[role=main] .container" clears the side padding of every container:
+   these selectors are one class more specific. */
+[role="main"] .feature-grid.container {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin: 1rem 0 1.5rem;
+  padding: 0;
+  overflow: visible;
+}
+
+@media (max-width: 40em) {
+  [role="main"] .feature-grid.container {
+    grid-template-columns: 1fr;
+  }
+}
+
+[role="main"] .feature-card.container {
+  width: auto;
+  margin: 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--color-background-border);
+  border-radius: 10px;
+  background: var(--color-background-secondary);
+}
+
+.feature-card p {
+  margin: 0.3rem 0;
+}
+
+.feature-card p:first-child strong {
+  color: var(--color-brand-content);
+}
+
+/* -- Landing page: collapsible navigation ------------------------------------ */
+
+details.nav-section {
+  margin: 0.6rem 0;
+  border: 1px solid var(--color-background-border);
+  border-radius: 10px;
+  background: var(--color-background-secondary);
+  overflow: hidden;
+}
+
+details.nav-section > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.8rem;
+  padding: 0.75rem 1rem 0.75rem 2.3rem;
+  position: relative;
+  cursor: pointer;
+  list-style: none;
+}
+
+details.nav-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A chevron that turns when the section opens. */
+details.nav-section > summary::before {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  top: 1.15rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid var(--color-foreground-secondary);
+  border-bottom: 2px solid var(--color-foreground-secondary);
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+details.nav-section[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+details.nav-section > summary:hover {
+  background: var(--color-background-hover);
+}
+
+.nav-title {
+  font-weight: 600;
+  font-size: 1.05em;
+}
+
+.nav-hint {
+  color: var(--color-foreground-secondary);
+  font-size: 0.9em;
+}
+
+details.nav-section > ul {
+  margin: 0;
+  padding: 0.2rem 1rem 0.8rem 2.8rem;
+  border-top: 1px solid var(--color-background-border);
+}
+
+details.nav-section > ul > li {
+  margin: 0.35rem 0;
+}

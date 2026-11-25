@@ -1,0 +1,533 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Hardware Resynthesis with rustiq" href="rustiq_resynthesis.html"><link rel="prev" title="Hybrid quantum-classical execution: HQSMPO" href="index.html">
+        <link rel="prefetch" href="../../_static/logo/mpstab_logo_light.svg" as="image">
+        <link rel="prefetch" href="../../_static/logo/mpstab_logo_dark.svg" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Head Synthesis by Clifford Extraction - Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=e4716fdc" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/katex-math.css?v=05624691" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  --color-brand-primary: #2f63c4;
+  --color-brand-content: #2f63c4;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  --color-brand-primary: #a7c7ff;
+  --color-brand-content: #a7c7ff;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  --color-brand-primary: #a7c7ff;
+  --color-brand-content: #a7c7ff;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../_static/logo/mpstab_logo_light.svg" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../_static/logo/mpstab_logo_dark.svg" alt="Dark Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">Documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Hybrid quantum-classical execution: HQSMPO</a><input aria-label="Toggle navigation of Hybrid quantum-classical execution: HQSMPO" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/noise.html">Pauli noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/advanced_noise.html">Non-unital noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/error_mitigation.html">Data-driven error mitigation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/evolutors.html">Evolutors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/engines.html">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/qpu.html">QPU</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/error_mitigation.html">Error Mitigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/qibo_tools.html">Qibo tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../publications.html">Publications</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/MatteoRobbiati/mpstab">GitHub repository</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/MatteoRobbiati/mpstab/blob/main/docs/methods/hqsmpo/clifford_extraction_synthesis.rst?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/MatteoRobbiati/mpstab/edit/main/docs/methods/hqsmpo/clifford_extraction_synthesis.rst" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="head-synthesis-by-clifford-extraction">
+<h1>Head Synthesis by Clifford Extraction<a class="headerlink" href="#head-synthesis-by-clifford-extraction" title="Link to this heading">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> splits a circuit into a <em>head</em>, run on the device, and a
+<em>tail</em>, folded classically into the observable. The head is a list of dressed
+Pauli rotations, and has to become a circuit. This page explains the
+<code class="docutils literal notranslate"><span class="pre">&quot;extraction&quot;</span></code> synthesis, which needs no extra dependency and can be told
+the connectivity of the device.</p>
+<section id="the-problem">
+<h2>The problem<a class="headerlink" href="#the-problem" title="Link to this heading">¶</a></h2>
+<p>A dressed rotation is <code class="docutils literal notranslate"><span class="pre">exp(-i</span> <span class="pre">theta</span> <span class="pre">P</span> <span class="pre">/</span> <span class="pre">2)</span></code> with <code class="docutils literal notranslate"><span class="pre">P</span></code> a Pauli string, for
+instance <code class="docutils literal notranslate"><span class="pre">Z</span> <span class="pre">Z</span> <span class="pre">X</span> <span class="pre">I</span></code>. A device only rotates single qubits, so the string has
+to be brought onto one qubit first.</p>
+<p>The textbook circuit does it in three steps:</p>
+<ol class="arabic simple">
+<li><p>single-qubit gates turn every letter of <code class="docutils literal notranslate"><span class="pre">P</span></code> into <code class="docutils literal notranslate"><span class="pre">Z</span></code>;</p></li>
+<li><p>a chain of CNOTs collects the parity of the support on one qubit: each CNOT
+removes one site, so a string of weight <code class="docutils literal notranslate"><span class="pre">w</span></code> needs <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">-</span> <span class="pre">1</span></code> of them;</p></li>
+<li><p>an <code class="docutils literal notranslate"><span class="pre">RZ(theta)</span></code> on that qubit, then steps 2 and 1 <strong>undone</strong>.</p></li>
+</ol>
+<p>The undoing costs another <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">-</span> <span class="pre">1</span></code> CNOTs, for every rotation.</p>
+</section>
+<section id="the-idea-do-not-undo">
+<h2>The idea: do not undo<a class="headerlink" href="#the-idea-do-not-undo" title="Link to this heading">¶</a></h2>
+<p>The gates of steps 1 and 2 are Clifford gates. A Clifford gate can be moved
+past a Pauli rotation: the rotation stays a Pauli rotation, only its string
+changes. So instead of undoing them, we leave them where they are and
+<strong>update the strings of the rotations still to come</strong>.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>textbook      V1  RZ  V1^-1   V2  RZ  V2^-1   V3  RZ  V3^-1
+extraction    V1  RZ          V2&#39; RZ          V3&#39; RZ           (V1 V2&#39; V3&#39;)^-1
+
+V  = the Clifford that brings a string onto one qubit
+V&#39; = the same, for the string as changed by the Cliffords before it
+</pre></div>
+</div>
+<p>What is left at the end is one accumulated Clifford: the <em>residual</em>. It is
+never run. A Clifford turns a Pauli observable into another Pauli observable,
+so the residual is absorbed classically into what is measured, exactly as the
+Clifford part of the original circuit is.</p>
+<p>This is the idea of QuCLEAR (Liu et al., <a class="reference external" href="https://arxiv.org/abs/2408.13316">arXiv:2408.13316</a>): Clifford <em>extraction</em> (push them to the
+end) and <em>absorption</em> (handle them classically).</p>
+</section>
+<section id="which-cnots">
+<h2>Which CNOTs<a class="headerlink" href="#which-cnots" title="Link to this heading">¶</a></h2>
+<p>Bringing a string of weight <code class="docutils literal notranslate"><span class="pre">w</span></code> onto one qubit takes <code class="docutils literal notranslate"><span class="pre">w</span> <span class="pre">-</span> <span class="pre">1</span></code> CNOTs, but
+there are many ways to choose them, and each choice changes the coming strings
+differently. A good choice makes them lighter, a bad one heavier. This choice
+is the whole difference between a short head and a long one.</p>
+<p>The rule used here is greedy. For the rotation in turn, among all the pairs
+(control, target) in its support, take the CNOT after which the next few
+strings touching those two qubits are</p>
+<ul class="simple">
+<li><p><strong>lightest</strong>: fewer sites, hence fewer CNOTs later;</p></li>
+<li><p><strong>most local</strong>: with a device connectivity, sites that are close on the
+chip, so that later CNOTs need no routing. A CNOT between distant qubits is
+itself charged the SWAPs that would route it.</p></li>
+</ul>
+<p>Two more degrees of freedom are used:</p>
+<ul class="simple">
+<li><p>rotations that commute may be reordered, the lightest first;</p></li>
+<li><p>no single setting of the rule is best on every circuit, so a handful are
+tried (<a class="reference internal" href="../../api/qpu.html#mpstab.qpu.synthesis.extraction.EXTRACTION_STRATEGIES" title="mpstab.qpu.synthesis.extraction.EXTRACTION_STRATEGIES"><code class="xref py py-data docutils literal notranslate"><span class="pre">EXTRACTION_STRATEGIES</span></code></a>) and
+the cheapest head is kept. A synthesis takes a fraction of a second.</p></li>
+</ul>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HQSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParametricKickedIsing</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExtractionSynthesis</span><span class="p">,</span> <span class="n">PauliSampling</span>
+
+<span class="n">hs</span> <span class="o">=</span> <span class="n">HQSMPO</span><span class="p">(</span>
+    <span class="n">ansatz</span><span class="o">=</span><span class="n">ParametricKickedIsing</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">delta_h</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span>
+    <span class="c1"># connectivity: None (all-to-all) | &quot;line&quot; | [(q0, q1), ...]</span>
+    <span class="n">head_synthesis</span><span class="o">=</span><span class="n">ExtractionSynthesis</span><span class="p">(</span><span class="n">connectivity</span><span class="o">=</span><span class="s2">&quot;line&quot;</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">cut_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">magic_gates</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+
+<span class="n">head</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">resynthesize_head</span><span class="p">(</span><span class="n">cut_index</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">head</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">head</span><span class="o">.</span><span class="n">n_two_qubit_gates</span><span class="p">)</span>   <span class="c1"># the circuit is head.circuit</span>
+
+<span class="c1"># every hardware route uses that head and folds its residual</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">expectation_at_cut</span><span class="p">(</span><span class="s2">&quot;ZZIIII&quot;</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">PauliSampling</span><span class="p">(),</span> <span class="n">n_shots</span><span class="o">=</span><span class="mi">20000</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">exact</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">expectation_at_cut</span><span class="p">(</span><span class="s2">&quot;ZZIIII&quot;</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;simulation&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+<span class="k">assert</span> <span class="nb">abs</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">exact</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">result</span><span class="o">.</span><span class="n">total_error</span> <span class="o">+</span> <span class="mf">1e-6</span>
+</pre></div>
+</div>
+</section>
+<section id="the-light-cone-of-the-observable">
+<h2>The light cone of the observable<a class="headerlink" href="#the-light-cone-of-the-observable" title="Link to this heading">¶</a></h2>
+<p>A second saving does not depend on the synthesis. Going backwards from the
+observable, a rotation matters only if its string anticommutes with the
+observable, or with a later rotation that matters. Every other rotation
+cancels against its own inverse in <code class="docutils literal notranslate"><span class="pre">&lt;psi|</span> <span class="pre">U^dag</span> <span class="pre">O</span> <span class="pre">U</span> <span class="pre">|psi&gt;</span></code>: it can be removed
+from the head, and need not be folded in the tail. This is exact, and costs
+only commutations of Pauli strings.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hs</span><span class="o">.</span><span class="n">light_cone</span> <span class="o">=</span> <span class="kc">True</span>                      <span class="c1"># used by every hardware route</span>
+<span class="n">kept</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">relevant_rotations</span><span class="p">(</span><span class="s2">&quot;IIZIII&quot;</span><span class="p">)</span>    <span class="c1"># indices of the rotations that matter</span>
+<span class="n">head</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">resynthesize_head</span><span class="p">(</span><span class="n">cut_index</span><span class="p">,</span> <span class="n">observable</span><span class="o">=</span><span class="s2">&quot;IIZIII&quot;</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kept</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">magic_gates</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It pays for local observables and shallow circuits. For a sum of terms the
+head keeps the union of their light cones, so an observable covering the
+whole chain (a sum of <code class="docutils literal notranslate"><span class="pre">Z</span> <span class="pre">Z</span></code> over every bond) removes nothing.</p>
+</section>
+<section id="what-to-expect">
+<h2>What to expect<a class="headerlink" href="#what-to-expect" title="Link to this heading">¶</a></h2>
+<p>Two-qubit gates after compilation to a line of CZ-native qubits, 16 qubits,
+head = 80% of the rotations (in brackets, the whole original circuit). The
+last column also drops the rotations outside the light cone of a <code class="docutils literal notranslate"><span class="pre">Z</span></code> on the
+central qubit:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>                                    rustiq  original,  QuCLEAR  extraction  extraction
+                                            truncated                       + light cone
+kicked Ising, 8 steps       (240)     303      180       149        81          50
+parametric kicked Ising     (240)     630      180       173       164          92
+Trotter Ising, 8 steps      (240)     413      203       206       188         129
+random brickwork, 6 layers  (390)     954      282       306       399         291
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>It pays where the circuit has a Clifford structure to extract (the kicked
+Ising chain near its Clifford point): the head is far shorter than the
+original circuit cut at the same place.</p></li>
+<li><p>Where every gate is already a rotation (Trotter), there is nothing to
+extract, and the head is about as long as the original, slightly shorter.</p></li>
+<li><p>On a random brickwork the rule is still worse than the original circuit:
+compare the candidates and keep the shortest.</p></li>
+<li><p>The light cone helps most on shallow circuits: at 20 qubits and 4 steps of
+the kicked Ising chain, the same head goes from 42 to 10 two-qubit gates.</p></li>
+</ul>
+<p>“Original, truncated” is the original circuit up to the cut, which is itself a
+valid head. It is the reference a synthesis has to beat. The light cone could
+be applied to it as well: the comparison of the last column with the others
+is not like for like.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="rustiq_resynthesis.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Hardware Resynthesis with rustiq</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Hybrid quantum-classical execution: HQSMPO</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Matteo Robbiati, Giulio Crognaletti, Mattia Robbiano, Roberto Di Lauro, Michele Grossi
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/MatteoRobbiati/mpstab" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Head Synthesis by Clifford Extraction</a><ul>
+<li><a class="reference internal" href="#the-problem">The problem</a></li>
+<li><a class="reference internal" href="#the-idea-do-not-undo">The idea: do not undo</a></li>
+<li><a class="reference internal" href="#which-cnots">Which CNOTs</a></li>
+<li><a class="reference internal" href="#usage">Usage</a></li>
+<li><a class="reference internal" href="#the-light-cone-of-the-observable">The light cone of the observable</a></li>
+<li><a class="reference internal" href="#what-to-expect">What to expect</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/katex.min.js?v=5cc8ed51"></script>
+    <script src="../../_static/auto-render.min.js?v=af98beb9"></script>
+    <script src="../../_static/katex_autorenderer.js?v=bebc588a"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>
