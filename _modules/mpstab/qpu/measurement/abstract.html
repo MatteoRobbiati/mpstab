@@ -339,9 +339,10 @@
 <span class="sd">            that ``n_string_samples`` actually covered.</span>
 <span class="sd">        bond_truncation_l2: ``&quot;pauli&quot;`` only, ``None`` for ``&quot;shadows&quot;``</span>
 <span class="sd">            (whose ``truncation_l2`` already is this quantity): the bias</span>
-<span class="sd">            estimate of folding the tail at a finite bond dimension,</span>
+<span class="sd">            estimate of truncating the tail fold (bond cap or SVD cutoff),</span>
 <span class="sd">            ``sum_terms |coefficient| * sqrt(1 - ||O&#39;||_F**2 / 2**n)``, from the</span>
-<span class="sd">            norm each folded MPO lost. ``0.0`` for an untruncated fold. The</span>
+<span class="sd">            norm each folded MPO lost. ``0.0`` for an untruncated fold (no bond</span>
+<span class="sd">            cap and no SVD cutoff) or a loss within rounding. The</span>
 <span class="sd">            ``&quot;pauli&quot;`` route&#39;s ``truncation_l1``/``truncation_l2`` only count</span>
 <span class="sd">            the Pauli strings left unsampled *of the already truncated MPO*,</span>
 <span class="sd">            so they miss it.</span>
@@ -409,8 +410,8 @@
 <span class="sd">            hardware methods run the head on the device, so they have no head</span>
 <span class="sd">            truncation to report.</span>
 <span class="sd">        bond_truncation_l2: ``&quot;pauli&quot;`` only, ``None`` otherwise (there</span>
-<span class="sd">            ``truncation_l2`` already is the bond truncation): the bias</span>
-<span class="sd">            estimate of folding the tail at a finite bond dimension -- see</span>
+<span class="sd">            ``truncation_l2`` already is the fold truncation): the bias</span>
+<span class="sd">            estimate of truncating the tail fold (bond cap or SVD cutoff) -- see</span>
 <span class="sd">            :attr:`~mpstab.qpu.measurement.abstract.MeasurementPlan.bond_truncation_l2`.</span>
 <span class="sd">            Part of ``total_error``.</span>
 <span class="sd">        antihermitian_l2: ``&quot;pauli&quot;`` only, ``None`` otherwise: the size of the</span>

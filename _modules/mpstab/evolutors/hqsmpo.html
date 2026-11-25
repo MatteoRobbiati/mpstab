@@ -623,12 +623,12 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">expval</span><span class="p">(</span><span class="n">state_circuit</span><span class="o">=</span><span class="n">state_mps</span><span class="p">,</span> <span class="n">operator</span><span class="o">=</span><span class="n">operator</span><span class="p">)</span>
                 <span class="p">)</span>
             <span class="p">)</span>
-            <span class="k">if</span> <span class="n">max_bond_dimension</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">truncation_l2</span> <span class="o">+=</span> <span class="n">fold_truncation_l2</span><span class="p">(</span>
-                    <span class="n">coefficient</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">operator_site_arrays</span><span class="p">(</span><span class="n">operator</span><span class="p">),</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span>
-                <span class="p">)</span>
+            <span class="c1"># Measured whatever the bond cap: the SVD cutoff truncates too.</span>
+            <span class="n">truncation_l2</span> <span class="o">+=</span> <span class="n">fold_truncation_l2</span><span class="p">(</span>
+                <span class="n">coefficient</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">operator_site_arrays</span><span class="p">(</span><span class="n">operator</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">ExpectationResult</span><span class="p">(</span>
             <span class="n">value</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">value</span><span class="p">)),</span>

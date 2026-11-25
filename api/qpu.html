@@ -691,8 +691,8 @@ norm of the head MPS, which its truncation pushes below 1. The
 hardware methods run the head on the device, so they have no head
 truncation to report.</p></li>
 <li><p><strong>bond_truncation_l2</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise (there
-<code class="docutils literal notranslate"><span class="pre">truncation_l2</span></code> already is the bond truncation): the bias
-estimate of folding the tail at a finite bond dimension – see
+<code class="docutils literal notranslate"><span class="pre">truncation_l2</span></code> already is the fold truncation): the bias
+estimate of truncating the tail fold (bond cap or SVD cutoff) – see
 <code class="xref py py-attr docutils literal notranslate"><span class="pre">bond_truncation_l2</span></code>.
 Part of <code class="docutils literal notranslate"><span class="pre">total_error</span></code>.</p></li>
 <li><p><strong>antihermitian_l2</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise: the size of the
@@ -804,9 +804,10 @@ Hamiltonian terms, of each term’s
 that <code class="docutils literal notranslate"><span class="pre">n_string_samples</span></code> actually covered.</p></li>
 <li><p><strong>bond_truncation_l2</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> for <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code>
 (whose <code class="docutils literal notranslate"><span class="pre">truncation_l2</span></code> already is this quantity): the bias
-estimate of folding the tail at a finite bond dimension,
+estimate of truncating the tail fold (bond cap or SVD cutoff),
 <code class="docutils literal notranslate"><span class="pre">sum_terms</span> <span class="pre">|coefficient|</span> <span class="pre">*</span> <span class="pre">sqrt(1</span> <span class="pre">-</span> <span class="pre">||O'||_F**2</span> <span class="pre">/</span> <span class="pre">2**n)</span></code>, from the
-norm each folded MPO lost. <code class="docutils literal notranslate"><span class="pre">0.0</span></code> for an untruncated fold. The
+norm each folded MPO lost. <code class="docutils literal notranslate"><span class="pre">0.0</span></code> for an untruncated fold (no bond
+cap and no SVD cutoff) or a loss within rounding. The
 <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> route’s <code class="docutils literal notranslate"><span class="pre">truncation_l1</span></code>/<code class="docutils literal notranslate"><span class="pre">truncation_l2</span></code> only count
 the Pauli strings left unsampled <em>of the already truncated MPO</em>,
 so they miss it.</p></li>
@@ -889,8 +890,8 @@ into qubit-wise-commuting settings.</p>
 <p>Two truncations are reported, of different origin. <code class="docutils literal notranslate"><span class="pre">truncation_l1</span></code> /
 <code class="docutils literal notranslate"><span class="pre">truncation_l2</span></code> count the Pauli strings of each folded MPO that
 <code class="docutils literal notranslate"><span class="pre">n_string_samples</span></code> left out. <code class="docutils literal notranslate"><span class="pre">bond_truncation_l2</span></code> is the bias of
-folding at a finite bond dimension, estimated from each folded MPO’s
-norm (see
+truncating the fold (bond cap or SVD cutoff), estimated from each
+folded MPO’s norm (see
 <a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.fold_fidelity" title="mpstab.qpu.measurement.pauli_expansion.fold_fidelity"><code class="xref py py-func docutils literal notranslate"><span class="pre">fold_fidelity()</span></code></a>) as in the
 <code class="docutils literal notranslate"><span class="pre">&quot;shadows&quot;</span></code> method: the string truncation is measured against the
 already truncated MPO, so it cannot see it. <code class="docutils literal notranslate"><span class="pre">antihermitian_l2</span></code> is the
@@ -1217,8 +1218,13 @@ every string <code class="docutils literal notranslate"><span class="pre">P</spa
 <dl class="py function">
 <dt class="sig sig-object py" id="mpstab.qpu.measurement.pauli_expansion.fold_truncation_l2">
 <span class="sig-prename descclassname"><span class="pre">mpstab.qpu.measurement.pauli_expansion.</span></span><span class="sig-name descname"><span class="pre">fold_truncation_l2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coefficient</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/mpstab/qpu/measurement/pauli_expansion.html#fold_truncation_l2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.qpu.measurement.pauli_expansion.fold_truncation_l2" title="Link to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">|c|</span> <span class="pre">sqrt(1</span> <span class="pre">-</span> <span class="pre">fold_fidelity)</span></code>: a term’s share of the bias of folding its
-tail at a finite bond dimension, from the norm the fold lost.</p>
+<dd><p><code class="docutils literal notranslate"><span class="pre">|c|</span> <span class="pre">sqrt(1</span> <span class="pre">-</span> <span class="pre">fold_fidelity)</span></code>: a term’s share of the bias of truncating
+its tail fold (bond cap or SVD cutoff), from the norm the fold lost.</p>
+<p>A lost share <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">fold_fidelity</span></code> at or below <code class="xref py py-data docutils literal notranslate"><span class="pre">_WEIGHT_ROUNDOFF</span></code>
+(<code class="docutils literal notranslate"><span class="pre">1e-12</span></code>, the floor <a class="reference internal" href="#mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate" title="mpstab.qpu.measurement.pauli_expansion.truncation_error_estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">truncation_error_estimate()</span></code></a> uses) is rounding
+drift, not truncation, and reads as 0: an exact fold drifts by ~1e-14,
+which the square root would turn into a spurious ~1e-7. The price is a
+resolution of <code class="docutils literal notranslate"><span class="pre">|c|</span> <span class="pre">*</span> <span class="pre">1e-6</span></code> per term.</p>
 </dd></dl>
 
 <dl class="py function">

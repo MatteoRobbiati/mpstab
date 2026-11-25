@@ -719,8 +719,8 @@ norm of the head MPS, which its truncation pushes below 1. The
 hardware methods run the head on the device, so they have no head
 truncation to report.</p></li>
 <li><p><strong>bond_truncation_l2</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise (there
-<code class="docutils literal notranslate"><span class="pre">truncation_l2</span></code> already is the bond truncation): the bias
-estimate of folding the tail at a finite bond dimension – see
+<code class="docutils literal notranslate"><span class="pre">truncation_l2</span></code> already is the fold truncation): the bias
+estimate of truncating the tail fold (bond cap or SVD cutoff) – see
 <code class="xref py py-attr docutils literal notranslate"><span class="pre">bond_truncation_l2</span></code>.
 Part of <code class="docutils literal notranslate"><span class="pre">total_error</span></code>.</p></li>
 <li><p><strong>antihermitian_l2</strong> (<em>float</em><em> | </em><em>None</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;pauli&quot;</span></code> only, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise: the size of the

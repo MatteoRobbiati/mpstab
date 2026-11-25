@@ -528,15 +528,14 @@
 <span class="sd">        Two truncations are reported, of different origin. ``truncation_l1`` /</span>
 <span class="sd">        ``truncation_l2`` count the Pauli strings of each folded MPO that</span>
 <span class="sd">        ``n_string_samples`` left out. ``bond_truncation_l2`` is the bias of</span>
-<span class="sd">        folding at a finite bond dimension, estimated from each folded MPO&#39;s</span>
-<span class="sd">        norm (see</span>
+<span class="sd">        truncating the fold (bond cap or SVD cutoff), estimated from each</span>
+<span class="sd">        folded MPO&#39;s norm (see</span>
 <span class="sd">        :func:`~mpstab.qpu.measurement.pauli_expansion.fold_fidelity`) as in the</span>
 <span class="sd">        ``&quot;shadows&quot;`` method: the string truncation is measured against the</span>
 <span class="sd">        already truncated MPO, so it cannot see it. ``antihermitian_l2`` is the</span>
 <span class="sd">        size of the anti-Hermitian part that truncation leaves in the pooled</span>
 <span class="sd">        coefficients, projected out by :func:`_real_coefficients`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">truncated</span> <span class="o">=</span> <span class="n">max_bond_dimension</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
         <span class="n">ensembles</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
         <span class="n">bond_truncation_l2</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -545,10 +544,10 @@
                 <span class="n">pauli</span><span class="p">,</span> <span class="n">cut_index</span><span class="p">,</span> <span class="n">max_bond_dimension</span>
             <span class="p">)</span>
             <span class="n">operator</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">operator_site_arrays</span><span class="p">(</span><span class="n">operator</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">truncated</span><span class="p">:</span>
-                <span class="n">bond_truncation_l2</span> <span class="o">+=</span> <span class="n">fold_truncation_l2</span><span class="p">(</span>
-                    <span class="n">coefficient</span><span class="p">,</span> <span class="n">operator</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">nqubits</span>
-                <span class="p">)</span>
+            <span class="c1"># Measured whatever the bond cap: the SVD cutoff truncates too.</span>
+            <span class="n">bond_truncation_l2</span> <span class="o">+=</span> <span class="n">fold_truncation_l2</span><span class="p">(</span>
+                <span class="n">coefficient</span><span class="p">,</span> <span class="n">operator</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">nqubits</span>
+            <span class="p">)</span>
             <span class="n">ensemble</span> <span class="o">=</span> <span class="n">sample_pauli_strings</span><span class="p">(</span>
                 <span class="n">operator</span><span class="p">,</span>
                 <span class="n">n_samples</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_string_samples</span><span class="p">,</span>
@@ -565,6 +564,9 @@
         <span class="n">truncation_l1</span><span class="p">,</span> <span class="n">truncation_l2</span><span class="p">,</span> <span class="n">retained_weight</span> <span class="o">=</span> <span class="n">_aggregate_truncation</span><span class="p">(</span>
             <span class="n">diagnostics</span>
         <span class="p">)</span>
+        <span class="c1"># A fold that lost weight beyond rounding, by bond cap or SVD cutoff,</span>
+        <span class="c1"># is not Hermitian: project, do not raise.</span>
+        <span class="n">truncated</span> <span class="o">=</span> <span class="n">max_bond_dimension</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">bond_truncation_l2</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
         <span class="n">grouping</span> <span class="o">=</span> <span class="n">build_measurement_plan</span><span class="p">(</span>
             <span class="n">_real_coefficients</span><span class="p">(</span><span class="n">pooled</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="ow">not</span> <span class="n">truncated</span><span class="p">)</span>
         <span class="p">)</span>
@@ -672,7 +674,7 @@
 <span class="sd">    tableau folding, or a non-Hermitian input observable) that silently dropping</span>
 <span class="sd">    it would hide.</span>
 
-<span class="sd">    A tail truncated to a finite bond dimension is not Hermitian (the</span>
+<span class="sd">    A truncated tail (bond cap or SVD cutoff) is not Hermitian (the</span>
 <span class="sd">    intermediate ``R^dag O`` is not, and Pauli-structured operators have</span>
 <span class="sd">    degenerate singular values, so a compression picks an arbitrary subspace).</span>
 <span class="sd">    There, pass ``check=False``: the real part is exactly the projection</span>
