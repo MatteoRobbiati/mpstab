@@ -110,8 +110,10 @@ def test_transition_skips_shared_isometries():
     ket = engine.working_state(engine.build_circuit_mps(8, circuit))
     bra = engine.copy_state(ket)
     engine.apply_rotation(bra, engine.rotation_operator("IIIXZIII", 0.7), None)
-    for pauli in ("IIIIIIII", "IIIZIIII", "ZIIIIIIX", "IIYXIIII"):
-        centers = (bra.center, ket.center)
-        fast = kernels.pauli_transition(bra.arrays, ket.arrays, pauli, centers=centers)
-        slow = kernels.pauli_transition(bra.arrays, ket.arrays, pauli)
+    centers = (bra.center, ket.center)
+    paulis = ["IIIIIIII", "IIIZIIII", "ZIIIIIIX", "IIYXIIII"]
+    batches = [[pauli] for pauli in paulis] + [paulis, paulis[1::2]]
+    for batch in batches:
+        fast = kernels.pauli_transitions(bra.arrays, ket.arrays, batch, centers=centers)
+        slow = kernels.pauli_transitions(bra.arrays, ket.arrays, batch)
         assert fast == pytest.approx(slow, abs=1e-13)

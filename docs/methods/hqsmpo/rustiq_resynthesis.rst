@@ -84,4 +84,4 @@ the residual spreads Pauli weight, which can raise the shadow variance by
 orders of magnitude -- compare ``shadow_variance_from_mpo`` of the two tail
 operators against the residual's two-qubit gate count before choosing. Rotations left out of the resynthesis entirely are
 still non-Clifford and get folded approximately into the tail MPO -- see
-:doc:`fidelity_and_approximation` and ``HQSMPO.tail_truncation``.
+:doc:`../fidelity_and_approximation` and ``HQSMPO.tail_truncation``.

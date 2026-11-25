@@ -431,34 +431,59 @@ def squared_norm(A: list[np.ndarray], center: int) -> float:
     return float(np.vdot(A[center], A[center]).real)
 
 
-def pauli_transition(
+def pauli_transitions(
     bra: list[np.ndarray],
     ket: list[np.ndarray],
-    pauli: str,
+    paulis: list[str],
     centers: tuple[int, int] | None = None,
-) -> complex:
+) -> np.ndarray:
     """
-    Unnormalized ``<bra|P|ket>`` between two MPS, by a left-to-right sweep.
+    Unnormalized ``<bra|P|ket>`` for many Pauli strings between two MPS.
 
-    The two states have different gauges, so in general nothing contracts
-    away. But with ``centers``, the orthogonality centers of the two, a run
-    of sites at either end that both states hold as the very same array
-    object, left of both centers (left-isometries) or right of both
-    (right-isometries), where ``P`` is the identity, contracts to the
-    identity and is skipped. States branched from a common checkpoint share
-    those arrays, since the kernels replace arrays instead of writing into them.
+    The two states have different gauges, so nothing outside a string's
+    support contracts away. Instead, the identity environments from both ends
+    are built once for all the strings, each by a sweep that is correct in any
+    gauge and only as far as the strings need, and each string then contracts
+    only its own support between them.
+
+    With ``centers``, the orthogonality centers of the two states, the sweeps
+    also skip the run of sites at either end that both states hold as the very
+    same array object, left of both centers (left-isometries) or right of both
+    (right-isometries) and outside every string: there the environment is the
+    identity. States branched from a common checkpoint share those arrays,
+    since the kernels replace arrays instead of writing into them.
     """
     n = len(ket)
+    windows = [bounds(pauli) or (0, 0) for pauli in paulis]
+    first = min((a for a, _ in windows), default=0)
+    last = max((b for _, b in windows), default=n - 1)
     start, stop = 0, n - 1
     if centers is not None:
         low, high = min(centers), max(centers)
-        while start < low and bra[start] is ket[start] and pauli[start] == "I":
+        while start < min(low, first) and bra[start] is ket[start]:
             start += 1
-        while stop > high and bra[stop] is ket[stop] and pauli[stop] == "I":
+        while stop > max(high, last) and bra[stop] is ket[stop]:
             stop -= 1
-    env = np.eye(ket[start].shape[0])
-    for j in range(start, stop + 1):
-        ket_j = apply_pauli(ket[j], pauli[j])
-        env = np.tensordot(env, ket_j, axes=(1, 0))  # (bra_l, phys, ket_r)
-        env = np.tensordot(bra[j].conj(), env, axes=([0, 1], [0, 1]))
-    return complex(np.trace(env))
+
+    # left[j]: sites before j, as (bra, ket) bonds
+    left = {start: np.eye(ket[start].shape[0])}
+    for j in range(start, max((a for a, _ in windows), default=start)):
+        left[j + 1] = _transfer_right(left[j], bra[j], ket[j])
+    right = {stop + 1: np.eye(ket[stop].shape[2])}  # right[j]: sites from j on
+    for j in range(stop, min((b for _, b in windows), default=stop), -1):
+        ket_j = np.tensordot(ket[j], right[j + 1], axes=(2, 1))  # (ket_l, phys, bra_r)
+        right[j] = np.tensordot(bra[j].conj(), ket_j, axes=([1, 2], [1, 2]))
+
+    values = np.empty(len(paulis), dtype=complex)
+    for k, (pauli, (a, b)) in enumerate(zip(paulis, windows)):
+        env = left[a]
+        for j in range(a, b + 1):
+            env = _transfer_right(env, bra[j], apply_pauli(ket[j], pauli[j]))
+        values[k] = np.sum(env * right[b + 1])
+    return values
+
+
+def _transfer_right(env: np.ndarray, bra: np.ndarray, ket: np.ndarray) -> np.ndarray:
+    """Extend a ``(bra, ket)`` left environment over one more site."""
+    ket = np.tensordot(env, ket, axes=(1, 0))  # (bra_l, phys, ket_r)
+    return np.tensordot(bra.conj(), ket, axes=([0, 1], [0, 1]))

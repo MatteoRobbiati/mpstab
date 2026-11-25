@@ -1,4 +1,4 @@
-"""Draw the circuit snippets shown in ``docs/guides/ansatze_catalogue.rst``.
+"""Draw the circuit snippets shown in ``docs/user_guide/ansatze_catalogue.rst``.
 
 Each figure is a small instance of one ansatz (a few qubits, one step or layer)
 drawn from the circuit the class actually builds. Clifford gates are yellow

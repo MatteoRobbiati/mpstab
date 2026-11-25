@@ -14,6 +14,7 @@ from mpstab.engines import (
     StimEngine,
     TensorNetworkEngine,
 )
+from mpstab.evolutors.gradient import analytic_gradient
 from mpstab.evolutors.optimization import minimize_expectation_dmrg
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
@@ -193,19 +194,28 @@ class HSMPO:
         Dressed ``(generator, signed_angle)`` of each ``(breakpoint, gate)`` in
         ``magic_gates``, conjugated by the first ``breakpoint`` gates of
         ``clifford_circuit``.
+        """
+        return [
+            (generator, sign * gate_angle(gate))
+            for (generator, sign), (_, gate) in zip(
+                self._dress_generators(magic_gates, clifford_circuit), magic_gates
+            )
+        ]
+
+    def _dress_generators(self, magic_gates, clifford_circuit) -> List[Tuple[str, int]]:
+        """
+        Dressed ``(generator, sign)`` of each ``(breakpoint, gate)`` in
+        ``magic_gates``: the gate's generator conjugated by the first
+        ``breakpoint`` gates of ``clifford_circuit`` is ``sign * generator``.
 
         The stabilizers engine does the dressing
         (:meth:`~mpstab.engines.StabilizersEngine.backpropagate_at`).
         """
-        dressed = self.stab_engine.backpropagate_at(
+        return self.stab_engine.backpropagate_at(
             [gate_generator(gate, self.nqubits) for _, gate in magic_gates],
             [breakpoint_index for breakpoint_index, _ in magic_gates],
             clifford_circuit,
         )
-        return [
-            (generator, sign * gate_angle(gate))
-            for (generator, sign), (_, gate) in zip(dressed, magic_gates)
-        ]
 
     def _evolve_original(self):
         """
@@ -239,6 +249,75 @@ class HSMPO:
         if return_fidelity:
             return expval, self.tn_engine.squared_norm(self.original_circuit_mps)
         return expval
+
+    def gradient(
+        self,
+        observable: Observable,
+        parameters: List[int] | None = None,
+        light_cone: bool = True,
+        method: str = "adjoint",
+        costate_bond: int | None = None,
+        groups: int = 1,
+        n_workers: int | None = None,
+        return_value: bool = False,
+    ):
+        """
+        Gradient of :meth:`expectation` with respect to the circuit parameters,
+        analytically, instead of the two shifted circuits per parameter of the
+        parameter-shift rule: its cost does not grow with the number of
+        parameters. See
+        :func:`~mpstab.evolutors.gradient.analytic_gradient`, which also
+        reports the rotations applied and the truncation fidelities.
+
+        Args:
+            observable: a Pauli string or any other format
+                :func:`~mpstab.hamiltonians.pauli_terms` accepts.
+            parameters: indices into :meth:`get_parameters` to differentiate,
+                all of them by default.
+            light_cone: drop the rotations that cannot affect the observable
+                first, which is exact.
+            method: ``"adjoint"`` (default), one forward pass and one
+                backward pass of a costate of twice the bond dimension; or
+                ``"flips"``, one shifted tail per parameter, with no costate to
+                truncate.
+            costate_bond: bond cap of the adjoint costate, twice
+                ``max_bond_dimension`` by default; ``max_bond_dimension``
+                itself is about twice as fast, for twice the error.
+            groups: differentiate the observable's terms in this many blocks of
+                neighbouring terms, each on its own, narrower light cone. Faster
+                and more accurate once the union of the cones saturates
+                ``max_bond_dimension``; one block (default) uses the union.
+            n_workers: processes the blocks run on in parallel,
+                ``min(groups, os.cpu_count())`` by default. The pool starts on
+                the first call (about a second per process) and is reused.
+            return_value: also return the expectation value, which the
+                gradient's forward pass computes anyway: what a training step
+                needs. It is exact like :meth:`expectation`, but evaluated on
+                the light-cone chain at the parameters of the last partition
+                (:meth:`set_parameters`), not on the cached MPS.
+
+        Returns:
+            One derivative per requested parameter, or ``(value, gradient)``
+            with ``return_value``.
+
+        Raises:
+            ValueError: if a requested parameter's gate sits at a Clifford
+                angle, so that it was absorbed into the tableau and has no
+                rotation to differentiate.
+        """
+        result = analytic_gradient(
+            self,
+            observable,
+            parameters,
+            light_cone,
+            method,
+            costate_bond,
+            groups,
+            n_workers,
+        )
+        if return_value:
+            return result.value, result.values
+        return result.values
 
     def noisy_expectation(
         self,
@@ -446,9 +525,27 @@ class HSMPO:
         return self.ansatz.circuit.get_parameters()
 
     def set_parameters(self, parameters: np.ndarray):
-        """Set the circuit's parameters and rebuild the cached MPS to match."""
+        """
+        Set the circuit's parameters and re-partition the circuit. The cached
+        MPS is rebuilt on its next use, so a training loop that only calls
+        :meth:`gradient` never pays for it.
+        """
         self.ansatz.circuit.set_parameters(parameters)
-        self.original_circuit_mps = self._evolve_original()
+        self._partition()
+        self.__dict__.pop("original_circuit_mps", None)
+        self._stale_mps = True
+
+    def __getattr__(self, name):
+        # Only reached for missing attributes: rebuild the MPS that
+        # set_parameters dropped, on first use.
+        if name == "original_circuit_mps" and self.__dict__.get("_stale_mps"):
+            mps = self.initial_mps()
+            self._apply_rotations(mps, self._dressed_rotations(), "building MPS")
+            self.original_circuit_mps, self._stale_mps = mps, False
+            return mps
+        raise AttributeError(
+            f"{type(self).__name__!r} object has no attribute {name!r}"
+        )
 
     def minimize_expectation(
         self,
