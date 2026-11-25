@@ -637,11 +637,10 @@ def test_single_kraus_location_is_exact(make_ansatz):
         compiled = compile_noise(hsmpo, [event])
         result = noisy_expectation(compiled, observable)
         assert result.n_samples == 0
-        if len(compiled.block_probs):
-            # Relaxation with T2 <= T1: a Pauli and reset mixture, no coherence.
-            assert len(compiled.coherence_weights) == 0
-        else:
-            assert result.n_transitions > 0
+        # After the last gate no rotation follows, so the ket and bra patterns
+        # agree and each coherence is an expectation value, not a transition.
+        last = event.after_gate == len(circuit.queue) - 1
+        assert (result.n_transitions == 0) if last else (result.n_transitions > 0)
         exact = _events_exact(circuit, [event], observable)
         assert result.mean == pytest.approx(exact, abs=1e-10)
 

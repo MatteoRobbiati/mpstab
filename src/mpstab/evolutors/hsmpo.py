@@ -247,9 +247,6 @@ class HSMPO:
         n_samples: int = 1000,
         seed: int | None = None,
         n_workers: int = 1,
-        control_variates: bool = True,
-        order_one_samples: int | None = None,
-        positive_mixtures: bool = True,
     ):
         """
         Expectation value of ``observable`` on the circuit with ``noise``.
@@ -276,31 +273,19 @@ class HSMPO:
                 amplitudes in parallel. The result does not depend on it; each
                 extra process costs about a second to start, so use it for
                 large runs.
-            control_variates: sample only the residual of the additive and
-                multiplicative models of the faults
-                (:func:`~mpstab.models.noise.mc_noise_estimator.noisy_expectation`).
-            order_one_samples: ``None`` sums single faults exactly; an integer
-                samples that many from the ones too light to sum exactly.
-            positive_mixtures: compile one-qubit channels that are mixtures of
-                Paulis and resets, such as thermal relaxation with
-                ``T2 <= T1``, as such (:func:`~mpstab.models.noise.compile.compile_noise`).
 
         Returns:
             :class:`~mpstab.models.noise.NoisyExpectation`, with the value in ``mean``
             and its standard error in ``stderr``.
         """
         constant, terms = noise.readout_observable(observable, self.nqubits)
-        compiled = compile_noise(
-            self, noise.events(self.ansatz.circuit), positive_mixtures=positive_mixtures
-        )
+        compiled = compile_noise(self, noise.events(self.ansatz.circuit))
         result = noisy_expectation(
             compiled,
             terms,
             n_samples=n_samples,
             seed=seed,
             n_workers=n_workers,
-            control_variates=control_variates,
-            order_one_samples=order_one_samples,
         )
         return replace(result, mean=result.mean + constant)
 

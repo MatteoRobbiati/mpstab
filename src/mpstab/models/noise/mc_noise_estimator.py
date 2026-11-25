@@ -6,18 +6,15 @@ value of Pauli noise is a probability-weighted average of noiseless HSMPO
 expectation values with some angles negated. A coherence ``(A, B)`` of a
 non-Pauli channel flips the ket's and the bra's angles differently, and
 contributes the transition amplitude ``<phi_B| B' O A' |phi_A>`` between the
-two patterns with the complex weight ``chi[A, B]``. A reset block contributes
-the sum of such amplitudes over its terms, with a probability.
+two patterns with the complex weight ``chi[A, B]``.
 
 The sum over configurations is stratified by the number ``k`` of locations
 that do something, each configuration weighted by the product of its entries:
-the no-fault probability, a fault's or a block's probability, or a
-coherence's complex weight.
+the no-fault probability, a fault's probability, or a coherence's complex
+weight.
 
 - ``k = 0`` is the noiseless value;
-- ``k = 1`` is summed exactly or, with ``order_one_samples``, summed exactly
-  over its heaviest entries and importance-sampled over the rest, by a bound
-  on how far each entry can move the value;
+- ``k = 1`` is summed exactly;
 - ``k >= 2`` is sampled from its conditional distribution, with coherences
   drawn by ``|chi|`` and their phases carried as a weight, and its mean is
   multiplied by the total weight of that stratum. Each sample is compared
@@ -25,7 +22,7 @@ coherence's complex weight.
   additive and a multiplicative one, whose sums over the stratum are known
   in closed form, so that only the residual is sampled (control variates).
 
-For Pauli noise and reset blocks the weights are probabilities. Coherences
+For Pauli noise the weights are probabilities. Coherences
 make them a quasi-probability, whose total exceeds 1 by about their summed
 ``|chi|``.
 
@@ -56,10 +53,6 @@ from mpstab.pauli import anticommutation
 #: multiplicative model: ratios to a vanishing value carry no information.
 _PRODUCT_FLOOR = 1e-3
 
-#: Most terms a sampled configuration is expanded into, exactly, before its
-#: further blocks are sampled term by term: two resets (8 terms each) and up.
-_MAX_BLOCK_TERMS = 16
-
 
 @dataclass
 class NoisyExpectation:
@@ -68,9 +61,8 @@ class NoisyExpectation:
 
     Attributes:
         mean: the noisy expectation value.
-        stderr: its standard error, from the sampled parts only (the ``k >= 2``
-            stratum, and the sampled tail of ``k = 1`` if any). Zero when
-            nothing was sampled.
+        stderr: its standard error, from the sampled ``k >= 2`` stratum. Zero
+            when nothing was sampled.
         n_patterns: distinct rotation sign patterns evaluated on the MPS as
             expectation values.
         fidelities: truncation fidelity of the MPS of each of those patterns,
@@ -78,18 +70,16 @@ class NoisyExpectation:
             a norm.
         stratum_weights: total weight of the configurations with ``k = 0``,
             ``k = 1`` and ``k >= 2`` locations doing something, counting only
-            the faults, coherences and blocks that can affect the observable.
-            For Pauli noise and blocks these are probabilities summing to 1;
+            the faults and coherences that can affect the observable.
+            For Pauli noise these are probabilities summing to 1;
             coherences count with ``|chi|``.
         n_samples: configurations sampled for the ``k >= 2`` stratum.
         n_transitions: transition amplitudes evaluated, each one paired with
             its conjugate.
-        order_one_samples: draws from the sampled tail of the ``k = 1`` stratum
-            (0 when it is summed exactly).
         control_coefficients: weights of the additive and multiplicative
             control variates fitted on the ``k >= 2`` samples.
         variance_reduction: variance of the raw ``k >= 2`` samples over that
-            of their residuals after the control variates; 1 without them.
+            of their residuals after the control variates.
     """
 
     mean: float
@@ -99,7 +89,6 @@ class NoisyExpectation:
     stratum_weights: tuple[float, float, float]
     n_samples: int
     n_transitions: int = 0
-    order_one_samples: int = 0
     control_coefficients: tuple[float, ...] = ()
     variance_reduction: float = 1.0
 
@@ -111,8 +100,6 @@ def noisy_expectation(
     seed: int | None = None,
     light_cone: bool = True,
     n_workers: int = 1,
-    control_variates: bool = True,
-    order_one_samples: int | None = None,
 ) -> NoisyExpectation:
     """
     Expectation value of ``observable`` on the noisy circuit.
@@ -124,6 +111,11 @@ def noisy_expectation(
         n_samples: configurations to sample for the ``k >= 2`` stratum. With
             ``0`` that stratum is dropped, which biases the mean by at most
             ``stratum_weights[2]`` times the sum of the absolute coefficients.
+            Each sample is compared with the additive and multiplicative
+            models of its configuration, whose exact sums are added back
+            (control variates): unbiased up to ``O(1 / n_samples)`` from
+            fitting their two coefficients, with a standard error shrunk by
+            how well the models predict the samples.
         seed: seed of the sampler.
         light_cone: restrict the circuit to the observable's light cone first.
             This is exact, and it leaves fewer rotations per pattern and fewer
@@ -133,18 +125,6 @@ def noisy_expectation(
             amplitudes. The jobs are split into contiguous blocks, so the result
             is identical for any value; each extra process costs a start-up of
             about a second, so it pays off only for large runs.
-        control_variates: subtract from each ``k >= 2`` sample the additive and
-            multiplicative models of its configuration, and add back their
-            exact sums. Unbiased up to ``O(1 / n_samples)`` from fitting the
-            two coefficients; the standard error shrinks by how well the models
-            predict the samples.
-        order_one_samples: ``None`` sums the ``k = 1`` stratum exactly. An
-            integer ``N`` sums exactly only the entries whose weight times
-            bound exceeds ``1/N`` of the remaining total, and samples the rest
-            ``N`` times in proportion to that product, without bias. The bound
-            on a fault's shift, ``min(2, 4 sum |sin(theta_j / 2)|)`` over the
-            rotations it flips, costs nothing, so entries that cannot move the
-            value are never evaluated.
 
     Returns:
         The :class:`NoisyExpectation`.
@@ -184,15 +164,11 @@ def noisy_expectation(
 
     jobs = _Jobs(compiled, dressed)
     base_job = jobs.add_diagonal(np.zeros(len(compiled.generators), bool), ())
-    exact, draws = items.split(order_one_samples, weights_per_term, rng)
-    item_jobs = {int(i): items.jobs(i, jobs) for i in np.union1d(exact, draws)}
+    item_jobs = {i: items.jobs(i, jobs) for i in range(len(items.weight))}
 
     if n_samples > 0 and weights[2] > 0:
         samples = _sample_two_or_more(compiled, tails, n_samples, rng)
-        expansions = [
-            _expand(compiled, actions, jobs, rng, _MAX_BLOCK_TERMS)
-            for actions in samples.actions
-        ]
+        expansions = [_expand(compiled, actions, jobs) for actions in samples.actions]
     else:
         n_samples, samples, expansions = 0, None, []
 
@@ -203,22 +179,14 @@ def noisy_expectation(
         return sum(c * values[j] for j, c in expansion)
 
     vectors = {i: combine(expansion) for i, expansion in item_jobs.items()}
-    scalars = {i: float(np.real(v @ weights_per_term)) for i, v in vectors.items()}
-    bases = items.bases(v0, weights_per_term)
 
     # k = 0 and k = 1.
     mean = weights[0] * float(v0 @ np.real(weights_per_term))
-    mean += sum(items.weight[i] * scalars[int(i)] for i in exact)
+    mean += sum(
+        items.weight[i] * float(np.real(v @ weights_per_term))
+        for i, v in vectors.items()
+    )
     variance = 0.0
-    if order_one_samples is not None:
-        mean += float(items.weight[items.tail] @ bases[items.tail])
-        if len(draws):
-            shifts = np.array(
-                [(scalars[int(i)] - bases[i]) / items.bound[i] for i in draws]
-            )
-            mean += items.tail_mass * shifts.mean()
-            if len(draws) > 1:
-                variance += items.tail_mass**2 * shifts.var(ddof=1) / len(draws)
 
     # k >= 2.
     fitted, reduction = (), 1.0
@@ -231,7 +199,7 @@ def noisy_expectation(
         )
         estimate = sampled.mean()
         spread = sampled.var(ddof=1) if n_samples > 1 else 0.0
-        if control_variates and n_samples > 3:
+        if n_samples > 3:
             models = _Models(
                 compiled, items, vectors, values, v0, null, weights_per_term
             )
@@ -256,7 +224,6 @@ def noisy_expectation(
         stratum_weights=weights,
         n_samples=n_samples,
         n_transitions=n_transitions,
-        order_one_samples=len(draws),
         control_coefficients=tuple(float(c) for c in fitted),
         variance_reduction=float(reduction),
     )
@@ -311,12 +278,9 @@ def _two_or_more(active: np.ndarray, null: np.ndarray) -> np.ndarray:
 
 class _OrderOne:
     """
-    The entries of the ``k = 1`` stratum: each fault, each coherence (both
-    orientations, as ``2 Re``) and each block, with its weight (its own times
-    the no-fault probability of every other location), and the value it is
-    compared with when sampled, which needs no MPS: the noiseless value with
-    the fault's observable signs, the noiseless value for a block, zero for a
-    coherence.
+    The entries of the ``k = 1`` stratum: each fault and each coherence (both
+    orientations, as ``2 Re``), with its weight (its own times the no-fault
+    probability of every other location), and each fault's observable signs.
     """
 
     def __init__(self, compiled: CompiledNoise, leave_one_out: np.ndarray, dressed):
@@ -327,18 +291,14 @@ class _OrderOne:
             * np.abs(compiled.coherence_weights)
             * leave_one_out[compiled.coherence_location]
         )
-        blocks = compiled.block_probs * leave_one_out[compiled.block_location]
-        sizes = (len(faults), len(coherences), len(blocks))
-        self.kind = np.repeat([0, 1, 2], sizes)
+        sizes = (len(faults), len(coherences))
+        self.kind = np.repeat([0, 1], sizes)
         self.index = np.concatenate([np.arange(s) for s in sizes]).astype(int)
-        self.weight = np.concatenate([faults, coherences, blocks])
+        self.weight = np.concatenate([faults, coherences])
         # Observable sign of each fault on each term; the constant keeps +1.
         flips = compiled.observable_flips([p for p, _ in dressed])
         self.signs = np.ones((len(faults), len(dressed) + 1))
         self.signs[:, :-1] = 1.0 - 2.0 * flips
-        self.bound = np.zeros(len(self.weight))
-        self.tail = np.zeros(0, int)
-        self.tail_mass = 0.0
         self.forward = {}  # coherence -> its job in the (A, B) orientation
 
     def jobs(self, i: int, jobs: _Jobs):
@@ -348,78 +308,23 @@ class _OrderOne:
         if kind == 0:
             pauli = compiled.fault_paulis[k]
             return [(jobs.add_diagonal(compiled.flips[k], (pauli,)), 1.0)]
-        if kind == 1:
-            # Weighted by 2 |chi|: the value is Re(phase T), the mean of the
-            # job and its conjugate with phases conjugate to each other.
-            phase = compiled.coherence_weights[k] / abs(compiled.coherence_weights[k])
-            forward = jobs.add(
-                compiled.ket_flips[k],
-                compiled.bra_flips[k],
-                (compiled.coherence_ket[k],),
-                (compiled.coherence_bra[k],),
-            )
-            backward = jobs.add(
-                compiled.bra_flips[k],
-                compiled.ket_flips[k],
-                (compiled.coherence_bra[k],),
-                (compiled.coherence_ket[k],),
-            )
-            self.forward[int(k)] = forward
-            return [(forward, phase / 2), (backward, np.conj(phase) / 2)]
-        return [
-            (jobs.add(kf, bf, (a,), (b,)), c)
-            for a, b, c, kf, bf in zip(
-                compiled.block_kets[k],
-                compiled.block_bras[k],
-                compiled.block_coefficients[k],
-                compiled.block_ket_flips[k],
-                compiled.block_bra_flips[k],
-            )
-        ]
-
-    def bases(self, v0: np.ndarray, weights: np.ndarray) -> np.ndarray:
-        """The value each entry is compared with, as a scalar."""
-        base = np.zeros(len(self.weight))
-        faults = self.kind == 0
-        base[faults] = np.real((self.signs * v0) @ weights)[self.index[faults]]
-        base[self.kind == 2] = float(np.real(v0 @ weights))
-        return base
-
-    def split(self, n_draws: int | None, weights: np.ndarray, rng):
-        """
-        ``(exact entries, sampled draws)``: every entry exact without
-        ``n_draws``; otherwise the entries whose weight times bound exceeds
-        ``1/n_draws`` of what remains exact, and ``n_draws`` draws from the
-        rest (the tail) in proportion to it.
-        """
-        everything = np.arange(len(self.weight))
-        if n_draws is None:
-            return everything, np.zeros(0, int)
-        compiled = self.compiled
-        scale = float(np.abs(weights[:-1]).sum())
-        moved = 2 * np.abs(np.sin(compiled.angles / 2))
-        faults = self.kind == 0
-        shift = np.minimum(2.0, 2.0 * (compiled.flips.astype(float) @ moved))
-        self.bound[faults] = scale * shift[self.index[faults]]
-        self.bound[self.kind == 1] = scale + abs(weights[-1])
-        self.bound[self.kind == 2] = 2.0 * scale
-        importance = self.weight * self.bound
-        remaining = importance.sum()
-        exact = []
-        for i in np.argsort(-importance):
-            if importance[i] == 0 or importance[i] * n_draws < remaining:
-                break
-            exact.append(i)
-            remaining -= importance[i]
-        exact = np.array(exact, dtype=int)
-        self.tail = np.setdiff1d(everything, exact)
-        self.tail_mass = float(importance[self.tail].sum())
-        if self.tail_mass <= 0 or n_draws <= 0:
-            return exact, np.zeros(0, int)
-        draws = rng.choice(
-            self.tail, size=n_draws, p=importance[self.tail] / self.tail_mass
+        # Weighted by 2 |chi|: the value is Re(phase T), the mean of the
+        # job and its conjugate with phases conjugate to each other.
+        phase = compiled.coherence_weights[k] / abs(compiled.coherence_weights[k])
+        forward = jobs.add(
+            compiled.ket_flips[k],
+            compiled.bra_flips[k],
+            (compiled.coherence_ket[k],),
+            (compiled.coherence_bra[k],),
         )
-        return exact, draws
+        backward = jobs.add(
+            compiled.bra_flips[k],
+            compiled.ket_flips[k],
+            (compiled.coherence_bra[k],),
+            (compiled.coherence_ket[k],),
+        )
+        self.forward[int(k)] = forward
+        return [(forward, phase / 2), (backward, np.conj(phase) / 2)]
 
 
 # -- Jobs: what the MPS evaluates --------------------------------------------------------
@@ -724,8 +629,8 @@ class _Samples:
     """
     Configurations sampled from the ``k >= 2`` stratum: per sample, its
     actions in location order, each ``(kind, index, swapped)`` with kind 0 a
-    fault, 1 a coherence (``swapped`` exchanging ket and bra) and 2 a block,
-    and the product of the unit phases of its coherences.
+    fault and 1 a coherence (``swapped`` exchanging ket and bra), and the
+    product of the unit phases of its coherences.
     """
 
     actions: list[list[tuple[int, int, bool]]]
@@ -740,7 +645,7 @@ def _sample_two_or_more(compiled, tails, n_samples, rng) -> _Samples:
     Locations are visited in order; each one acts with its weight
     conditioned on the actions still needed being reachable from the
     locations left, so every sample is accepted. An acting location picks
-    one of its faults or blocks by probability or one of its coherences by
+    one of its faults by probability or one of its coherences by
     ``2 |chi|``, in either orientation with equal odds.
     """
     n_locations = len(compiled.location_probs)
@@ -750,7 +655,6 @@ def _sample_two_or_more(compiled, tails, n_samples, rng) -> _Samples:
 
     fault_starts = starts(compiled.fault_location)
     coherence_starts = starts(compiled.coherence_location)
-    block_starts = starts(compiled.block_location)
     coherence_mass = 2 * np.abs(compiled.coherence_weights)
     unit_phase = np.divide(
         compiled.coherence_weights,
@@ -782,16 +686,11 @@ def _sample_two_or_more(compiled, tails, n_samples, rng) -> _Samples:
 
         faults = np.arange(fault_starts[l], fault_starts[l + 1])
         coherences = np.arange(coherence_starts[l], coherence_starts[l + 1])
-        blocks = np.arange(block_starts[l], block_starts[l + 1])
         options = np.concatenate(
-            [
-                compiled.fault_probs[faults],
-                coherence_mass[coherences],
-                compiled.block_probs[blocks],
-            ]
+            [compiled.fault_probs[faults], coherence_mass[coherences]]
         )
-        kinds = np.repeat([0, 1, 2], [len(faults), len(coherences), len(blocks)])
-        indices = np.concatenate([faults, coherences, blocks]).astype(int)
+        kinds = np.repeat([0, 1], [len(faults), len(coherences)])
+        indices = np.concatenate([faults, coherences]).astype(int)
         cumulative = np.cumsum(options)
         choice = np.searchsorted(
             cumulative, rng.random(hits.size) * cumulative[-1], side="right"
@@ -807,49 +706,27 @@ def _sample_two_or_more(compiled, tails, n_samples, rng) -> _Samples:
     return _Samples(actions=actions, phase=phase)
 
 
-def _expand(compiled: CompiledNoise, actions, jobs: _Jobs, rng, max_terms: int):
-    """
-    ``[(job, coefficient)]`` whose sum is a configuration's value vector, or
-    an unbiased estimate of it.
-
-    Each block multiplies the number of terms by its own (8 for a reset), so
-    blocks are expanded exactly only while the expansion stays within
-    ``max_terms``; a block beyond that contributes one of its terms, drawn in
-    proportion to ``|chi|`` and reweighted by their sum.
-    """
+def _expand(compiled: CompiledNoise, actions, jobs: _Jobs):
+    """``[(job, 1.0)]``: the job whose value vector is a configuration's."""
     n_rotations = len(compiled.generators)
-    partial = [(np.zeros(n_rotations, bool), np.zeros(n_rotations, bool), (), (), 1.0)]
+    ket, bra = np.zeros(n_rotations, bool), np.zeros(n_rotations, bool)
+    ket_paulis, bra_paulis = [], []
     for kind, index, swapped in actions:
         if kind == 0:
-            flips, pauli = compiled.flips[index], compiled.fault_paulis[index]
-            options = [(flips, flips, pauli, pauli, 1.0)]
-        elif kind == 1:
-            ket = (compiled.ket_flips[index], compiled.coherence_ket[index])
-            bra = (compiled.bra_flips[index], compiled.coherence_bra[index])
-            if swapped:
-                ket, bra = bra, ket
-            options = [(ket[0], bra[0], ket[1], bra[1], 1.0)]
+            ket_flips = bra_flips = compiled.flips[index]
+            ket_pauli = bra_pauli = compiled.fault_paulis[index]
         else:
-            options = list(
-                zip(
-                    compiled.block_ket_flips[index],
-                    compiled.block_bra_flips[index],
-                    compiled.block_kets[index],
-                    compiled.block_bras[index],
-                    compiled.block_coefficients[index],
-                )
-            )
-            if len(partial) * len(options) > max_terms:
-                sizes = np.abs(compiled.block_coefficients[index])
-                pick = rng.choice(len(options), p=sizes / sizes.sum())
-                kf, bf, ka, ba, w = options[pick]
-                options = [(kf, bf, ka, ba, w / sizes[pick] * sizes.sum())]
-        partial = [
-            (k ^ kf, b ^ bf, kp + (ka,), bp + (ba,), c * w)
-            for k, b, kp, bp, c in partial
-            for kf, bf, ka, ba, w in options
-        ]
-    return [(jobs.add(k, b, kp, bp), c) for k, b, kp, bp, c in partial]
+            ket_flips = compiled.ket_flips[index]
+            bra_flips = compiled.bra_flips[index]
+            ket_pauli = compiled.coherence_ket[index]
+            bra_pauli = compiled.coherence_bra[index]
+            if swapped:
+                ket_flips, bra_flips = bra_flips, ket_flips
+                ket_pauli, bra_pauli = bra_pauli, ket_pauli
+        ket, bra = ket ^ ket_flips, bra ^ bra_flips
+        ket_paulis.append(ket_pauli)
+        bra_paulis.append(bra_pauli)
+    return [(jobs.add(ket, bra, tuple(ket_paulis), tuple(bra_paulis)), 1.0)]
 
 
 # -- Control variates -----------------------------------------------------------------
@@ -862,17 +739,13 @@ class _Models:
 
     - Additive, on faults only: ``prod_i s_i (v0 + sum_i (g_i - v0))`` per
       term, ``s_i`` a fault's observable sign and ``g_i`` its unsigned value;
-      zero on a configuration with a coherence or a block.
+      zero on a configuration with a coherence.
     - Multiplicative: ``v0 prod_a r_a`` per term over the configuration's
       actions, ``r_a`` the action's own ``k = 1`` value over the noiseless
       one (conjugated for a swapped coherence). Its sum factorizes over
       locations. It is exact when the actions act independently, as Pauli
       faults that only flip the observable's sign do, at any number of them.
       Terms whose noiseless value is below ``_PRODUCT_FLOOR`` are left out.
-
-    Entries of ``k = 1`` that were not evaluated (a sampled tail) are taken to
-    change nothing beyond their observable sign: a fixed model, so the
-    estimate stays unbiased.
     """
 
     def __init__(self, compiled, items: _OrderOne, vectors, values, v0, null, weights):
@@ -884,18 +757,14 @@ class _Models:
         n_terms = len(v0)
         self.fault_values = items.signs * v0
         coherence_values = np.zeros((len(compiled.coherence_weights), n_terms), complex)
-        block_values = np.tile(v0, (len(compiled.block_probs), 1)).astype(complex)
         for i, vector in vectors.items():
             kind, k = items.kind[i], items.index[i]
             if kind == 0:
                 self.fault_values[k] = np.real(vector)
-            elif kind == 1:
-                coherence_values[k] = values[items.forward[int(k)]]
             else:
-                block_values[k] = vector
+                coherence_values[k] = values[items.forward[int(k)]]
         self.fault_ratio = np.where(self.active, self.fault_values / safe, 0.0)
         self.coherence_ratio = np.where(self.active, coherence_values / safe, 0.0)
-        self.block_ratio = np.where(self.active, block_values / safe, 0.0)
 
     def sample(self, actions, phase) -> np.ndarray:
         """``(additive, multiplicative)`` model values of one configuration."""
@@ -910,11 +779,9 @@ class _Models:
         for kind, index, swapped in actions:
             if kind == 0:
                 ratio = ratio * self.fault_ratio[index]
-            elif kind == 1:
+            else:
                 r = self.coherence_ratio[index]
                 ratio = ratio * (np.conj(r) if swapped else r)
-            else:
-                ratio = ratio * self.block_ratio[index]
         vector = np.where(self.active, self.v0 * ratio, 0.0)
         return np.array([additive, float(np.real(phase * (vector @ self.weights)))])
 
@@ -945,11 +812,6 @@ class _Models:
             active,
             compiled.coherence_location,
             2 * np.real(compiled.coherence_weights[:, None] * self.coherence_ratio),
-        )
-        np.add.at(
-            active,
-            compiled.block_location,
-            compiled.block_probs[:, None] * self.block_ratio,
         )
         multiplicative = np.where(self.active, self.v0 * _two_or_more(active, null), 0)
         return np.array(
