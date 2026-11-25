@@ -15,7 +15,7 @@ from mpstab.engines import (
     TensorNetworkEngine,
 )
 from mpstab.evolutors.gradient import analytic_gradient
-from mpstab.evolutors.optimization import minimize_expectation_dmrg, minimize_parameters
+from mpstab.evolutors.optimization import minimize_expectation_dmrg
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
@@ -319,49 +319,6 @@ class HSMPO:
             return result.value, result.values
         return result.values
 
-    def optimize_parameters(
-        self,
-        observable: Observable,
-        method: str = "adam",
-        max_steps: int = 200,
-        learning_rate: float = 0.05,
-        tol: float = 1e-6,
-        callback=None,
-        **gradient_options,
-    ) -> dict:
-        """
-        Minimize ``observable`` over the circuit parameters, a VQE on the
-        surrogate, with the analytic gradient. Unlike
-        :meth:`minimize_expectation`, which optimizes the MPS itself, this
-        returns parameters of the circuit, to run anywhere.
-
-        Args:
-            observable: the Hamiltonian, in any format
-                :func:`~mpstab.hamiltonians.pauli_terms` accepts.
-            method: ``"adam"`` or ``"lbfgs"``.
-            max_steps: maximum number of gradient evaluations.
-            learning_rate: Adam's step size.
-            tol: stop once the largest derivative is below it.
-            callback: called as ``callback(step, energy, parameters)``.
-            gradient_options: forwarded to :meth:`gradient`, e.g.
-                ``costate_bond`` or ``groups``.
-
-        Returns:
-            A dict with ``energy``, ``parameters``, ``energy_history``,
-            ``num_steps`` and ``converged``. The instance is left at the best
-            parameters found.
-        """
-        return minimize_parameters(
-            self,
-            observable,
-            method=method,
-            max_steps=max_steps,
-            learning_rate=learning_rate,
-            tol=tol,
-            callback=callback,
-            **gradient_options,
-        )
-
     def noisy_expectation(
         self,
         observable: Observable,
@@ -562,9 +519,27 @@ class HSMPO:
         return self.ansatz.circuit.get_parameters()
 
     def set_parameters(self, parameters: np.ndarray):
-        """Set the circuit's parameters and rebuild the cached MPS to match."""
+        """
+        Set the circuit's parameters and re-partition the circuit. The cached
+        MPS is rebuilt on its next use, so a training loop that only calls
+        :meth:`gradient` never pays for it.
+        """
         self.ansatz.circuit.set_parameters(parameters)
-        self.original_circuit_mps = self._evolve_original()
+        self._partition()
+        self.__dict__.pop("original_circuit_mps", None)
+        self._stale_mps = True
+
+    def __getattr__(self, name):
+        # Only reached for missing attributes: rebuild the MPS that
+        # set_parameters dropped, on first use.
+        if name == "original_circuit_mps" and self.__dict__.get("_stale_mps"):
+            mps = self.initial_mps()
+            self._apply_rotations(mps, self._dressed_rotations(), "building MPS")
+            self.original_circuit_mps, self._stale_mps = mps, False
+            return mps
+        raise AttributeError(
+            f"{type(self).__name__!r} object has no attribute {name!r}"
+        )
 
     def minimize_expectation(
         self,

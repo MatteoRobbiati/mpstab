@@ -9,7 +9,8 @@ The ansatz is the Hamiltonian variational one: a product of singlets on the
 pairs ``(0, 1), (2, 3), ...``, prepared by Clifford gates that mpstab absorbs
 into its tableau, then layers of RZZ, RXX and RYY rotations on the odd bonds
 and on the even bonds, each with its own parameter. It is trained with
-:meth:`~mpstab.HSMPO.optimize_parameters` (L-BFGS on the analytic gradient).
+scipy's L-BFGS-B, fed by :meth:`~mpstab.HSMPO.gradient`, whose forward pass
+also returns the energy.
 
 At the end the trained parameters are evaluated again at a larger bond
 dimension, to check that the energy is the circuit's and not a truncation
@@ -31,7 +32,7 @@ import scipy.sparse as sparse
 import scipy.sparse.linalg as sparse_linalg
 from qibo import Circuit, gates, set_backend
 from qibo.config import log
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, minimize
 
 from mpstab import HSMPO
 
@@ -139,27 +140,37 @@ def main():
         f"{args.nlayers} layers, {hsmpo.nparams} parameters, chi = {args.max_bond}\n"
     )
 
-    times = []
+    energies, times = [], []
     start = time.perf_counter()
 
-    def report(step, energy, parameters):
+    def energy_and_gradient(parameters):
+        hsmpo.set_parameters(parameters)
+        energy, gradient = hsmpo.gradient(hamiltonian, return_value=True)
+        energies.append(energy)
         times.append(time.perf_counter() - start)
-        if step % 25 == 0:
+        if len(energies) % 25 == 1:
             print(
-                f"eval {step:4d}  E = {energy:.6f}  relative error "
+                f"eval {len(energies) - 1:4d}  E = {energy:.6f}  relative error "
                 f"{(energy - reference) / abs(reference):.2e}  ({times[-1]:.0f} s)",
                 flush=True,
             )
+        return energy, gradient
 
-    result = hsmpo.optimize_parameters(
-        hamiltonian, method="lbfgs", max_steps=args.max_steps, callback=report
+    initial = np.array(hsmpo.get_parameters(), dtype=float).ravel()
+    result = minimize(
+        energy_and_gradient,
+        initial,
+        jac=True,
+        method="L-BFGS-B",
+        options={"maxfun": args.max_steps, "maxiter": args.max_steps},
     )
-    energies = np.array(result["energy_history"])
+    hsmpo.set_parameters(result.x)
+    energies = np.array(energies)
     print(
-        f"\ntrained: E = {result['energy']:.8f}, relative error "
-        f"{(result['energy'] - reference) / abs(reference):.2e}, "
-        f"{result['num_steps']} evaluations in {times[-1]:.0f} s "
-        f"({times[-1] / result['num_steps']:.2f} s each)"
+        f"\ntrained: E = {result.fun:.8f}, relative error "
+        f"{(result.fun - reference) / abs(reference):.2e}, "
+        f"{len(energies)} evaluations in {times[-1]:.0f} s "
+        f"({times[-1] / len(energies):.2f} s each)"
     )
 
     check = HSMPO(hsmpo.ansatz, max_bond_dimension=args.check_bond, progress=False)
@@ -173,7 +184,7 @@ def main():
     start = time.perf_counter()
     hsmpo.expectation_from_partition(hamiltonian, 0.0)
     one = time.perf_counter() - start
-    estimate = 2 * hsmpo.nparams * one * result["num_steps"]
+    estimate = 2 * hsmpo.nparams * one * len(energies)
     print(
         f"parameter-shift rule, same evaluations: ~{estimate / 3600:.1f} h "
         f"({2 * hsmpo.nparams} energies of {one:.2f} s per gradient)"

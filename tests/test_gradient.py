@@ -364,37 +364,17 @@ def test_gradient_groups(method, groups):
     np.testing.assert_allclose(gradient, expected, atol=1e-10)
 
 
-@pytest.mark.parametrize("method", ["adam", "lbfgs"])
-def test_optimize_parameters_lowers_the_energy(method):
-    """A short VQE run lowers the energy and leaves the HSMPO at its result."""
+def test_set_parameters_rebuilds_the_mps_lazily():
+    """After set_parameters the gradient needs no MPS; expectation rebuilds it."""
     np.random.seed(7)
-    hsmpo = HSMPO(HardwareEfficient(nqubits=6, nlayers=2))
-    hamiltonian = {
-        "ZZIIII": -1.0,
-        "IZZIII": -1.0,
-        "IIZZII": -1.0,
-        "IIIZZI": -1.0,
-        "IIIIZZ": -1.0,
-        "XIIIII": -0.5,
-        "IIIXII": -0.5,
-    }
-    initial = hsmpo.expectation(hamiltonian)
-    steps = []
-    result = hsmpo.optimize_parameters(
-        hamiltonian,
-        method=method,
-        max_steps=40,
-        callback=lambda step, energy, parameters: steps.append(energy),
-    )
-    assert result["energy"] < initial - 1.0
-    assert result["energy"] == pytest.approx(min(result["energy_history"]))
-    assert len(steps) == result["num_steps"] == len(result["energy_history"])
-    np.testing.assert_allclose(
-        np.array(hsmpo.get_parameters(), dtype=float).ravel(), result["parameters"]
-    )
-    assert hsmpo.expectation(hamiltonian) == pytest.approx(result["energy"], abs=1e-9)
+    hsmpo = HSMPO(HardwareEfficient(nqubits=5, nlayers=2))
+    parameters = np.random.uniform(-np.pi, np.pi, hsmpo.nparams)
+    hsmpo.set_parameters(parameters)
+    assert "original_circuit_mps" not in hsmpo.__dict__
+    value, gradient = hsmpo.gradient(OBSERVABLE, return_value=True)
+    assert "original_circuit_mps" not in hsmpo.__dict__
 
-
-def test_optimize_parameters_unknown_method():
-    with pytest.raises(ValueError, match="Unknown method"):
-        HSMPO(_generic_circuit(nlayers=1)).optimize_parameters(OBSERVABLE, method="sgd")
+    fresh = HSMPO(hsmpo.ansatz)
+    assert hsmpo.expectation(OBSERVABLE) == pytest.approx(value, abs=1e-10)
+    assert value == pytest.approx(fresh.expectation(OBSERVABLE), abs=1e-10)
+    np.testing.assert_allclose(gradient, fresh.gradient(OBSERVABLE), atol=1e-10)

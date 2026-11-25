@@ -1,10 +1,9 @@
-"""Optimization of an HSMPO: DMRG over its MPS, and gradient-based training of
-its circuit parameters with a fused adjoint kernel."""
+"""Optimization of an HSMPO's MPS with DMRG, and the fused adjoint kernel of
+its analytic gradient."""
 
 from typing import Union
 
 import numpy as np
-from scipy.optimize import minimize as scipy_minimize
 
 from mpstab.engines.tensor_networks import _mps_kernels as kernels
 from mpstab.hamiltonians import Observable, pauli_terms
@@ -190,116 +189,3 @@ def _expectations(arrays, center, paulis):
             center = kernels.move_center(arrays, center, window[0])
         values[k] = kernels.pauli_expectation(arrays, center, paulis[k])
     return values
-
-
-def minimize_parameters(
-    hsmpo,
-    observable: Observable,
-    method: str = "adam",
-    initial_parameters=None,
-    max_steps: int = 200,
-    learning_rate: float = 0.05,
-    tol: float = 1e-6,
-    callback=None,
-    **gradient_options,
-):
-    """
-    Minimize an observable over the circuit parameters of an HSMPO, with its
-    analytic gradient (:meth:`~mpstab.HSMPO.gradient`).
-
-    Each step only re-partitions the circuit at the new parameters and runs
-    one gradient, whose forward pass also gives the energy: the cached MPS is
-    rebuilt once, at the end, for the best parameters found.
-
-    Args:
-        hsmpo: the :class:`~mpstab.evolutors.hsmpo.HSMPO` to train. Its
-            parameters are left at the best ones found.
-        observable: the Hamiltonian, in any format
-            :func:`~mpstab.hamiltonians.pauli_terms` accepts.
-        method: ``"adam"`` or ``"lbfgs"`` (scipy's L-BFGS-B).
-        initial_parameters: where to start, the current parameters by default.
-        max_steps: maximum number of gradient evaluations.
-        learning_rate: Adam's step size.
-        tol: stop once the largest derivative is below it (Adam), or with
-            this gradient tolerance (L-BFGS).
-        callback: called as ``callback(step, energy, parameters)`` after each
-            gradient evaluation.
-        gradient_options: forwarded to :meth:`~mpstab.HSMPO.gradient`, e.g.
-            ``costate_bond`` or ``groups``.
-
-    Returns:
-        A dict with ``energy``, ``parameters``, ``energy_history``,
-        ``num_steps`` and ``converged``.
-    """
-    parameters = np.array(
-        hsmpo.get_parameters() if initial_parameters is None else initial_parameters,
-        dtype=float,
-    ).reshape(-1)
-    history, best = [], (np.inf, parameters.copy())
-
-    def value_and_gradient(parameters):
-        hsmpo.ansatz.circuit.set_parameters(parameters)
-        hsmpo._partition()
-        value, gradient = hsmpo.gradient(
-            observable, return_value=True, **gradient_options
-        )
-        history.append(value)
-        nonlocal best
-        if value < best[0]:
-            best = (value, parameters.copy())
-        if callback is not None:
-            callback(len(history) - 1, value, parameters)
-        return value, gradient
-
-    converged = False
-    if method == "adam":
-        optimizer = _Adam(learning_rate)
-        for _ in range(max_steps):
-            _, gradient = value_and_gradient(parameters)
-            if np.abs(gradient).max() < tol:
-                converged = True
-                break
-            parameters = optimizer.step(parameters, gradient)
-    elif method == "lbfgs":
-        result = scipy_minimize(
-            value_and_gradient,
-            parameters,
-            jac=True,
-            method="L-BFGS-B",
-            options={"maxfun": max_steps, "maxiter": max_steps, "gtol": tol},
-        )
-        converged = bool(result.success)
-    else:
-        raise ValueError(f"Unknown method {method!r}, expected 'adam' or 'lbfgs'.")
-
-    energy, parameters = best
-    hsmpo.set_parameters(parameters)
-    return {
-        "energy": energy,
-        "parameters": parameters,
-        "energy_history": history,
-        "num_steps": len(history),
-        "converged": converged,
-    }
-
-
-class _Adam:
-    """The Adam update rule on a flat parameter vector."""
-
-    def __init__(self, learning_rate, beta1=0.9, beta2=0.999, eps=1e-8):
-        self.learning_rate, self.beta1, self.beta2, self.eps = (
-            learning_rate,
-            beta1,
-            beta2,
-            eps,
-        )
-        self.m = self.v = 0.0
-        self.t = 0
-
-    def step(self, parameters, gradient):
-        self.t += 1
-        self.m = self.beta1 * self.m + (1 - self.beta1) * gradient
-        self.v = self.beta2 * self.v + (1 - self.beta2) * gradient**2
-        m = self.m / (1 - self.beta1**self.t)
-        v = self.v / (1 - self.beta2**self.t)
-        return parameters - self.learning_rate * m / (np.sqrt(v) + self.eps)
