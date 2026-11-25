@@ -208,8 +208,11 @@
 <li class="toctree-l1"><a class="reference internal" href="methods/theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="methods/analytic_gradients.html">Analytic gradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="methods/hqsmpo/index.html">Hybrid quantum-classical execution: HQSMPO</a><input aria-label="Toggle navigation of Hybrid quantum-classical execution: HQSMPO" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul>
@@ -221,11 +224,11 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/introduction.html">A quick introduction to mpstab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/noise.html">Noisy simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/advanced_noise.html">Device-level noise</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/noise.html">Pauli noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/advanced_noise.html">Non-unital noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/error_mitigation.html">Data-driven error mitigation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/ground_states.html">Ground states with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
@@ -345,26 +348,24 @@ Among our core features:</p>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="methods/analytic_gradients.html">Analytic gradients</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#how-it-works">How it works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#step-1-the-circuit-as-a-chain-of-rotations">Step 1: the circuit as a chain of rotations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#step-2-one-derivative-is-a-transition-amplitude">Step 2: one derivative is a transition amplitude</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#step-3-all-derivatives-in-one-backward-pass">Step 3: all derivatives in one backward pass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#step-4-back-to-the-circuit-parameters">Step 4: back to the circuit parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#the-same-formula-read-as-noise">The same formula, read as noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#parameters-at-clifford-angles">Parameters at Clifford angles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#accuracy-and-truncation">Accuracy and truncation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#usage">Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#benchmarks">Benchmarks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="methods/analytic_gradients.html#limitations">Limitations</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="methods/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="methods/clifford_extraction_synthesis.html#the-problem">The problem</a></li>
-<li class="toctree-l2"><a class="reference internal" href="methods/clifford_extraction_synthesis.html#the-idea-do-not-undo">The idea: do not undo</a></li>
-<li class="toctree-l2"><a class="reference internal" href="methods/clifford_extraction_synthesis.html#which-cnots">Which CNOTs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="methods/clifford_extraction_synthesis.html#usage">Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="methods/clifford_extraction_synthesis.html#the-light-cone-of-the-observable">The light cone of the observable</a></li>
-<li class="toctree-l2"><a class="reference internal" href="methods/clifford_extraction_synthesis.html#what-to-expect">What to expect</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="methods/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="methods/rustiq_resynthesis.html#why-foldable">Why “foldable”?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="methods/rustiq_resynthesis.html#basic-usage">Basic usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="methods/rustiq_resynthesis.html#partial-cuts-gate-count-profiling">Partial cuts: gate-count profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/hqsmpo/index.html">Hybrid quantum-classical execution: HQSMPO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/index.html#the-head-tail-split">The head/tail split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/index.html#three-stages">Three stages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="methods/hqsmpo/index.html#usage">Usage</a></li>
 </ul>
 </li>
 </ul>
@@ -420,9 +421,9 @@ Among our core features:</p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/introduction.html">A quick introduction to mpstab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/noise.html">Noisy simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/advanced_noise.html">Device-level noise</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/noise.html">Pauli noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/advanced_noise.html">Non-unital noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/error_mitigation.html">Data-driven error mitigation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/ground_states.html">Ground states with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>

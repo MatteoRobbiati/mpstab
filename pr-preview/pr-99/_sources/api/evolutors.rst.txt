@@ -37,7 +37,7 @@ HQSMPO: Head/Tail Split
 
 Splits the dressed-rotation chain in two: a head resynthesized into a circuit a
 device can run, and a tail folded into the observable. See
-:doc:`../methods/rustiq_resynthesis`.
+:doc:`../methods/hqsmpo/rustiq_resynthesis`.
 
 .. automodule:: mpstab.evolutors.hqsmpo
    :members:

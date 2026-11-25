@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Head Synthesis by Clifford Extraction" href="clifford_extraction_synthesis.html"><link rel="prev" title="Fidelity and Approximation" href="fidelity_and_approximation.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Hybrid quantum-classical execution: HQSMPO" href="hqsmpo/index.html"><link rel="prev" title="Fidelity and Approximation" href="fidelity_and_approximation.html">
         <link rel="prefetch" href="../_static/mpstab_logo.png" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
@@ -208,8 +208,11 @@
 <li class="toctree-l1"><a class="reference internal" href="theory_background.html">Theoretical Background, a snapshot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fidelity_and_approximation.html">Fidelity and Approximation</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Analytic gradients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="hqsmpo/index.html">Hybrid quantum-classical execution: HQSMPO</a><input aria-label="Toggle navigation of Hybrid quantum-classical execution: HQSMPO" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="hqsmpo/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hqsmpo/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul>
@@ -221,11 +224,11 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/introduction.html">A quick introduction to mpstab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/noise.html">Noisy simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/advanced_noise.html">Device-level noise</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/error_mitigation.html">Error mitigation with Clifford data regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/noise.html">Pauli noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/advanced_noise.html">Non-unital noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/error_mitigation.html">Data-driven error mitigation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/ground_states.html">Ground states with DMRG</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
@@ -289,104 +292,182 @@
         <article role="main" id="furo-main-content">
           <section id="analytic-gradients">
 <span id="id1"></span><h1>Analytic gradients<a class="headerlink" href="#analytic-gradients" title="Link to this heading">¶</a></h1>
-<p><code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code> differentiates an expectation value with
-respect to every parameter of the circuit at once. The cost is about that of
-two evaluations of the energy, however many parameters there are. The
-parameter-shift rule needs two shifted circuits <em>per parameter</em>: on 60 qubits
-with 240 parameters, a gradient takes 3 s with mpstab and between 5 and 7
+<p>A variational algorithm, such as a VQE, tunes the angles <span class="math">\(\theta\)</span> of a
+circuit to minimize an energy <span class="math">\(f(\theta) = \langle O \rangle\)</span>, and needs
+the gradient <span class="math">\(\nabla f\)</span> at every step. On a quantum computer the gradient
+comes from the <em>parameter-shift rule</em>: two extra circuits per parameter, so a
+circuit with <span class="math">\(P\)</span> parameters costs <span class="math">\(2P\)</span> evaluations per step.</p>
+<p><code class="xref py py-meth docutils literal notranslate"><span class="pre">gradient()</span></code> computes all the derivatives at once, for about
+the cost of <strong>two</strong> evaluations, however many parameters there are. On 60
+qubits with 240 parameters a gradient takes 3 s with mpstab, against 5 to 7
 minutes with parameter-shift tensor-network gradients in PennyLane or qiboml.</p>
-<p>This guide explains how the gradient is computed, what controls its accuracy,
-and how it compares with other frameworks.</p>
-<section id="how-it-works">
-<h2>How it works<a class="headerlink" href="#how-it-works" title="Link to this heading">¶</a></h2>
-<section id="the-clifford-frame">
-<h3>The Clifford frame<a class="headerlink" href="#the-clifford-frame" title="Link to this heading">¶</a></h3>
-<p>An HSMPO splits the circuit into a Clifford part, which stim keeps as a
-tableau, and the non-Clifford rotations. Once the rotations are moved through
-the Clifford gates (“dressed”), the state is a chain of Pauli rotations on the
-initial MPS,</p>
+<p>This page builds the method step by step: what mpstab differentiates, why one
+derivative is a transition amplitude, how a single backward pass gives all of
+them, and what limits the accuracy.</p>
+<section id="step-1-the-circuit-as-a-chain-of-rotations">
+<h2>Step 1: the circuit as a chain of rotations<a class="headerlink" href="#step-1-the-circuit-as-a-chain-of-rotations" title="Link to this heading">¶</a></h2>
+<p>An HSMPO keeps the Clifford gates of a circuit in a stabilizer tableau and the
+non-Clifford rotations in an MPS (see <a class="reference internal" href="theory_background.html"><span class="doc">Theoretical Background, a snapshot</span></a>). Every rotation
+is moved through the Clifford gates that precede it: a Clifford conjugates a
+Pauli string into another Pauli string, so the rotation stays a rotation, about
+a new, <em>dressed</em> string. What reaches the MPS is a chain of Pauli rotations,</p>
 <div class="math-wrapper docutils container">
 <div class="math">
 \[|\psi\rangle = R_R \cdots R_2 R_1 |\mathrm{init}\rangle,
 \qquad R_j = e^{-i \varphi_j G_j / 2},\]</div>
 </div>
-<p>where each <span class="math">\(G_j\)</span> is a Pauli string and each angle <span class="math">\(\varphi_j\)</span> is
-a circuit parameter <span class="math">\(\theta\)</span> times a dressing sign <span class="math">\(s_j = \pm 1\)</span>.
-The observable is dressed the same way into a Pauli sum
-<span class="math">\(O = \sum_t c_t P_t\)</span>, and the energy is
-<span class="math">\(f = \langle\psi|O|\psi\rangle / \langle\psi|\psi\rangle\)</span>.</p>
+<p>where each generator <span class="math">\(G_j\)</span> is a Pauli string and each angle
+<span class="math">\(\varphi_j\)</span> is a circuit parameter times a sign <span class="math">\(s_j = \pm 1\)</span> picked
+up in the dressing. The observable is dressed the same way into a Pauli sum
+<span class="math">\(O = \sum_t c_t P_t\)</span>, and the energy is</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[f = \frac{\langle\psi|\,O\,|\psi\rangle}{\langle\psi|\psi\rangle}.\]</div>
+</div>
+<p>The denominator is 1 for an exact state; it is kept because a truncated MPS
+loses a little norm. From here on only this chain matters: differentiating the
+circuit means differentiating it.</p>
 </section>
-<section id="the-adjoint-method">
-<h3>The adjoint method<a class="headerlink" href="#the-adjoint-method" title="Link to this heading">¶</a></h3>
-<p>Since <span class="math">\(\partial_{\varphi_j} R_j = -\tfrac{i}{2} G_j R_j\)</span>, write
-<span class="math">\(|\psi_j\rangle = R_j \cdots R_1 |\mathrm{init}\rangle\)</span> for the state
-after rotation <span class="math">\(j\)</span> and <span class="math">\(T_j = R_R \cdots R_{j+1}\)</span> for the rest of
-the chain. Then</p>
+<section id="step-2-one-derivative-is-a-transition-amplitude">
+<h2>Step 2: one derivative is a transition amplitude<a class="headerlink" href="#step-2-one-derivative-is-a-transition-amplitude" title="Link to this heading">¶</a></h2>
+<p>A rotation about a Pauli string has a simple derivative,</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[\frac{\partial R_j}{\partial \varphi_j} = -\frac{i}{2}\, G_j\, R_j,\]</div>
+</div>
+<p>so differentiating <span class="math">\(f\)</span> with respect to <span class="math">\(\varphi_j\)</span> inserts the Pauli
+string <span class="math">\(G_j\)</span> right after rotation <span class="math">\(j\)</span>, with a factor
+<span class="math">\(-i/2\)</span>:</p>
+<figure class="align-center">
+<a class="only-light reference internal image-reference" href="../_images/derivative_as_fault.svg"><img alt="../_images/derivative_as_fault.svg" class="only-light" src="../_images/derivative_as_fault.svg" style="width: 100%;" />
+</a>
+<a class="only-dark reference internal image-reference" href="../_images/derivative_as_fault_dark.svg"><img alt="../_images/derivative_as_fault_dark.svg" class="only-dark" src="../_images/derivative_as_fault_dark.svg" style="width: 100%;" />
+</a>
+</figcaption>
+</figure>
+<p>Call <span class="math">\(|\psi_j\rangle = R_j \cdots R_1 |\mathrm{init}\rangle\)</span> the state
+after rotation <span class="math">\(j\)</span>, and <span class="math">\(T_j = R_R \cdots R_{j+1}\)</span> the rotations
+after it, so that <span class="math">\(|\psi\rangle = T_j |\psi_j\rangle\)</span>. The product rule
+on <span class="math">\(\langle\psi|O|\psi\rangle\)</span> gives two complex-conjugate terms, hence
+twice a real part:</p>
 <div class="math-wrapper docutils container">
 <div class="math">
 \[\frac{\partial f}{\partial \varphi_j}
-= \frac{\operatorname{Im} \langle \lambda_j | G_j | \psi_j \rangle}
-       {\langle\psi|\psi\rangle},
+= \frac{2\,\mathrm{Re}\,\langle\psi|\, O\, T_j \left(-\tfrac{i}{2} G_j\right) |\psi_j\rangle}{\langle\psi|\psi\rangle}
+= \frac{\operatorname{Im} \langle \lambda_j |\, G_j\, | \psi_j \rangle}{\langle\psi|\psi\rangle},
 \qquad
 |\lambda_j\rangle = T_j^\dagger \, O \, |\psi\rangle .\]</div>
 </div>
-<p>The costate <span class="math">\(|\lambda_j\rangle\)</span> needs no new simulation for each
-<span class="math">\(j\)</span>: <span class="math">\(|\lambda_{j-1}\rangle = R_j^\dagger |\lambda_j\rangle\)</span>. So
-the whole gradient takes</p>
+<p>The derivative is the overlap of two states with <span class="math">\(G_j\)</span> between them: the
+state <span class="math">\(|\psi_j\rangle\)</span> coming forward from the input, and the
+<strong>costate</strong> <span class="math">\(|\lambda_j\rangle\)</span>, which is <span class="math">\(O|\psi\rangle\)</span> brought
+<em>backwards</em> through the rotations after <span class="math">\(j\)</span>.</p>
+<div class="admonition-check-on-one-qubit admonition">
+<p class="admonition-title">Check on one qubit</p>
+<p>Take one rotation <span class="math">\(R_Y(\varphi)\)</span> on <span class="math">\(|0\rangle\)</span> and
+<span class="math">\(O = Z\)</span>, so <span class="math">\(f = \cos\varphi\)</span>. Here <span class="math">\(T\)</span> is empty,
+<span class="math">\(|\lambda\rangle = Z|\psi\rangle\)</span> and <span class="math">\(ZY = -iX\)</span>, so
+<span class="math">\(\operatorname{Im}\langle\psi|ZY|\psi\rangle = -\langle\psi|X|\psi\rangle = -\sin\varphi\)</span>,
+which is indeed <span class="math">\(\partial_\varphi \cos\varphi\)</span>.</p>
+</div>
+</section>
+<section id="step-3-all-derivatives-in-one-backward-pass">
+<h2>Step 3: all derivatives in one backward pass<a class="headerlink" href="#step-3-all-derivatives-in-one-backward-pass" title="Link to this heading">¶</a></h2>
+<p>Computed one by one, each costate would need its own pass through the end of
+the chain, and the gradient would cost <span class="math">\(R\)</span> simulations, no better than
+the parameter-shift rule. But consecutive costates differ by a single
+rotation,</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[|\lambda_{j-1}\rangle = R_j^\dagger\, |\lambda_j\rangle,
+\qquad |\lambda_R\rangle = O\,|\psi\rangle,\]</div>
+</div>
+<p>so one sweep from the end of the chain to its start visits all of them. This
+is the <em>adjoint method</em>, the same idea as backpropagation in neural networks:</p>
+<figure class="align-center">
+<a class="only-light reference internal image-reference" href="../_images/adjoint_passes.svg"><img alt="../_images/adjoint_passes.svg" class="only-light" src="../_images/adjoint_passes.svg" style="width: 100%;" />
+</a>
+<a class="only-dark reference internal image-reference" href="../_images/adjoint_passes_dark.svg"><img alt="../_images/adjoint_passes_dark.svg" class="only-dark" src="../_images/adjoint_passes_dark.svg" style="width: 100%;" />
+</a>
+</figcaption>
+</figure>
+<p>The gradient takes</p>
 <ol class="arabic simple">
-<li><p><strong>one forward pass</strong> that applies the rotations to the MPS and keeps a
-checkpoint after each one (cheap, since the MPS kernels never write into
-existing tensors and a checkpoint shares them);</p></li>
-<li><p><strong>one application of the Hamiltonian</strong>, <span class="math">\(O|\psi\rangle\)</span>, compressed
-to the costate bond dimension;</p></li>
-<li><p><strong>one backward pass</strong> that undoes the rotations on the costate and reads
+<li><p><strong>one forward pass</strong>, which applies the rotations to the MPS and keeps the
+state after each one. A checkpoint is cheap: the MPS kernels replace the
+tensors a rotation touches instead of writing into them, so consecutive
+checkpoints share every other tensor;</p></li>
+<li><p><strong>one application of the observable</strong>, <span class="math">\(O|\psi\rangle\)</span>, compressed
+to the bond dimension of the costate;</p></li>
+<li><p><strong>one backward pass</strong>, which undoes the rotations on the costate and reads
 one transition amplitude <span class="math">\(\langle\lambda_j|G_j|\psi_j\rangle\)</span> per
 rotation.</p></li>
 </ol>
-<p>The energy itself comes out of the forward pass, so a training step needs no
+<p>That is about <span class="math">\(2R\)</span> rotations, whatever the number of parameters. The
+energy itself comes out of the forward pass, so a training step needs no
 separate evaluation (<code class="xref py py-meth docutils literal notranslate"><span class="pre">value_and_gradient()</span></code>).</p>
-<p>The chain rule back to the circuit parameters sums
-<span class="math">\(s_j \, \partial f / \partial \varphi_j\)</span> over the rotations of each
-parameter’s gate. Rotations outside the light cone of the observable are
-dropped first, which is exact.</p>
 </section>
-<section id="the-sign-flip-picture">
-<h3>The sign-flip picture<a class="headerlink" href="#the-sign-flip-picture" title="Link to this heading">¶</a></h3>
-<p>Moving <span class="math">\(G_j\)</span> to the end of the chain flips the sign of every later angle
-whose generator anticommutes with it: this is exactly the sign pattern a Pauli
-fault after rotation <span class="math">\(j\)</span> produces in <code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.models.noise</span></code>. Read
-forward, the same formula gives <code class="docutils literal notranslate"><span class="pre">method=&quot;flips&quot;</span></code>, one flipped tail per
-parameter and one transition amplitude per Hamiltonian term. It is slower than
-the adjoint for many parameters, but has no costate to truncate.</p>
-<p>Both methods equal the parameter-shift rule: without truncation they agree
-with it to about <span class="math">\(10^{-15}\)</span> and with the exact statevector gradient to
-about <span class="math">\(10^{-10}\)</span>.</p>
+<section id="step-4-back-to-the-circuit-parameters">
+<h2>Step 4: back to the circuit parameters<a class="headerlink" href="#step-4-back-to-the-circuit-parameters" title="Link to this heading">¶</a></h2>
+<p>The derivatives above are with respect to the angles <span class="math">\(\varphi_j\)</span> of the
+chain. A circuit parameter <span class="math">\(\theta\)</span> reaches the chain through
+<span class="math">\(\varphi_j = s_j\,\theta\)</span>, once for each rotation of its gate, so</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[\frac{\partial f}{\partial \theta} = \sum_{j \,\in\, \text{rotations of } \theta} s_j\, \frac{\partial f}{\partial \varphi_j}.\]</div>
+</div>
+<p>Before any of this, the rotations outside the <em>light cone</em> of the observable
+are dropped: going backwards from <span class="math">\(O\)</span>, a rotation matters only if its
+generator anticommutes with the observable or with a later rotation that
+matters. The others cancel exactly in <span class="math">\(\langle\psi|O|\psi\rangle\)</span>, and
+their parameters have zero derivative.</p>
+</section>
+<section id="the-same-formula-read-as-noise">
+<h2>The same formula, read as noise<a class="headerlink" href="#the-same-formula-read-as-noise" title="Link to this heading">¶</a></h2>
+<p>Step 2 inserted a Pauli string <span class="math">\(G_j\)</span> after rotation <span class="math">\(j\)</span>. That is
+exactly what a Pauli <em>fault</em> does in a noisy circuit, and mpstab handles it the
+same way (see the <a class="reference internal" href="../tutorials/noise.html"><span class="doc">Pauli noise simulation</span></a> tutorial): instead of bringing the
+observable backwards, slide <span class="math">\(G_j\)</span> forward to the end of the chain. A
+Pauli commutes with a rotation about a commuting string and flips the sign of
+the angle of an anticommuting one, so</p>
+<div class="math-wrapper docutils container">
+<div class="math">
+\[\frac{\partial f}{\partial \varphi_j} = \sum_t c_t \operatorname{Im}\, \langle\psi|\, P_t\, G_j\, |\tilde\psi_j\rangle,\]</div>
+</div>
+<p>where <span class="math">\(|\tilde\psi_j\rangle\)</span> is the chain with the angles of the later
+rotations that anticommute with <span class="math">\(G_j\)</span> negated. <code class="docutils literal notranslate"><span class="pre">method=&quot;flips&quot;</span></code>
+evaluates this form: one shifted tail per parameter, one transition amplitude
+per Hamiltonian term. It applies <span class="math">\(O(PR)\)</span> rotations instead of
+<span class="math">\(2R\)</span>, but has no costate to compress.</p>
+<p>Both methods are exact rewritings of the parameter-shift rule: without
+truncation they agree with it to about <span class="math">\(10^{-15}\)</span>, and with the exact
+statevector gradient to about <span class="math">\(10^{-10}\)</span>.</p>
 </section>
 <section id="parameters-at-clifford-angles">
-<h3>Parameters at Clifford angles<a class="headerlink" href="#parameters-at-clifford-angles" title="Link to this heading">¶</a></h3>
+<h2>Parameters at Clifford angles<a class="headerlink" href="#parameters-at-clifford-angles" title="Link to this heading">¶</a></h2>
 <p>A rotation whose angle is a multiple of <span class="math">\(\pi/2\)</span> (zero included) is a
-Clifford gate: mpstab absorbs it into the tableau, so it has no rotation in the
+Clifford gate. mpstab absorbs it into the tableau, so it has no rotation in the
 chain to differentiate. Asking for its derivative raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
 rather than silently returning zero. Initialize parameters away from those
 values, e.g. with small random angles.</p>
 </section>
-</section>
 <section id="accuracy-and-truncation">
 <h2>Accuracy and truncation<a class="headerlink" href="#accuracy-and-truncation" title="Link to this heading">¶</a></h2>
-<p>With a finite bond dimension <span class="math">\(\chi\)</span>, the gradient is the gradient of the
-truncated surrogate. Two things set its error:</p>
+<p>With a finite bond dimension <span class="math">\(\chi\)</span> the gradient is that of the truncated
+surrogate. Two things set its error.</p>
 <ul class="simple">
 <li><p><strong>The state.</strong> The gradient is an overlap, so its error is of <em>first</em> order
 in the truncation error of <span class="math">\(|\psi\rangle\)</span>, while an energy (and so a
-parameter-shift gradient) is of second order. At equal <span class="math">\(\chi\)</span>, the
+parameter-shift gradient) is of second order. At equal <span class="math">\(\chi\)</span> the
 adjoint gradient is therefore somewhat less accurate than the
-parameter-shift one (right panel of the figure below), and the truncation
+parameter-shift one (right panel of the figure below). The truncation
 fidelity reported by <a class="reference internal" href="../api/evolutors.html#mpstab.evolutors.gradient.analytic_gradient" title="mpstab.evolutors.gradient.analytic_gradient"><code class="xref py py-func docutils literal notranslate"><span class="pre">analytic_gradient()</span></code></a>
 tracks its error well.</p></li>
-<li><p><strong>The costate.</strong> <span class="math">\(O|\psi\rangle\)</span> is a sum of many Pauli strings and has
-a larger bond dimension than <span class="math">\(|\psi\rangle\)</span>. By default it is capped at
-<span class="math">\(2\chi\)</span>; <code class="docutils literal notranslate"><span class="pre">costate_bond=chi</span></code> is about twice as fast for about twice the
-error, and going above <span class="math">\(2\chi\)</span> does not help.</p></li>
+<li><p><strong>The costate.</strong> <span class="math">\(O|\psi\rangle\)</span> is a sum of many Pauli strings applied
+to the state, so it needs a larger bond dimension than <span class="math">\(|\psi\rangle\)</span>.
+By default it is capped at <span class="math">\(2\chi\)</span>; <code class="docutils literal notranslate"><span class="pre">costate_bond=chi</span></code> is about twice
+as fast for about twice the error, and going above <span class="math">\(2\chi\)</span> does not
+help.</p></li>
 </ul>
 <p>To check a trained circuit, evaluate the final parameters again at a larger
 bond dimension, as the Bethe-ansatz example below does.</p>
@@ -513,12 +594,12 @@ which computes transition amplitudes and applies Pauli sums to a state.</p></li>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="clifford_extraction_synthesis.html">
+          <a class="next-page" href="hqsmpo/index.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Head Synthesis by Clifford Extraction</div>
+                <div class="title">Hybrid quantum-classical execution: HQSMPO</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -564,13 +645,12 @@ which computes transition amplitudes and applies Pauli sums to a state.</p></li>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Analytic gradients</a><ul>
-<li><a class="reference internal" href="#how-it-works">How it works</a><ul>
-<li><a class="reference internal" href="#the-clifford-frame">The Clifford frame</a></li>
-<li><a class="reference internal" href="#the-adjoint-method">The adjoint method</a></li>
-<li><a class="reference internal" href="#the-sign-flip-picture">The sign-flip picture</a></li>
+<li><a class="reference internal" href="#step-1-the-circuit-as-a-chain-of-rotations">Step 1: the circuit as a chain of rotations</a></li>
+<li><a class="reference internal" href="#step-2-one-derivative-is-a-transition-amplitude">Step 2: one derivative is a transition amplitude</a></li>
+<li><a class="reference internal" href="#step-3-all-derivatives-in-one-backward-pass">Step 3: all derivatives in one backward pass</a></li>
+<li><a class="reference internal" href="#step-4-back-to-the-circuit-parameters">Step 4: back to the circuit parameters</a></li>
+<li><a class="reference internal" href="#the-same-formula-read-as-noise">The same formula, read as noise</a></li>
 <li><a class="reference internal" href="#parameters-at-clifford-angles">Parameters at Clifford angles</a></li>
-</ul>
-</li>
 <li><a class="reference internal" href="#accuracy-and-truncation">Accuracy and truncation</a></li>
 <li><a class="reference internal" href="#usage">Usage</a></li>
 <li><a class="reference internal" href="#benchmarks">Benchmarks</a><ul>

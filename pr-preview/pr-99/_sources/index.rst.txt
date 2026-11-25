@@ -30,8 +30,7 @@ Among our core features:
    methods/theory_background
    methods/fidelity_and_approximation
    methods/analytic_gradients
-   methods/clifford_extraction_synthesis
-   methods/rustiq_resynthesis
+   methods/hqsmpo/index
 
 .. toctree::
    :maxdepth: 2

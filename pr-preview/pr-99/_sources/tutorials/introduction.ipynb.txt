@@ -468,9 +468,9 @@
     "\n",
     "You now know the core workflow: build a circuit, wrap it in `HSMPO`, and call `expectation`. The other tutorials build on it:\n",
     "\n",
-    "- **Noise**: simulating noisy circuits with Pauli noise models and readout errors.\n",
-    "- **Advanced noise**: Kraus channels, crosstalk, idle noise and state-preparation errors.\n",
-    "- **Error mitigation**: Clifford data regression, using cheap near-Clifford circuits to correct noisy expectation values.\n",
+    "- **Pauli noise simulation**: noisy circuits with Pauli and coherent errors and readout errors, and how mpstab simulates them without density matrices.\n",
+    "- **Non-unital noise simulation**: relaxation and other Kraus channels, crosstalk, idle noise, preparation and asymmetric readout errors.\n",
+    "- **Data-driven error mitigation**: CDR and vnCDR, learning the noise from near-Clifford circuits that mpstab simulates cheaply.\n",
     "- **Ground states with DMRG**: optimizing an MPS starting from an `HSMPO` surrogate to find ground-state energies.\n",
     "- **State metrics**: measuring entanglement and magic of the states mpstab prepares."
    ]
