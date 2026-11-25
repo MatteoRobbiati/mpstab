@@ -296,8 +296,8 @@ class ClassicalShadows(MeasurementMethod):
             # From here on the tail is plain arrays, whatever the engine.
             operator = model.tn_engine.operator_site_arrays(operator)
             mpo_terms.append((pauli, coefficient, sign, operator))
-            if max_bond_dimension is not None:
-                truncation_l2 += fold_truncation_l2(coefficient, operator, nqubits)
+            # Measured whatever the bond cap: the SVD cutoff truncates too.
+            truncation_l2 += fold_truncation_l2(coefficient, operator, nqubits)
 
         head = resynthesis.circuit
         if not trivial_residual and self.tail_handling == "append_to_head_circuit":

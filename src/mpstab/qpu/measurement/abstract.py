@@ -49,9 +49,10 @@ class MeasurementPlan:
             that ``n_string_samples`` actually covered.
         bond_truncation_l2: ``"pauli"`` only, ``None`` for ``"shadows"``
             (whose ``truncation_l2`` already is this quantity): the bias
-            estimate of folding the tail at a finite bond dimension,
+            estimate of truncating the tail fold (bond cap or SVD cutoff),
             ``sum_terms |coefficient| * sqrt(1 - ||O'||_F**2 / 2**n)``, from the
-            norm each folded MPO lost. ``0.0`` for an untruncated fold. The
+            norm each folded MPO lost. ``0.0`` for an untruncated fold (no bond
+            cap and no SVD cutoff) or a loss within rounding. The
             ``"pauli"`` route's ``truncation_l1``/``truncation_l2`` only count
             the Pauli strings left unsampled *of the already truncated MPO*,
             so they miss it.
@@ -113,8 +114,8 @@ class ExpectationResult:
             hardware methods run the head on the device, so they have no head
             truncation to report.
         bond_truncation_l2: ``"pauli"`` only, ``None`` otherwise (there
-            ``truncation_l2`` already is the bond truncation): the bias
-            estimate of folding the tail at a finite bond dimension -- see
+            ``truncation_l2`` already is the fold truncation): the bias
+            estimate of truncating the tail fold (bond cap or SVD cutoff) -- see
             :attr:`~mpstab.qpu.measurement.abstract.MeasurementPlan.bond_truncation_l2`.
             Part of ``total_error``.
         antihermitian_l2: ``"pauli"`` only, ``None`` otherwise: the size of the
