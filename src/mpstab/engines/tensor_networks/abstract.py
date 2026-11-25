@@ -106,6 +106,14 @@ class TensorNetworkEngine(ABC):
         generator, angle = rotation
         self.pauli_rot(state_circuit, generator, angle, max_bond_dimension)
 
+    def working_state(self, state_circuit: Any):
+        """
+        The state in the form this engine evolves fastest, for loops that copy,
+        rotate and measure it many times. Every method taking a state accepts
+        it too. The default is the state itself.
+        """
+        return state_circuit
+
     def copy_state(self, state_circuit: Any):
         """
         An independent copy of a state: evolving either one in place leaves

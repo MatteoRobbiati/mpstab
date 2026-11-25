@@ -349,6 +349,25 @@ def _windowed_rotation(A, center, window, flip, angle, max_bond, cutoff) -> int:
     from_left = abs(center - a) <= abs(center - b)
     center = move_center(A, center, a if from_left else b)
 
+    if b == a + 1:
+        # Two neighbours: contract the pair, rotate it, and split it once. The
+        # center is on the pair, so the split is the optimal truncation, and it
+        # leaves the center on the far side, where a sweep of rotations heads.
+        theta = np.tensordot(A[a], A[b], axes=(2, 0))
+        flipped = np.tensordot(flip(a, A[a]), flip(b, A[b]), axes=(2, 0))
+        theta = cos * theta - 1j * sin * flipped
+        left, p, q, right = theta.shape
+        matrix = theta.reshape(left * p, q * right)
+        if from_left:
+            iso, rest = _split_left_isometry(matrix, cutoff, max_bond)
+            A[a] = iso.reshape(left, p, -1)
+            A[b] = rest.reshape(-1, q, right)
+            return b
+        rest, iso = _split_right_isometry(matrix, cutoff, max_bond)
+        A[a] = rest.reshape(left, p, -1)
+        A[b] = iso.reshape(-1, q, right)
+        return a
+
     for j in range(a, b + 1):
         tensor = A[j]
         flipped = flip(j, tensor)
@@ -413,16 +432,33 @@ def squared_norm(A: list[np.ndarray], center: int) -> float:
 
 
 def pauli_transition(
-    bra: list[np.ndarray], ket: list[np.ndarray], pauli: str
+    bra: list[np.ndarray],
+    ket: list[np.ndarray],
+    pauli: str,
+    centers: tuple[int, int] | None = None,
 ) -> complex:
     """
-    Unnormalized ``<bra|P|ket>`` between two MPS, by a full left-to-right
-    sweep: the two states have different gauges, so nothing outside the
-    support contracts away.
+    Unnormalized ``<bra|P|ket>`` between two MPS, by a left-to-right sweep.
+
+    The two states have different gauges, so in general nothing contracts
+    away. But with ``centers``, the orthogonality centers of the two, a run
+    of sites at either end that both states hold as the very same array
+    object, left of both centers (left-isometries) or right of both
+    (right-isometries), where ``P`` is the identity, contracts to the
+    identity and is skipped. States branched from a common checkpoint share
+    those arrays, since the kernels replace arrays instead of writing into them.
     """
-    env = np.ones((1, 1))
-    for j in range(len(ket)):
+    n = len(ket)
+    start, stop = 0, n - 1
+    if centers is not None:
+        low, high = min(centers), max(centers)
+        while start < low and bra[start] is ket[start] and pauli[start] == "I":
+            start += 1
+        while stop > high and bra[stop] is ket[stop] and pauli[stop] == "I":
+            stop -= 1
+    env = np.eye(ket[start].shape[0])
+    for j in range(start, stop + 1):
         ket_j = apply_pauli(ket[j], pauli[j])
         env = np.tensordot(env, ket_j, axes=(1, 0))  # (bra_l, phys, ket_r)
         env = np.tensordot(bra[j].conj(), env, axes=([0, 1], [0, 1]))
-    return complex(env[0, 0])
+    return complex(np.trace(env))
