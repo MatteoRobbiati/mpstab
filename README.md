@@ -1,5 +1,8 @@
 
-<img width="260" height="120" alt="image" src="./docs/mpstab_logo.png" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/_static/logo/mpstab_logo_dark.svg">
+  <img width="300" alt="mpstab" src="./docs/_static/logo/mpstab_logo_light.svg">
+</picture>
 
 ---
 
