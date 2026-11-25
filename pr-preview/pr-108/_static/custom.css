@@ -1,0 +1,22 @@
+/* Centre the theme-dependent circuit figures: Furo shows them with
+   display: block, which drops the inline centring of the figure. */
+figure .only-light,
+figure .only-dark {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Figures drawn for a white page (black text, transparent background): on the
+   dark theme they sit on a white card instead of disappearing. */
+body[data-theme="dark"] img.light-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme="light"]) img.light-card {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 12px;
+  }
+}
