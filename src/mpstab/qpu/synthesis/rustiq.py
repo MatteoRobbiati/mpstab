@@ -21,9 +21,13 @@ except ImportError:  # optional dependency
     Metric = pauli_network_synthesis = None
 
 
-def _require_rustiq():
-    """Raise an ``ImportError`` with the install hint if rustiq is missing."""
-    if pauli_network_synthesis is None:
+def _require_rustiq(synthesis=pauli_network_synthesis):
+    """
+    Raise an ``ImportError`` with the install hint if rustiq is missing, i.e.
+    if ``synthesis``, rustiq's ``pauli_network_synthesis`` as the guarded
+    import left it, is ``None``.
+    """
+    if synthesis is None:
         raise ImportError(
             "rustiq is required for Pauli-network resynthesis. Install it with: "
             'pip install "mpstab[rustiq]"'

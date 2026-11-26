@@ -157,9 +157,8 @@ def test_resynthesize_head_gate_counts_across_partial_cuts():
         assert resynthesis.n_gates >= cut
 
 
-def test_rustiq_import_error_has_install_hint(monkeypatch):
-    # What the module-level guarded import leaves behind without rustiq.
-    monkeypatch.setattr(rustiq_synthesis, "pauli_network_synthesis", None)
-
+def test_rustiq_import_error_has_install_hint():
+    # None is what the module-level guarded import leaves behind without rustiq.
     with pytest.raises(ImportError, match="mpstab\\[rustiq\\]"):
-        RustiqSynthesis().synthesize(["X"], [0.1])
+        rustiq_synthesis._require_rustiq(None)
+    rustiq_synthesis._require_rustiq()  # installed here: no error

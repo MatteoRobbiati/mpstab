@@ -479,11 +479,17 @@ def _engine(engine, base: type, default: type):
 _PROGRESS_DELAY = 1.0
 
 
-def _progress_bar(rotations, bond, description: str, enabled: bool = True):
+def _progress_bar(
+    rotations,
+    bond,
+    description: str,
+    enabled: bool = True,
+    delay: float = _PROGRESS_DELAY,
+):
     """
     Iterate over ``rotations``, drawing a progress bar once the loop has run
-    for :data:`_PROGRESS_DELAY` seconds, with the bond dimension ``bond()``
-    returns when it is not ``None``.
+    for ``delay`` seconds (:data:`_PROGRESS_DELAY` by default), with the bond
+    dimension ``bond()`` returns when it is not ``None``.
     """
     rotations = list(rotations)
     if not enabled or not rotations:
@@ -494,7 +500,7 @@ def _progress_bar(rotations, bond, description: str, enabled: bool = True):
         total=len(rotations),
         desc=description,
         unit="rot",
-        delay=_PROGRESS_DELAY,
+        delay=delay,
         ascii=" ━",
         colour="green",
         bar_format="{desc} {bar} {n_fmt}/{total_fmt} rotations "

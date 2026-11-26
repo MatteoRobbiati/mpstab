@@ -146,10 +146,14 @@ def test_expectation_from_partition_light_cone_is_exact(observable):
     assert cut == pytest.approx(exact, abs=1e-10)
 
 
-def test_progress_bar_shows_and_can_be_disabled(capsys, monkeypatch):
-    monkeypatch.setattr(hsmpo_module, "_PROGRESS_DELAY", 0)  # show it at once
-    HSMPO(ansatz=HardwareEfficient(nqubits=4, nlayers=2))
-    assert "building MPS" in capsys.readouterr().err
-
-    HSMPO(ansatz=HardwareEfficient(nqubits=4, nlayers=2), progress=False)
-    assert "building MPS" not in capsys.readouterr().err
+def test_progress_bar_shows_and_can_be_disabled(capsys):
+    rotations = [("ZI", 0.1), ("IX", 0.2)]
+    for enabled in (True, False):
+        # delay=0 draws the bar at once instead of after a second.
+        bar = hsmpo_module._progress_bar(
+            rotations, lambda: 2, "building MPS", enabled=enabled, delay=0
+        )
+        assert list(bar) == rotations
+        output = capsys.readouterr().err
+        assert ("building MPS" in output) is enabled
+        assert ("chi=2" in output) is enabled
