@@ -90,44 +90,42 @@ def build_original_head(
         nqubits: circuit width.
         absorb: move the trailing Clifford gates into the residual.
 
-    The residual is the absorbed gates in order, then the inverse of the
-    prefix's Clifford gates, so that ``residual . head |0>`` is the kept dressed
-    rotations applied to ``|0>``.
+    The residual is the inverse of the head's Clifford gates (the prefix's
+    Clifford gates bar the absorbed ones, which commute to its end), so that
+    ``residual . head |0>`` is the kept dressed rotations applied to ``|0>``.
     """
     head = Circuit(nqubits)
     if cut_index == 0:
         return head, [], 0
-    last = magic_gates[cut_index - 1][0]
-    sequence = []  # (gate, is_magic), the prefix in circuit order
-    pending = iter(enumerate(magic_gates[:cut_index]))
-    current = next(pending, None)
-    for index in range(last + 1):
-        while current is not None and current[1][0] == index:
-            if current[0] in keep:
-                sequence.append((current[1][1], True))
-            current = next(pending, None)
-        if index < last:
-            sequence.append((clifford_gates[index], False))
+    sequence, start = [], 0  # (gate, is_magic), the prefix in circuit order
+    for index, (breakpoint, gate) in enumerate(magic_gates[:cut_index]):
+        sequence += [(clifford, False) for clifford in clifford_gates[start:breakpoint]]
+        if index in keep:
+            sequence.append((gate, True))
+        start = breakpoint
 
-    absorbed = []
+    n_absorbed = 0
     if absorb:
         live, core = set(), []
         for gate, is_magic in reversed(sequence):
             if is_magic or live & set(gate.qubits):
-                core.append(gate)
+                core.append((gate, is_magic))
                 live |= set(gate.qubits)
             else:
-                absorbed.append(gate)
+                n_absorbed += 1
         core.reverse()
-        absorbed.reverse()
     else:
-        core = [gate for gate, _ in sequence]
-    for gate in core:
+        core = sequence
+    for gate, _ in core:
         head.add(gate)
     head = head.copy(deep=True)  # its own gates, not the ansatz's
 
-    residual = [entry for gate in absorbed for entry in clifford_gate_names(gate)]
-    prefix = [
-        entry for gate in clifford_gates[:last] for entry in clifford_gate_names(gate)
+    # An absorbed gate shares no qubit with the core gates after it, so
+    # C_prefix = A . C_core and the residual C_prefix^-1 . A is C_core^-1.
+    cliffords = [
+        entry
+        for gate, is_magic in core
+        if not is_magic
+        for entry in clifford_gate_names(gate)
     ]
-    return head, residual + _inverse(prefix), len(absorbed)
+    return head, _inverse(cliffords), n_absorbed

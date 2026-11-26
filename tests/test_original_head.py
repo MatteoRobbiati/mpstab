@@ -103,7 +103,8 @@ def test_absorption_moves_trailing_cliffords_off_the_device():
     absorbed = hs.original_head(20, absorb=True)
     assert absorbed.n_gates < full.n_gates
     assert absorbed.n_two_qubit_gates <= full.n_two_qubit_gates
-    assert len(absorbed.residual_gates) > len(full.residual_gates)
+    # the residual undoes only the Clifford gates left on the device
+    assert len(absorbed.residual_gates) < len(full.residual_gates)
     # every magic gate of the prefix stays on the device
     magic = lambda head: sum(not gate.clifford for gate in head.circuit.queue)
     assert magic(absorbed) == magic(full) == 20
