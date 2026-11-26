@@ -40,7 +40,9 @@ class RustiqSynthesis(HeadSynthesis):
     ``fix_clifford=True``. The prefix becomes the head; what the longer version
     appends is the residual. The residual gate list is non-deterministic across
     runs (``fix_clifford=True`` draws randomly) even though the Clifford it
-    implements is unique, so compare tableaus rather than gate lists.
+    implements is unique, so compare Cliffords (e.g. with
+    :meth:`~mpstab.engines.StabilizersEngine.clifford_images`) rather than gate
+    lists.
 
     Args:
         metric: what rustiq minimises, ``"count"`` or ``"depth"``.

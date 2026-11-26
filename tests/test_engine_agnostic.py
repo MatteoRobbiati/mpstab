@@ -8,13 +8,22 @@ going through the :class:`~mpstab.engines.TensorNetworkEngine` interface fails
 here. A new engine (tenpy, ...) then only has to implement that interface.
 """
 
+import ast
+import pathlib
+
 import numpy as np
 import pytest
 from qibo import gates
 from utils import small_entangled_circuit
 
+import mpstab
 from mpstab import HSMPO
-from mpstab.engines import QuimbEngine, TensorNetworkEngine
+from mpstab.engines import (
+    NativeStabilizersEngine,
+    QuimbEngine,
+    StimEngine,
+    TensorNetworkEngine,
+)
 from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient, KickedIsing
 from mpstab.models.metrics import meyer_wallach_mps, stabilizer_renyi_entropy_mps
@@ -211,3 +220,56 @@ def test_device_routes(method, opaque_engine):
         method.estimate(plan, frequencies, seed=7).value for plan in plans
     )
     assert result == pytest.approx(expected)
+
+
+def test_only_the_stim_engine_imports_stim():
+    """Every Clifford simulation goes through the stabilizers engine."""
+    root = pathlib.Path(mpstab.__file__).parent
+    allowed = root / "engines" / "stabilizers" / "stim.py"
+    offenders = []
+    for path in root.rglob("*.py"):
+        if path == allowed:
+            continue
+        for node in ast.walk(ast.parse(path.read_text())):
+            names = []
+            if isinstance(node, ast.Import):
+                names = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names = [node.module]
+            if any(name == "stim" or name.startswith("stim.") for name in names):
+                offenders.append(str(path.relative_to(root)))
+    assert offenders == []
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        PauliSampling(),
+        ClassicalShadows(tail_handling="fold"),
+    ],
+    ids=["pauli", "shadows-fold"],
+)
+def test_residual_routes_on_the_native_stabilizers_engine(method):
+    """A non-trivial resynthesis residual folds the same through any engine."""
+    ansatz = HardwareEfficient(nqubits=4, nlayers=2)
+    models = [
+        HQSMPO(ansatz, stab_engine=engine, head_synthesis="extraction")
+        for engine in (StimEngine(), NativeStabilizersEngine())
+    ]
+    cut = len(models[0].magic_gates) - 2
+    residual = models[0].resynthesize_head(cut).residual_circuit
+    assert not models[0].stab_engine.is_identity(residual)
+    plans = [
+        model.plan(
+            {"ZZII": 1.0, "IXXI": 0.5},
+            cut,
+            method=method,
+            n_shots=200,
+            seed=3,
+            out_folder=False,
+        )
+        for model in models
+    ]
+    frequencies = run_plan(plans[0], StatevectorExactSimulator())
+    expected, result = (method.estimate(p, frequencies, seed=7).value for p in plans)
+    assert result == pytest.approx(expected, abs=1e-12)

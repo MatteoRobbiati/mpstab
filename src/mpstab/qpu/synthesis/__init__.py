@@ -7,8 +7,9 @@ plus a pure-Clifford residual applied last::
     target = U(residual) . U(head)
     <target|O|target> = <head 0| residual^dag . O . residual |head 0>
 
-The residual is therefore reabsorbed into the observable with a Clifford
-simulator (:func:`~mpstab.pauli.conjugate`), never with dense matrices.
+The residual is therefore reabsorbed into the observable by the model's
+stabilizers engine, which backpropagates the observable through the residual
+circuit, never with dense matrices.
 
 A synthesiser is a :class:`~mpstab.qpu.synthesis.abstract.HeadSynthesis`
 holding its own options. Three are available, one module each:
@@ -20,9 +21,8 @@ holding its own options. Three are available, one module each:
 - :class:`~mpstab.qpu.synthesis.cnot_ladder.CnotLadderSynthesis`: the textbook
   decomposition, with an identity residual.
 
-``synthesize(paulis, angles)`` returns ``(head, residual_tableau,
-residual_gates)``, with ``head`` in the gate-list format of
-:mod:`~mpstab.qpu.synthesis.utils`.
+``synthesize(paulis, angles)`` returns ``(head, residual_gates)``, both in the
+gate-list format of :mod:`~mpstab.qpu.synthesis.utils`.
 """
 
 from mpstab.qpu.synthesis.abstract import HeadSynthesis

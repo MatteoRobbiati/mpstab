@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from mpstab.pauli import PAULI_ARRAY, PAULI_LABELS, conjugate
+from mpstab.pauli import PAULI_ARRAY, PAULI_LABELS
 
 
 def operator_inner(left_sites, right_sites) -> complex:
@@ -295,9 +295,10 @@ def pool_pauli_terms(terms) -> dict:
     return pooled
 
 
-def fold_pool_through_tableau(pool: dict, residual_tableau) -> dict:
+def fold_pool_through_residual(pool: dict, residual, stab_engine) -> dict:
     """
-    Conjugate every pooled ``{pauli: coefficient}`` entry through ``residual_tableau``.
+    Conjugate every pooled ``{pauli: coefficient}`` entry through the Clifford
+    residual.
 
     A device running a resynthesised head prepares ``U(head)|psi_0>``, not the
     exact head state the tail-folded coefficients were derived against; the two
@@ -309,12 +310,15 @@ def fold_pool_through_tableau(pool: dict, residual_tableau) -> dict:
 
     Args:
         pool: ``{pauli: coefficient}``, already pooled across Hamiltonian terms.
-        residual_tableau: the Clifford residual ``R``, a ``stim.Tableau``;
+        residual: the Clifford residual ``R`` as a qibo circuit
+            (:attr:`~mpstab.evolutors.hqsmpo.ResynthesizedHead.residual_circuit`);
             every string ``P`` becomes ``R^dag P R``.
+        stab_engine: the stabilizers engine doing the conjugation, in one
+            :meth:`~mpstab.engines.StabilizersEngine.backpropagate_many` call.
     """
-    inverse = residual_tableau.inverse()
+    labels = list(pool)
     folded: dict = {}
-    for label, coefficient in pool.items():
-        folded_label, sign = conjugate(label, inverse)
-        folded[folded_label] = folded.get(folded_label, 0.0) + coefficient * sign
+    images = stab_engine.backpropagate_many(labels, residual)
+    for label, (folded_label, sign) in zip(labels, images):
+        folded[folded_label] = folded.get(folded_label, 0.0) + pool[label] * sign
     return folded

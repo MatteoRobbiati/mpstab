@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from typing import ClassVar
 
 import numpy as np
-import stim
 
 from mpstab.qpu.measurement.abstract import (
     ExpectationResult,
@@ -19,7 +18,7 @@ from mpstab.qpu.measurement.abstract import (
     weighted_mean_and_variance,
 )
 from mpstab.qpu.measurement.pauli_expansion import (
-    fold_pool_through_tableau,
+    fold_pool_through_residual,
     fold_truncation_l2,
     pool_pauli_terms,
     sample_pauli_strings,
@@ -249,8 +248,10 @@ class PauliSampling(MeasurementMethod):
             diagnostics.append((abs(coefficient), l1, l2, ensemble.retained_weight))
 
         pooled = pool_pauli_terms(ensembles)
-        if resynthesis.residual_tableau != stim.Tableau(model.nqubits):
-            pooled = fold_pool_through_tableau(pooled, resynthesis.residual_tableau)
+        if not model.stab_engine.is_identity(resynthesis.residual_circuit):
+            pooled = fold_pool_through_residual(
+                pooled, resynthesis.residual_circuit, model.stab_engine
+            )
 
         truncation_l1, truncation_l2, retained_weight = _aggregate_truncation(
             diagnostics

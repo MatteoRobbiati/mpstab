@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-import stim
 from qibo import Circuit
 from utils import expectation_with_qibo, small_entangled_circuit
 
@@ -234,8 +233,10 @@ def test_resynthesize_head_returns_independent_objects():
     )
     first, second = hs.resynthesize_head(2), hs.resynthesize_head(2)
     assert first.circuit is not second.circuit
-    assert first.residual_tableau is not second.residual_tableau
-    assert first.residual_tableau == second.residual_tableau
+    assert first.residual_circuit is not second.residual_circuit
+    assert hs.stab_engine.clifford_images(
+        first.residual_circuit
+    ) == hs.stab_engine.clifford_images(second.residual_circuit)
 
 
 def test_resynthesize_head_cnot_ladder_fallback_has_identity_tail():
@@ -244,11 +245,10 @@ def test_resynthesize_head_cnot_ladder_fallback_has_identity_tail():
     n_dressed = len(hs.magic_gates)
     dressed = hs._dressed_rotations()
 
-    head, residual_tableau, residual_gates = CnotLadderSynthesis().synthesize(
+    head, residual_gates = CnotLadderSynthesis().synthesize(
         [p for p, _ in dressed], [a for _, a in dressed]
     )
     assert residual_gates == []
-    assert residual_tableau == stim.Tableau(hs.nqubits)
     assert len(head) > 0
     assert n_dressed > 0
 

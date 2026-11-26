@@ -3,7 +3,7 @@ rustiq resynthesis (`mpstab.qpu.synthesis`).
 
 Covers:
   - target == residual . head at the unitary level (dense, small n);
-  - residual tableaus are reproducible across repeated calls, while gate lists
+  - residual Cliffords are reproducible across repeated calls, while gate lists
     need not be (rustiq's fix_clifford=True draws randomly);
   - resynthesizing the whole chain and folding the residual into the observable
     reproduces direct qibo simulation.
@@ -21,9 +21,9 @@ from utils import (
 
 pytest.importorskip("rustiq")
 
+from mpstab.engines import StimEngine
 from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
-from mpstab.pauli import conjugate
 from mpstab.qpu.synthesis import RustiqSynthesis, head_to_qibo_circuit
 from mpstab.qpu.synthesis import rustiq as rustiq_synthesis
 
@@ -68,9 +68,7 @@ def test_target_equals_tail_times_head_dense():
     _, paulis, angles = _dressed_paulis_and_angles(n)
     assert len(paulis) > 3  # non-trivial rotation chain
 
-    head, residual_tableau, residual_gates = RustiqSynthesis().synthesize(
-        paulis, angles
-    )
+    head, residual_gates = RustiqSynthesis().synthesize(paulis, angles)
 
     U_target = _target_unitary(paulis, angles)
     U_head = _unitary_from_gate_list(head, n)
@@ -79,25 +77,23 @@ def test_target_equals_tail_times_head_dense():
     assert _equal_up_to_global_phase(U_target, U_tail @ U_head)
 
 
-def test_residual_tableau_reproducible_across_calls_gate_list_not_necessarily():
+def test_residual_clifford_reproducible_across_calls_gate_list_not_necessarily():
     _, paulis, angles = _dressed_paulis_and_angles(4)
 
-    _, residual_tableau_1, residual_gates_1 = RustiqSynthesis().synthesize(
-        paulis, angles
-    )
-    _, residual_tableau_2, residual_gates_2 = RustiqSynthesis().synthesize(
-        paulis, angles
-    )
+    _, residual_gates_1 = RustiqSynthesis().synthesize(paulis, angles)
+    _, residual_gates_2 = RustiqSynthesis().synthesize(paulis, angles)
 
-    # The Clifford OPERATOR is unique -- compare tableaus, not gate lists.
-    assert residual_tableau_1 == residual_tableau_2
+    # The Clifford OPERATOR is unique -- compare its images, not gate lists.
+    engine = StimEngine()
+    assert engine.clifford_images(
+        head_to_qibo_circuit(residual_gates_1, 4)
+    ) == engine.clifford_images(head_to_qibo_circuit(residual_gates_2, 4))
 
 
 def test_build_head_and_residual_empty_input():
-    head, residual_tableau, residual_gates = RustiqSynthesis().synthesize([], [])
+    head, residual_gates = RustiqSynthesis().synthesize([], [])
     assert head == []
     assert residual_gates == []
-    assert len(residual_tableau) == 0
 
 
 def _expectation_via_full_resynthesis(hs, observable):
@@ -115,8 +111,8 @@ def _expectation_via_full_resynthesis(hs, observable):
         observable=observable, clifford_circuit=hs.clifford_circuit
     )
     resynthesis = hs.resynthesize_head(cut_index=len(hs.magic_gates))
-    folded, residual_sign = conjugate(
-        backpropagated, resynthesis.residual_tableau.inverse()
+    folded, residual_sign = hs.stab_engine.backpropagate(
+        backpropagated, resynthesis.residual_circuit
     )
     state = resynthesis.circuit().state()
     expval = np.real(np.conj(state) @ pauli_matrix(folded) @ state)
