@@ -171,7 +171,9 @@ class CuTensorNetEngine(TensorNetworkEngine):
 
     It covers what :class:`~mpstab.evolutors.hsmpo.HSMPO` and
     :class:`~mpstab.evolutors.hqsmpo.HQSMPO` need, including the head/tail
-    split and the noisy estimators' transition amplitudes. DMRG and the
+    split, the noisy estimators' transition amplitudes and the analytic
+    gradient with ``method="flips"``. DMRG, the adjoint gradient (which needs
+    :meth:`~mpstab.engines.TensorNetworkEngine.apply_pauli_sum`) and the
     plain-MPS baseline :attr:`~mpstab.evolutors.hsmpo.HSMPO.truncation_fidelity_pure_tn`
     stay with :class:`~mpstab.engines.QuimbEngine`.
 

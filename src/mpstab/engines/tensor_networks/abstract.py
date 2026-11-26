@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import multiprocessing
 from abc import ABC, abstractmethod
 from typing import Any, Iterable
 
@@ -106,12 +107,30 @@ class TensorNetworkEngine(ABC):
         """
         return self._overrides("apply_pauli_sum")
 
-    def _unsupported(self, feature: str):
-        """The error an optional method raises on an engine without it."""
+    def _unsupported(
+        self,
+        feature: str,
+        supported_by: str = "QuimbEngine and CuTensorNetEngine do",
+        hint: str = "",
+    ):
+        """
+        The error an optional method raises on an engine without it, naming
+        the engines that do have it.
+        """
         return NotImplementedError(
             f"{type(self).__name__} does not implement {feature}; "
-            "QuimbEngine and CuTensorNetEngine do."
+            f"{supported_by}.{hint}"
         )
+
+    def worker_context(self):
+        """
+        The ``multiprocessing`` context to start the engine's worker processes
+        in, from :attr:`process_start_method`; ``None`` for the platform
+        default. Every process pool that receives the engine (noisy
+        expectations, gradients) starts in it.
+        """
+        method = self.process_start_method
+        return None if method is None else multiprocessing.get_context(method)
 
     # ------------------------------------------------------------------
     # Representation: what every engine defines for itself.
@@ -482,14 +501,18 @@ class TensorNetworkEngine(ABC):
         ``max_bond_dimension``; the input state is left untouched. The adjoint
         method of the analytic gradient needs it.
         """
-        raise self._unsupported("Pauli sums applied to a state (apply_pauli_sum)")
+        raise self._unsupported(
+            "Pauli sums applied to a state (apply_pauli_sum)",
+            "QuimbEngine does",
+            " The flips gradient (method='flips') does not need it.",
+        )
 
     def pauli_sum_mpo(self, terms: dict):
         """
         One MPO for ``sum_P c_P P`` from a ``{pauli_string: c_P}`` map, for
         :meth:`minimize_energy`.
         """
-        raise self._unsupported("Pauli-sum MPOs (pauli_sum_mpo)")
+        raise self._unsupported("Pauli-sum MPOs (pauli_sum_mpo)", "QuimbEngine does")
 
     def minimize_energy(
         self,
@@ -510,7 +533,7 @@ class TensorNetworkEngine(ABC):
             A dict with the optimized ``state``, its ``energy``, whether it
             ``converged`` and the per-sweep ``energy_history``.
         """
-        raise self._unsupported("DMRG (minimize_energy)")
+        raise self._unsupported("DMRG (minimize_energy)", "QuimbEngine does")
 
     def circuit_truncation_fidelity(
         self, nqubits: int, circuit: Any, max_bond_dimension: int | None
@@ -519,4 +542,4 @@ class TensorNetworkEngine(ABC):
         Fidelity estimate of simulating the whole qibo ``circuit`` gate by gate
         as a plain MPS capped at ``max_bond_dimension``.
         """
-        raise self._unsupported("plain-MPS circuit simulation")
+        raise self._unsupported("plain-MPS circuit simulation", "QuimbEngine does")

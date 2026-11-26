@@ -33,7 +33,6 @@ first difference.
 
 from __future__ import annotations
 
-import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
@@ -417,7 +416,7 @@ def _pattern_values(compiled, patterns, dressed, n_workers: int = 1):
         values, fidelities = _evaluate_patterns(*args, unique)
     else:
         blocks = np.array_split(unique, n_workers)
-        context = _worker_context(hsmpo.tn_engine)
+        context = hsmpo.tn_engine.worker_context()
         with ProcessPoolExecutor(max_workers=n_workers, mp_context=context) as pool:
             results = list(
                 pool.map(_evaluate_patterns, *zip(*[(*args, b) for b in blocks]))
@@ -425,15 +424,6 @@ def _pattern_values(compiled, patterns, dressed, n_workers: int = 1):
         values = np.concatenate([v for v, _ in results])
         fidelities = np.concatenate([f for _, f in results])
     return values[inverse], fidelities
-
-
-def _worker_context(engine):
-    """
-    The ``multiprocessing`` context the engine's worker processes start in,
-    from its ``process_start_method``; ``None`` for the platform default.
-    """
-    method = engine.process_start_method
-    return None if method is None else multiprocessing.get_context(method)
 
 
 class _Chain:

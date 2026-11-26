@@ -52,7 +52,8 @@ on, and a ready-made site-array state and operator.
 **cuTensorNet Engine**: the same algorithms on an NVIDIA GPU, with CuPy site
 arrays and the QR, SVD and network contractions of NVIDIA's
 `cuTensorNet <https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/>`_.
-Install with ``pip install "mpstab[cutensornet]"``. No DMRG, and initial states
+Install with ``pip install "mpstab[cutensornet]"``. No DMRG and no adjoint
+gradient (``method="flips"`` works), and initial states
 must be product states.
 
 Native Engines
@@ -146,9 +147,10 @@ truncates with the same ``"rsum2"`` rule
      - Role
    * - ``build_circuit_mps``, ``pauli_mpo``
      - Abstract: build a state and a Pauli-string operator.
-   * - ``state_sites``
+   * - ``state_sites``, ``state_from_sites``
      - Representation: the state as ``(left, phys, right)`` arrays in mixed
-       canonical form, which every state-side algorithm runs on.
+       canonical form, which every state-side algorithm runs on, and back
+       from such arrays.
    * - ``operator_sites``, ``operator_from_sites``, ``operator_site_arrays``,
        ``pauli_string_of``
      - Representation: operators as ``(left, 4, right)`` arrays and back, and
@@ -157,21 +159,31 @@ truncates with the same ``"rsum2"`` rule
    * - ``linalg``, ``copy_state``, ``bond_dimension``
      - Representation, with defaults: NumPy arrays, a deep copy, no bond
        report.
-   * - ``has_site_view``, ``has_operator_sites``
+   * - ``svd_cutoff``, ``truncation_cutoff``
+     - The ``"rsum2"`` cutoff every shared algorithm truncates with
+       (``None`` keeps quimb's default, ``1e-10``).
+   * - ``process_start_method``, ``worker_context``
+     - How the processes of ``noisy_expectation`` and ``gradient`` start:
+       ``"spawn"`` for an engine holding a GPU context.
+   * - ``has_site_view``, ``has_operator_sites``, ``has_pauli_sum``
      - Whether the shared algorithms apply; by default, whether the hooks
        above are implemented. An engine without them keeps its own
-       ``expval`` and ``conjugate_operator``.
+       ``expval`` and ``conjugate_operator``. With a site view and Pauli sums,
+       the adjoint gradient runs fused on the shared kernels.
    * - ``expval``, ``pauli_expvals``, ``pauli_rot``, ``squared_norm``,
        ``pauli_transitions``, ``rotation_operator``, ``apply_rotation``,
-       ``conjugate_operator``, ``conjugate_operator_many``
+       ``conjugate_operator``, ``conjugate_operator_many``, ``site_arrays``
      - Concrete, shared: implemented on the site view. An engine may still
        override them, as ``QuimbEngine`` does on jax and torch to stay
        differentiable, and the native engine does to run its own Vidal-form
        algorithms.
+   * - ``apply_pauli_sum``
+     - Optional: the adjoint gradient (``HSMPO.gradient(method="adjoint")``);
+       ``method="flips"`` does without it. ``QuimbEngine`` only.
    * - ``pauli_sum_mpo``, ``minimize_energy``
-     - Optional: DMRG (``HSMPO.minimize_expectation``).
+     - Optional: DMRG (``HSMPO.minimize_expectation``). ``QuimbEngine`` only.
    * - ``circuit_truncation_fidelity``
-     - Optional: ``HSMPO.truncation_fidelity_pure_tn``.
+     - Optional: ``HSMPO.truncation_fidelity_pure_tn``. ``QuimbEngine`` only.
 
 An optional method an engine does not implement raises ``NotImplementedError``
 only when the feature that needs it is used.

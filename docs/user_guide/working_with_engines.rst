@@ -79,8 +79,8 @@ Engines that handle the non-Clifford effects via MPO:
     windows dominate the run time. At small bond dimensions the cost of each
     GPU call dominates instead and quimb on the CPU is likely faster; the
     crossover has not been benchmarked yet.
-  - Not covered: DMRG, ``truncation_fidelity_pure_tn``, entangled initial
-    states
+  - Not covered: DMRG, ``truncation_fidelity_pure_tn``, the adjoint gradient
+    (``gradient(method="flips")`` works), entangled initial states
   - Install: ``pip install "mpstab[cutensornet]"`` (CUDA 12)
 
 .. code-block:: python

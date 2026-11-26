@@ -111,6 +111,16 @@ class SiteViewOpaqueEngine(OpaqueEngine):
     def operator_from_sites(self, sites, like):
         return _Box(self.quimb.operator_from_sites(sites, like.inner))
 
+    def state_from_sites(self, sites, center):
+        return _Box(self.quimb.state_from_sites(sites, center))
+
+    def apply_pauli_sum(self, state_circuit, paulis, coefficients, max_bond_dimension):
+        return _Box(
+            self.quimb.apply_pauli_sum(
+                state_circuit.inner, paulis, coefficients, max_bond_dimension
+            )
+        )
+
 
 @pytest.fixture(
     params=[OpaqueEngine, SiteViewOpaqueEngine], ids=["own-algorithms", "site-view"]
@@ -273,3 +283,22 @@ def test_residual_routes_on_the_native_stabilizers_engine(method):
     frequencies = run_plan(plans[0], StatevectorExactSimulator())
     expected, result = (method.estimate(p, frequencies, seed=7).value for p in plans)
     assert result == pytest.approx(expected, abs=1e-12)
+
+
+@pytest.mark.parametrize("method", ["adjoint", "flips"])
+def test_gradient_on_any_engine_with_a_site_view(method):
+    """
+    The fused adjoint kernel runs on any engine with a site view and Pauli
+    sums, not on QuimbEngine only; the flips route on any engine with a site
+    view.
+    """
+    reference, opaque = _pair(
+        HardwareEfficient(nqubits=4, nlayers=2), SiteViewOpaqueEngine
+    )
+    assert opaque.tn_engine.has_site_view and opaque.tn_engine.has_pauli_sum
+    observable = {"ZZII": 0.7, "IXXI": -0.4, "IIYZ": 0.3}
+    np.testing.assert_allclose(
+        opaque.gradient(observable, method=method),
+        reference.gradient(observable, method=method),
+        atol=1e-10,
+    )

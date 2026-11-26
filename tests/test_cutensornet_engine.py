@@ -25,12 +25,7 @@ from mpstab.engines import CuTensorNetEngine, QuimbEngine, SiteMPO, SiteMPS
 from mpstab.engines.tensor_networks import cutensornet
 from mpstab.engines.tensor_networks.cutensornet import CuQuantumAPI
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient, KickedIsing
-from mpstab.models.noise import (
-    AmplitudeDampingError,
-    DepolarizingError,
-    NoiseModel,
-    mc_noise_estimator,
-)
+from mpstab.models.noise import AmplitudeDampingError, DepolarizingError, NoiseModel
 
 # -- a NumPy stand-in for cupy and cuTensorNet ----------------------------------
 
@@ -292,8 +287,26 @@ def test_pickles(make_engine):
 
 def test_dmrg_is_unsupported(make_engine):
     model = HSMPO(HardwareEfficient(nqubits=3, nlayers=1), tn_engine=make_engine())
-    with pytest.raises(NotImplementedError, match="CuTensorNetEngine does not"):
+    with pytest.raises(NotImplementedError, match="CuTensorNetEngine does not") as e:
         model.minimize_expectation({"ZZI": 1.0}, bond_dims=[4], max_sweeps=1)
+    # The error points to the engine that has it, not back to this one.
+    assert "; QuimbEngine does." in str(e.value)
+
+
+def test_flips_gradient_matches_quimb(make_engine):
+    reference, model = _models(HardwareEfficient(nqubits=4, nlayers=2), make_engine)
+    observable = {"ZZII": 0.7, "IXXI": -0.4, "IIYZ": 0.3}
+    np.testing.assert_allclose(
+        model.gradient(observable, method="flips"),
+        reference.gradient(observable, method="flips"),
+        atol=1e-10,
+    )
+
+
+def test_adjoint_gradient_points_to_flips(make_engine):
+    model = HSMPO(HardwareEfficient(nqubits=3, nlayers=1), tn_engine=make_engine())
+    with pytest.raises(NotImplementedError, match="method='flips'"):
+        model.gradient({"ZZI": 1.0}, method="adjoint")
 
 
 def test_handles_follow_the_device_and_are_destroyed():
@@ -323,8 +336,8 @@ def test_handles_follow_the_device_and_are_destroyed():
 def test_workers_start_by_spawn():
     """A forked child cannot use the parent's CUDA context."""
     engine = CuTensorNetEngine(cuquantum=_NUMPY_CUQUANTUM)
-    assert mc_noise_estimator._worker_context(engine).get_start_method() == "spawn"
-    assert mc_noise_estimator._worker_context(QuimbEngine()) is None
+    assert engine.worker_context().get_start_method() == "spawn"
+    assert QuimbEngine().worker_context() is None
 
 
 def test_noisy_expectation_on_spawned_workers():
