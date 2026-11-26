@@ -69,6 +69,10 @@ def mpo_to_pauli_mps(mpo) -> list:
     ]
 
 
+# Relative size below which a weight is floating-point noise, not signal.
+_WEIGHT_ROUNDOFF = 1e-12
+
+
 def fold_fidelity(mpo, nqubits: int) -> float:
     """
     ``||O||_F**2 / 2**n`` of a folded tail MPO: 1 for an exact fold of a Pauli
@@ -80,12 +84,19 @@ def fold_fidelity(mpo, nqubits: int) -> float:
 
 def fold_truncation_l2(coefficient, mpo, nqubits: int) -> float:
     """
-    ``|c| sqrt(1 - fold_fidelity)``: a term's share of the bias of folding its
-    tail at a finite bond dimension, from the norm the fold lost.
+    ``|c| sqrt(1 - fold_fidelity)``: a term's share of the bias of truncating
+    its tail fold (bond cap or SVD cutoff), from the norm the fold lost.
+
+    A lost share ``1 - fold_fidelity`` at or below :data:`_WEIGHT_ROUNDOFF`
+    (``1e-12``, the floor :func:`truncation_error_estimate` uses) is rounding
+    drift, not truncation, and reads as 0: an exact fold drifts by ~1e-14,
+    which the square root would turn into a spurious ~1e-7. The price is a
+    resolution of ``|c| * 1e-6`` per term.
     """
-    return abs(coefficient) * float(
-        np.sqrt(max(0.0, 1.0 - fold_fidelity(mpo, nqubits)))
-    )
+    lost = 1.0 - fold_fidelity(mpo, nqubits)
+    if lost <= _WEIGHT_ROUNDOFF:
+        return 0.0
+    return abs(coefficient) * float(np.sqrt(lost))
 
 
 def shadow_variance_from_mpo(mpo) -> float:
@@ -231,10 +242,6 @@ def sample_pauli_strings(mpo, n_samples: int, seed=None) -> PauliEnsemble:
     drawn = {"".join(PAULI_LABELS[label] for label in row) for row in labels}
 
     return _ensemble(tensors, tuple(sorted(drawn)), total_weight)
-
-
-# Relative size below which a weight is floating-point noise, not signal.
-_WEIGHT_ROUNDOFF = 1e-12
 
 
 def truncation_error_estimate(ensemble: PauliEnsemble):

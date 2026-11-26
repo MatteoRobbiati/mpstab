@@ -62,6 +62,17 @@ docs = [
     "pandoc>=2.4",
 ]
 
+[tool.coverage.run]
+source = ["mpstab"]
+branch = true
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

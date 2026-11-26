@@ -3,6 +3,7 @@ import pytest
 from qibo import Circuit
 from utils import expectation_with_qibo, small_entangled_circuit
 
+from mpstab.engines import QuimbEngine
 from mpstab.evolutors.hqsmpo import HQSMPO, _resynthesize
 from mpstab.models.ansatze import (
     QAE,
@@ -70,6 +71,63 @@ def test_simulation_reports_tail_truncation():
     )
     assert result.truncation_l2 > 1e-6
     assert result.total_error == pytest.approx(result.truncation_l2)
+
+
+def _ising_hamiltonian(n):
+    from qibo import hamiltonians, symbols
+
+    return hamiltonians.SymbolicHamiltonian(
+        sum(symbols.Z(i) * symbols.Z(i + 1) for i in range(n - 1))
+        + 0.7 * sum(symbols.X(i) for i in range(n)),
+        nqubits=n,
+    )
+
+
+def test_simulation_reports_svd_cutoff_truncation_without_bond_cap():
+    # A long tail of small-angle rotations leaves Schmidt values below the
+    # default relative cutoff (1e-10): the fold truncates with no bond cap, and
+    # truncation_l2 must say so rather than read 0.
+    n = 10
+    ansatz = TrotterIsing(nqubits=n, n_steps=6, dt=0.2)
+    observable = _ising_hamiltonian(n)
+    reference = HQSMPO(ansatz)
+    reference.set_engines(tn_engine=QuimbEngine(svd_cutoff=0.0))
+    exact = float(np.real(reference.expectation(observable)))
+
+    result = HQSMPO(ansatz, max_bond_dimension=None).expectation_at_cut(
+        observable, 0, method="simulation"
+    )
+    error = abs(result.value - exact)
+    assert error > 1e-5  # the cutoff really does truncate here
+    assert result.truncation_l2 > 0.0
+    assert error / 10 <= result.truncation_l2 <= 10 * error
+
+
+def test_simulation_exact_fold_reports_no_truncation():
+    # No cutoff and no bond cap: the fold is exact up to rounding, and its
+    # drift (|1 - F| ~ 1e-15) must stay below the noise floor of
+    # fold_truncation_l2 instead of reading as ~1e-7.
+    n = 6
+    ansatz = TrotterIsing(nqubits=n, n_steps=4, dt=0.2)
+    hs = HQSMPO(ansatz, max_bond_dimension=None)
+    hs.set_engines(tn_engine=QuimbEngine(svd_cutoff=0.0))
+    result = hs.expectation_at_cut(_ising_hamiltonian(n), 0, method="simulation")
+    assert result.truncation_l2 == 0.0
+
+
+def test_pauli_skips_hermiticity_check_when_only_the_cutoff_truncates():
+    # An aggressive SVD cutoff with no bond cap leaves an anti-Hermitian part
+    # far above the check's tolerance: it is truncation, not a bug upstream,
+    # so the plan must project it out rather than raise.
+    n = 4
+    ansatz = TrotterIsing(nqubits=n, n_steps=3, dt=0.2)
+    hs = HQSMPO(ansatz, max_bond_dimension=None)
+    hs.set_engines(tn_engine=QuimbEngine(svd_cutoff=1e-2))
+    result = hs.expectation_at_cut(
+        _ising_hamiltonian(n), 0, method="pauli", n_shots=100, seed=1
+    )
+    assert result.bond_truncation_l2 > 0.0
+    assert result.antihermitian_l2 > 1e-8
 
 
 def test_simulation_matches_hamiltonian_sum():

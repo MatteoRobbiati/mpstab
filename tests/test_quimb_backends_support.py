@@ -5,9 +5,9 @@ import traceback
 import numpy as np
 import pytest
 from qibo import Circuit, gates
+from utils import jax_x64
 
 jax = pytest.importorskip("jax")
-import jax.experimental  # noqa: E402
 import jax.numpy as jnp  # noqa: E402
 
 from mpstab.engines import QuimbEngine, StimEngine
@@ -19,17 +19,6 @@ from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient
 _TORCH = pytest.mark.skipif(
     importlib.util.find_spec("torch") is None, reason="needs torch"
 )
-
-
-def _x64():
-    """
-    A context running jax in double precision, on whichever API this jax has:
-    ``jax.enable_x64`` (current releases) or ``jax.experimental.enable_x64``
-    (0.4 to 0.7).
-    """
-    if hasattr(jax, "enable_x64"):
-        return jax.enable_x64(True)
-    return jax.experimental.enable_x64(True)
 
 
 @pytest.mark.parametrize("backend", ["jax", pytest.param("torch", marks=_TORCH)])
@@ -49,7 +38,7 @@ def test_backend_support(backend):
     # safe_qr nudges degenerate factorizations by sqrt(eps) ~ 1.5e-8 to keep
     # gradients finite, which leaves value errors up to ~1e-8 depending on the
     # platform's linear algebra. torch stays in single precision.
-    precision = _x64() if backend == "jax" else contextlib.nullcontext()
+    precision = jax_x64() if backend == "jax" else contextlib.nullcontext()
     tolerance = 1e-7 if backend == "jax" else 1e-4
     with precision:
         hs.set_engines(stab_engine=StimEngine(), tn_engine=QuimbEngine(backend=backend))
@@ -101,7 +90,7 @@ def test_gradients_jax():
     """
     # float64: where jax's QR derivative is degenerate, safe_qr nudges the input by
     # sqrt(eps), which is 1e-8 here but ~3e-4 in float32.
-    with _x64():
+    with jax_x64():
         nqubits, nlayers, observable = 4, 2, "ZXZX"
         circuit = _non_clifford_circuit(nqubits, nlayers, np.random.default_rng(0))
         hs = HSMPO(
@@ -230,7 +219,7 @@ def test_safe_qr_gradient_is_accurate_in_float64(zero_column):
         q, r = safe_qr(x)
         return jnp.sum(weights * (q @ r))
 
-    with _x64():
+    with jax_x64():
         gradient = jax.grad(product)(jnp.asarray(matrix))
     np.testing.assert_allclose(np.asarray(gradient), weights, atol=1e-6)
 
@@ -239,7 +228,7 @@ def test_safe_qr_gradient_is_accurate_in_float64(zero_column):
 def test_safe_qr_gradient_on_wide_matrices(shape):
     """jax has no QR derivative for wide matrices; safe_qr provides one."""
     rng = np.random.default_rng(5)
-    with _x64():
+    with jax_x64():
         a = jnp.asarray(rng.normal(size=shape) + 1j * rng.normal(size=shape))
         q, r = safe_qr(a)
         np.testing.assert_allclose(q @ r, a, atol=1e-12)

@@ -1,9 +1,10 @@
 Error Mitigation
 ================
 
+Data-driven error mitigation learns how noise biases an expectation value from
+training circuits close to the target, whose noiseless values HSMPO computes.
 Clifford data regression (CDR) learns a map from noisy expectation values to
-noiseless ones on training circuits close to the target, then applies it to the
-target's noisy value. The training circuits are low-magic variants of the
+noiseless ones on those circuits, then applies it to the target's noisy value. The training circuits are low-magic variants of the
 target, in which each non-Clifford gate is replaced by a Clifford one with some
 probability. HSMPO computes their noiseless values cheaply, even with the
 leftover magic that keeps them close to the target.

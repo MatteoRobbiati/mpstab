@@ -96,6 +96,16 @@ class TensorNetworkEngine(ABC):
             self._overrides("operator_sites") or self._overrides("operator_site_arrays")
         )
 
+    @property
+    def has_pauli_sum(self) -> bool:
+        """
+        Whether the engine applies Pauli sums to a state
+        (:meth:`apply_pauli_sum`), which the adjoint gradient needs. With a site
+        view and :meth:`state_from_sites` as well, the gradient runs fused on
+        the shared kernels.
+        """
+        return self._overrides("apply_pauli_sum")
+
     def _unsupported(self, feature: str):
         """The error an optional method raises on an engine without it."""
         return NotImplementedError(
@@ -137,8 +147,8 @@ class TensorNetworkEngine(ABC):
         return kernels.NUMPY
 
     @property
-    def _cutoff(self) -> float:
-        """The cutoff the kernels truncate with."""
+    def truncation_cutoff(self) -> float:
+        """The relative singular-value cutoff the kernels truncate with."""
         cutoff = self.svd_cutoff
         return kernels.DEFAULT_SVD_CUTOFF if cutoff is None else cutoff
 
@@ -178,6 +188,27 @@ class TensorNetworkEngine(ABC):
         whose metadata (index names, tags) the result may copy.
         """
         raise self._unsupported("operator import (operator_from_sites)")
+
+    def state_from_sites(self, sites: list, center: int):
+        """
+        The engine's state for ``(left, phys, right)`` site arrays in mixed
+        canonical form around ``center``, inverse of :meth:`site_arrays`: what
+        an algorithm that works on plain site arrays hands back to the engine.
+        """
+        raise self._unsupported("state import (state_from_sites)")
+
+    def site_arrays(self, state_circuit: Any) -> tuple[list, int]:
+        """
+        A snapshot of the state's site view: a list of its
+        ``(left, phys, right)`` arrays in mixed canonical form, and the
+        orthogonality center. The arrays are shared with the state, which the
+        kernels never write into, so the list is a cheap checkpoint.
+        """
+        view = self.state_sites(state_circuit)
+        arrays = [view[i] for i in range(len(view))]
+        center = view.center
+        view.commit()
+        return arrays, center
 
     def operator_site_arrays(self, operator: Any) -> list:
         """
@@ -301,36 +332,32 @@ class TensorNetworkEngine(ABC):
         """
         return kernels.operator_expectation(state_sites, operator_sites, self.linalg)
 
-    def pauli_transitions(self, bra_state: Any, ket_state: Any, paulis):
+    def pauli_transitions(
+        self, bra_state: Any, ket_state: Any, paulis, normalize: bool = True
+    ):
         """
-        Normalized transition amplitudes ``<bra|P|ket>`` of many Pauli
-        strings between two states, in order, as a complex array: each state
-        is divided by its own norm.
+        Transition amplitudes ``<bra|P|ket>`` of many Pauli strings between two
+        states, in order, as a complex array. With ``normalize`` each state is
+        divided by its own norm.
+
+        The identity environments from both ends are built once for all the
+        strings (:func:`~._mps_kernels.pauli_transitions`), so each string
+        only contracts its own support.
         """
         if not self.has_site_view:
             raise NotImplementedError(
                 f"{type(self).__name__} does not compute transition amplitudes, "
-                "which non-Pauli noise channels need."
+                "which analytic gradients and non-Pauli noise channels need."
             )
         linalg = self.linalg
-
-        def sites(state):
-            # One view at a time: the two may be the same state.
-            view = self.state_sites(state)
-            norm = kernels.squared_norm(view, view.center, linalg)
-            arrays = [view[i] for i in range(len(view))]
-            view.commit()
-            return arrays, norm
-
-        bra_sites, bra_norm = sites(bra_state)
-        ket_sites, ket_norm = sites(ket_state)
-        norm = np.sqrt(bra_norm * ket_norm)
-        values = np.array(
-            [
-                kernels.pauli_transition(bra_sites, ket_sites, pauli, linalg)
-                for pauli in paulis
-            ],
-            dtype=complex,
+        bra_sites, bra_center = self.site_arrays(bra_state)
+        ket_sites, ket_center = self.site_arrays(ket_state)
+        values = kernels.pauli_transitions(bra_sites, ket_sites, list(paulis), linalg)
+        if not normalize:
+            return values
+        norm = np.sqrt(
+            kernels.squared_norm(bra_sites, bra_center, linalg)
+            * kernels.squared_norm(ket_sites, ket_center, linalg)
         )
         return values / norm
 
@@ -357,7 +384,7 @@ class TensorNetworkEngine(ABC):
             generator.upper(),
             float(angle),
             max_bond=max_bond_dimension,
-            cutoff=self._cutoff,
+            cutoff=self.truncation_cutoff,
             linalg=self.linalg,
         )
         view.commit()
@@ -438,7 +465,7 @@ class TensorNetworkEngine(ABC):
                 generator.upper(),
                 float(angle),
                 max_bond=max_bond_dimension,
-                cutoff=self._cutoff,
+                cutoff=self.truncation_cutoff,
                 linalg=linalg,
             )
         return self.operator_from_sites(sites, operator)
@@ -446,6 +473,16 @@ class TensorNetworkEngine(ABC):
     # ------------------------------------------------------------------
     # Optional features.
     # ------------------------------------------------------------------
+
+    def apply_pauli_sum(
+        self, state_circuit: Any, paulis, coefficients, max_bond_dimension
+    ):
+        """
+        A new state ``sum_t c_t P_t |state>``, compressed to
+        ``max_bond_dimension``; the input state is left untouched. The adjoint
+        method of the analytic gradient needs it.
+        """
+        raise self._unsupported("Pauli sums applied to a state (apply_pauli_sum)")
 
     def pauli_sum_mpo(self, terms: dict):
         """

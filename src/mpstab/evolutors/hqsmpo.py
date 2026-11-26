@@ -328,12 +328,12 @@ class HQSMPO(HSMPO):
                     self.tn_engine.expval(state_circuit=state_mps, operator=operator)
                 )
             )
-            if max_bond_dimension is not None:
-                truncation_l2 += fold_truncation_l2(
-                    coefficient,
-                    self.tn_engine.operator_site_arrays(operator),
-                    self.nqubits,
-                )
+            # Measured whatever the bond cap: the SVD cutoff truncates too.
+            truncation_l2 += fold_truncation_l2(
+                coefficient,
+                self.tn_engine.operator_site_arrays(operator),
+                self.nqubits,
+            )
 
         return ExpectationResult(
             value=float(np.real(value)),

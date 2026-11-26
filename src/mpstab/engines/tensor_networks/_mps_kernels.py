@@ -534,21 +534,43 @@ def squared_norm(A, center: int, linalg: Linalg = NUMPY) -> float:
     return float(linalg.xp.vdot(A[center], A[center]).real)
 
 
-def pauli_transition(bra, ket, pauli: str, linalg: Linalg = NUMPY) -> complex:
+def pauli_transitions(bra, ket, paulis, linalg: Linalg = NUMPY) -> np.ndarray:
     """
-    Unnormalized ``<bra|P|ket>`` between two MPS, by a full left-to-right
-    sweep: the two states have different gauges, so nothing outside the
-    support contracts away.
+    Unnormalized ``<bra|P|ket>`` for many Pauli strings between two MPS.
+
+    The two states have different gauges, so nothing outside a string's
+    support contracts away. Instead, the identity environments from both ends
+    are built once for all the strings, each by a sweep that is correct in any
+    gauge and only as far as the strings need, and each string then contracts
+    only its own support between them.
     """
     xp = linalg.xp
     if len(bra) != len(ket):
         raise ValueError(f"The bra has {len(bra)} sites, the ket {len(ket)}.")
-    env = xp.ones((1, 1), dtype=ket[0].dtype)
-    for j in range(len(ket)):
-        ket_j = apply_pauli(ket[j], pauli[j], xp)
-        env = xp.tensordot(env, ket_j, axes=(1, 0))  # (bra_l, phys, ket_r)
-        env = xp.tensordot(bra[j].conj(), env, axes=([0, 1], [0, 1]))
-    return complex(env[0, 0])
+    n = len(ket)
+    windows = [bounds(pauli) or (0, 0) for pauli in paulis]
+    one = xp.ones((1, 1), dtype=ket[0].dtype)
+    left = [one]  # left[j]: sites before j, as (bra, ket) bonds
+    for j in range(max((a for a, _ in windows), default=0)):
+        left.append(_transfer_right(left[-1], bra[j], ket[j], xp))
+    right = {n: one}  # right[j]: sites from j on
+    for j in range(n - 1, min((b for _, b in windows), default=n - 1), -1):
+        ket_j = xp.tensordot(ket[j], right[j + 1], axes=(2, 1))  # (ket_l, phys, bra_r)
+        right[j] = xp.tensordot(bra[j].conj(), ket_j, axes=([1, 2], [1, 2]))
+
+    values = np.empty(len(paulis), dtype=complex)
+    for k, (pauli, (a, b)) in enumerate(zip(paulis, windows)):
+        env = left[a]
+        for j in range(a, b + 1):
+            env = _transfer_right(env, bra[j], apply_pauli(ket[j], pauli[j], xp), xp)
+        values[k] = complex(xp.sum(env * right[b + 1]))
+    return values
+
+
+def _transfer_right(env, bra, ket, xp=np):
+    """Extend a ``(bra, ket)`` left environment over one more site."""
+    ket = xp.tensordot(env, ket, axes=(1, 0))  # (bra_l, phys, ket_r)
+    return xp.tensordot(bra.conj(), ket, axes=([0, 1], [0, 1]))
 
 
 def operator_expectation(A, W, linalg: Linalg = NUMPY) -> complex:

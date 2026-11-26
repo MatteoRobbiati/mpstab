@@ -216,4 +216,4 @@ def test_mismatched_lengths_raise():
     with pytest.raises(ValueError, match="2 sites"):
         kernels.operator_expectation(state, operator)
     with pytest.raises(ValueError, match="sites"):
-        kernels.pauli_transition(state, state[:2], "ZZZ")
+        kernels.pauli_transitions(state, state[:2], ["ZZZ"])

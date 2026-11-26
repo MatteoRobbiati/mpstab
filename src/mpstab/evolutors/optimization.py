@@ -1,7 +1,11 @@
-"""DMRG ground-state optimization of an HSMPO's MPS."""
+"""Optimization of an HSMPO's MPS with DMRG, and the fused adjoint kernel of
+its analytic gradient."""
 
 from typing import Union
 
+import numpy as np
+
+from mpstab.engines.tensor_networks import _mps_kernels as kernels
 from mpstab.hamiltonians import Observable, pauli_terms
 
 
@@ -81,3 +85,120 @@ def minimize_expectation_dmrg(
         "num_sweeps": len(energy_history) if energy_history else max_sweeps,
         "energy_history": energy_history,
     }
+
+
+def adjoint_kernel(
+    engine,
+    initial_state,
+    generators,
+    angles,
+    sites,
+    observables,
+    weights,
+    max_bond,
+    costate_bond,
+):
+    """
+    The expectation value and its derivative with respect to each rotation
+    angle of a dressed-rotation chain, in one forward and one backward pass.
+
+    With ``psi_j`` the state after rotation ``j``, ``T_j`` the rest of the
+    chain and ``O = sum_t w_t P_t``, the derivative with respect to the angle
+    of rotation ``j`` is ``Im <lambda_j| G_j |psi_j> / <psi|psi>``, with the
+    costate ``lambda_j = T_j^dag O |psi>``. The forward pass keeps every
+    ``psi_j``; the backward pass applies the inverse rotations to the
+    costate and takes one transition amplitude per rotation in ``sites``.
+
+    Everything runs on the windowed kernels of :mod:`._mps_kernels`, on plain
+    lists of site arrays: a checkpoint is a shallow copy of the list, since the
+    kernels replace arrays rather than write into them.
+
+    Args:
+        engine: a tensor-network engine with a site view, state import and
+            Pauli sums (:attr:`~mpstab.engines.TensorNetworkEngine.has_site_view`,
+            :attr:`~mpstab.engines.TensorNetworkEngine.has_pauli_sum`); the
+            kernels run on its arrays (:attr:`~mpstab.engines.TensorNetworkEngine.linalg`).
+        initial_state: the initial MPS, left untouched.
+        generators, angles: the chain, ``exp(-i angle/2 generator)`` in order.
+        sites: increasing indices of the rotations to differentiate.
+        observables, weights: the dressed observable ``sum_t w_t P_t``.
+        max_bond: bond cap of the state.
+        costate_bond: bond cap of the costate.
+
+    Returns:
+        ``(value, derivatives, n_rotations, fidelities)``: the normalized
+        expectation value, the derivative per rotation (zero outside
+        ``sites``), the rotations applied, and the truncation fidelities of
+        the state and of the costate.
+    """
+    cutoff = engine.truncation_cutoff
+    linalg = engine.linalg
+    arrays, center = engine.site_arrays(initial_state)
+    checkpoints = [(list(arrays), center)]
+    for generator, angle in zip(generators, angles):
+        center = kernels.pauli_rotation(
+            arrays, center, generator, angle, max_bond, cutoff, linalg
+        )
+        checkpoints.append((list(arrays), center))
+    norm = kernels.squared_norm(arrays, center, linalg)
+    value = (
+        float(
+            np.real(
+                np.dot(
+                    weights, _expectations(list(arrays), center, observables, linalg)
+                )
+            )
+        )
+        / norm
+    )
+
+    costate, costate_center = engine.site_arrays(
+        engine.apply_pauli_sum(
+            engine.state_from_sites(arrays, center), observables, weights, costate_bond
+        )
+    )
+    initial = kernels.squared_norm(costate, costate_center, linalg)
+    derivatives = np.zeros(len(generators))
+    wanted = set(sites)
+    n_rotations = len(generators)
+    for j in range(len(generators) - 1, min(wanted) - 1, -1):
+        if j < len(generators) - 1:
+            costate_center = kernels.pauli_rotation(
+                costate,
+                costate_center,
+                generators[j + 1],
+                -angles[j + 1],
+                costate_bond,
+                cutoff,
+                linalg,
+            )
+            n_rotations += 1
+        if j in wanted:
+            amplitude = kernels.pauli_transitions(
+                costate, checkpoints[j + 1][0], [generators[j]], linalg
+            )[0]
+            derivatives[j] = amplitude.imag / norm
+    kept = (
+        kernels.squared_norm(costate, costate_center, linalg) / initial
+        if initial
+        else 1.0
+    )
+    return value, derivatives, n_rotations, [norm, kept]
+
+
+def _expectations(arrays, center, paulis, linalg=kernels.NUMPY):
+    """
+    Unnormalized ``<psi|P|psi>`` for each string, visiting them in order of
+    their first non-identity site so the center sweeps the chain once.
+    """
+    values = np.zeros(len(paulis), dtype=complex)
+    windows = [kernels.bounds(pauli) for pauli in paulis]
+    for k in sorted(
+        range(len(paulis)),
+        key=lambda k: center if windows[k] is None else windows[k][0],
+    ):
+        window = windows[k]
+        if window is not None and not window[0] <= center <= window[1]:
+            center = kernels.move_center(arrays, center, window[0], linalg)
+        values[k] = kernels.pauli_expectation(arrays, center, paulis[k], linalg)
+    return values

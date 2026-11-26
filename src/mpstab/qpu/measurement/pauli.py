@@ -217,15 +217,14 @@ class PauliSampling(MeasurementMethod):
         Two truncations are reported, of different origin. ``truncation_l1`` /
         ``truncation_l2`` count the Pauli strings of each folded MPO that
         ``n_string_samples`` left out. ``bond_truncation_l2`` is the bias of
-        folding at a finite bond dimension, estimated from each folded MPO's
-        norm (see
+        truncating the fold (bond cap or SVD cutoff), estimated from each
+        folded MPO's norm (see
         :func:`~mpstab.qpu.measurement.pauli_expansion.fold_fidelity`) as in the
         ``"shadows"`` method: the string truncation is measured against the
         already truncated MPO, so it cannot see it. ``antihermitian_l2`` is the
         size of the anti-Hermitian part that truncation leaves in the pooled
         coefficients, projected out by :func:`_real_coefficients`.
         """
-        truncated = max_bond_dimension is not None
         rng = np.random.default_rng(seed)
         ensembles, diagnostics = [], []
         bond_truncation_l2 = 0.0
@@ -234,10 +233,10 @@ class PauliSampling(MeasurementMethod):
                 pauli, cut_index, max_bond_dimension
             )
             operator = model.tn_engine.operator_site_arrays(operator)
-            if truncated:
-                bond_truncation_l2 += fold_truncation_l2(
-                    coefficient, operator, model.nqubits
-                )
+            # Measured whatever the bond cap: the SVD cutoff truncates too.
+            bond_truncation_l2 += fold_truncation_l2(
+                coefficient, operator, model.nqubits
+            )
             ensemble = sample_pauli_strings(
                 operator,
                 n_samples=self.n_string_samples,
@@ -256,6 +255,9 @@ class PauliSampling(MeasurementMethod):
         truncation_l1, truncation_l2, retained_weight = _aggregate_truncation(
             diagnostics
         )
+        # A fold that lost weight beyond rounding, by bond cap or SVD cutoff,
+        # is not Hermitian: project, do not raise.
+        truncated = max_bond_dimension is not None or bond_truncation_l2 > 0.0
         grouping = build_measurement_plan(
             _real_coefficients(pooled, check=not truncated)
         )
@@ -358,7 +360,7 @@ def _real_coefficients(pooled: dict, check: bool = True, tolerance: float = 1e-8
     tableau folding, or a non-Hermitian input observable) that silently dropping
     it would hide.
 
-    A tail truncated to a finite bond dimension is not Hermitian (the
+    A truncated tail (bond cap or SVD cutoff) is not Hermitian (the
     intermediate ``R^dag O`` is not, and Pauli-structured operators have
     degenerate singular values, so a compression picks an arbitrary subspace).
     There, pass ``check=False``: the real part is exactly the projection

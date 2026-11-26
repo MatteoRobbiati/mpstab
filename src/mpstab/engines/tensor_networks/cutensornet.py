@@ -287,6 +287,10 @@ class CuTensorNetEngine(TensorNetworkEngine):
             )
         return state_circuit
 
+    def state_from_sites(self, sites: list, center: int) -> SiteMPS:
+        """A :class:`SiteMPS` on the given site arrays."""
+        return SiteMPS(sites, center)
+
     def operator_sites(self, operator: SiteMPO) -> list:
         return list(operator.sites)
 
