@@ -3,14 +3,15 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
-        <link rel="prefetch" href="../../../_static/mpstab_logo.png" as="image">
+        <link rel="prefetch" href="../../../_static/logo/mpstab_logo_light.svg" as="image">
+        <link rel="prefetch" href="../../../_static/logo/mpstab_logo_dark.svg" as="image">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
         <title>mpstab.evolutors.hqsmpo - Documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=71654716" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=7d1046be" />
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/katex-math.css?v=05624691" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -22,18 +23,24 @@
   body {
     --color-code-background: #f2f2f2;
   --color-code-foreground: #1e1e1e;
+  --color-brand-primary: #2f63c4;
+  --color-brand-content: #2f63c4;
   
   }
   @media not print {
     body[data-theme="dark"] {
       --color-code-background: #202020;
   --color-code-foreground: #d0d0d0;
+  --color-brand-primary: #a7c7ff;
+  --color-brand-content: #a7c7ff;
   
     }
     @media (prefers-color-scheme: dark) {
       body:not([data-theme="light"]) {
         --color-code-background: #202020;
   --color-code-foreground: #d0d0d0;
+  --color-brand-primary: #a7c7ff;
+  --color-brand-content: #a7c7ff;
   
       }
     }
@@ -186,7 +193,8 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   <div class="sidebar-logo-container">
-    <img class="sidebar-logo" src="../../../_static/mpstab_logo.png" alt="Logo"/>
+    <img class="sidebar-logo only-light" src="../../../_static/logo/mpstab_logo_light.svg" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../../_static/logo/mpstab_logo_dark.svg" alt="Dark Logo"/>
   </div>
   
   <span class="sidebar-brand-text">Documentation</span>
@@ -200,40 +208,42 @@
   <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/theory_background.html">Theoretical Background, a snapshot</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/quickstart.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quick Start Guide</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/introduction.html">A quick introduction to HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/state_metrics.html">State metrics on an HSMPO: comparison with Qibo</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/noise.html">Noisy simulation with <code class="docutils literal notranslate"><span class="pre">mpstab.noise</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/advanced_noise.html">Device-level noise: relaxation, crosstalk and idling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/noisy_simulation.html">Noisy simulation against density matrices</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/optimization.html">HSMPO Ground State Optimization with DMRG</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/dmrg_j1j2_comparison.html">DMRG: pure quimb against HSMPO</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/scripts/hqsmpo.html">HQSMPO on quantum hardware</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/free_fermions.html">mpstab against an exact reference at 100 qubits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/frameworks.html">mpstab vs qibojit vs PauliPropagation.jl: who wins where</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../methods/hqsmpo/index.html">Hybrid quantum-classical execution: HQSMPO</a><input aria-label="Toggle navigation of Hybrid quantum-classical execution: HQSMPO" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../methods/hqsmpo/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../methods/hqsmpo/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
 </ul>
 </li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../guides/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a><input aria-label="Toggle navigation of DMRG Optimization of Quantum Hamiltonians" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../examples/dmrg_optimization_heisenberg.html">DMRG Optimization of the XXZ Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/noise.html">Pauli noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/advanced_noise.html">Non-unital noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/error_mitigation.html">Data-driven error mitigation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/best_split.html">Choosing the head/tail split with <code class="docutils literal notranslate"><span class="pre">best_split</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/working_with_engines.html">Working with Engines</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/using_ansatze.html">Using Ansätze</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/ansatze_catalogue.html">Ansatz Catalogue</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../guides/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -241,12 +251,15 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../api/engines.html">Engines</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api/qpu.html">QPU</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api/noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/error_mitigation.html">Error Mitigation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api/pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/qibo_tools.html">Qibo tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api/models.html">Models &amp; Methods</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">About</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../publications.html">Publications</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/MatteoRobbiati/mpstab">GitHub repository</a></li>
 </ul>
 
 </div>
@@ -330,6 +343,7 @@
 <span class="sd">to use it.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
@@ -342,7 +356,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.evolutors.hsmpo</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.hamiltonians</span><span class="w"> </span><span class="kn">import</span> <span class="n">Observable</span><span class="p">,</span> <span class="n">pauli_terms</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.pauli</span><span class="w"> </span><span class="kn">import</span> <span class="n">conjugate</span><span class="p">,</span> <span class="n">pauli_light_cone</span><span class="p">,</span> <span class="n">validate_pauli_string</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.execution</span><span class="w"> </span><span class="kn">import</span> <span class="n">QiboSimulator</span><span class="p">,</span> <span class="n">execute_plan</span><span class="p">,</span> <span class="n">save_circuits</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qibo_tools.utilized_backends.statevector_exact_simulator</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">StatevectorExactSimulator</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.execution</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_plan</span><span class="p">,</span> <span class="n">save_circuits</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.qpu.measurement</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ExpectationResult</span><span class="p">,</span>
     <span class="n">MeasurementMethod</span><span class="p">,</span>
@@ -445,7 +462,7 @@
 <span class="sd">            :class:`ExpectationResult` as</span>
 <span class="sd">            ``expectation_at_cut(observable, cut_index, method=&quot;simulation&quot;)``.</span>
 <span class="sd">        coefficient_l1: ``sum |c_P|`` over the observable&#39;s non-identity Pauli</span>
-<span class="sd">            terms, which scales the head truncation in :attr:`error_estimate`.</span>
+<span class="sd">            terms, which scales the head truncation in :attr:`truncation_score`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">cut_index</span><span class="p">:</span> <span class="nb">int</span>
@@ -453,11 +470,17 @@
     <span class="n">coefficient_l1</span><span class="p">:</span> <span class="nb">float</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">error_estimate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">truncation_score</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Reference-free scale of the split&#39;s error on the expectation value, in</span>
-<span class="sd">        the observable&#39;s units:</span>
+<span class="sd">        How much the split truncates, head and tail together, in the</span>
+<span class="sd">        observable&#39;s units:</span>
 <span class="sd">        ``truncation_l2 + coefficient_l1 * sqrt(1 - state_fidelity)``.</span>
+
+<span class="sd">        It measures the weight the truncations discarded, not the error on the</span>
+<span class="sd">        expectation value: discarded weight the observable cannot see, or</span>
+<span class="sd">        errors that partly cancel, leave the value unchanged. A lower score</span>
+<span class="sd">        therefore does not guarantee a lower error, and the score can be orders</span>
+<span class="sd">        of magnitude above the true error.</span>
 
 <span class="sd">        The tail term, ``truncation_l2``, sums over the Pauli terms ``|c_P|``</span>
 <span class="sd">        times the L2 norm of the Pauli weight the tail fold discarded,</span>
@@ -470,8 +493,9 @@
 <span class="sd">        are systematic biases that can add up, not independent noise.</span>
 
 <span class="sd">        Neither term is a bound, and ``state_fidelity``, the head MPS&#39;s squared</span>
-<span class="sd">        norm, is itself only an estimate of ``F``. Use the value to rank cuts,</span>
-<span class="sd">        not as an error bar; under heavy truncation it can rank them wrongly.</span>
+<span class="sd">        norm, is itself only an estimate of ``F``. Use the score to rank cuts,</span>
+<span class="sd">        not as an error bar: it ranks them well when some cut keeps both sides</span>
+<span class="sd">        nearly untruncated, and can rank them wrongly when every cut truncates.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">head_loss</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">state_fidelity</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">truncation_l2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficient_l1</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span>
@@ -750,12 +774,12 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">expval</span><span class="p">(</span><span class="n">state_circuit</span><span class="o">=</span><span class="n">heads</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">operator</span><span class="o">=</span><span class="n">operator</span><span class="p">)</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="n">max_bond_dimension</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">truncation_l2</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+=</span> <span class="n">fold_truncation_l2</span><span class="p">(</span>
-                        <span class="n">coefficient</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">operator_site_arrays</span><span class="p">(</span><span class="n">operator</span><span class="p">),</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span>
-                    <span class="p">)</span>
+                <span class="c1"># Measured whatever the bond cap: the SVD cutoff truncates too.</span>
+                <span class="n">truncation_l2</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+=</span> <span class="n">fold_truncation_l2</span><span class="p">(</span>
+                    <span class="n">coefficient</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">operator_site_arrays</span><span class="p">(</span><span class="n">operator</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">nqubits</span><span class="p">,</span>
+                <span class="p">)</span>
                 <span class="k">if</span> <span class="n">position</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">segment</span> <span class="o">=</span> <span class="p">[</span>
                         <span class="n">rotations</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
@@ -945,6 +969,65 @@
         <span class="k">return</span> <span class="p">[</span><span class="n">SplitCandidate</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">results</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">coefficient_l1</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cut_list</span><span class="p">]</span></div>
 
 
+<div class="viewcode-block" id="HQSMPO.reference_scan">
+<a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.reference_scan">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reference_scan</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">observable</span><span class="p">:</span> <span class="n">Observable</span><span class="p">,</span>
+        <span class="n">cuts</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_bond_dimension</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">light_cone</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">bond_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">svd_cutoff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SplitCandidate</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :meth:`split_scan` with a looser truncation, as the reference</span>
+<span class="sd">        :meth:`best_split` ranks the cuts against.</span>
+
+<span class="sd">        Head and tail bond caps are multiplied by ``bond_factor``, and the</span>
+<span class="sd">        tensor-network engine&#39;s SVD cutoff is lowered to ``svd_cutoff`` (when</span>
+<span class="sd">        it has one, as :class:`~mpstab.engines.QuimbEngine` does). Both matter:</span>
+<span class="sd">        the cutoff also truncates, and over a long fold its discarded weight</span>
+<span class="sd">        adds up to errors a larger bond alone does not remove. The instance is</span>
+<span class="sd">        left unchanged.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observable: forwarded to :meth:`split_scan`.</span>
+<span class="sd">            cuts: forwarded to :meth:`split_scan`.</span>
+<span class="sd">            max_bond_dimension: the tail cap of the scan being referenced</span>
+<span class="sd">                (``-1`` means ``self.max_bond_dimension``), before scaling.</span>
+<span class="sd">            light_cone: forwarded to :meth:`split_scan`.</span>
+<span class="sd">            bond_factor: how much larger the reference&#39;s bond caps are. An</span>
+<span class="sd">                uncapped (``None``) bond stays uncapped.</span>
+<span class="sd">            svd_cutoff: the reference engine&#39;s SVD cutoff.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            One :class:`SplitCandidate` per distinct cut, as from</span>
+<span class="sd">            :meth:`split_scan`.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if ``bond_factor &lt; 1``, or from :meth:`split_scan`.</span>
+<span class="sd">            NotImplementedError: from :meth:`split_scan`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">bond_factor</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;bond_factor must be at least 1.&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">scaled</span><span class="p">(</span><span class="n">bond</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">bond</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">bond_factor</span> <span class="o">*</span> <span class="n">bond</span><span class="p">)</span>
+
+        <span class="n">tail_bond</span> <span class="o">=</span> <span class="n">scaled</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bond</span><span class="p">(</span><span class="n">max_bond_dimension</span><span class="p">))</span>
+        <span class="c1"># A shallow copy shares the dressed rotations; only the head bond and</span>
+        <span class="c1"># the engine change. Its cached MPS was built for the original</span>
+        <span class="c1"># settings, so it is dropped rather than left stale.</span>
+        <span class="n">view</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">max_bond_dimension</span> <span class="o">=</span> <span class="n">scaled</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_bond_dimension</span><span class="p">)</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">original_circuit_mps</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="p">,</span> <span class="s2">&quot;svd_cutoff&quot;</span><span class="p">):</span>
+            <span class="n">view</span><span class="o">.</span><span class="n">tn_engine</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tn_engine</span><span class="p">)</span>
+            <span class="n">view</span><span class="o">.</span><span class="n">tn_engine</span><span class="o">.</span><span class="n">svd_cutoff</span> <span class="o">=</span> <span class="n">svd_cutoff</span>
+        <span class="k">return</span> <span class="n">view</span><span class="o">.</span><span class="n">split_scan</span><span class="p">(</span><span class="n">observable</span><span class="p">,</span> <span class="n">cuts</span><span class="p">,</span> <span class="n">tail_bond</span><span class="p">,</span> <span class="n">light_cone</span><span class="o">=</span><span class="n">light_cone</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="HQSMPO.best_split">
 <a class="viewcode-back" href="../../../api/evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO.best_split">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">best_split</span><span class="p">(</span>
@@ -955,12 +1038,22 @@
         <span class="n">scan</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">SplitCandidate</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_bond_dimension</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">light_cone</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">reference</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">SplitCandidate</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SplitCandidate</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        The cut minimising ``key`` over :meth:`split_scan`.</span>
 
-<span class="sd">        The default key, :attr:`SplitCandidate.error_estimate`, needs no exact</span>
-<span class="sd">        reference. It ranks the cuts of the classical split, where the head is a</span>
+<span class="sd">        With ``reference``, the key is ``|value - reference value|``, cut by</span>
+<span class="sd">        cut: how far each cut moves when the truncation is loosened</span>
+<span class="sd">        (:meth:`reference_scan`). It is the more reliable choice: on 84</span>
+<span class="sd">        10-qubit brickwork, kicked-Ising and Trotter cases checked against the</span>
+<span class="sd">        exact state vector, it always picked a cut within 7.4x of the lowest</span>
+<span class="sd">        error, where :attr:`SplitCandidate.truncation_score` was off by up to</span>
+<span class="sd">        ~2000x. It costs a second scan, at twice the bond.</span>
+
+<span class="sd">        Without ``reference``, the default key is</span>
+<span class="sd">        :attr:`SplitCandidate.truncation_score`, which needs no second scan.</span>
+<span class="sd">        Both rank the cuts of the classical split, where the head is a</span>
 <span class="sd">        truncated MPS. On hardware the head runs exactly, so a device run is</span>
 <span class="sd">        better ranked by a custom ``key``, e.g. trading ``result.truncation_l2``</span>
 <span class="sd">        against ``resynthesize_head(cut_index).n_two_qubit_gates``. To maximise</span>
@@ -968,26 +1061,31 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            observable: forwarded to :meth:`split_scan`; not needed with</span>
-<span class="sd">                ``scan``.</span>
+<span class="sd">                ``scan`` (and a ``reference`` list).</span>
 <span class="sd">            cuts: forwarded to :meth:`split_scan`.</span>
 <span class="sd">            key: maps a :class:`SplitCandidate` to the value to minimise. Defaults</span>
-<span class="sd">                to :attr:`SplitCandidate.error_estimate`.</span>
+<span class="sd">                to :attr:`SplitCandidate.truncation_score`.</span>
 <span class="sd">            scan: a :meth:`split_scan` result to reuse; ``observable``,</span>
 <span class="sd">                ``cuts``, ``max_bond_dimension`` and ``light_cone`` are then</span>
 <span class="sd">                ignored.</span>
 <span class="sd">            max_bond_dimension: forwarded to :meth:`split_scan`.</span>
 <span class="sd">            light_cone: forwarded to :meth:`split_scan`.</span>
+<span class="sd">            reference: ``True`` to rank against :meth:`reference_scan` with its</span>
+<span class="sd">                defaults, or a reference scan to reuse (e.g. one from</span>
+<span class="sd">                :meth:`reference_scan` with other settings), which must cover</span>
+<span class="sd">                every cut of the scan.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            The best :class:`SplitCandidate`; ties go to the shorter head.</span>
 
 <span class="sd">        Raises:</span>
-<span class="sd">            ValueError: if neither ``observable`` nor ``scan`` is given, or</span>
-<span class="sd">                ``scan`` is empty.</span>
+<span class="sd">            ValueError: if neither ``observable`` nor ``scan`` is given, if</span>
+<span class="sd">                ``scan`` is empty, if both ``key`` and ``reference`` are given,</span>
+<span class="sd">                or if ``reference`` misses a cut of the scan.</span>
 <span class="sd">            NotImplementedError: from :meth:`split_scan`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">point</span><span class="p">:</span> <span class="n">point</span><span class="o">.</span><span class="n">error_estimate</span>  <span class="c1"># noqa: E731</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">reference</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;best_split takes a key or a reference, not both.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">scan</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">observable</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;best_split needs an observable or a scan.&quot;</span><span class="p">)</span>
@@ -996,6 +1094,29 @@
             <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">scan</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;best_split got an empty scan.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reference</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">observable</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;reference=True needs the observable.&quot;</span><span class="p">)</span>
+            <span class="n">reference</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_scan</span><span class="p">(</span>
+                <span class="n">observable</span><span class="p">,</span>
+                <span class="p">[</span><span class="n">point</span><span class="o">.</span><span class="n">cut_index</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">scan</span><span class="p">],</span>
+                <span class="n">max_bond_dimension</span><span class="p">,</span>
+                <span class="n">light_cone</span><span class="o">=</span><span class="n">light_cone</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">reference</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">reference_values</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">point</span><span class="o">.</span><span class="n">cut_index</span><span class="p">:</span> <span class="n">point</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">reference</span>
+            <span class="p">}</span>
+            <span class="n">missing</span> <span class="o">=</span> <span class="p">{</span><span class="n">point</span><span class="o">.</span><span class="n">cut_index</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">scan</span><span class="p">}</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">reference_values</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;reference misses the cuts </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2"> of the scan.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">point</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span>  <span class="c1"># noqa: E731</span>
+                <span class="n">point</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">reference_values</span><span class="p">[</span><span class="n">point</span><span class="o">.</span><span class="n">cut_index</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">point</span><span class="p">:</span> <span class="n">point</span><span class="o">.</span><span class="n">truncation_score</span>  <span class="c1"># noqa: E731</span>
         <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">scan</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">point</span><span class="p">:</span> <span class="p">(</span><span class="n">key</span><span class="p">(</span><span class="n">point</span><span class="p">),</span> <span class="n">point</span><span class="o">.</span><span class="n">cut_index</span><span class="p">))</span></div>
 
 
@@ -1074,7 +1195,7 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Resynthesise the head, build the measurement circuits, run them and</span>
 <span class="sd">        recombine the results, in one call: :meth:`plan`, then</span>
-<span class="sd">        :func:`~mpstab.qpu.execution.simulator.execute_plan` on ``backend``,</span>
+<span class="sd">        :func:`~mpstab.qpu.execution.backend.run_plan` on ``backend``,</span>
 <span class="sd">        then the method&#39;s ``estimate``. To run the circuits on a device and</span>
 <span class="sd">        post-process later, call those three stages separately.</span>
 
@@ -1106,7 +1227,8 @@
 <span class="sd">            epsilon: a target standard error, which sizes the shot budget from the</span>
 <span class="sd">                per-route variance predictor.</span>
 <span class="sd">            backend: anything with ``execute_circuits(circuits, nshots)``.</span>
-<span class="sd">                Defaults to :class:`~mpstab.qpu.QiboSimulator`.</span>
+<span class="sd">                Defaults to</span>
+<span class="sd">                :class:`~mpstab.qibo_tools.utilized_backends.statevector_exact_simulator.StatevectorExactSimulator`.</span>
 <span class="sd">            max_bond_dimension: bond cap for every tail fold; ``-1`` means</span>
 <span class="sd">                ``self.max_bond_dimension``. With ``&quot;simulation&quot;`` the head MPS</span>
 <span class="sd">                is capped at ``self.max_bond_dimension``.</span>
@@ -1147,7 +1269,7 @@
             <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
             <span class="n">out_folder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">frequencies</span> <span class="o">=</span> <span class="n">execute_plan</span><span class="p">(</span><span class="n">backend</span> <span class="ow">or</span> <span class="n">QiboSimulator</span><span class="p">(),</span> <span class="n">plan</span><span class="p">)</span>
+        <span class="n">frequencies</span> <span class="o">=</span> <span class="n">run_plan</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">backend</span> <span class="ow">or</span> <span class="n">StatevectorExactSimulator</span><span class="p">())</span>
         <span class="k">return</span> <span class="n">method</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span></div>
 
 
@@ -1338,7 +1460,14 @@
             
           </div>
           <div class="right-details">
-            
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/MatteoRobbiati/mpstab" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
           </div>
         </div>
         

@@ -71,9 +71,8 @@ device.
 
 .. automodule:: mpstab.qpu.execution
 
-.. automodule:: mpstab.qpu.execution.simulator
+.. automodule:: mpstab.qpu.execution.backend
    :members:
-   :show-inheritance:
 
 .. automodule:: mpstab.qpu.execution.qasm
    :members:
