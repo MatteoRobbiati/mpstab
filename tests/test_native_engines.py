@@ -123,3 +123,37 @@ def test_native_tensor_network_has_no_dmrg():
         hsmpo.minimize_expectation(
             observables={"ZZZZ": 1.0}, bond_dims=[8], max_sweeps=2
         )
+
+
+@pytest.mark.parametrize("seed", range(4))
+def test_native_two_qubit_rotations_match_stim(seed):
+    """RXX/RYY/RZZ at Clifford angles, which replaced magic gates become."""
+    rng = np.random.default_rng(seed)
+    rotations = [gates.RXX, gates.RYY, gates.RZZ]
+    angles = [0.0, np.pi / 2, -np.pi / 2, np.pi, 3 * np.pi / 2]
+    circuit = Circuit(3)
+    for _ in range(12):
+        a, b = (int(q) for q in rng.choice(3, size=2, replace=False))
+        if rng.random() < 0.5:
+            rotation = rotations[rng.integers(3)]
+            circuit.add(rotation(a, b, theta=float(rng.choice(angles))))
+        else:
+            circuit.add([gates.CNOT(a, b), gates.H(a), gates.S(b)][rng.integers(3)])
+    observables = ["".join(rng.choice(list("IXYZ"), 3)) for _ in range(6)]
+    expected = StimEngine().backpropagate_many(observables, circuit)
+    result = NativeStabilizersEngine().backpropagate_many(observables, circuit)
+    assert [(p, int(s)) for p, s in result] == [(p, int(s)) for p, s in expected]
+
+
+def test_native_rejects_non_clifford_two_qubit_rotation():
+    circuit = Circuit(2)
+    circuit.add(gates.RZZ(0, 1, theta=0.3))
+    with pytest.raises(ValueError, match="not Clifford"):
+        NativeStabilizersEngine().backpropagate("ZZ", circuit)
+
+
+def test_native_rejects_unknown_gates():
+    circuit = Circuit(2)
+    circuit.add(gates.CRX(0, 1, theta=np.pi))
+    with pytest.raises(ValueError, match="not supported"):
+        NativeStabilizersEngine().backpropagate("ZZ", circuit)
