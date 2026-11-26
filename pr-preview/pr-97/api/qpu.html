@@ -648,9 +648,9 @@ the observable’s light cone).</p></li>
 </ul>
 </dd>
 </dl>
-<p>The residual is the absorbed gates in order, then the inverse of the
-prefix’s Clifford gates, so that <code class="docutils literal notranslate"><span class="pre">residual</span> <span class="pre">.</span> <span class="pre">head</span> <span class="pre">|0&gt;</span></code> is the kept dressed
-rotations applied to <code class="docutils literal notranslate"><span class="pre">|0&gt;</span></code>.</p>
+<p>The residual is the inverse of the head’s Clifford gates (the prefix’s
+Clifford gates bar the absorbed ones, which commute to its end), so that
+<code class="docutils literal notranslate"><span class="pre">residual</span> <span class="pre">.</span> <span class="pre">head</span> <span class="pre">|0&gt;</span></code> is the kept dressed rotations applied to <code class="docutils literal notranslate"><span class="pre">|0&gt;</span></code>.</p>
 </dd></dl>
 
 <dl class="py function">

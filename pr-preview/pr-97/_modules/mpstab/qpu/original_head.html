@@ -389,47 +389,45 @@
 <span class="sd">        nqubits: circuit width.</span>
 <span class="sd">        absorb: move the trailing Clifford gates into the residual.</span>
 
-<span class="sd">    The residual is the absorbed gates in order, then the inverse of the</span>
-<span class="sd">    prefix&#39;s Clifford gates, so that ``residual . head |0&gt;`` is the kept dressed</span>
-<span class="sd">    rotations applied to ``|0&gt;``.</span>
+<span class="sd">    The residual is the inverse of the head&#39;s Clifford gates (the prefix&#39;s</span>
+<span class="sd">    Clifford gates bar the absorbed ones, which commute to its end), so that</span>
+<span class="sd">    ``residual . head |0&gt;`` is the kept dressed rotations applied to ``|0&gt;``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">head</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="n">nqubits</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">cut_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">head</span><span class="p">,</span> <span class="p">[],</span> <span class="mi">0</span>
-    <span class="n">last</span> <span class="o">=</span> <span class="n">magic_gates</span><span class="p">[</span><span class="n">cut_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">sequence</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># (gate, is_magic), the prefix in circuit order</span>
-    <span class="n">pending</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">magic_gates</span><span class="p">[:</span><span class="n">cut_index</span><span class="p">]))</span>
-    <span class="n">current</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">pending</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">last</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="k">while</span> <span class="n">current</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">current</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">index</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">current</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">keep</span><span class="p">:</span>
-                <span class="n">sequence</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">current</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="kc">True</span><span class="p">))</span>
-            <span class="n">current</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">pending</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">last</span><span class="p">:</span>
-            <span class="n">sequence</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">clifford_gates</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="kc">False</span><span class="p">))</span>
+    <span class="n">sequence</span><span class="p">,</span> <span class="n">start</span> <span class="o">=</span> <span class="p">[],</span> <span class="mi">0</span>  <span class="c1"># (gate, is_magic), the prefix in circuit order</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="nb">breakpoint</span><span class="p">,</span> <span class="n">gate</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">magic_gates</span><span class="p">[:</span><span class="n">cut_index</span><span class="p">]):</span>
+        <span class="n">sequence</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">clifford</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">clifford</span> <span class="ow">in</span> <span class="n">clifford_gates</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="nb">breakpoint</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">keep</span><span class="p">:</span>
+            <span class="n">sequence</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">gate</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">breakpoint</span>
 
-    <span class="n">absorbed</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">n_absorbed</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="n">absorb</span><span class="p">:</span>
         <span class="n">live</span><span class="p">,</span> <span class="n">core</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(),</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">gate</span><span class="p">,</span> <span class="n">is_magic</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">sequence</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">is_magic</span> <span class="ow">or</span> <span class="n">live</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">gate</span><span class="o">.</span><span class="n">qubits</span><span class="p">):</span>
-                <span class="n">core</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
+                <span class="n">core</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">gate</span><span class="p">,</span> <span class="n">is_magic</span><span class="p">))</span>
                 <span class="n">live</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">gate</span><span class="o">.</span><span class="n">qubits</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">absorbed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
+                <span class="n">n_absorbed</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">core</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
-        <span class="n">absorbed</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">core</span> <span class="o">=</span> <span class="p">[</span><span class="n">gate</span> <span class="k">for</span> <span class="n">gate</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">sequence</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">core</span><span class="p">:</span>
+        <span class="n">core</span> <span class="o">=</span> <span class="n">sequence</span>
+    <span class="k">for</span> <span class="n">gate</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">core</span><span class="p">:</span>
         <span class="n">head</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
     <span class="n">head</span> <span class="o">=</span> <span class="n">head</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># its own gates, not the ansatz&#39;s</span>
 
-    <span class="n">residual</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span> <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">absorbed</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">clifford_gate_names</span><span class="p">(</span><span class="n">gate</span><span class="p">)]</span>
-    <span class="n">prefix</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">entry</span> <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">clifford_gates</span><span class="p">[:</span><span class="n">last</span><span class="p">]</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">clifford_gate_names</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
+    <span class="c1"># An absorbed gate shares no qubit with the core gates after it, so</span>
+    <span class="c1"># C_prefix = A . C_core and the residual C_prefix^-1 . A is C_core^-1.</span>
+    <span class="n">cliffords</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">entry</span>
+        <span class="k">for</span> <span class="n">gate</span><span class="p">,</span> <span class="n">is_magic</span> <span class="ow">in</span> <span class="n">core</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_magic</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">clifford_gate_names</span><span class="p">(</span><span class="n">gate</span><span class="p">)</span>
     <span class="p">]</span>
-    <span class="k">return</span> <span class="n">head</span><span class="p">,</span> <span class="n">residual</span> <span class="o">+</span> <span class="n">_inverse</span><span class="p">(</span><span class="n">prefix</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">absorbed</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">head</span><span class="p">,</span> <span class="n">_inverse</span><span class="p">(</span><span class="n">cliffords</span><span class="p">),</span> <span class="n">n_absorbed</span></div>
 
 </pre></div>
         </article>
