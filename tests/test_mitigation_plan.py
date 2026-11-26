@@ -16,6 +16,10 @@ from mpstab.models.error_mitigation import (
 from mpstab.models.error_mitigation.data_driven_methods.plan import _spread
 from mpstab.models.noise import DepolarizingError, NoiseModel, ReadoutError
 from mpstab.qibo_tools import DensityMatrixNoiseSimulator, StatevectorExactSimulator
+from mpstab.qibo_tools.utilized_backends.statevector_exact_simulator import (
+    _prepared_state,
+    _split_basis_measurement,
+)
 from mpstab.qpu import run_plan
 
 OBSERVABLE = "IZZI"
@@ -285,3 +289,38 @@ def test_hsmpo_runs_sqrt_x_gates(gate):
     for observable in ("ZI", "XY", "YZ"):
         exact = pauli_string_to_hamiltonian(observable).expectation_from_state(state)
         assert surrogate.expectation(observable) == pytest.approx(exact, abs=1e-10)
+
+
+def test_original_head_folds_and_trains_on_the_planned_head():
+    """
+    With ``head="original"`` the folded target and the training circuits come
+    from the head the plan measures, not from the resynthesised one, whose
+    Clifford residual would put the measured strings in another frame.
+    """
+    np.random.seed(3)
+    model = HQSMPO(
+        HardwareEfficient(nqubits=4, nlayers=3), head="original", progress=False
+    )
+    cut = _cut(model)
+    mitigation = VnCDRMitigation(
+        noise_levels=(1, 3),
+        n_training_circuits=4,
+        replacement_method="random",
+        training_settings=2,
+    )
+    plan = mitigation.build_plan(model, OBSERVABLE, cut, n_shots=1000, seed=0)
+
+    head = model.head_at(cut).circuit
+    sequence = [(gate.name, gate.qubits) for gate in head.queue]
+    for circuit in plan.training_circuits:
+        assert [(gate.name, gate.qubits) for gate in circuit.queue] == sequence
+
+    def prepared(level):
+        circuit = next(
+            c
+            for c, m in zip(plan.circuits, plan.measurements)
+            if m.kind == "target" and m.level == level and m.group == 0
+        )
+        return _prepared_state(4, _split_basis_measurement(circuit)[0]).ravel()
+
+    assert abs(np.vdot(prepared(1), prepared(3))) == pytest.approx(1, abs=1e-8)

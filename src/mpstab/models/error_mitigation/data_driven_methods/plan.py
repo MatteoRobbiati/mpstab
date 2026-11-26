@@ -301,7 +301,7 @@ class VnCDRMitigation:
             seed=int(rng.integers(2**32)),
             out_folder=False,
         )
-        head = model.resynthesize_head(
+        head = model.head_at(
             cut_index, observable=observable if model.light_cone else None
         ).circuit
         groups, coefficients = target.recombination

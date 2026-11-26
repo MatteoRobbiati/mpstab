@@ -15,7 +15,9 @@ observable with a shot budget, by one of the measurement methods of
   the tail MPO directly.
 
 The head is resynthesised by one of the synthesisers of
-:mod:`mpstab.qpu.synthesis`, set as ``head_synthesis``.
+:mod:`mpstab.qpu.synthesis`, set as ``head_synthesis``, or, with
+``head="original"``, is the original circuit up to the cut
+(:mod:`mpstab.qpu.original_head`).
 
 Resynthesising the head leaves a Clifford residual, so a device prepares
 ``U(residual) U(head)|psi_0>`` rather than the exact head state the tail
@@ -76,6 +78,7 @@ from mpstab.qpu.measurement.pauli_expansion import (
     operator_distance,
     operator_norm,
 )
+from mpstab.qpu.original_head import build_original_head
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
     HeadSynthesis,
@@ -84,6 +87,10 @@ from mpstab.qpu.synthesis import (
     head_to_qibo_circuit,
     resolve_synthesis,
 )
+from mpstab.qpu.synthesis.utils import CLIFFORD_TABLEAUS
+
+#: Values of :attr:`HQSMPO.head`.
+HEADS = ("synthesis", "original")
 
 __all__ = ["HQSMPO", "ExpectationResult", "ResynthesizedHead", "TailTruncation"]
 
@@ -91,9 +98,10 @@ __all__ = ["HQSMPO", "ExpectationResult", "ResynthesizedHead", "TailTruncation"]
 @dataclass(frozen=True)
 class ResynthesizedHead:
     """
-    A head circuit resynthesised for hardware, plus its Clifford residual.
+    A head circuit for hardware, plus its Clifford residual.
 
-    Returned by :meth:`HQSMPO.resynthesize_head`.
+    Returned by :meth:`HQSMPO.resynthesize_head` and
+    :meth:`HQSMPO.original_head`.
 
     Attributes:
         circuit: a runnable qibo ``Circuit``, without measurement gates.
@@ -105,7 +113,7 @@ class ResynthesizedHead:
         cut_index: the split point the head came from.
         method: the name of the synthesis that produced it, e.g.
             ``"extraction"``; ``"cnot_ladder"`` when rustiq was asked for but
-            is not installed.
+            is not installed; ``"original"`` for :meth:`HQSMPO.original_head`.
     """
 
     circuit: object
@@ -159,14 +167,22 @@ class HQSMPO(HSMPO):
             :class:`~mpstab.qpu.synthesis.abstract.HeadSynthesis` such as
             ``ExtractionSynthesis(connectivity="line")``, or the name of one
             with its default options: ``"rustiq"`` (default), ``"extraction"``
-            or ``"cnot_ladder"``.
+            or ``"cnot_ladder"``. Unused with ``head="original"``.
         light_cone: drop the rotations the observable cannot see, from the
             head the device runs and from the tail that is folded, see
             :meth:`relevant_rotations`. Exact, and off by default.
+        head: what the device runs, ``"synthesis"`` (default): the head's
+            dressed rotations resynthesised by ``head_synthesis``
+            (:meth:`resynthesize_head`); ``"original"``: the original circuit
+            up to the cut, not resynthesised (:meth:`original_head`).
+        absorb: with ``head="original"``, move the Clifford gates with no magic
+            gate in their future from the head into the residual.
     """
 
     head_synthesis: Union[str, HeadSynthesis] = "rustiq"
     light_cone: bool = False
+    head: str = "synthesis"
+    absorb: bool = True
 
     def relevant_rotations(self, observable: Observable) -> Tuple[int, ...]:
         """
@@ -486,6 +502,69 @@ class HQSMPO(HSMPO):
             method=cached.method,
         )
 
+    def original_head(
+        self,
+        cut_index: int,
+        observable: Union[Observable, None] = None,
+        absorb: Union[bool, None] = None,
+    ) -> ResynthesizedHead:
+        """
+        The original circuit up to the ``cut_index``-th magic gate as the head,
+        not resynthesised, plus its Clifford residual (see
+        :mod:`mpstab.qpu.original_head`).
+
+        As for :meth:`resynthesize_head`, ``residual . head |0>`` is the head's
+        dressed rotations applied to ``|0>``, so the tail and the measurement
+        methods use it unchanged. Built on every call.
+
+        Args:
+            cut_index: the split point.
+            observable: drop the head's magic gates outside the light cone of
+                this observable (:meth:`relevant_rotations`). The head is then
+                valid for this observable only. ``None`` keeps them all.
+            absorb: move the Clifford gates with no magic gate in their future
+                into the residual (default: the instance's ``absorb``).
+        """
+        keep = set(range(cut_index))
+        if observable is not None:
+            keep &= set(self.relevant_rotations(observable))
+        circuit, residual_gates, _ = build_original_head(
+            list(self.clifford_circuit.queue),
+            list(self.magic_gates),
+            cut_index,
+            keep,
+            self.nqubits,
+            self.absorb if absorb is None else absorb,
+        )
+        residual_tableau = stim.Tableau(self.nqubits)
+        for name, qubits in residual_gates:
+            residual_tableau.append(CLIFFORD_TABLEAUS[name], qubits)
+        return ResynthesizedHead(
+            circuit=circuit,
+            residual_tableau=residual_tableau,
+            residual_gates=tuple(residual_gates),
+            n_gates=len(circuit.queue),
+            n_two_qubit_gates=sum(len(gate.qubits) == 2 for gate in circuit.queue),
+            cut_index=cut_index,
+            method="original",
+        )
+
+    def head_at(
+        self, cut_index: int, observable: Union[Observable, None] = None
+    ) -> ResynthesizedHead:
+        """
+        The head the device runs at ``cut_index``, as chosen by ``head``:
+        :meth:`resynthesize_head` or :meth:`original_head`.
+
+        Raises:
+            ValueError: on an unknown ``head``.
+        """
+        if self.head == "synthesis":
+            return self.resynthesize_head(cut_index, observable=observable)
+        if self.head == "original":
+            return self.original_head(cut_index, observable=observable)
+        raise ValueError(f"Unknown head {self.head!r}, expected one of {HEADS}.")
+
     def expectation_at_cut(
         self,
         observable: Observable,
@@ -647,7 +726,7 @@ class HQSMPO(HSMPO):
                 "seed. Pass out_folder=False to build the plan without saving."
             )
         constant, terms = pauli_terms(observable, self.nqubits)
-        resynthesis = self.resynthesize_head(
+        resynthesis = self.head_at(
             cut_index, observable=observable if self.light_cone else None
         )
 
