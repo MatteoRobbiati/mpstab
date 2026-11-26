@@ -66,10 +66,6 @@ GATE_MAP = {
     "measure": "measure",
 }
 
-
-#: quimb's default singular-value cutoff (``"rsum2"`` mode) when compressing.
-_QUIMB_DEFAULT_CUTOFF = 1e-10
-
 #: Attribute marking an MPO built by :meth:`QuimbEngine.pauli_mpo` with the
 #: Pauli string it represents. quimb's ``copy`` drops it, so any arithmetic on
 #: the MPO (``2 * mpo``, a conjugation) falls back to a generic contraction.
@@ -145,6 +141,9 @@ class _CanonicalMPS:
         self.stored = [mps.tensor_map[tid].data for tid in self.tids]
         self.loaded = {}
         self.center = kernels.move_center(self, L - 1, 0)
+
+    def __len__(self) -> int:
+        return self.L
 
     def __getitem__(self, i: int) -> np.ndarray:
         if i not in self.loaded:
@@ -302,9 +301,15 @@ class QuimbEngine(TensorNetworkEngine):
     """
     MPS evolution and MPO expectation values via quimb.
 
-    Besides evolving states, it conjugates operators, which
-    :class:`~mpstab.evolutors.hqsmpo.HQSMPO`'s head/tail split needs,
-    and its MPS feeds quimb's DMRG.
+    States are quimb ``MatrixProductState`` objects and operators quimb
+    ``MatrixProductOperator`` objects, so the MPS also feeds quimb's DMRG.
+
+    On the numpy backend the engine only supplies the representation hooks
+    (:meth:`state_sites`, :meth:`operator_sites`, :meth:`operator_from_sites`)
+    and every algorithm is the shared one of
+    :class:`~mpstab.engines.TensorNetworkEngine`. The jax and torch backends,
+    which may need to differentiate through the state, run quimb's own
+    contractions and compressions instead.
     """
 
     def __init__(
@@ -357,6 +362,27 @@ class QuimbEngine(TensorNetworkEngine):
             -1j * self.np.sin(theta / 2) * pauli
         )
 
+    @property
+    def _fast(self) -> bool:
+        """
+        Whether the shared site-array algorithms apply. They run on plain
+        NumPy, so the jax and torch backends, which may need to differentiate
+        through the state, keep quimb's own contractions.
+        """
+        return self.backend == "numpy"
+
+    @property
+    def has_site_view(self) -> bool:
+        """Only on numpy: jax and torch run quimb's own, differentiable path."""
+        return self._fast
+
+    @property
+    def has_operator_sites(self) -> bool:
+        """Only on numpy: jax and torch run quimb's own, differentiable path."""
+        return self._fast
+
+    # -- representation --------------------------------------------------
+
     def build_circuit_mps(
         self,
         n: int,
@@ -371,15 +397,6 @@ class QuimbEngine(TensorNetworkEngine):
             to_backend=self.np.asarray,
         ).psi
 
-    @property
-    def _fast(self) -> bool:
-        """
-        Whether the windowed NumPy kernels apply. They are plain NumPy, so the
-        jax and torch backends, which may need to differentiate through the
-        state, keep quimb's own contractions.
-        """
-        return self.backend == "numpy"
-
     def pauli_mpo(self, pauli_string: str | object):
         """Build the MPO for a Pauli string."""
         mpo = _pauli_product_mpo(pauli_string)
@@ -387,195 +404,39 @@ class QuimbEngine(TensorNetworkEngine):
         setattr(mpo, _PAULI_ATTR, "".join(pauli_string).upper())
         return self._to_backend(mpo)
 
-    def expval(
-        self, state_circuit: MatrixProductState, operator: MatrixProductOperator
-    ):
+    def pauli_string_of(self, operator: MatrixProductOperator) -> str | None:
+        """The string a :meth:`pauli_mpo` result stands for; ``None`` otherwise."""
+        return getattr(operator, _PAULI_ATTR, None)
+
+    def state_sites(self, state_circuit: MatrixProductState) -> _CanonicalMPS:
         """
-        Expectation value of ``operator`` on ``state_circuit``, normalised.
-
-        Truncation costs the state its unit norm, so the contraction is divided
-        by it.
-
-        A Pauli string from :meth:`pauli_mpo` is evaluated directly on the
-        state's canonical form, over the sites between the string's support and
-        the orthogonality center only. This may move the center, a pure gauge
-        change that leaves the state itself untouched.
-
-        Any other operator MPO has upper (output) index ``k{i}`` and lower
-        (input) index ``b{i}``. The ket must feed the operator's input, so it is
-        reindexed ``k -> b`` while the conjugated bra keeps ``k{i}`` to meet the
-        output. Reindexing the bra instead would evaluate ``<psi|O^T|psi>``,
-        which differs for any operator with an odd number of Y's.
+        The MPS's site arrays in mixed canonical form, read lazily and written
+        back on ``commit``. The orthogonality center is cached on the MPS, so
+        consecutive operations do not re-canonicalize it; a state with no valid
+        cache (fresh, or changed outside the engine) is canonicalized in place
+        first, a gauge change that leaves the state itself untouched.
         """
-        pauli = getattr(operator, _PAULI_ATTR, None)
-        if self._fast and pauli is not None and len(pauli) == state_circuit.L:
-            return self.pauli_expvals(state_circuit, [pauli])[0]
-
-        norm = self.squared_norm(state_circuit).real
-        ket = state_circuit.reindex({f"k{i}": f"b{i}" for i in range(state_circuit.L)})
-        bra = state_circuit.H
-        return (bra & operator & ket).contract(
-            backend=self.backend, optimize="greedy"
-        ).real / norm
-
-    def pauli_expvals(self, state_circuit: MatrixProductState, paulis):
-        """
-        Normalised expectation values of many Pauli strings on one state.
-
-        The strings are visited in order of their first non-identity site, with
-        the orthogonality center moved to each in turn, so a whole Hamiltonian
-        costs one sweep of the chain plus each term's own support rather than a
-        full contraction per term.
-
-        Returns:
-            One value per string, in the order given: a real array on the
-            numpy backend, a list of backend scalars otherwise.
-        """
-        paulis = list(paulis)
         if not self._fast:
-            # A plain list: jax and torch values may be traced for autodiff.
-            return [self.expval(state_circuit, self.pauli_mpo(p)) for p in paulis]
-
-        view = _CanonicalMPS(state_circuit)
-        norm = kernels.squared_norm(view, view.center)
-        values = np.empty(len(paulis))
-
-        windows = [kernels.bounds(pauli) for pauli in paulis]
-        for k in sorted(
-            range(len(paulis)),
-            key=lambda k: view.center if windows[k] is None else windows[k][0],
-        ):
-            window = windows[k]
-            if window is not None and not window[0] <= view.center <= window[1]:
-                view.center = kernels.move_center(view, view.center, window[0])
-            values[k] = kernels.pauli_expectation(view, view.center, paulis[k]).real
-        view.commit()
-        return values / norm
-
-    def pauli_transitions(
-        self, bra_state: MatrixProductState, ket_state: MatrixProductState, paulis
-    ):
-        """
-        Normalized transition amplitudes ``<bra|P|ket>`` of many Pauli strings
-        between two states, each divided by the norms of both states.
-
-        Returns:
-            A complex array on the numpy backend, a list of backend scalars
-            otherwise.
-        """
-        paulis = list(paulis)
-        if not self._fast:
-            norm = np.sqrt(
-                bra_state.norm(squared=True).real * ket_state.norm(squared=True).real
+            raise NotImplementedError(
+                f"The site view is plain NumPy; the {self.backend!r} backend "
+                "runs quimb's own contractions instead."
             )
-            ket = ket_state.reindex({f"k{i}": f"b{i}" for i in range(ket_state.L)})
-            return [
-                (bra_state.H & self.pauli_mpo(p) & ket).contract(
-                    backend=self.backend, optimize="greedy"
-                )
-                / norm
-                for p in paulis
-            ]
+        return _CanonicalMPS(state_circuit)
 
-        def sites(state):
-            # One view at a time: the two may be the same state.
-            view = _CanonicalMPS(state)
-            norm = kernels.squared_norm(view, view.center)
-            arrays = [view[i] for i in range(view.L)]
-            view.commit()
-            return arrays, norm
+    def operator_sites(self, operator: MatrixProductOperator) -> list:
+        """The MPO as ``(left, 4, right)`` arrays, middle index ``2 * out + in``."""
+        return _mpo_to_sites(operator)
 
-        bra_sites, bra_norm = sites(bra_state)
-        ket_sites, ket_norm = sites(ket_state)
-        norm = np.sqrt(bra_norm * ket_norm)
-        values = np.array(
-            [kernels.pauli_transition(bra_sites, ket_sites, p) for p in paulis],
-            dtype=complex,
-        )
-        return values / norm
-
-    def pauli_rot(
-        self,
-        state_circuit: MatrixProductState,
-        generator: str,
-        angle: float,
-        max_bond_dimension: int,
-    ):
-        """Apply ``exp(-i angle/2 generator)`` to the state in place, then compress."""
-        self.apply_rotation(
-            state_circuit, self.rotation_operator(generator, angle), max_bond_dimension
-        )
-
-    def rotation_operator(self, generator: str, angle: float):
-        """
-        ``exp(-i angle/2 generator)`` in a form :meth:`apply_rotation` accepts:
-        a ``(generator, angle)`` tuple on the numpy backend, applied by the
-        windowed kernel, and the backend MPO otherwise.
-        """
-        if self._fast:
-            return generator.upper(), float(angle)
-        return self._pauli_exp(generator, angle)
-
-    def apply_rotation(
-        self,
-        state_circuit: MatrixProductState,
-        rotation,
-        max_bond_dimension: int | None,
-    ):
-        """
-        Apply a :meth:`rotation_operator` result to the state in place, then
-        compress.
-
-        A ``(generator, angle)`` tuple only touches the sites between the first and
-        last non-identity letter of its generator, recompressing that window
-        alone; an MPO goes through quimb's ``gate_with_mpo``, which recompresses
-        the whole chain. Both truncate with the same rule.
-        """
-        cutoff = _QUIMB_DEFAULT_CUTOFF if self.svd_cutoff is None else self.svd_cutoff
-        if isinstance(rotation, tuple):
-            generator, angle = rotation
-            view = _CanonicalMPS(state_circuit)
-            view.center = kernels.pauli_rotation(
-                view,
-                view.center,
-                generator,
-                angle,
-                max_bond=max_bond_dimension,
-                cutoff=cutoff,
-            )
-            view.commit()
-            return
-
-        options = {} if self.svd_cutoff is None else {"cutoff": self.svd_cutoff}
-        state_circuit.gate_with_mpo(
-            rotation, inplace=True, max_bond=max_bond_dimension, **options
-        )
-
-    def squared_norm(self, state_circuit: MatrixProductState):
-        """
-        ``<psi|psi>`` of the MPS. On the numpy backend it is read off the
-        orthogonality center of the cached canonical form, no full contraction
-        needed; other backends return quimb's backend scalar, so it stays
-        differentiable.
-
-        On the numpy backend, when the state has no valid cached canonical form
-        (a fresh state, or one changed outside the engine), it is
-        canonicalized in place first: its tensors are transposed and
-        gauge-transformed, the state itself is unchanged.
-        """
-        if not self._fast:
-            return state_circuit.norm(squared=True)
-        view = _CanonicalMPS(state_circuit)
-        norm = kernels.squared_norm(view, view.center)
-        view.commit()
-        return float(norm)
+    def operator_from_sites(self, sites: list, like: MatrixProductOperator):
+        """A quimb MPO from site arrays, with ``like``'s index names and tags."""
+        return _sites_to_mpo(sites, like)
 
     def copy_state(self, state_circuit: MatrixProductState):
         """
         An independent copy of the state.
 
         On the numpy backend the copy has its own tensors but shares their
-        arrays: the windowed kernels, like quimb's own operations, replace a
+        arrays: the shared kernels, like quimb's own operations, replace a
         tensor's array rather than write into it, so neither state can change
         the other. The cached canonical form is carried over, so the copy
         needs no re-canonicalization. Other backends get a deep copy.
@@ -588,6 +449,117 @@ class QuimbEngine(TensorNetworkEngine):
             setattr(state, _GAUGE_ATTR, gauge)
         return state
 
+    # -- quimb's own path on the autodiff backends -------------------------
+
+    def expval(
+        self, state_circuit: MatrixProductState, operator: MatrixProductOperator
+    ):
+        """
+        Expectation value of ``operator`` on ``state_circuit``, normalised.
+
+        On the numpy backend this is the shared algorithm. Otherwise the whole
+        ``<psi|O|psi>`` network is contracted by quimb: the operator MPO has
+        upper (output) index ``k{i}`` and lower (input) index ``b{i}``, so the
+        ket is reindexed ``k -> b`` while the conjugated bra keeps ``k{i}`` to
+        meet the output. Reindexing the bra instead would evaluate
+        ``<psi|O^T|psi>``, which differs for any operator with an odd number
+        of Y's.
+        """
+        if self._fast:
+            return super().expval(state_circuit, operator)
+        norm = self.squared_norm(state_circuit).real
+        ket = state_circuit.reindex({f"k{i}": f"b{i}" for i in range(state_circuit.L)})
+        bra = state_circuit.H
+        return (bra & operator & ket).contract(
+            backend=self.backend, optimize="greedy"
+        ).real / norm
+
+    def pauli_expvals(self, state_circuit: MatrixProductState, paulis):
+        """
+        Normalised expectation values of many Pauli strings on one state: a
+        real array on the numpy backend, a list of backend scalars otherwise,
+        so jax and torch values stay traced for autodiff.
+        """
+        if self._fast:
+            return super().pauli_expvals(state_circuit, paulis)
+        return [self.expval(state_circuit, self.pauli_mpo(p)) for p in paulis]
+
+    def pauli_transitions(
+        self, bra_state: MatrixProductState, ket_state: MatrixProductState, paulis
+    ):
+        """
+        Normalized transition amplitudes ``<bra|P|ket>``: a complex array on
+        the numpy backend, a list of backend scalars otherwise.
+        """
+        if self._fast:
+            return super().pauli_transitions(bra_state, ket_state, paulis)
+        norm = np.sqrt(
+            bra_state.norm(squared=True).real * ket_state.norm(squared=True).real
+        )
+        ket = ket_state.reindex({f"k{i}": f"b{i}" for i in range(ket_state.L)})
+        return [
+            (bra_state.H & self.pauli_mpo(p) & ket).contract(
+                backend=self.backend, optimize="greedy"
+            )
+            / norm
+            for p in paulis
+        ]
+
+    def squared_norm(self, state_circuit: MatrixProductState):
+        """
+        ``<psi|psi>``: a float read off the canonical center on the numpy
+        backend, quimb's backend scalar otherwise so it stays differentiable.
+        """
+        if self._fast:
+            return super().squared_norm(state_circuit)
+        return state_circuit.norm(squared=True)
+
+    def pauli_rot(
+        self,
+        state_circuit: MatrixProductState,
+        generator: str,
+        angle: float,
+        max_bond_dimension: int,
+    ):
+        """
+        Apply ``exp(-i angle/2 generator)`` to the state in place, then
+        compress: the shared windowed kernel on the numpy backend, quimb's
+        ``gate_with_mpo`` (which recompresses the whole chain, with the same
+        truncation rule) otherwise.
+        """
+        if self._fast:
+            return super().pauli_rot(
+                state_circuit, generator, angle, max_bond_dimension
+            )
+        self.apply_rotation(
+            state_circuit, self._pauli_exp(generator, angle), max_bond_dimension
+        )
+
+    def rotation_operator(self, generator: str, angle: float):
+        """
+        ``exp(-i angle/2 generator)`` in a form :meth:`apply_rotation` accepts:
+        a ``(generator, angle)`` tuple on the numpy backend, the backend MPO
+        otherwise.
+        """
+        if self._fast:
+            return generator.upper(), float(angle)
+        return self._pauli_exp(generator, angle)
+
+    def apply_rotation(
+        self,
+        state_circuit: MatrixProductState,
+        rotation,
+        max_bond_dimension: int | None,
+    ):
+        """Apply a :meth:`rotation_operator` result to the state in place."""
+        if isinstance(rotation, tuple):
+            generator, angle = rotation
+            return self.pauli_rot(state_circuit, generator, angle, max_bond_dimension)
+        options = {} if self.svd_cutoff is None else {"cutoff": self.svd_cutoff}
+        state_circuit.gate_with_mpo(
+            rotation, inplace=True, max_bond=max_bond_dimension, **options
+        )
+
     def conjugate_operator(
         self,
         operator: MatrixProductOperator,
@@ -596,24 +568,13 @@ class QuimbEngine(TensorNetworkEngine):
         max_bond_dimension: int,
     ):
         """
-        Heisenberg-conjugate ``operator`` by ``R = exp(-i angle/2 generator)``,
-        returning ``R^dag . operator . R``.
-
-        Folds the rotation into the observable so that
-        ``<R psi| O |R psi> = <psi| R^dag O R |psi>``. The generators are Pauli
-        strings, so ``R(angle)^dag == R(-angle)``, and each MPO-MPO product is
-        compressed to ``max_bond_dimension``.
-
-        Even at ``max_bond_dimension=None`` quimb applies its default SVD cutoff,
-        and the exact operator rank of a scrambled observable grows
-        exponentially, so folding a long tail accrues truncation error. Keeping
-        this exact is only affordable for modest tail lengths; see
-        :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.tail_truncation` to
-        quantify it.
+        ``R^dag . operator . R`` for ``R = exp(-i angle/2 generator)``: the
+        shared windowed kernel on the numpy backend, two compressed quimb
+        MPO-MPO products otherwise (``R(angle)^dag == R(-angle)``).
         """
         if self._fast:
-            return self.conjugate_operator_many(
-                operator, [(generator, angle)], max_bond_dimension
+            return super().conjugate_operator(
+                operator, generator, angle, max_bond_dimension
             )
         rotation = self._pauli_exp(generator, angle)
         rotation_dag = self._pauli_exp(generator, -angle)
@@ -623,39 +584,11 @@ class QuimbEngine(TensorNetworkEngine):
         )
         return operator.apply(rotation, compress=True, max_bond=max_bond_dimension)
 
-    def conjugate_operator_many(
-        self,
-        operator: MatrixProductOperator,
-        rotations,
-        max_bond_dimension: int | None,
-    ):
-        """
-        Conjugate ``operator`` by each ``(generator, angle)`` rotation in turn,
-        the first one innermost, as repeated :meth:`conjugate_operator` calls.
+    # conjugate_operator_many is the base one: the shared kernel on numpy and,
+    # since has_operator_sites is False on jax and torch, one quimb
+    # conjugate_operator per rotation there.
 
-        On the numpy backend the MPO is unpacked once into canonical site
-        arrays, and each conjugation touches only its generator's window
-        (:func:`~._mps_kernels.operator_conjugation`), with the same truncation
-        rule as quimb's ``compress``, so a whole tail costs about as much as
-        evolving a state through it. Other backends go through quimb.
-        """
-        if not self._fast:
-            return super().conjugate_operator_many(
-                operator, rotations, max_bond_dimension
-            )
-        cutoff = _QUIMB_DEFAULT_CUTOFF if self.svd_cutoff is None else self.svd_cutoff
-        sites = _mpo_to_sites(operator)
-        center = kernels.move_center(sites, len(sites) - 1, 0)
-        for generator, angle in rotations:
-            center = kernels.operator_conjugation(
-                sites,
-                center,
-                generator.upper(),
-                float(angle),
-                max_bond=max_bond_dimension,
-                cutoff=cutoff,
-            )
-        return _sites_to_mpo(sites, operator)
+    # -- everything else -----------------------------------------------------
 
     def bond_dimension(self, state_circuit: MatrixProductState) -> int:
         """The largest bond dimension of the MPS."""

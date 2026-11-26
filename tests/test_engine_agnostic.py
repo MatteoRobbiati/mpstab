@@ -34,7 +34,13 @@ class _Box:
 
 
 class OpaqueEngine(TensorNetworkEngine):
-    """QuimbEngine behind boxes: only the interface sees the quimb objects."""
+    """
+    QuimbEngine behind boxes: only the interface sees the quimb objects.
+
+    It implements its own algorithms and no site view, as an engine written
+    before the shared algorithms existed would: the base class must fall back
+    to them.
+    """
 
     def __init__(self):
         self.quimb = QuimbEngine(svd_cutoff=0.0)
@@ -84,16 +90,44 @@ class OpaqueEngine(TensorNetworkEngine):
         )
 
 
-def _pair(ansatz, cls=HSMPO, **kwargs):
+class SiteViewOpaqueEngine(OpaqueEngine):
+    """
+    The opaque engine with the representation hooks, so the shared algorithms
+    of the base class run on it.
+    """
+
+    def state_sites(self, state_circuit):
+        return self.quimb.state_sites(state_circuit.inner)
+
+    def operator_from_sites(self, sites, like):
+        return _Box(self.quimb.operator_from_sites(sites, like.inner))
+
+
+@pytest.fixture(
+    params=[OpaqueEngine, SiteViewOpaqueEngine], ids=["own-algorithms", "site-view"]
+)
+def opaque_engine(request):
+    return request.param
+
+
+def test_site_view_capabilities():
+    assert QuimbEngine().has_site_view and QuimbEngine().has_operator_sites
+    assert not OpaqueEngine().has_site_view
+    assert not OpaqueEngine().has_operator_sites
+    assert SiteViewOpaqueEngine().has_site_view
+    assert SiteViewOpaqueEngine().has_operator_sites
+
+
+def _pair(ansatz, engine_class, cls=HSMPO, **kwargs):
     """The same model on quimb and on the opaque engine."""
     reference = cls(ansatz, tn_engine=QuimbEngine(svd_cutoff=0.0), **kwargs)
-    opaque = cls(ansatz, tn_engine=OpaqueEngine(), **kwargs)
+    opaque = cls(ansatz, tn_engine=engine_class(), **kwargs)
     return reference, opaque
 
 
-def test_hsmpo_expectation_and_fidelities():
+def test_hsmpo_expectation_and_fidelities(opaque_engine):
     reference, opaque = _pair(
-        HardwareEfficient(nqubits=5, nlayers=3), max_bond_dimension=2
+        HardwareEfficient(nqubits=5, nlayers=3), opaque_engine, max_bond_dimension=2
     )
     expected = reference.expectation("ZZIXI", return_fidelity=True)
     assert opaque.expectation("ZZIXI", return_fidelity=True) == pytest.approx(expected)
@@ -105,9 +139,9 @@ def test_hsmpo_expectation_and_fidelities():
     )
 
 
-def test_metrics():
+def test_metrics(opaque_engine):
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    reference, opaque = _pair(ansatz)
+    reference, opaque = _pair(ansatz, opaque_engine)
     assert meyer_wallach_mps(opaque) == pytest.approx(meyer_wallach_mps(reference))
     expected = stabilizer_renyi_entropy_mps(reference, alpha=2, n_samples=200, seed=0)
     assert stabilizer_renyi_entropy_mps(
@@ -115,8 +149,8 @@ def test_metrics():
     ) == pytest.approx(expected)
 
 
-def test_noisy_expectation():
-    reference, opaque = _pair(KickedIsing(nqubits=5))
+def test_noisy_expectation(opaque_engine):
+    reference, opaque = _pair(KickedIsing(nqubits=5), opaque_engine)
     noise = NoiseModel().add(DepolarizingError(0.02), gates.CNOT)
     observable = {"ZZIII": 0.7, "IXIXI": -0.4}
     expected = reference.noisy_expectation(observable, noise, n_samples=100, seed=1)
@@ -125,8 +159,8 @@ def test_noisy_expectation():
     np.testing.assert_allclose(result.fidelities, expected.fidelities)
 
 
-def test_dmrg():
-    reference, opaque = _pair(HardwareEfficient(nqubits=4, nlayers=2))
+def test_dmrg(opaque_engine):
+    reference, opaque = _pair(HardwareEfficient(nqubits=4, nlayers=2), opaque_engine)
     options = dict(bond_dims=[4], max_sweeps=2, verbosity=0)
     hamiltonian = {"ZZII": 1.0, "IXXI": 0.5, "IIZZ": -0.3}
     expected = reference.minimize_expectation(hamiltonian, **options)["energy"]
@@ -135,9 +169,9 @@ def test_dmrg():
     ] == pytest.approx(expected, abs=1e-8)
 
 
-def test_hqsmpo_simulation_and_tail_truncation():
+def test_hqsmpo_simulation_and_tail_truncation(opaque_engine):
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    reference, opaque = _pair(ansatz, cls=HQSMPO, max_bond_dimension=2)
+    reference, opaque = _pair(ansatz, opaque_engine, cls=HQSMPO, max_bond_dimension=2)
     expected = reference.expectation_at_cut("ZZZZ", 2, method="simulation")
     result = opaque.expectation_at_cut("ZZZZ", 2, method="simulation")
     assert result.value == pytest.approx(expected.value)
@@ -155,9 +189,11 @@ def test_hqsmpo_simulation_and_tail_truncation():
 @pytest.mark.parametrize(
     "method", [ClassicalShadows(), PauliSampling()], ids=["shadows", "pauli"]
 )
-def test_device_routes(method):
+def test_device_routes(method, opaque_engine):
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    reference, opaque = _pair(ansatz, cls=HQSMPO, head_synthesis="cnot_ladder")
+    reference, opaque = _pair(
+        ansatz, opaque_engine, cls=HQSMPO, head_synthesis="cnot_ladder"
+    )
     plans = [
         model.plan(
             {"ZZZZ": 1.0, "XIXI": 0.5},

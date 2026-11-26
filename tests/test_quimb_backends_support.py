@@ -59,6 +59,12 @@ def test_backend_support(backend):
     assert abs(reference) > 1e-3  # a vanishing value would make this vacuous
 
 
+def test_autodiff_backends_have_no_site_view():
+    """jax keeps quimb's differentiable path: the NumPy site view is off."""
+    engine = QuimbEngine(backend="jax")
+    assert not engine.has_site_view and not engine.has_operator_sites
+
+
 def _non_clifford_circuit(nqubits, nlayers, rng):
     """Rotations at generic angles, so every one of them is a magic gate."""
     circuit = Circuit(nqubits)

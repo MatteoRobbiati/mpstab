@@ -3,7 +3,10 @@ and the Gram-matrix truncation must agree with Householder QR and the SVD."""
 
 import numpy as np
 import pytest
+from scipy.linalg import expm
+from utils import pauli_matrix
 
+from mpstab.engines import QuimbEngine
 from mpstab.engines.tensor_networks import _mps_kernels as kernels
 
 RNG = np.random.default_rng(7)
@@ -86,11 +89,6 @@ def _quimb_conjugation(engine, operator, rotations, max_bond):
 
 @pytest.mark.parametrize("max_bond", [None, 4])
 def test_windowed_operator_conjugation_matches_quimb(max_bond):
-    from scipy.linalg import expm
-    from utils import pauli_matrix
-
-    from mpstab.engines import QuimbEngine
-
     rng = np.random.default_rng(3)
     n, base = 6, "IZXIYI"
     rotations = [
@@ -112,8 +110,6 @@ def test_windowed_operator_conjugation_matches_quimb(max_bond):
 
 
 def test_single_conjugation_matches_many():
-    from mpstab.engines import QuimbEngine
-
     engine = QuimbEngine()
     rotations = [("XYZI", 0.4), ("IZZX", -0.9), ("YIIY", 1.3)]
     one_by_one = engine.pauli_mpo("ZIXI")
@@ -149,7 +145,7 @@ def test_eigh_is_orthonormal_on_a_degenerate_spectrum(order):
     np.testing.assert_allclose(hermitian @ vectors, vectors * values, atol=1e-10)
 
 
-def test_eigh_falls_back_when_heevr_loses_orthogonality(monkeypatch):
+def test_eigh_falls_back_when_heevr_loses_orthogonality():
     """MRRR may return non-orthogonal eigenvectors on clustered eigenvalues;
     those must be recomputed, not handed to the splits as an isometry."""
     order = 2 * kernels._HEEVR_MIN_ORDER
@@ -162,6 +158,62 @@ def test_eigh_falls_back_when_heevr_loses_orthogonality(monkeypatch):
         vectors[:, 1] += 1e-2 * vectors[:, 0]
         return values, vectors, m, isuppz, info
 
-    monkeypatch.setattr(kernels, "_HEEVR", skewed)
-    _, vectors = kernels._eigh(hermitian)
+    _, vectors = kernels._eigh(hermitian, heevr=skewed)
     np.testing.assert_allclose(vectors.conj().T @ vectors, np.eye(order), atol=1e-12)
+
+
+class _PlainSVD(kernels.Linalg):
+    """The generic split, on Householder QR and the SVD (as on the GPU)."""
+
+    def qr(self, matrix):
+        return np.linalg.qr(matrix)
+
+    def svd(self, matrix):
+        return np.linalg.svd(matrix, full_matrices=False)
+
+
+@pytest.mark.parametrize("cutoff", [0.0, 1e-10])
+@pytest.mark.parametrize("max_bond", [None, 3])
+def test_generic_linalg_keeps_the_numpy_bonds(cutoff, max_bond):
+    """Roundoff singular values are dropped on both paths, even at cutoff 0."""
+    state = [RNG.normal(size=(1, 2, 1)) + 0j for _ in range(6)]
+    copies = [list(state), list(state)]
+    centers = [0, 0]
+    rotations = [("XYZIII", 0.4), ("IZZXYI", -0.9), ("ZIIIIX", 1.3), ("IYXXZI", 0.2)]
+    for k, linalg in enumerate((kernels.NUMPY, _PlainSVD())):
+        for generator, angle in rotations:
+            centers[k] = kernels.pauli_rotation(
+                copies[k], centers[k], generator, angle, max_bond, cutoff, linalg
+            )
+    assert [a.shape for a in copies[0]] == [a.shape for a in copies[1]]
+    for pauli in ("ZIIIII", "XXIYZI", "IIIZZZ"):
+        expected = kernels.pauli_expectation(copies[0], centers[0], pauli)
+        value = kernels.pauli_expectation(copies[1], centers[1], pauli, _PlainSVD())
+        assert value == pytest.approx(expected, abs=1e-12)
+
+
+def test_kernels_keep_single_precision():
+    """complex64 sites stay complex64 through rotations and conjugations."""
+    linalg = _PlainSVD()
+    state = [(RNG.normal(size=(1, 2, 1)) + 0j).astype(np.complex64) for _ in range(5)]
+    center = 0
+    for generator, angle in [("XYZII", 0.4), ("IZZXY", -0.9), ("IIZII", 0.3)]:
+        center = kernels.pauli_rotation(
+            state, center, generator, np.float64(angle), None, 0.0, linalg
+        )
+    assert {site.dtype for site in state} == {np.dtype(np.complex64)}
+
+    operator = [np.eye(2, dtype=np.complex64).reshape(1, 4, 1) for _ in range(4)]
+    operator[1] = np.diag([1, -1]).astype(np.complex64).reshape(1, 4, 1)
+    center = kernels.move_center(operator, 3, 0, linalg)
+    kernels.operator_conjugation(operator, center, "XYII", 0.7, None, 0.0, linalg)
+    assert {site.dtype for site in operator} == {np.dtype(np.complex64)}
+
+
+def test_mismatched_lengths_raise():
+    state = [np.ones((1, 2, 1), dtype=complex) / np.sqrt(2) for _ in range(3)]
+    operator = [np.eye(2, dtype=complex).reshape(1, 4, 1) for _ in range(2)]
+    with pytest.raises(ValueError, match="2 sites"):
+        kernels.operator_expectation(state, operator)
+    with pytest.raises(ValueError, match="sites"):
+        kernels.pauli_transition(state, state[:2], "ZZZ")
