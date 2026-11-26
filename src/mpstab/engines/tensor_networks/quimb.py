@@ -85,6 +85,43 @@ _PAULI_ATTR = "_mpstab_pauli"
 _GAUGE_ATTR = "_mpstab_gauge"
 
 
+class ArrayMPS:
+    """
+    An MPS as bare ``(left, phys, right)`` arrays in mixed canonical form
+    around ``center``: the :meth:`QuimbEngine.working_state` of the numpy
+    backend.
+
+    It skips quimb's tensor objects, whose bookkeeping dominates the many
+    small rotations of a noise estimate. The kernels never write into an
+    array, they replace it, so a copy is a new list sharing the arrays.
+    """
+
+    def __init__(self, arrays: list[np.ndarray], center: int):
+        self.arrays = arrays
+        self.center = center
+        self.L = len(arrays)
+
+    def __getitem__(self, i: int) -> np.ndarray:
+        return self.arrays[i]
+
+    def __setitem__(self, i: int, array: np.ndarray):
+        self.arrays[i] = array
+
+    def commit(self):
+        """Nothing to write back: the arrays are the state."""
+
+    def copy(self) -> ArrayMPS:
+        return ArrayMPS(list(self.arrays), self.center)
+
+    def max_bond(self) -> int:
+        return max(array.shape[2] for array in self.arrays)
+
+
+def _view(state):
+    """The kernel view of a state: itself if bare arrays, else a canonical view."""
+    return state if isinstance(state, ArrayMPS) else _CanonicalMPS(state)
+
+
 def _pauli_product_mpo(pauli_string: str):
     """The bond-dimension-1 MPO of a Pauli string."""
     return MPO_product_operator(
@@ -464,7 +501,7 @@ class QuimbEngine(TensorNetworkEngine):
             # A plain list: jax and torch values may be traced for autodiff.
             return [self.expval(state_circuit, self.pauli_mpo(p)) for p in paulis]
 
-        view = _CanonicalMPS(state_circuit)
+        view = _view(state_circuit)
         norm = kernels.squared_norm(view, view.center)
         values = np.empty(len(paulis))
 
@@ -516,15 +553,17 @@ class QuimbEngine(TensorNetworkEngine):
 
         def sites(state):
             # One view at a time: the two may be the same state.
-            view = _CanonicalMPS(state)
+            view = _view(state)
             norm = kernels.squared_norm(view, view.center)
             arrays = [view[i] for i in range(view.L)]
             view.commit()
-            return arrays, norm
+            return arrays, view.center, norm
 
-        bra_sites, bra_norm = sites(bra_state)
-        ket_sites, ket_norm = sites(ket_state)
-        values = kernels.pauli_transitions(bra_sites, ket_sites, paulis)
+        bra_sites, bra_center, bra_norm = sites(bra_state)
+        ket_sites, ket_center, ket_norm = sites(ket_state)
+        values = kernels.pauli_transitions(
+            bra_sites, ket_sites, paulis, centers=(bra_center, ket_center)
+        )
         return values / np.sqrt(bra_norm * ket_norm) if normalize else values
 
     def apply_pauli_sum(
@@ -598,7 +637,7 @@ class QuimbEngine(TensorNetworkEngine):
         cutoff = _QUIMB_DEFAULT_CUTOFF if self.svd_cutoff is None else self.svd_cutoff
         if isinstance(rotation, tuple):
             generator, angle = rotation
-            view = _CanonicalMPS(state_circuit)
+            view = _view(state_circuit)
             view.center = kernels.pauli_rotation(
                 view,
                 view.center,
@@ -629,7 +668,7 @@ class QuimbEngine(TensorNetworkEngine):
         """
         if not self._fast:
             return state_circuit.norm(squared=True)
-        view = _CanonicalMPS(state_circuit)
+        view = _view(state_circuit)
         norm = kernels.squared_norm(view, view.center)
         view.commit()
         return float(norm)
@@ -672,6 +711,8 @@ class QuimbEngine(TensorNetworkEngine):
         the other. The cached canonical form is carried over, so the copy
         needs no re-canonicalization. Other backends get a deep copy.
         """
+        if isinstance(state_circuit, ArrayMPS):
+            return state_circuit.copy()
         if not self._fast:
             return copy.deepcopy(state_circuit)
         state = state_circuit.copy()
@@ -679,6 +720,18 @@ class QuimbEngine(TensorNetworkEngine):
         if gauge is not None:
             setattr(state, _GAUGE_ATTR, gauge)
         return state
+
+    def working_state(self, state_circuit: MatrixProductState):
+        """
+        On the numpy backend, the state as an :class:`ArrayMPS` sharing its
+        arrays, so the MPS itself is left untouched; otherwise the state.
+        """
+        if not self._fast or isinstance(state_circuit, ArrayMPS):
+            return state_circuit
+        view = _CanonicalMPS(state_circuit)
+        arrays = [view[i] for i in range(view.L)]
+        view.commit()
+        return ArrayMPS(arrays, view.center)
 
     def conjugate_operator(
         self,

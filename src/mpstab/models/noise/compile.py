@@ -43,6 +43,10 @@ if TYPE_CHECKING:
     from mpstab.evolutors.hsmpo import HSMPO
 
 
+def _empty_flips(n_rotations: int) -> np.ndarray:
+    return np.zeros((0, n_rotations), dtype=bool)
+
+
 @dataclass
 class CompiledNoise:
     """
@@ -66,8 +70,8 @@ class CompiledNoise:
         fault_probs: probability of each fault, shape ``(F,)``.
         fault_location: location index of each fault, shape ``(F,)``,
             nondecreasing.
-        location_probs: probability that each location faults at all, shape
-            ``(L,)``.
+        location_probs: probability that each location acts at all, by a
+            fault, shape ``(L,)``.
         flips: boolean ``(F, R)`` matrix, ``True`` where a fault flips the sign
             of a rotation's angle.
         coherence_ket: dressed Pauli ``A'`` of each coherence, unsigned, length
@@ -81,7 +85,7 @@ class CompiledNoise:
         ket_flips: boolean ``(C, R)`` matrix: the rotations ``A'`` flips.
         bra_flips: boolean ``(C, R)`` matrix: the rotations ``B'`` flips.
         location_position: rotations applied before each location, shape
-            ``(L,)``, nondecreasing.
+            ``(L,)``, nondecreasing; ``None`` once the chain is reordered.
     """
 
     hsmpo: HSMPO
@@ -101,11 +105,10 @@ class CompiledNoise:
     location_position: np.ndarray | None = None
 
     def __post_init__(self):
-        empty = np.zeros((0, len(self.generators)), dtype=bool)
         if self.ket_flips is None:
-            self.ket_flips = empty
+            self.ket_flips = _empty_flips(len(self.generators))
         if self.bra_flips is None:
-            self.bra_flips = empty
+            self.bra_flips = _empty_flips(len(self.generators))
 
     @property
     def nqubits(self) -> int:
@@ -167,12 +170,12 @@ class CompiledNoise:
         expectation value unchanged, so it is folded into its location's
         no-fault probability, and locations left with nothing are dropped.
 
-        A location with coherences is dropped whole when all its Paulis pass
-        the same test: the channel then commutes through to the observable,
-        where trace preservation makes it the identity. Otherwise its Paulis
-        spread the observable, so they join the light cone, which may keep
-        more rotations and locations; this is repeated until nothing changes.
-        Every step is exact for this observable.
+        A location with coherences is dropped whole when all its
+        Paulis pass the same test: the channel then commutes through to the
+        observable, where trace preservation makes it the identity. Otherwise
+        its Paulis spread the observable, so they join the light cone, which
+        may keep more rotations and locations; this is repeated until nothing
+        changes. Every step is exact for this observable.
 
         Args:
             dressed_paulis: dressed observable terms, from
@@ -193,9 +196,12 @@ class CompiledNoise:
 
         old_locations = np.union1d(
             self.fault_location[relevant], self.coherence_location[coherent]
-        )
+        ).astype(int)
         location = np.searchsorted(old_locations, self.fault_location[relevant])
         probs = self.fault_probs[relevant]
+        location_probs = np.bincount(
+            location, weights=probs, minlength=len(old_locations)
+        )
         return replace(
             self,
             generators=[self.generators[j] for j in kept],
@@ -203,9 +209,7 @@ class CompiledNoise:
             fault_paulis=[p for p, r in zip(self.fault_paulis, relevant) if r],
             fault_probs=probs,
             fault_location=location,
-            location_probs=np.bincount(
-                location, weights=probs, minlength=len(old_locations)
-            ),
+            location_probs=location_probs,
             flips=self.flips[relevant][:, kept],
             coherence_ket=[p for p, c in zip(self.coherence_ket, coherent) if c],
             coherence_bra=[p for p, c in zip(self.coherence_bra, coherent) if c],
@@ -222,6 +226,22 @@ class CompiledNoise:
             ),
         )
 
+    def reordered(self, order: np.ndarray) -> CompiledNoise:
+        """
+        The same circuit with its rotations in ``order``, valid when only the
+        product of each sign pattern's rotations matters and ``order`` only
+        swaps commuting rotations. ``location_position`` no longer applies.
+        """
+        return replace(
+            self,
+            generators=[self.generators[j] for j in order],
+            angles=self.angles[order],
+            flips=self.flips[:, order],
+            ket_flips=self.ket_flips[:, order],
+            bra_flips=self.bra_flips[:, order],
+            location_position=None,
+        )
+
     def _causal_cone(self, dressed_paulis: list[str]):
         """
         Walk the chain backwards from the observable, growing the set ``S`` of
@@ -230,7 +250,7 @@ class CompiledNoise:
         - a rotation is kept if it anticommutes with ``S``, and joins it;
         - a fault is relevant if it anticommutes with ``S``;
         - a location with coherences is active if any of its Paulis does, and
-          then its coherences' Paulis join ``S``, as ``B O A`` spreads ``O``.
+          then their Paulis join ``S``, as ``B O A`` spreads ``O``.
 
         Returns ``(kept rotations, relevant faults, coherences of active
         locations)`` as an index array and two boolean masks.
@@ -461,6 +481,14 @@ def compile_noise(hsmpo: HSMPO, events: Sequence[NoiseEvent]) -> CompiledNoise:
     )
 
 
+def _full_label(qubits: Sequence[int], label: str, nqubits: int) -> str:
+    """``label`` on ``qubits`` as a full-width Pauli string."""
+    labels = ["I"] * nqubits
+    for qubit, pauli in zip(qubits, label):
+        labels[qubit] = pauli
+    return "".join(labels)
+
+
 def _kraus_terms(event: KrausChannel, nqubits: int):
     """
     A Kraus channel as full-width ``[(pauli, probability)]`` for the diagonal
@@ -472,18 +500,17 @@ def _kraus_terms(event: KrausChannel, nqubits: int):
             f"KrausChannel acts on qubits {event.qubits}, outside a "
             f"{nqubits}-qubit circuit."
         )
-
-    def full(label: str) -> str:
-        labels = ["I"] * nqubits
-        for qubit, pauli in zip(event.qubits, label):
-            labels[qubit] = pauli
-        return "".join(labels)
-
     terms, pairs = [], []
     for (a, b), value in event.chi.items():
         if a == b:
             if set(a) != {"I"}:
-                terms.append((full(a), float(value.real)))
+                terms.append((_full_label(event.qubits, a, nqubits), float(value.real)))
         elif a < b:
-            pairs.append((full(a), full(b), complex(value)))
+            pairs.append(
+                (
+                    _full_label(event.qubits, a, nqubits),
+                    _full_label(event.qubits, b, nqubits),
+                    complex(value),
+                )
+            )
     return terms, pairs

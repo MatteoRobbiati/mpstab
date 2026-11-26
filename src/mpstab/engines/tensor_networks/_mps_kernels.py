@@ -349,6 +349,25 @@ def _windowed_rotation(A, center, window, flip, angle, max_bond, cutoff) -> int:
     from_left = abs(center - a) <= abs(center - b)
     center = move_center(A, center, a if from_left else b)
 
+    if b == a + 1:
+        # Two neighbours: contract the pair, rotate it, and split it once. The
+        # center is on the pair, so the split is the optimal truncation, and it
+        # leaves the center on the far side, where a sweep of rotations heads.
+        theta = np.tensordot(A[a], A[b], axes=(2, 0))
+        flipped = np.tensordot(flip(a, A[a]), flip(b, A[b]), axes=(2, 0))
+        theta = cos * theta - 1j * sin * flipped
+        left, p, q, right = theta.shape
+        matrix = theta.reshape(left * p, q * right)
+        if from_left:
+            iso, rest = _split_left_isometry(matrix, cutoff, max_bond)
+            A[a] = iso.reshape(left, p, -1)
+            A[b] = rest.reshape(-1, q, right)
+            return b
+        rest, iso = _split_right_isometry(matrix, cutoff, max_bond)
+        A[a] = rest.reshape(left, p, -1)
+        A[b] = iso.reshape(-1, q, right)
+        return a
+
     for j in range(a, b + 1):
         tensor = A[j]
         flipped = flip(j, tensor)
@@ -413,7 +432,10 @@ def squared_norm(A: list[np.ndarray], center: int) -> float:
 
 
 def pauli_transitions(
-    bra: list[np.ndarray], ket: list[np.ndarray], paulis: list[str]
+    bra: list[np.ndarray],
+    ket: list[np.ndarray],
+    paulis: list[str],
+    centers: tuple[int, int] | None = None,
 ) -> np.ndarray:
     """
     Unnormalized ``<bra|P|ket>`` for many Pauli strings between two MPS.
@@ -423,14 +445,32 @@ def pauli_transitions(
     are built once for all the strings, each by a sweep that is correct in any
     gauge and only as far as the strings need, and each string then contracts
     only its own support between them.
+
+    With ``centers``, the orthogonality centers of the two states, the sweeps
+    also skip the run of sites at either end that both states hold as the very
+    same array object, left of both centers (left-isometries) or right of both
+    (right-isometries) and outside every string: there the environment is the
+    identity. States branched from a common checkpoint share those arrays,
+    since the kernels replace arrays instead of writing into them.
     """
     n = len(ket)
     windows = [bounds(pauli) or (0, 0) for pauli in paulis]
-    left = [np.ones((1, 1))]  # left[j]: sites before j, as (bra, ket) bonds
-    for j in range(max((a for a, _ in windows), default=0)):
-        left.append(_transfer_right(left[-1], bra[j], ket[j]))
-    right = {n: np.ones((1, 1))}  # right[j]: sites from j on
-    for j in range(n - 1, min((b for _, b in windows), default=n - 1), -1):
+    first = min((a for a, _ in windows), default=0)
+    last = max((b for _, b in windows), default=n - 1)
+    start, stop = 0, n - 1
+    if centers is not None:
+        low, high = min(centers), max(centers)
+        while start < min(low, first) and bra[start] is ket[start]:
+            start += 1
+        while stop > max(high, last) and bra[stop] is ket[stop]:
+            stop -= 1
+
+    # left[j]: sites before j, as (bra, ket) bonds
+    left = {start: np.eye(ket[start].shape[0])}
+    for j in range(start, max((a for a, _ in windows), default=start)):
+        left[j + 1] = _transfer_right(left[j], bra[j], ket[j])
+    right = {stop + 1: np.eye(ket[stop].shape[2])}  # right[j]: sites from j on
+    for j in range(stop, min((b for _, b in windows), default=stop), -1):
         ket_j = np.tensordot(ket[j], right[j + 1], axes=(2, 1))  # (ket_l, phys, bra_r)
         right[j] = np.tensordot(bra[j].conj(), ket_j, axes=([1, 2], [1, 2]))
 

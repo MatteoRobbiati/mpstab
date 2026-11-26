@@ -333,7 +333,8 @@ class HSMPO:
         Every set of Pauli faults only flips the signs of some dressed-rotation
         angles, so the noisy value is an average of noiseless HSMPO values:
         patterns with zero and one fault are summed exactly, those with two or
-        more are sampled. Coherent errors join the rotation chain like magic
+        more are sampled against models built from the single-fault values,
+        whose sums are known in closed form. Coherent errors join the rotation chain like magic
         gates. A general channel, such as amplitude damping, adds transition
         amplitudes between two sign patterns, one for the ket and one for the
         bra. Only the rotations and faults in the light cone are kept, which is
@@ -347,9 +348,10 @@ class HSMPO:
                 ``0`` that stratum is dropped, biasing the mean by at most
                 ``stratum_weights[2]`` times the sum of the absolute coefficients.
             seed: seed of the sampler.
-            n_workers: processes evaluating the fault patterns in parallel. The
-                result does not depend on it; each extra process costs about a
-                second to start, so use it for large runs.
+            n_workers: processes evaluating the fault patterns and transition
+                amplitudes in parallel. The result does not depend on it; each
+                extra process costs about a second to start, so use it for
+                large runs.
 
         Returns:
             :class:`~mpstab.models.noise.NoisyExpectation`, with the value in ``mean``
@@ -358,7 +360,11 @@ class HSMPO:
         constant, terms = noise.readout_observable(observable, self.nqubits)
         compiled = compile_noise(self, noise.events(self.ansatz.circuit))
         result = noisy_expectation(
-            compiled, terms, n_samples=n_samples, seed=seed, n_workers=n_workers
+            compiled,
+            terms,
+            n_samples=n_samples,
+            seed=seed,
+            n_workers=n_workers,
         )
         return replace(result, mean=result.mean + constant)
 
