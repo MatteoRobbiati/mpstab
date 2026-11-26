@@ -5,7 +5,7 @@
   <img width="320" alt="mpstab" src="./docs/_static/logo/mpstab_logo_light.svg">
 </picture>
 
-### Hybrid stabilizer–MPO simulation of quantum circuits
+### Hybrid stabilizers tensor-networks quantum circuit simulator
 
 Clifford speed where the circuit is Clifford, tensor-network accuracy where it isn't.
 
@@ -67,14 +67,30 @@ Don't have [uv](https://docs.astral.sh/uv/)? `curl -LsSf https://astral.sh/uv/in
 
 ## 🚀 Quick start
 
+Energy and gradient of a 40-qubit J1-J2 Heisenberg chain, built with Qibo symbols:
+
 ```python
+from qibo.hamiltonians import SymbolicHamiltonian
+from qibo.symbols import X, Y, Z
+
 from mpstab import HSMPO
-from mpstab.models.ansatze import HardwareEfficient
+from mpstab.models.ansatze import HammingWeightPreserving
 
-surrogate = HSMPO(HardwareEfficient(nqubits=8, nlayers=3), max_bond_dimension=16)
+n, j1, j2 = 40, 1.0, 0.5
 
-value, fidelity = surrogate.expectation("ZIZXIIIZ", return_fidelity=True)
-gradient = surrogate.gradient("ZIZXIIIZ")  # one derivative per parameter
+# H = J1 Σ σ_i·σ_{i+1} + J2 Σ σ_i·σ_{i+2}, periodic boundaries
+form = sum(
+    j * sum(P(i) * P((i + d) % n) for P in (X, Y, Z))
+    for d, j in ((1, j1), (2, j2))
+    for i in range(n)
+)
+hamiltonian = SymbolicHamiltonian(form, nqubits=n)
+
+ansatz = HammingWeightPreserving(nqubits=n, nlayers=2)
+surrogate = HSMPO(ansatz, max_bond_dimension=64)
+
+energy, fidelity = surrogate.expectation(hamiltonian, return_fidelity=True)
+gradient = surrogate.gradient(hamiltonian)  # all 320 derivatives, one backward pass
 ```
 
 <details>
