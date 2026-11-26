@@ -4,7 +4,6 @@ from dataclasses import MISSING, dataclass, fields, replace
 from typing import List, Tuple, Union
 
 import numpy as np
-import stim
 from qibo import Circuit
 from tqdm.auto import tqdm
 
@@ -21,7 +20,7 @@ from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.ansatze import Ansatz, CircuitAnsatz
 from mpstab.models.noise.compile import compile_noise
 from mpstab.models.noise.mc_noise_estimator import noisy_expectation
-from mpstab.pauli import conjugate, pauli_light_cone
+from mpstab.pauli import pauli_light_cone
 
 
 @dataclass
@@ -142,29 +141,6 @@ class HSMPO:
             initial_state_circuit=self.initial_state,
             max_bond_dimension=self.max_bond_dimension,
         )
-
-    @staticmethod
-    def _conjugate_rotation(
-        rotation: Tuple[str, float], tableau: stim.Tableau
-    ) -> Tuple[str, float]:
-        """
-        Conjugate a Pauli rotation by a Clifford tableau:
-        ``U exp(-i angle/2 G) U^dag = exp(-i angle/2 U G U^dag)``.
-
-        ``U G U^dag = +-G'`` is again a Pauli string, so the sign moves into the
-        angle and the result is still a ``(generator, angle)`` rotation.
-
-        Args:
-            rotation: ``(generator, angle)``, the generator a Pauli string.
-            tableau: the Clifford ``U``. Pass ``tableau.inverse()`` to get
-                ``U^dag R U``, as in :func:`~mpstab.pauli.conjugate`.
-
-        Returns:
-            ``(generator, angle)`` for the conjugated rotation.
-        """
-        generator, angle = rotation
-        conjugated, sign = conjugate(generator, tableau)
-        return conjugated, sign * angle
 
     def _partition(self):
         """
@@ -600,11 +576,17 @@ def _engine(engine, base: type, default: type):
 _PROGRESS_DELAY = 1.0
 
 
-def _progress_bar(rotations, bond, description: str, enabled: bool = True):
+def _progress_bar(
+    rotations,
+    bond,
+    description: str,
+    enabled: bool = True,
+    delay: float = _PROGRESS_DELAY,
+):
     """
     Iterate over ``rotations``, drawing a progress bar once the loop has run
-    for :data:`_PROGRESS_DELAY` seconds, with the bond dimension ``bond()``
-    returns when it is not ``None``.
+    for ``delay`` seconds (:data:`_PROGRESS_DELAY` by default), with the bond
+    dimension ``bond()`` returns when it is not ``None``.
     """
     rotations = list(rotations)
     if not enabled or not rotations:
@@ -615,7 +597,7 @@ def _progress_bar(rotations, bond, description: str, enabled: bool = True):
         total=len(rotations),
         desc=description,
         unit="rot",
-        delay=_PROGRESS_DELAY,
+        delay=delay,
         ascii=" ━",
         colour="green",
         bar_format="{desc} {bar} {n_fmt}/{total_fmt} rotations "

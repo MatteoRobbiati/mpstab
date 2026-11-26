@@ -55,11 +55,11 @@ from functools import lru_cache
 from typing import List, Tuple, Union
 
 import numpy as np
-import stim
+from qibo import Circuit
 
 from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.hamiltonians import Observable, pauli_terms
-from mpstab.pauli import conjugate, pauli_light_cone, validate_pauli_string
+from mpstab.pauli import pauli_light_cone, validate_pauli_string
 from mpstab.qibo_tools.utilized_backends.statevector_exact_simulator import (
     StatevectorExactSimulator,
 )
@@ -97,7 +97,9 @@ class ResynthesizedHead:
 
     Attributes:
         circuit: a runnable qibo ``Circuit``, without measurement gates.
-        residual_tableau: the Clifford residual as a ``stim.Tableau``.
+        residual_circuit: the Clifford residual as a qibo ``Circuit``, which a
+            stabilizers engine conjugates observables through (``residual=``
+            of :meth:`HQSMPO.build_post_head_mpo`).
         residual_gates: the same residual as a gate list, for
             ``tail_handling="append_to_head_circuit"``.
         n_gates: gates in the head.
@@ -109,7 +111,7 @@ class ResynthesizedHead:
     """
 
     circuit: object
-    residual_tableau: object
+    residual_circuit: object
     residual_gates: tuple
     n_gates: int
     n_two_qubit_gates: int
@@ -203,7 +205,7 @@ class HQSMPO(HSMPO):
         observable: str,
         cut_index: int,
         max_bond_dimension: int = -1,
-        residual: Union[stim.Tableau, None] = None,
+        residual: Union[Circuit, None] = None,
     ):
         """
         The observable with everything after the head folded in, as an MPO.
@@ -212,7 +214,8 @@ class HQSMPO(HSMPO):
         and, optionally, a Clifford residual are moved into the observable, so
         that ``<O> = sign * <head| operator |head>``. The steps are:
 
-        1. backpropagate ``observable`` through the Clifford part with ``stim``,
+        1. backpropagate ``observable`` through the Clifford part with the
+           stabilizers engine,
            ``O -> sign * O'``, still a single Pauli string;
         2. if ``residual`` ``R`` is given, conjugate ``O'`` and every tail
            generator through it. Each one stays a Pauli string, and a
@@ -231,7 +234,7 @@ class HQSMPO(HSMPO):
           use it as the classical reference;
         - the ``"pauli"`` route passes no ``residual``. It samples Pauli strings
           from the MPO and folds each sampled string through ``R`` afterwards
-          (:func:`~mpstab.qpu.measurement.pauli_expansion.fold_pool_through_tableau`),
+          (:func:`~mpstab.qpu.measurement.pauli_expansion.fold_pool_through_residual`),
           which is cheaper and unaffected by truncation;
         - the ``"shadows"`` route passes ``residual`` under
           ``tail_handling="fold"``, because its estimator contracts the whole
@@ -245,7 +248,7 @@ class HQSMPO(HSMPO):
             max_bond_dimension: bond cap for each conjugation. ``-1`` means
                 ``self.max_bond_dimension``, ``None`` means untruncated.
             residual: the Clifford residual ``R`` to fold in, typically
-                :attr:`ResynthesizedHead.residual_tableau`. ``None`` leaves it
+                :attr:`ResynthesizedHead.residual_circuit`. ``None`` leaves it
                 out.
 
         Returns:
@@ -266,12 +269,16 @@ class HQSMPO(HSMPO):
                 if index >= cut_index
             ]
         if residual is not None:
-            residual_inverse = residual.inverse()
-            backpropagated, residual_sign = conjugate(backpropagated, residual_inverse)
+            # R^dag O R and R^dag G R for every tail generator G, in one pass
+            # of the stabilizers engine; a generator's sign moves into its angle.
+            images = self.stab_engine.backpropagate_many(
+                [backpropagated] + [generator for generator, _ in tail], residual
+            )
+            (backpropagated, residual_sign), tail_images = images[0], images[1:]
             sign = sign * residual_sign
             tail = [
-                self._conjugate_rotation(rotation, residual_inverse)
-                for rotation in tail
+                (generator, image_sign * angle)
+                for (generator, image_sign), (_, angle) in zip(tail_images, tail)
             ]
 
         operator = self.tn_engine.conjugate_operator_many(
@@ -344,7 +351,7 @@ class HQSMPO(HSMPO):
         cut_index: int,
         reference_max_bond: Union[int, None] = None,
         exact: bool = True,
-        residual: Union[stim.Tableau, None] = None,
+        residual: Union[Circuit, None] = None,
         with_expval: bool = False,
         max_bond_dimension: Union[int, None] = -1,
     ) -> TailTruncation:
@@ -449,9 +456,9 @@ class HQSMPO(HSMPO):
         :meth:`expectation_at_cut` for several observables or methods,
         resynthesise once, while new parameters give new rotations and hence a
         fresh resynthesis. Only an immutable description of the head is
-        cached: every call returns a fresh ``circuit`` and its own copy of the
-        ``residual_tableau``, so modifying them, or a plan circuit sharing
-        their gates, never reaches a later call.
+        cached: every call returns a fresh ``circuit`` and ``residual_circuit``,
+        so modifying them, or a plan circuit sharing their gates, never reaches
+        a later call.
 
         Args:
             cut_index: the split point.
@@ -478,7 +485,7 @@ class HQSMPO(HSMPO):
         cached = _resynthesize(rotations, self.nqubits, cut_index, synthesis)
         return ResynthesizedHead(
             circuit=head_to_qibo_circuit(cached.head, self.nqubits),
-            residual_tableau=cached.residual_tableau.copy(),
+            residual_circuit=head_to_qibo_circuit(cached.residual_gates, self.nqubits),
             residual_gates=cached.residual_gates,
             n_gates=len(cached.head),
             n_two_qubit_gates=cached.n_two_qubit_gates,
@@ -678,12 +685,10 @@ class HQSMPO(HSMPO):
 class _CachedHead:
     """
     What :func:`_resynthesize` caches: a head and its residual as immutable
-    gate tuples. ``residual_tableau`` is a mutable ``stim.Tableau``, so it is
-    only ever handed out as a copy.
+    gate tuples, from which every call builds its own circuits.
     """
 
     head: tuple
-    residual_tableau: object
     residual_gates: tuple
     n_two_qubit_gates: int
     method: str
@@ -711,9 +716,7 @@ def _resynthesize(
     paulis = [pauli for pauli, _ in rotations]
     angles = [angle for _, angle in rotations]
     try:
-        head, residual_tableau, residual_gates = synthesis.synthesize(
-            paulis, angles, nqubits
-        )
+        head, residual_gates = synthesis.synthesize(paulis, angles, nqubits)
     except ImportError:
         if not isinstance(synthesis, RustiqSynthesis):
             raise
@@ -725,13 +728,10 @@ def _resynthesize(
             stacklevel=3,
         )
         synthesis = CnotLadderSynthesis()
-        head, residual_tableau, residual_gates = synthesis.synthesize(
-            paulis, angles, nqubits
-        )
+        head, residual_gates = synthesis.synthesize(paulis, angles, nqubits)
 
     return _CachedHead(
         head=_frozen_gates(head),
-        residual_tableau=residual_tableau,
         residual_gates=_frozen_gates(residual_gates),
         n_two_qubit_gates=count_two_qubit_gates(head),
         method=synthesis.name,

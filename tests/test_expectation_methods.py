@@ -18,8 +18,7 @@ import pathlib
 
 import numpy as np
 import pytest
-import stim
-from qibo import get_backend
+from qibo import Circuit, get_backend
 from qibo.hamiltonians import SymbolicHamiltonian
 from qibo.symbols import X, Z
 
@@ -33,9 +32,6 @@ from mpstab.qpu.synthesis import (
     count_two_qubit_gates,
     head_to_qibo_circuit,
 )
-
-_STIM_1Q = {"H": "H", "S": "S", "Sd": "S_DAG"}
-_STIM_2Q = {"CNOT": "CX", "CZ": "CZ"}
 
 
 def _hs(nqubits, nlayers=2, seed=0, max_bond_dimension=None):
@@ -87,7 +83,7 @@ def _resynthesis_with_trailing_residual(hs, cut_index, n_trailing=3):
     exercise the fold on its own in an environment without rustiq installed.
     """
     dressed = hs._dressed_rotations()[:cut_index]
-    head, _, _ = CnotLadderSynthesis().synthesize(
+    head, _ = CnotLadderSynthesis().synthesize(
         [pauli for pauli, _ in dressed], [angle for _, angle in dressed]
     )
     split = len(head)
@@ -96,13 +92,9 @@ def _resynthesis_with_trailing_residual(hs, cut_index, n_trailing=3):
         split -= 1
         taken += 1
     new_head, residual_gates = head[:split], head[split:]
-    residual_tableau = stim.Tableau(hs.nqubits)
-    for name, qubits in residual_gates:
-        gate_name = _STIM_1Q.get(name) or _STIM_2Q.get(name)
-        residual_tableau.append(stim.Tableau.from_named_gate(gate_name), qubits)
     return ResynthesizedHead(
         circuit=head_to_qibo_circuit(new_head, hs.nqubits),
-        residual_tableau=residual_tableau,
+        residual_circuit=head_to_qibo_circuit(residual_gates, hs.nqubits),
         residual_gates=tuple(residual_gates),
         n_gates=len(new_head),
         n_two_qubit_gates=count_two_qubit_gates(new_head),
@@ -125,7 +117,9 @@ class _TrailingResidualHQSMPO(HQSMPO):
         resynthesis = _resynthesis_with_trailing_residual(self, cut_index)
         if self.drop_residual:
             resynthesis = dataclasses.replace(
-                resynthesis, residual_tableau=stim.Tableau(self.nqubits)
+                resynthesis,
+                residual_circuit=Circuit(self.nqubits),
+                residual_gates=(),
             )
         return resynthesis
 
@@ -319,7 +313,7 @@ def test_post_head_mpo_with_residual_matches_appended_residual(xy_observable):
     hs = _hs_trailing_residual()
     cut_index = len(hs.magic_gates) - 3
     resynthesis = hs.resynthesize_head(cut_index)
-    assert resynthesis.residual_tableau != stim.Tableau(4)
+    assert not hs.stab_engine.is_identity(resynthesis.residual_circuit)
 
     def dense_expval(circuit, operator, sign):
         state = np.asarray(circuit().state())
@@ -327,7 +321,7 @@ def test_post_head_mpo_with_residual_matches_appended_residual(xy_observable):
 
     tail, sign = hs.build_post_head_mpo(xy_observable, cut_index, None)
     folded, folded_sign = hs.build_post_head_mpo(
-        xy_observable, cut_index, None, residual=resynthesis.residual_tableau
+        xy_observable, cut_index, None, residual=resynthesis.residual_circuit
     )
     appended = resynthesis.circuit + head_to_qibo_circuit(
         list(resynthesis.residual_gates), 4
@@ -392,7 +386,7 @@ def test_unknown_tail_handling_raises():
 
 def test_tail_truncation_with_residual():
     hs = _hs(3)
-    residual = hs.resynthesize_head(2).residual_tableau
+    residual = hs.resynthesize_head(2).residual_circuit
     info = hs.tail_truncation("ZZZ", 0, residual=residual)
     assert info.fidelity_estimate == pytest.approx(1.0)
     assert info.relative_frobenius_error == pytest.approx(0.0, abs=1e-7)

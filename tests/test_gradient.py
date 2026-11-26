@@ -7,7 +7,7 @@ import pytest
 from qibo import Circuit, gates, symbols
 from qibo.derivative import parameter_shift
 from qibo.hamiltonians import SymbolicHamiltonian
-from utils import construct_symbolic_hamiltonian
+from utils import construct_symbolic_hamiltonian, jax_x64
 
 from mpstab import HSMPO
 from mpstab.engines import QuimbEngine, StimEngine
@@ -295,7 +295,7 @@ def test_gradient_jax_backend_matches_numpy(method):
     circuit = _generic_circuit(nlayers=1, seed=3)
     hsmpo = HSMPO(circuit)
     reference = hsmpo.gradient(OBSERVABLE, method=method)
-    with jax.enable_x64(True):
+    with jax_x64():
         hsmpo.set_engines(
             stab_engine=StimEngine(), tn_engine=QuimbEngine(backend="jax")
         )

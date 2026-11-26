@@ -10,21 +10,23 @@ classical contraction of the same split, as they do for the other syntheses.
 
 import numpy as np
 import pytest
-import stim
+from qibo import gates
 
 from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import HardwareEfficient, ParametricKickedIsing
+from mpstab.pauli import pauli_matrix
 from mpstab.qpu.synthesis import (
     CnotLadderSynthesis,
     ExtractionSynthesis,
     count_two_qubit_gates,
     head_to_qibo_circuit,
 )
+from mpstab.qpu.synthesis import utils as utils_module
 from mpstab.qpu.synthesis.extraction import (
     EXTRACTION_STRATEGIES,
     connectivity_distances,
 )
-from mpstab.qpu.synthesis.utils import CLIFFORD_TABLEAUS
+from mpstab.qpu.synthesis.utils import CLIFFORD_GATES, PauliImage
 
 
 def _random_rotations(nqubits, n_rotations, seed):
@@ -44,7 +46,7 @@ def _state(gates, nqubits):
 def _overlap_with_rotations(paulis, angles, head, residual_gates):
     """|<exact product of the rotations | residual . head>| on |0...0>."""
     nqubits = len(paulis[0])
-    exact, _, _ = CnotLadderSynthesis().synthesize(paulis, angles)
+    exact, _ = CnotLadderSynthesis().synthesize(paulis, angles)
     return abs(np.vdot(_state(exact, nqubits), _state(head + residual_gates, nqubits)))
 
 
@@ -54,23 +56,18 @@ def _overlap_with_rotations(paulis, angles, head, residual_gates):
 )
 def test_head_and_residual_are_the_rotations(seed, connectivity):
     paulis, angles = _random_rotations(6, 14, seed)
-    head, tableau, residual = ExtractionSynthesis(connectivity=connectivity).synthesize(
+    head, residual = ExtractionSynthesis(connectivity=connectivity).synthesize(
         paulis, angles
     )
     assert _overlap_with_rotations(paulis, angles, head, residual) == pytest.approx(
         1.0, abs=1e-9
     )
-    # the tableau is the residual gate list
-    rebuilt = stim.Tableau(6)
-    for name, qubits in residual:
-        rebuilt.append(CLIFFORD_TABLEAUS[name], qubits)
-    assert rebuilt == tableau
 
 
 @pytest.mark.parametrize("strategy", EXTRACTION_STRATEGIES)
 def test_every_strategy_is_exact(strategy):
     paulis, angles = _random_rotations(5, 12, seed=7)
-    head, _, residual = ExtractionSynthesis(
+    head, residual = ExtractionSynthesis(
         connectivity="line", strategies=(strategy,)
     ).synthesize(paulis, angles)
     assert _overlap_with_rotations(paulis, angles, head, residual) == pytest.approx(
@@ -80,8 +77,8 @@ def test_every_strategy_is_exact(strategy):
 
 def test_one_rotation_per_pauli_and_fewer_cnots_than_the_ladder():
     paulis, angles = _random_rotations(6, 20, seed=3)
-    head, _, _ = ExtractionSynthesis().synthesize(paulis, angles)
-    ladder, _, _ = CnotLadderSynthesis().synthesize(paulis, angles)
+    head, _ = ExtractionSynthesis().synthesize(paulis, angles)
+    ladder, _ = CnotLadderSynthesis().synthesize(paulis, angles)
     assert sum(1 for gate in head if len(gate) == 3) == len(paulis)
     # w - 1 CNOTs per weight-w rotation instead of 2 * (w - 1)
     assert count_two_qubit_gates(head) <= count_two_qubit_gates(ladder) // 2
@@ -91,11 +88,11 @@ def test_synthesis_is_deterministic():
     paulis, angles = _random_rotations(6, 14, seed=1)
     first = ExtractionSynthesis(connectivity="line").synthesize(paulis, angles)
     second = ExtractionSynthesis(connectivity="line").synthesize(paulis, angles)
-    assert first[0] == second[0] and first[2] == second[2]
+    assert first == second
 
 
 def test_empty_head():
-    assert ExtractionSynthesis().synthesize([], []) == ([], stim.Tableau(0), [])
+    assert ExtractionSynthesis().synthesize([], []) == ([], [])
 
 
 def test_connectivity_distances():
@@ -141,7 +138,9 @@ def test_resynthesize_head_method_selection():
     )
     first, second = hs.resynthesize_head(cut_index), hs.resynthesize_head(cut_index)
     assert second.circuit.get_parameters() == first.circuit.get_parameters()
-    assert second.residual_tableau == first.residual_tableau
+    assert hs.stab_engine.clifford_images(
+        second.residual_circuit
+    ) == hs.stab_engine.clifford_images(first.residual_circuit)
     with pytest.raises(ValueError, match="Unknown head synthesis"):
         hs.resynthesize_head(cut_index, synthesis="magic")
 
@@ -170,7 +169,7 @@ def test_folded_observable_on_the_head_is_exact(connectivity, cut_fraction, obse
     head = hs.resynthesize_head(cut_index)
     exact = hs.expectation(observable)
     folded, sign = hs.build_post_head_mpo(
-        observable, cut_index, None, residual=head.residual_tableau
+        observable, cut_index, None, residual=head.residual_circuit
     )
     assert _dense_expval(head.circuit, folded, sign) == pytest.approx(exact, abs=1e-9)
 
@@ -187,7 +186,7 @@ def test_folded_observable_is_exact_on_a_floquet_circuit(delta_h):
     head = hs.resynthesize_head(cut_index)
     for observable in ("IIZII", "ZZIII", "XIIZI"):
         folded, sign = hs.build_post_head_mpo(
-            observable, cut_index, None, residual=head.residual_tableau
+            observable, cut_index, None, residual=head.residual_circuit
         )
         assert _dense_expval(head.circuit, folded, sign) == pytest.approx(
             hs.expectation(observable), abs=1e-9
@@ -261,7 +260,7 @@ def test_light_cone_head_gives_the_exact_value(cut_fraction, observable):
     assert rotations(head.circuit) <= rotations(whole.circuit)
 
     folded, sign = pruned.build_post_head_mpo(
-        observable, cut_index, None, residual=head.residual_tableau
+        observable, cut_index, None, residual=head.residual_circuit
     )
     assert _dense_expval(head.circuit, folded, sign) == pytest.approx(
         full.expectation(observable), abs=1e-9
@@ -289,3 +288,29 @@ def test_light_cone_measured_expectation_matches_simulation():
         observable, cut_index, method="pauli", n_shots=150000, seed=1
     )
     assert abs(pauli.value - exact) <= 4 * pauli.total_error + 1e-6, pauli
+
+
+@pytest.mark.parametrize("name", sorted(CLIFFORD_GATES))
+def test_pauli_image_tracks_the_gate_unitary(name):
+    """``PauliImage.after`` is ``U P U^dag`` on every 3-qubit Pauli string."""
+    width = 2 if name in ("CNOT", "CZ") else 1
+    qubits = [2, 0][:width]
+    circuit = head_to_qibo_circuit([(name, qubits)], 3)
+    unitary = circuit.unitary()
+    for pauli in ("XYZ", "ZIX", "YYI", "IZY", "XXX"):
+        image = PauliImage(pauli)
+        image.after(name, qubits)
+        np.testing.assert_allclose(
+            image.sign * pauli_matrix(str(image)),
+            unitary @ pauli_matrix(pauli) @ unitary.conj().T,
+            atol=1e-12,
+        )
+        assert image.weight == sum(label != "I" for label in str(image))
+
+
+def test_conjugation_tables_cover_every_gate_width():
+    """Tables follow the gate's own width, so a new two-qubit gate needs no edit."""
+    table = utils_module._conjugation_table
+    assert len(table(gates.H)) == 4
+    assert len(table(gates.SWAP)) == 16
+    assert table(gates.SWAP)["XZ"] == ("ZX", 1)

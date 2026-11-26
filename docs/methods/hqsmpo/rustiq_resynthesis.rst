@@ -69,7 +69,9 @@ resynthesis cost grows as more of the circuit is included:
         resynth = hs.resynthesize_head(cut)
         print(resynth.n_gates, resynth.n_two_qubit_gates)
 
-A partial cut leaves a pure-Clifford residual (``resynth.residual_tableau``): the
+A partial cut leaves a pure-Clifford residual (``resynth.residual_circuit``, a
+qibo circuit; ``hs.stab_engine.is_identity(resynth.residual_circuit)`` tells
+whether it is trivial): the
 ``"pauli"`` route of :meth:`~mpstab.evolutors.hqsmpo.HQSMPO.expectation_at_cut`
 folds it into the sampled Pauli terms automatically before grouping (see the
 module docstring of :mod:`mpstab.evolutors.hqsmpo`); the ``"shadows"``

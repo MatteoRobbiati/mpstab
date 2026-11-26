@@ -11,7 +11,6 @@ from collections.abc import Sequence
 from functools import reduce
 
 import numpy as np
-import stim
 
 #: Pauli labels, in the order used as the physical index of Pauli-basis tensors.
 PAULI_LABELS = "IXYZ"
@@ -73,33 +72,113 @@ def weight(pauli: str) -> int:
     return sum(label != "I" for label in pauli)
 
 
-def from_stim(pauli: stim.PauliString) -> tuple[str, int]:
-    """Split a ``stim.PauliString`` into an unsigned label and its ``+/-1`` sign."""
-    text = str(pauli)
-    sign = -1 if text.startswith("-") else 1
-    return text.lstrip("+-").replace("_", "I"), sign
-
-
-def conjugate(
-    pauli: str, tableau: stim.Tableau, sign: float = 1.0
-) -> tuple[str, float]:
+def _product_tables():
     """
-    Conjugate a Pauli string by a Clifford tableau: ``U P U^dag``.
+    Single-site Pauli products ``a . b = i**phase[a, b] * label[a, b]``, on
+    the codes of :data:`PAULI_LABELS` (``I=0, X=1, Y=2, Z=3``).
+    """
+    labels = np.zeros((4, 4), dtype=np.int8)
+    phases = np.zeros((4, 4), dtype=np.int8)
+    for a, left in enumerate(PAULI_ARRAY):
+        for b, right in enumerate(PAULI_ARRAY):
+            product = left @ right
+            for c, candidate in enumerate(PAULI_ARRAY):
+                overlap = np.trace(candidate.conj().T @ product) / 2
+                if abs(overlap) > 0.5:
+                    labels[a, b] = c
+                    phases[a, b] = int(round(np.angle(overlap) / (np.pi / 2))) % 4
+    return labels, phases
 
-    Args:
-        pauli: the Pauli string to conjugate.
-        tableau: the Clifford ``U``. Pass ``tableau.inverse()`` to get
-            ``U^dag P U`` instead, which is what folding an operator applied
-            *after* the state into the observable needs.
-        sign: prefactor carried on the input Pauli.
+
+#: Pauli codes and phases (powers of ``i``) of every single-site product.
+_PRODUCT_LABELS, _PRODUCT_PHASES = _product_tables()
+
+#: :data:`PAULI_LABELS` as an array, indexed by code.
+_LABEL_CHARS = np.array(list(PAULI_LABELS))
+
+
+#: Byte value -> Pauli code, for :func:`pauli_codes`; ``-1`` marks a byte
+#: that is not a Pauli label.
+_CODE_OF_BYTE = np.full(256, -1, dtype=np.int8)
+for _code, _label in enumerate(PAULI_LABELS):
+    _CODE_OF_BYTE[ord(_label)] = _code
+
+
+def pauli_codes(paulis: Sequence[str] | str) -> np.ndarray:
+    """
+    Pauli strings as integer codes (``I=0, X=1, Y=2, Z=3``): shape ``(n,)``
+    for one string, ``(m, n)`` for a sequence of ``m`` strings (``(0, 0)``
+    for none).
+
+    Raises:
+        ValueError: on characters outside ``IXYZ``, or strings of different
+            lengths.
+    """
+    if isinstance(paulis, str):
+        codes = _CODE_OF_BYTE[np.frombuffer(paulis.encode(), dtype=np.uint8)]
+        if (codes < 0).any():
+            validate_pauli_string(paulis)  # raises, naming the bad characters
+        return codes
+    rows = [pauli_codes(p) for p in paulis]
+    if not rows:
+        return np.zeros((0, 0), dtype=np.int8)
+    if len({row.size for row in rows}) > 1:
+        raise ValueError(
+            f"Pauli strings of different lengths: {sorted({r.size for r in rows})}."
+        )
+    return np.stack(rows)
+
+
+def pauli_labels(codes: np.ndarray) -> list[str]:
+    """Inverse of :func:`pauli_codes` for a ``(m, n)`` array: ``m`` strings."""
+    codes = np.asarray(codes)
+    if codes.ndim != 2:
+        raise ValueError(f"Expected a (strings, sites) array, got {codes.shape}.")
+    return ["".join(row) for row in _LABEL_CHARS[codes]]
+
+
+def multiply_codes(left: np.ndarray, right: np.ndarray):
+    """
+    Site-wise product of Pauli strings given as codes, broadcasting over
+    leading axes: ``left . right = i**phase * result``.
 
     Returns:
-        ``(pauli, sign)`` for the conjugated operator.
+        ``(result, phase)``: the product's codes, and its phase as a power of
+        ``i`` modulo 4, one per string.
     """
-    padded = pauli.ljust(len(tableau), "I")
-    image = tableau(stim.PauliString(padded))
-    label, image_sign = from_stim(image)
-    return label, sign * image_sign
+    if np.shape(left)[-1:] != np.shape(right)[-1:]:
+        raise ValueError(
+            f"Pauli strings of different lengths: {np.shape(left)[-1]} and "
+            f"{np.shape(right)[-1]}."
+        )
+    left, right = np.broadcast_arrays(left, right)
+    result = _PRODUCT_LABELS[left, right]
+    phase = _PRODUCT_PHASES[left, right].sum(axis=-1, dtype=np.int64) % 4
+    return result, phase
+
+
+def pauli_product(*paulis: str) -> tuple[str, complex]:
+    """
+    ``P_1 . P_2 . ... . P_k`` of equal-length Pauli strings, left to right.
+
+    Returns:
+        ``(pauli, phase)``, the product being ``phase * pauli`` with ``phase``
+        one of ``1, 1j, -1, -1j``.
+
+    Example::
+
+        from mpstab.pauli import pauli_product
+
+        print(pauli_product("XI", "YZ"))
+        # ('ZZ', 1j)
+    """
+    if not paulis:
+        raise ValueError("pauli_product needs at least one Pauli string.")
+    codes, phase = pauli_codes(paulis[0]), 0
+    for pauli in paulis[1:]:
+        codes, step = multiply_codes(codes, pauli_codes(pauli))
+        phase += int(step)
+    return pauli_labels(codes[None])[0], 1j ** (phase % 4)
 
 
 def anticommutation(left: Sequence[str], right: Sequence[str], nqubits: int):

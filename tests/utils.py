@@ -6,6 +6,13 @@ from qibo.backends import Backend, construct_backend, get_backend
 from qibo.symbols import X, Y, Z
 
 from mpstab.engines import QuimbEngine
+
+# jax is an optional backend: jax_x64 needs it, nothing else here does.
+try:
+    import jax
+    import jax.experimental
+except ImportError:
+    jax = None
 from mpstab.hamiltonians import pauli_string_to_hamiltonian
 from mpstab.pauli import pauli_matrix
 
@@ -146,3 +153,14 @@ def magic_gates(ansatz):
         replacement_probability=0.0, replacement_method="closest"
     )
     return gates_
+
+
+def jax_x64():
+    """
+    A context running jax in double precision, on whichever API the installed
+    jax has: ``jax.enable_x64`` (current releases) or
+    ``jax.experimental.enable_x64`` (0.4 to 0.7).
+    """
+    if hasattr(jax, "enable_x64"):
+        return jax.enable_x64(True)
+    return jax.experimental.enable_x64(True)

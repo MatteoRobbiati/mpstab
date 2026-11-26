@@ -38,13 +38,20 @@ from dataclasses import dataclass
 from typing import Sequence
 
 import numpy as np
-import stim
 
-from mpstab.engines import QuimbEngine
 from mpstab.evolutors.optimization import adjoint_kernel
 from mpstab.evolutors.utils import gate_angle
 from mpstab.hamiltonians import Observable, pauli_terms
-from mpstab.pauli import anticommutation, pauli_light_cone
+from mpstab.pauli import (
+    anticommutation,
+    multiply_codes,
+    pauli_codes,
+    pauli_labels,
+    pauli_light_cone,
+)
+
+#: ``i**k`` for ``k = 0, 1, 2, 3``.
+_POWERS_OF_I = np.array([1, 1j, -1, -1j])
 
 
 @dataclass
@@ -235,7 +242,8 @@ def analytic_gradient(
     n_workers = max(1, min(n_workers, len(jobs)))
     if n_workers > 1:
         try:
-            outcomes = list(_pool(n_workers).map(_on_chain, *zip(*jobs)))
+            pool = _pool(n_workers, hsmpo.tn_engine.worker_context())
+            outcomes = list(pool.map(_on_chain, *zip(*jobs)))
         except BrokenProcessPool:
             _POOL.clear()  # start a fresh pool on the next call
             raise
@@ -299,12 +307,20 @@ def _support_centre(pauli: str) -> float:
 _POOL: dict = {}
 
 
-def _pool(n_workers: int) -> ProcessPoolExecutor:
-    """A pool of ``n_workers`` processes, started once and reused."""
-    if _POOL.get("size") != n_workers:
+def _pool(n_workers: int, context=None) -> ProcessPoolExecutor:
+    """
+    A pool of ``n_workers`` processes started in ``context`` (the engine's
+    :meth:`~mpstab.engines.TensorNetworkEngine.worker_context`), started once
+    and reused while both stay the same.
+    """
+    key = (n_workers, None if context is None else context.get_start_method())
+    if _POOL.get("key") != key:
         if _POOL:
             _POOL["executor"].shutdown()
-        _POOL.update(size=n_workers, executor=ProcessPoolExecutor(n_workers))
+        _POOL.update(
+            key=key,
+            executor=ProcessPoolExecutor(n_workers, mp_context=context),
+        )
     return _POOL["executor"]
 
 
@@ -329,9 +345,9 @@ def _on_chain(
         method == "adjoint"
         and sites
         and observables
-        and isinstance(engine, QuimbEngine)
-        and engine._fast
-        and initial_mps.L > 1
+        and engine.has_site_view
+        and engine.has_pauli_sum
+        and len(generators[0]) > 1
     ):
         return adjoint_kernel(
             engine,
@@ -379,7 +395,7 @@ def _adjoint(chain, sites, observables, weights, costate_bond, derivatives):
     norm = chain.fidelities[-1]
     wanted = set(sites)
     costate = engine.apply_pauli_sum(state, observables, weights, costate_bond)
-    initial = np.real(costate.norm(squared=True))
+    initial = np.real(engine.squared_norm(costate))
     for j in range(len(generators) - 1, sites[0] - 1, -1):
         if j < len(generators) - 1:
             engine.apply_rotation(
@@ -393,7 +409,7 @@ def _adjoint(chain, sites, observables, weights, costate_bond, derivatives):
                 costate, checkpoints[j + 1], [generators[j]], normalize=False
             )[0]
             derivatives[j] = np.imag(complex(amplitude)) / norm
-    return [np.real(costate.norm(squared=True)) / initial if initial > 0 else 1.0]
+    return [np.real(engine.squared_norm(costate)) / initial if initial > 0 else 1.0]
 
 
 def _flips(chain, sites, observables, weights, derivatives):
@@ -403,16 +419,17 @@ def _flips(chain, sites, observables, weights, derivatives):
     flips = anticommutation([generators[k] for k in sites], generators, nqubits)
     flips &= np.arange(len(generators))[None, :] > np.array(sites)[:, None]
     base = chain.state(np.zeros(len(generators), dtype=bool))
-    observables = [stim.PauliString(pauli) for pauli in observables]
+    observable_codes = pauli_codes(observables)
 
     def transitions(state, rows):
         paulis, phases = [], []
         for k in rows:
-            generator = stim.PauliString(generators[sites[k]])
-            for observable in observables:
-                product = observable * generator
-                paulis.append(str(product).lstrip("+-i").replace("_", "I"))
-                phases.append(product.sign)
+            # O . G for every observable O, with its phase.
+            codes, phase = multiply_codes(
+                observable_codes, pauli_codes(generators[sites[k]])
+            )
+            paulis += pauli_labels(codes)
+            phases += list(_POWERS_OF_I[phase])
         if state is base:
             # psi~ = psi: only the anticommuting terms, whose product is
             # anti-Hermitian, have an imaginary part.
@@ -512,7 +529,5 @@ class _Chain:
         self.current = np.array(pattern, dtype=bool)
         self.n_rotations += len(self.generators) - start
         state = self.checkpoints[-1]
-        self.fidelities.append(
-            np.real(state.norm(squared=True)) if hasattr(state, "norm") else np.nan
-        )
+        self.fidelities.append(float(np.real(self.engine.squared_norm(state))))
         return state

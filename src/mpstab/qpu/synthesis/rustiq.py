@@ -21,9 +21,13 @@ except ImportError:  # optional dependency
     Metric = pauli_network_synthesis = None
 
 
-def _require_rustiq():
-    """Raise an ``ImportError`` with the install hint if rustiq is missing."""
-    if pauli_network_synthesis is None:
+def _require_rustiq(synthesis=pauli_network_synthesis):
+    """
+    Raise an ``ImportError`` with the install hint if rustiq is missing, i.e.
+    if ``synthesis``, rustiq's ``pauli_network_synthesis`` as the guarded
+    import left it, is ``None``.
+    """
+    if synthesis is None:
         raise ImportError(
             "rustiq is required for Pauli-network resynthesis. Install it with: "
             'pip install "mpstab[rustiq]"'
@@ -40,7 +44,9 @@ class RustiqSynthesis(HeadSynthesis):
     ``fix_clifford=True``. The prefix becomes the head; what the longer version
     appends is the residual. The residual gate list is non-deterministic across
     runs (``fix_clifford=True`` draws randomly) even though the Clifford it
-    implements is unique, so compare tableaus rather than gate lists.
+    implements is unique, so compare Cliffords (e.g. with
+    :meth:`~mpstab.engines.StabilizersEngine.clifford_images`) rather than gate
+    lists.
 
     Args:
         metric: what rustiq minimises, ``"count"`` or ``"depth"``.

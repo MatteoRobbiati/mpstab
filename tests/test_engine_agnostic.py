@@ -8,13 +8,22 @@ going through the :class:`~mpstab.engines.TensorNetworkEngine` interface fails
 here. A new engine (tenpy, ...) then only has to implement that interface.
 """
 
+import ast
+import pathlib
+
 import numpy as np
 import pytest
 from qibo import gates
 from utils import small_entangled_circuit
 
+import mpstab
 from mpstab import HSMPO
-from mpstab.engines import QuimbEngine, TensorNetworkEngine
+from mpstab.engines import (
+    NativeStabilizersEngine,
+    QuimbEngine,
+    StimEngine,
+    TensorNetworkEngine,
+)
 from mpstab.evolutors.hqsmpo import HQSMPO
 from mpstab.models.ansatze import CircuitAnsatz, HardwareEfficient, KickedIsing
 from mpstab.models.metrics import meyer_wallach_mps, stabilizer_renyi_entropy_mps
@@ -34,7 +43,13 @@ class _Box:
 
 
 class OpaqueEngine(TensorNetworkEngine):
-    """QuimbEngine behind boxes: only the interface sees the quimb objects."""
+    """
+    QuimbEngine behind boxes: only the interface sees the quimb objects.
+
+    It implements its own algorithms and no site view, as an engine written
+    before the shared algorithms existed would: the base class must fall back
+    to them.
+    """
 
     def __init__(self):
         self.quimb = QuimbEngine(svd_cutoff=0.0)
@@ -84,16 +99,54 @@ class OpaqueEngine(TensorNetworkEngine):
         )
 
 
-def _pair(ansatz, cls=HSMPO, **kwargs):
+class SiteViewOpaqueEngine(OpaqueEngine):
+    """
+    The opaque engine with the representation hooks, so the shared algorithms
+    of the base class run on it.
+    """
+
+    def state_sites(self, state_circuit):
+        return self.quimb.state_sites(state_circuit.inner)
+
+    def operator_from_sites(self, sites, like):
+        return _Box(self.quimb.operator_from_sites(sites, like.inner))
+
+    def state_from_sites(self, sites, center):
+        return _Box(self.quimb.state_from_sites(sites, center))
+
+    def apply_pauli_sum(self, state_circuit, paulis, coefficients, max_bond_dimension):
+        return _Box(
+            self.quimb.apply_pauli_sum(
+                state_circuit.inner, paulis, coefficients, max_bond_dimension
+            )
+        )
+
+
+@pytest.fixture(
+    params=[OpaqueEngine, SiteViewOpaqueEngine], ids=["own-algorithms", "site-view"]
+)
+def opaque_engine(request):
+    return request.param
+
+
+def test_site_view_capabilities():
+    assert QuimbEngine().has_site_view and QuimbEngine().has_operator_sites
+    assert not OpaqueEngine().has_site_view
+    assert not OpaqueEngine().has_operator_sites
+    assert SiteViewOpaqueEngine().has_site_view
+    assert SiteViewOpaqueEngine().has_operator_sites
+
+
+def _pair(ansatz, engine_class, cls=HSMPO, **kwargs):
     """The same model on quimb and on the opaque engine."""
     reference = cls(ansatz, tn_engine=QuimbEngine(svd_cutoff=0.0), **kwargs)
-    opaque = cls(ansatz, tn_engine=OpaqueEngine(), **kwargs)
+    opaque = cls(ansatz, tn_engine=engine_class(), **kwargs)
     return reference, opaque
 
 
-def test_hsmpo_expectation_and_fidelities():
+def test_hsmpo_expectation_and_fidelities(opaque_engine):
     reference, opaque = _pair(
-        HardwareEfficient(nqubits=5, nlayers=3), max_bond_dimension=2
+        HardwareEfficient(nqubits=5, nlayers=3), opaque_engine, max_bond_dimension=2
     )
     expected = reference.expectation("ZZIXI", return_fidelity=True)
     assert opaque.expectation("ZZIXI", return_fidelity=True) == pytest.approx(expected)
@@ -105,9 +158,9 @@ def test_hsmpo_expectation_and_fidelities():
     )
 
 
-def test_metrics():
+def test_metrics(opaque_engine):
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    reference, opaque = _pair(ansatz)
+    reference, opaque = _pair(ansatz, opaque_engine)
     assert meyer_wallach_mps(opaque) == pytest.approx(meyer_wallach_mps(reference))
     expected = stabilizer_renyi_entropy_mps(reference, alpha=2, n_samples=200, seed=0)
     assert stabilizer_renyi_entropy_mps(
@@ -115,8 +168,8 @@ def test_metrics():
     ) == pytest.approx(expected)
 
 
-def test_noisy_expectation():
-    reference, opaque = _pair(KickedIsing(nqubits=5))
+def test_noisy_expectation(opaque_engine):
+    reference, opaque = _pair(KickedIsing(nqubits=5), opaque_engine)
     noise = NoiseModel().add(DepolarizingError(0.02), gates.CNOT)
     observable = {"ZZIII": 0.7, "IXIXI": -0.4}
     expected = reference.noisy_expectation(observable, noise, n_samples=100, seed=1)
@@ -125,8 +178,8 @@ def test_noisy_expectation():
     np.testing.assert_allclose(result.fidelities, expected.fidelities)
 
 
-def test_dmrg():
-    reference, opaque = _pair(HardwareEfficient(nqubits=4, nlayers=2))
+def test_dmrg(opaque_engine):
+    reference, opaque = _pair(HardwareEfficient(nqubits=4, nlayers=2), opaque_engine)
     options = dict(bond_dims=[4], max_sweeps=2, verbosity=0)
     hamiltonian = {"ZZII": 1.0, "IXXI": 0.5, "IIZZ": -0.3}
     expected = reference.minimize_expectation(hamiltonian, **options)["energy"]
@@ -135,9 +188,9 @@ def test_dmrg():
     ] == pytest.approx(expected, abs=1e-8)
 
 
-def test_hqsmpo_simulation_and_tail_truncation():
+def test_hqsmpo_simulation_and_tail_truncation(opaque_engine):
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    reference, opaque = _pair(ansatz, cls=HQSMPO, max_bond_dimension=2)
+    reference, opaque = _pair(ansatz, opaque_engine, cls=HQSMPO, max_bond_dimension=2)
     expected = reference.expectation_at_cut("ZZZZ", 2, method="simulation")
     result = opaque.expectation_at_cut("ZZZZ", 2, method="simulation")
     assert result.value == pytest.approx(expected.value)
@@ -155,9 +208,11 @@ def test_hqsmpo_simulation_and_tail_truncation():
 @pytest.mark.parametrize(
     "method", [ClassicalShadows(), PauliSampling()], ids=["shadows", "pauli"]
 )
-def test_device_routes(method):
+def test_device_routes(method, opaque_engine):
     ansatz = CircuitAnsatz(qibo_circuit=small_entangled_circuit(4))
-    reference, opaque = _pair(ansatz, cls=HQSMPO, head_synthesis="cnot_ladder")
+    reference, opaque = _pair(
+        ansatz, opaque_engine, cls=HQSMPO, head_synthesis="cnot_ladder"
+    )
     plans = [
         model.plan(
             {"ZZZZ": 1.0, "XIXI": 0.5},
@@ -175,3 +230,75 @@ def test_device_routes(method):
         method.estimate(plan, frequencies, seed=7).value for plan in plans
     )
     assert result == pytest.approx(expected)
+
+
+def test_only_the_stim_engine_imports_stim():
+    """Every Clifford simulation goes through the stabilizers engine."""
+    root = pathlib.Path(mpstab.__file__).parent
+    allowed = root / "engines" / "stabilizers" / "stim.py"
+    offenders = []
+    for path in root.rglob("*.py"):
+        if path == allowed:
+            continue
+        for node in ast.walk(ast.parse(path.read_text())):
+            names = []
+            if isinstance(node, ast.Import):
+                names = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names = [node.module]
+            if any(name == "stim" or name.startswith("stim.") for name in names):
+                offenders.append(str(path.relative_to(root)))
+    assert offenders == []
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        PauliSampling(),
+        ClassicalShadows(tail_handling="fold"),
+    ],
+    ids=["pauli", "shadows-fold"],
+)
+def test_residual_routes_on_the_native_stabilizers_engine(method):
+    """A non-trivial resynthesis residual folds the same through any engine."""
+    ansatz = HardwareEfficient(nqubits=4, nlayers=2)
+    models = [
+        HQSMPO(ansatz, stab_engine=engine, head_synthesis="extraction")
+        for engine in (StimEngine(), NativeStabilizersEngine())
+    ]
+    cut = len(models[0].magic_gates) - 2
+    residual = models[0].resynthesize_head(cut).residual_circuit
+    assert not models[0].stab_engine.is_identity(residual)
+    plans = [
+        model.plan(
+            {"ZZII": 1.0, "IXXI": 0.5},
+            cut,
+            method=method,
+            n_shots=200,
+            seed=3,
+            out_folder=False,
+        )
+        for model in models
+    ]
+    frequencies = run_plan(plans[0], StatevectorExactSimulator())
+    expected, result = (method.estimate(p, frequencies, seed=7).value for p in plans)
+    assert result == pytest.approx(expected, abs=1e-12)
+
+
+@pytest.mark.parametrize("method", ["adjoint", "flips"])
+def test_gradient_on_any_engine_with_a_site_view(method):
+    """
+    The fused adjoint kernel runs on any engine with a site view and Pauli
+    sums, not on QuimbEngine only; the flips route on any engine with a site
+    view.
+    """
+    reference, opaque = _pair(
+        HardwareEfficient(nqubits=4, nlayers=2), SiteViewOpaqueEngine
+    )
+    assert opaque.tn_engine.has_site_view and opaque.tn_engine.has_pauli_sum
+    observable = {"ZZII": 0.7, "IXXI": -0.4, "IIYZ": 0.3}
+    np.testing.assert_allclose(
+        opaque.gradient(observable, method=method),
+        reference.gradient(observable, method=method),
+        atol=1e-10,
+    )

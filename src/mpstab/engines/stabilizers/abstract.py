@@ -76,3 +76,27 @@ class StabilizersEngine(ABC):
                 prefix.add(gate)
             results.append(self.backpropagate(observable, prefix))
         return results
+
+    def clifford_images(self, clifford_circuit: Circuit) -> list:
+        """
+        ``U^dag P U`` for the generators ``X_0, ..., X_{n-1}, Z_0, ...,
+        Z_{n-1}``, as ``(pauli_string, sign)``: they fix the Clifford ``U`` up
+        to a global phase, so two circuits implement the same Clifford exactly
+        when their images agree.
+        """
+        n = clifford_circuit.nqubits
+        generators = [
+            "I" * q + label + "I" * (n - q - 1) for label in "XZ" for q in range(n)
+        ]
+        return [
+            (pauli, int(sign))
+            for pauli, sign in self.backpropagate_many(generators, clifford_circuit)
+        ]
+
+    def is_identity(self, clifford_circuit: Circuit) -> bool:
+        """Whether the Clifford circuit acts as the identity, up to a phase."""
+        n = clifford_circuit.nqubits
+        expected = [
+            ("I" * q + label + "I" * (n - q - 1), 1) for label in "XZ" for q in range(n)
+        ]
+        return self.clifford_images(clifford_circuit) == expected

@@ -1,4 +1,4 @@
-"""Plain-NumPy MPS kernels for the two operations HSMPO spends its time in.
+"""Backend-agnostic MPS kernels for the operations HSMPO spends its time in.
 
 Every routine works on a list ``A`` of site tensors shaped ``(left, phys, right)``
 kept in *mixed canonical form* around an orthogonality center ``c``: sites left
@@ -13,6 +13,11 @@ what makes both kernels local:
 
 Truncation follows quimb's default ``"rsum2"`` rule, so the states match what
 ``MatrixProductState.gate_with_mpo`` produces.
+
+The kernels only shuffle and contract arrays; the factorizations and the array
+module come from a :class:`Linalg`. :data:`NUMPY` is the CPU one, built on raw
+LAPACK calls; a GPU engine passes its own (CuPy arrays, cuTensorNet
+factorizations), and every kernel runs unchanged on its arrays.
 """
 
 from __future__ import annotations
@@ -31,13 +36,13 @@ def bounds(pauli: str) -> tuple[int, int] | None:
     return len(pauli) - len(stripped), len(pauli.rstrip("I")) - 1
 
 
-def apply_pauli(tensor: np.ndarray, label: str) -> np.ndarray:
+def apply_pauli(tensor, label: str, xp=np):
     """``label`` applied to the physical index of a ``(l, p, r)`` tensor."""
     if label == "I":
         return tensor
     if label == "X":
         return tensor[:, ::-1, :]
-    out = np.empty(tensor.shape, dtype=np.result_type(tensor.dtype, np.complex64))
+    out = xp.empty(tensor.shape, dtype=np.result_type(tensor.dtype, np.complex64))
     if label == "Z":
         out[:, 0, :] = tensor[:, 0, :]
         out[:, 1, :] = -tensor[:, 1, :]
@@ -143,7 +148,7 @@ def _heevd(hermitian: np.ndarray):
     return values, vectors
 
 
-def _eigh(hermitian: np.ndarray):
+def _eigh(hermitian: np.ndarray, heevr=None):
     """
     Eigendecomposition of a Hermitian matrix, ascending, with orthonormal
     eigenvectors.
@@ -155,6 +160,12 @@ def _eigh(hermitian: np.ndarray):
     Clifford+T operators have exactly, and how far depends on the LAPACK
     build. Its eigenvectors are therefore checked, and recomputed by
     ``heevd`` when they are not orthonormal.
+
+    Args:
+        hermitian: the matrix.
+        heevr: the MRRR routine, with LAPACK's ``heevr`` signature; ``None``
+            for scipy's. Given only to check the fallback on a routine that
+            misbehaves.
     """
     hermitian = np.asarray(hermitian, dtype=np.complex128)
     order = hermitian.shape[0]
@@ -166,12 +177,29 @@ def _eigh(hermitian: np.ndarray):
         workspace = _HEEVR_WORKSPACE[order] = dict(
             lwork=int(lwork.real), lrwork=int(lrwork), liwork=int(liwork)
         )
-    values, vectors, _, _, info = _HEEVR(hermitian, compute_v=1, lower=0, **workspace)
+    heevr = _HEEVR if heevr is None else heevr
+    values, vectors, _, _, info = heevr(hermitian, compute_v=1, lower=0, **workspace)
     if info != 0 or (
         np.abs(vectors.conj().T @ vectors - np.eye(order)).max() > _EIGENVECTOR_TOL
     ):
         return _heevd(hermitian)
     return values, vectors
+
+
+def _numerical_rank(singular_values: np.ndarray) -> int:
+    """
+    How many singular values (descending) stand above roundoff: the squared
+    ones above ``order * eps`` of the largest, the threshold of
+    :func:`_gram_rank`, with ``eps`` of the values' own precision. At least
+    one.
+    """
+    squares = singular_values * singular_values
+    if not squares.size:
+        return 1
+    # The precision of the values themselves: float32 for complex64 sites.
+    eps = np.finfo(np.result_type(singular_values.dtype, np.float32)).eps
+    noise = squares.size * eps * squares[0]
+    return max(int(np.count_nonzero(squares > noise)), 1)
 
 
 def _gram_rank(values: np.ndarray, cutoff: float, max_bond: int | None) -> int:
@@ -230,31 +258,111 @@ def _split_right_isometry(matrix: np.ndarray, cutoff: float, max_bond: int | Non
     return rest.conj().T, iso.conj().T
 
 
-def move_center(A: list[np.ndarray], center: int, target: int) -> int:
+#: quimb's default singular-value cutoff (``"rsum2"`` mode) when compressing.
+DEFAULT_SVD_CUTOFF = 1e-10
+
+
+class Linalg:
+    """
+    The array module and factorizations the kernels run on.
+
+    Subclasses provide :meth:`qr` and :meth:`svd`; the truncated splits are
+    built on them with the ``"rsum2"`` rule of :func:`n_kept`, so every backend
+    truncates exactly alike.
+    """
+
+    #: The array module (numpy, cupy, ...): creation, concatenation and
+    #: contraction functions are taken from it.
+    xp = np
+
+    def asarray(self, array):
+        """``array`` on this backend."""
+        return self.xp.asarray(array)
+
+    def to_numpy(self, array) -> np.ndarray:
+        """A host (numpy) copy of a backend array."""
+        return np.asarray(array)
+
+    def qr(self, matrix):
+        """Thin QR ``matrix = q @ r``, ``q`` with orthonormal columns."""
+        raise NotImplementedError
+
+    def svd(self, matrix):
+        """Thin SVD ``(u, s, vh)``, singular values descending."""
+        raise NotImplementedError
+
+    def split_left_isometry(self, matrix, cutoff: float, max_bond: int | None):
+        """
+        Truncated ``matrix ~ iso @ rest`` with ``iso`` orthonormal columns: the
+        rank-``k`` SVD truncation ``U_k (S_k V_k^H)``, ``k`` from :func:`n_kept`.
+        Singular values within roundoff of zero are dropped even at
+        ``cutoff=0``, as :func:`_gram_rank` does on the NumPy path, so both
+        paths keep the same bonds.
+        """
+        u, s, vh = self.svd(matrix)
+        values = self.to_numpy(s)
+        k = min(n_kept(values, cutoff, max_bond), _numerical_rank(values))
+        return u[:, :k], s[:k, None] * vh[:k]
+
+    def split_right_isometry(self, matrix, cutoff: float, max_bond: int | None):
+        """Truncated ``matrix ~ rest @ iso`` with ``iso`` orthonormal rows."""
+        iso, rest = self.split_left_isometry(matrix.conj().T, cutoff, max_bond)
+        return rest.conj().T, iso.conj().T
+
+
+class NumpyLinalg(Linalg):
+    """
+    CPU factorizations: Cholesky QR and Gram-matrix truncation on BLAS, with
+    Householder QR and the SVD as fallbacks (:func:`_qr`,
+    :func:`_split_left_isometry`).
+    """
+
+    xp = np
+
+    def qr(self, matrix):
+        return _qr(matrix)
+
+    def svd(self, matrix):
+        return _svd(matrix)
+
+    def split_left_isometry(self, matrix, cutoff, max_bond):
+        return _split_left_isometry(matrix, cutoff, max_bond)
+
+    def split_right_isometry(self, matrix, cutoff, max_bond):
+        return _split_right_isometry(matrix, cutoff, max_bond)
+
+
+#: The default backend, every kernel's ``linalg`` unless given another.
+NUMPY = NumpyLinalg()
+
+
+def move_center(A, center: int, target: int, linalg: Linalg = NUMPY) -> int:
     """Shift the orthogonality center to ``target`` with QR steps; returns it."""
+    xp = linalg.xp
     while center < target:
         left, phys, right = A[center].shape
-        q, r = _qr(A[center].reshape(left * phys, right))
+        q, r = linalg.qr(A[center].reshape(left * phys, right))
         A[center] = q.reshape(left, phys, -1)
-        A[center + 1] = np.tensordot(r, A[center + 1], axes=(1, 0))
+        A[center + 1] = xp.tensordot(r, A[center + 1], axes=(1, 0))
         center += 1
     while center > target:
         left, phys, right = A[center].shape
         # M = R^T Q^T from the QR of M^T, so Q^T has orthonormal rows.
-        q, r = _qr(A[center].reshape(left, phys * right).T)
+        q, r = linalg.qr(A[center].reshape(left, phys * right).T)
         A[center] = q.T.reshape(-1, phys, right)
-        A[center - 1] = np.tensordot(A[center - 1], r.T, axes=(2, 0))
+        A[center - 1] = xp.tensordot(A[center - 1], r.T, axes=(2, 0))
         center -= 1
     return center
 
 
 def pauli_rotation(
-    A: list[np.ndarray],
+    A,
     center: int,
     generator: str,
     angle: float,
     max_bond: int | None,
     cutoff: float,
+    linalg: Linalg = NUMPY,
 ) -> int:
     """
     Apply ``exp(-i angle/2 generator)`` to the MPS in place.
@@ -272,10 +380,11 @@ def pauli_rotation(
         A,
         center,
         bounds(generator),
-        lambda j, tensor: apply_pauli(tensor, generator[j]),
+        lambda j, tensor: apply_pauli(tensor, generator[j], linalg.xp),
         angle,
         max_bond,
         cutoff,
+        linalg,
     )
 
 
@@ -286,12 +395,13 @@ _RIGHT_PAULI = {label: np.kron(np.eye(2), m.T) for label, m in PAULI_MATRICES.it
 
 
 def operator_conjugation(
-    A: list[np.ndarray],
+    A,
     center: int,
     generator: str,
     angle: float,
     max_bond: int | None,
     cutoff: float,
+    linalg: Linalg = NUMPY,
 ) -> int:
     """
     Replace the MPO ``O`` by ``R^dag O R``, ``R = exp(-i angle/2 generator)``,
@@ -310,30 +420,42 @@ def operator_conjugation(
     window = bounds(generator)
     if window is None:  # a global phase, which conjugation cancels
         return center
+    xp = linalg.xp
+    # In the operator's own precision, so complex64 sites stay complex64.
+    dtype = np.result_type(A[window[0]].dtype, np.complex64)
     for table, signed_angle in ((_RIGHT_PAULI, angle), (_LEFT_PAULI, -angle)):
+        matrices = {
+            label: linalg.asarray(table[label].astype(dtype))
+            for label in set(generator) - {"I"}
+        }
         center = _windowed_rotation(
             A,
             center,
             window,
-            lambda j, tensor, table=table: (
+            lambda j, tensor, matrices=matrices: (
                 tensor
                 if generator[j] == "I"
-                else np.einsum("pq,lqr->lpr", table[generator[j]], tensor)
+                else xp.einsum("pq,lqr->lpr", matrices[generator[j]], tensor)
             ),
             signed_angle,
             max_bond,
             cutoff,
+            linalg,
         )
     return center
 
 
-def _windowed_rotation(A, center, window, flip, angle, max_bond, cutoff) -> int:
+def _windowed_rotation(
+    A, center, window, flip, angle, max_bond, cutoff, linalg: Linalg = NUMPY
+) -> int:
     """
     Apply ``cos(angle/2) - i sin(angle/2) F`` in place, ``F`` a product of
     local involutions on the sites of ``window`` (``(a, b)``, or ``None`` for
     no site), ``flip(j, tensor)`` applying the one on site ``j``.
     """
-    cos, sin = np.cos(angle / 2), np.sin(angle / 2)
+    xp = linalg.xp
+    # Python floats: a numpy float64 scalar would promote complex64 sites.
+    cos, sin = float(np.cos(angle / 2)), float(np.sin(angle / 2))
 
     if window is None:  # a global phase
         A[center] = A[center] * (cos - 1j * sin)
@@ -347,74 +469,72 @@ def _windowed_rotation(A, center, window, flip, angle, max_bond, cutoff) -> int:
 
     # Enter the window from whichever end the center is closer to.
     from_left = abs(center - a) <= abs(center - b)
-    center = move_center(A, center, a if from_left else b)
+    center = move_center(A, center, a if from_left else b, linalg)
 
     for j in range(a, b + 1):
         tensor = A[j]
         flipped = flip(j, tensor)
         if j == a:
-            A[j] = np.concatenate([tensor, flipped], axis=2)
+            A[j] = xp.concatenate([tensor, flipped], axis=2)
         elif j == b:
-            A[j] = np.concatenate([cos * tensor, (-1j * sin) * flipped], axis=0)
+            A[j] = xp.concatenate([cos * tensor, (-1j * sin) * flipped], axis=0)
         else:
             left, phys, right = tensor.shape
-            block = np.zeros(
-                (2 * left, phys, 2 * right), dtype=np.result_type(tensor, flipped)
-            )
+            dtype = np.result_type(tensor.dtype, flipped.dtype)
+            block = xp.zeros((2 * left, phys, 2 * right), dtype=dtype)
             block[:left, :, :right] = tensor
             block[left:, :, right:] = flipped
             A[j] = block
 
     if from_left:
         # QR the window into left-isometries, then truncate sweeping back.
-        move_center(A, a, b)
+        move_center(A, a, b, linalg)
         for j in range(b, a, -1):
             left, phys, right = A[j].shape
-            rest, iso = _split_right_isometry(
+            rest, iso = linalg.split_right_isometry(
                 A[j].reshape(left, phys * right), cutoff, max_bond
             )
             A[j] = iso.reshape(-1, phys, right)
-            A[j - 1] = np.tensordot(A[j - 1], rest, axes=(2, 0))
+            A[j - 1] = xp.tensordot(A[j - 1], rest, axes=(2, 0))
         return a
 
-    move_center(A, b, a)
+    move_center(A, b, a, linalg)
     for j in range(a, b):
         left, phys, right = A[j].shape
-        iso, rest = _split_left_isometry(
+        iso, rest = linalg.split_left_isometry(
             A[j].reshape(left * phys, right), cutoff, max_bond
         )
         A[j] = iso.reshape(left, phys, -1)
-        A[j + 1] = np.tensordot(rest, A[j + 1], axes=(1, 0))
+        A[j + 1] = xp.tensordot(rest, A[j + 1], axes=(1, 0))
     return b
 
 
-def pauli_expectation(A: list[np.ndarray], center: int, pauli: str) -> complex:
+def pauli_expectation(A, center: int, pauli: str, linalg: Linalg = NUMPY) -> complex:
     """
     Unnormalized ``<psi|P|psi>``, contracting only from the support's ends to
     the orthogonality center: the isometries outside contract to identities.
     """
+    xp = linalg.xp
     window = bounds(pauli)
     if window is None:
-        return np.vdot(A[center], A[center])
+        return complex(xp.vdot(A[center], A[center]))
 
     lo, hi = min(window[0], center), max(window[1], center)
     env = None
     for j in range(lo, hi + 1):
-        ket = apply_pauli(A[j], pauli[j])
+        ket = apply_pauli(A[j], pauli[j], xp)
         if env is not None:
-            ket = np.tensordot(env, ket, axes=(1, 0))
-        env = np.tensordot(A[j].conj(), ket, axes=([0, 1], [0, 1]))
-    return np.trace(env)
+            ket = xp.tensordot(env, ket, axes=(1, 0))
+        env = xp.tensordot(A[j].conj(), ket, axes=([0, 1], [0, 1]))
+    return complex(xp.trace(env))
 
 
-def squared_norm(A: list[np.ndarray], center: int) -> float:
+def squared_norm(A, center: int, linalg: Linalg = NUMPY) -> float:
     """``<psi|psi>``, which in mixed canonical form lives on the center alone."""
-    return float(np.vdot(A[center], A[center]).real)
+    return float(linalg.xp.vdot(A[center], A[center]).real)
 
 
-def pauli_transitions(
-    bra: list[np.ndarray], ket: list[np.ndarray], paulis: list[str]
-) -> np.ndarray:
+def pauli_transitions(bra, ket, paulis, linalg: Linalg = NUMPY) -> np.ndarray:
     """
     Unnormalized ``<bra|P|ket>`` for many Pauli strings between two MPS.
 
@@ -424,26 +544,50 @@ def pauli_transitions(
     gauge and only as far as the strings need, and each string then contracts
     only its own support between them.
     """
+    xp = linalg.xp
+    if len(bra) != len(ket):
+        raise ValueError(f"The bra has {len(bra)} sites, the ket {len(ket)}.")
     n = len(ket)
     windows = [bounds(pauli) or (0, 0) for pauli in paulis]
-    left = [np.ones((1, 1))]  # left[j]: sites before j, as (bra, ket) bonds
+    one = xp.ones((1, 1), dtype=ket[0].dtype)
+    left = [one]  # left[j]: sites before j, as (bra, ket) bonds
     for j in range(max((a for a, _ in windows), default=0)):
-        left.append(_transfer_right(left[-1], bra[j], ket[j]))
-    right = {n: np.ones((1, 1))}  # right[j]: sites from j on
+        left.append(_transfer_right(left[-1], bra[j], ket[j], xp))
+    right = {n: one}  # right[j]: sites from j on
     for j in range(n - 1, min((b for _, b in windows), default=n - 1), -1):
-        ket_j = np.tensordot(ket[j], right[j + 1], axes=(2, 1))  # (ket_l, phys, bra_r)
-        right[j] = np.tensordot(bra[j].conj(), ket_j, axes=([1, 2], [1, 2]))
+        ket_j = xp.tensordot(ket[j], right[j + 1], axes=(2, 1))  # (ket_l, phys, bra_r)
+        right[j] = xp.tensordot(bra[j].conj(), ket_j, axes=([1, 2], [1, 2]))
 
     values = np.empty(len(paulis), dtype=complex)
     for k, (pauli, (a, b)) in enumerate(zip(paulis, windows)):
         env = left[a]
         for j in range(a, b + 1):
-            env = _transfer_right(env, bra[j], apply_pauli(ket[j], pauli[j]))
-        values[k] = np.sum(env * right[b + 1])
+            env = _transfer_right(env, bra[j], apply_pauli(ket[j], pauli[j], xp), xp)
+        values[k] = complex(xp.sum(env * right[b + 1]))
     return values
 
 
-def _transfer_right(env: np.ndarray, bra: np.ndarray, ket: np.ndarray) -> np.ndarray:
+def _transfer_right(env, bra, ket, xp=np):
     """Extend a ``(bra, ket)`` left environment over one more site."""
-    ket = np.tensordot(env, ket, axes=(1, 0))  # (bra_l, phys, ket_r)
-    return np.tensordot(bra.conj(), ket, axes=([0, 1], [0, 1]))
+    ket = xp.tensordot(env, ket, axes=(1, 0))  # (bra_l, phys, ket_r)
+    return xp.tensordot(bra.conj(), ket, axes=([0, 1], [0, 1]))
+
+
+def operator_expectation(A, W, linalg: Linalg = NUMPY) -> complex:
+    """
+    Unnormalized ``<psi|O|psi>`` for an MPO given as ``(left, 4, right)`` site
+    tensors, the middle index ``2 * out + in``, by a full left-to-right sweep.
+    """
+    xp = linalg.xp
+    if len(A) != len(W):
+        raise ValueError(
+            f"The operator acts on {len(W)} sites, the state has {len(A)}."
+        )
+    env = xp.ones((1, 1, 1), dtype=A[0].dtype)  # (bra, operator, ket) bonds
+    for a_j, w_j in zip(A, W):
+        w_j = w_j.reshape(w_j.shape[0], 2, 2, w_j.shape[-1])  # (o, out, in, q)
+        t = xp.tensordot(env, a_j, axes=(2, 0))  # (a, o, in, d)
+        t = xp.tensordot(t, w_j, axes=([1, 2], [0, 2]))  # (a, d, out, q)
+        t = xp.tensordot(a_j.conj(), t, axes=([0, 1], [0, 2]))  # (b, d, q)
+        env = t.transpose(0, 2, 1)
+    return complex(env[0, 0, 0])

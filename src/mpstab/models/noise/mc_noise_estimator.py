@@ -37,10 +37,13 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
 import numpy as np
-import stim
 
 from mpstab.hamiltonians import Observable, pauli_terms
 from mpstab.models.noise.compile import CompiledNoise
+from mpstab.pauli import multiply_codes, pauli_codes, pauli_labels
+
+#: ``i**k`` for ``k = 0, 1, 2, 3``.
+_POWERS_OF_I = np.array([1, 1j, -1, -1j])
 
 
 @dataclass
@@ -104,7 +107,10 @@ def noisy_expectation(
             identical for any value; each extra process costs a start-up of
             about a second, so it pays off only when there are many patterns or
             the MPS is large. Transition amplitudes are evaluated in this
-            process.
+            process. Workers start the way the tensor-network engine asks
+            (:attr:`~mpstab.engines.TensorNetworkEngine.process_start_method`):
+            ``"spawn"`` for a GPU engine, which needs the calling script's
+            ``if __name__ == "__main__":`` guard.
 
     Returns:
         The :class:`NoisyExpectation`.
@@ -410,7 +416,8 @@ def _pattern_values(compiled, patterns, dressed, n_workers: int = 1):
         values, fidelities = _evaluate_patterns(*args, unique)
     else:
         blocks = np.array_split(unique, n_workers)
-        with ProcessPoolExecutor(max_workers=n_workers) as pool:
+        context = hsmpo.tn_engine.worker_context()
+        with ProcessPoolExecutor(max_workers=n_workers, mp_context=context) as pool:
             results = list(
                 pool.map(_evaluate_patterns, *zip(*[(*args, b) for b in blocks]))
             )
@@ -531,8 +538,8 @@ def _transition_values(compiled, jobs, dressed, coefficients, constant):
     hsmpo = compiled.hsmpo
     engine = hsmpo.tn_engine
     n = compiled.nqubits
-    observables = [stim.PauliString(pauli) * int(sign) for pauli, sign in dressed]
-    observables.append(stim.PauliString(n))
+    observable_codes = pauli_codes([pauli for pauli, _ in dressed] + ["I" * n])
+    observable_signs = np.array([sign for _, sign in dressed] + [1], dtype=float)
     weights = np.append(coefficients, constant).astype(complex)
 
     args = (
@@ -555,21 +562,31 @@ def _transition_values(compiled, jobs, dressed, coefficients, constant):
         ket_state = ket_chain.state(ket_pattern)
         bra_state = bra_chain.follow(bra_pattern, ket_chain)
 
-        a, b = stim.PauliString(n), stim.PauliString(n)
-        for pauli in ket_paulis:
-            a = stim.PauliString(pauli) * a
-        for pauli in bra_paulis:
-            b = stim.PauliString(pauli) * b
-        b_dagger = b.copy()
-        b_dagger.sign = complex(b.sign).conjugate()
-
-        labels, phases = [], []
-        for observable in observables:
-            product = b_dagger * observable * a
-            labels.append(str(product).lstrip("+-i").replace("_", "I"))
-            phases.append(product.sign)
+        # a = K_k ... K_1 and b = B_k ... B_1, then b^dag O a for every O.
+        a, a_phase = _ordered_product(ket_paulis, n)
+        b, b_phase = _ordered_product(bra_paulis, n)
+        inner, inner_phase = multiply_codes(observable_codes, a)
+        outer, outer_phase = multiply_codes(b, inner)
+        phases = (
+            observable_signs
+            * _POWERS_OF_I[(a_phase - b_phase + inner_phase + outer_phase) % 4]
+        )
+        labels = pauli_labels(outer)
         amplitudes = np.asarray(
             engine.pauli_transitions(bra_state, ket_state, labels), dtype=complex
         )
-        values[k] = np.sum(weights * np.array(phases) * amplitudes)
+        values[k] = np.sum(weights * phases * amplitudes)
     return values
+
+
+def _ordered_product(paulis, n: int):
+    """
+    ``P_k ... P_2 P_1`` of the Paulis in the order given, each new one on the
+    left, as ``(codes, phase)`` with the phase a power of ``i``. The adjoint
+    of the product has the same codes and the opposite phase.
+    """
+    codes, phase = np.zeros(n, dtype=np.int8), 0
+    for pauli in paulis:
+        codes, step = multiply_codes(pauli_codes(pauli), codes)
+        phase += int(step)
+    return codes, phase % 4

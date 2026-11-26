@@ -8,7 +8,26 @@ import stim
 from qibo import Circuit
 
 from mpstab.engines.stabilizers.abstract import StabilizersEngine
-from mpstab.pauli import conjugate
+
+
+def from_stim(pauli: stim.PauliString) -> tuple[str, int]:
+    """Split a ``stim.PauliString`` into an unsigned label and its ``+/-1`` sign."""
+    text = str(pauli)
+    sign = -1 if text.startswith("-") else 1
+    return text.lstrip("+-").replace("_", "I"), sign
+
+
+def conjugate(pauli: str, tableau: stim.Tableau) -> tuple[str, int]:
+    """
+    Conjugate a Pauli string by a Clifford tableau, ``U P U^dag``, padding it
+    with identities to the tableau's width.
+
+    Returns:
+        ``(pauli, sign)`` for the conjugated operator.
+    """
+    padded = pauli.ljust(len(tableau), "I")
+    return from_stim(tableau(stim.PauliString(padded)))
+
 
 #: Clifford qibo gates that map one-to-one onto a stim instruction.
 _DIRECT_GATES = {

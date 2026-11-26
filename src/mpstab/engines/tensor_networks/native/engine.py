@@ -17,10 +17,14 @@ class NativeTensorNetworkEngine(TensorNetworkEngine):
 
     A pure-Python example of the :class:`TensorNetworkEngine` interface, written
     to be read rather than to be fast: use
-    :class:`~mpstab.engines.QuimbEngine` for real workloads. Supports state-side evolution and expectation values. Operator-side
+    :class:`~mpstab.engines.QuimbEngine` for real workloads.
+
+    Its states are in Vidal form, not the mixed canonical site arrays the
+    shared algorithms of :class:`TensorNetworkEngine` run on, so it provides no
+    site view and overrides the state-side algorithms with its own. Operator
     conjugation, and so the whole head/tail split of
-    :class:`~mpstab.evolutors.hqsmpo.HQSMPO`, needs
-    :class:`~mpstab.engines.QuimbEngine`.
+    :class:`~mpstab.evolutors.hqsmpo.HQSMPO`, and transition amplitudes need an
+    engine with a site view, such as :class:`~mpstab.engines.QuimbEngine`.
     """
 
     def build_circuit_mps(

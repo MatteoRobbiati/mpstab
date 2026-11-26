@@ -5,10 +5,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
-import stim
-
-from mpstab.qpu.synthesis.utils import CLIFFORD_TABLEAUS
-
 
 class HeadSynthesis(ABC):
     """
@@ -38,9 +34,11 @@ class HeadSynthesis(ABC):
                 sizes the residual of an empty head.
 
         Returns:
-            ``(head, residual_tableau, residual_gates)``: the head as a gate
-            list in the format of :mod:`~mpstab.qpu.synthesis.utils`, and the
-            Clifford residual both as a ``stim.Tableau`` and as a gate list.
+            ``(head, residual_gates)``: the head and the Clifford residual, as
+            gate lists in the format of :mod:`~mpstab.qpu.synthesis.utils`.
+            :func:`~mpstab.qpu.synthesis.utils.head_to_qibo_circuit` turns
+            either into a qibo circuit; the residual's circuit is what a
+            stabilizers engine conjugates observables through.
         """
         paulis, angles = list(paulis), list(angles)
         if nqubits is None:
@@ -48,10 +46,7 @@ class HeadSynthesis(ABC):
         head, residual = (
             self._synthesize(paulis, angles, nqubits) if paulis else ([], [])
         )
-        residual_tableau = stim.Tableau(nqubits)
-        for name, qubits in residual:
-            residual_tableau.append(CLIFFORD_TABLEAUS[name], qubits)
-        return head, residual_tableau, list(residual)
+        return head, list(residual)
 
     @abstractmethod
     def _synthesize(self, paulis: list[str], angles: list[float], nqubits: int):

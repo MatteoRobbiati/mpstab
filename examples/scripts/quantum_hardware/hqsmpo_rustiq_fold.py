@@ -16,7 +16,6 @@ the cost of that saving (see ``resynthesize_head``'s docstring).
 """
 
 import numpy as np
-import stim
 
 from mpstab import HQSMPO
 from mpstab.models.ansatze import HardwareEfficient
@@ -69,7 +68,7 @@ print(
 print(f"\n{'cut':>5} | {'head total':>10} {'head 2Q':>8} {'tail trivial':>12}")
 for cut in sorted({0, n_dressed // 2, n_dressed}):
     r = hs.resynthesize_head(cut)
-    trivial = r.residual_tableau == stim.Tableau(hs.nqubits)
+    trivial = hs.stab_engine.is_identity(r.residual_circuit)
     print(f"{cut:>5} | {r.n_gates:>10} {r.n_two_qubit_gates:>8} {str(trivial):>12}")
 
 print(

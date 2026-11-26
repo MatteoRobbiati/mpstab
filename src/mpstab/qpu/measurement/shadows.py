@@ -23,7 +23,6 @@ from dataclasses import dataclass
 from typing import ClassVar
 
 import numpy as np
-import stim
 
 from mpstab.qpu.measurement.abstract import (
     ExpectationResult,
@@ -282,10 +281,10 @@ class ClassicalShadows(MeasurementMethod):
         no reference fold and no head state are built.
         """
         nqubits = model.nqubits
-        trivial_residual = resynthesis.residual_tableau == stim.Tableau(nqubits)
+        trivial_residual = model.stab_engine.is_identity(resynthesis.residual_circuit)
         residual = None
         if self.tail_handling == "fold" and not trivial_residual:
-            residual = resynthesis.residual_tableau
+            residual = resynthesis.residual_circuit
 
         mpo_terms = []
         truncation_l2 = 0.0

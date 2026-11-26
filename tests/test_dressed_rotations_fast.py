@@ -1,7 +1,7 @@
 """
 Correctness and speed of the single-pass dressed-rotation extraction
-(`HSMPO._dressed_rotations`), and of the rotation conjugation it relies on
-(`HSMPO._conjugate_rotation`).
+(`HSMPO._dressed_rotations`), and the Clifford comparisons every
+stabilizers engine provides (`StabilizersEngine.is_identity`).
 
 `_dressed_rotations` simulates the Clifford circuit once into a running
 stim.TableauSimulator: O(nmagic + len(clifford_circuit)). The straightforward
@@ -14,14 +14,11 @@ import time
 
 import numpy as np
 import pytest
-import stim
-from utils import rotation_unitary
+from qibo import Circuit, gates
 
 from mpstab.evolutors.hqsmpo import HQSMPO
-from mpstab.evolutors.hsmpo import HSMPO
 from mpstab.evolutors.utils import gate_angle, gate_generator
 from mpstab.models.ansatze import QAE, QFT, QPE
-from mpstab.pauli import PAULI_LABELS, validate_pauli_string
 
 
 def _reference_dressed_rotations(hs):
@@ -87,28 +84,29 @@ def test_dressed_rotations_is_faster_than_reference():
     )
 
 
-@pytest.mark.parametrize("seed", range(5))
-def test_conjugate_rotation_matches_dense_random_clifford(seed):
-    tableau = stim.Tableau.random(3)
-    unitary = tableau.to_unitary_matrix(endian="big")
-    rng = np.random.default_rng(seed)
-    generator = "".join(rng.choice(list(PAULI_LABELS[1:]), size=3))
-    angle = float(rng.uniform(-np.pi, np.pi))
-
-    conjugated, conjugated_angle = HSMPO._conjugate_rotation(
-        (generator, angle), tableau
-    )
-
-    validate_pauli_string(conjugated, 3)
-    assert abs(conjugated_angle) == pytest.approx(abs(angle))
-    np.testing.assert_allclose(
-        rotation_unitary(conjugated, conjugated_angle),
-        unitary @ rotation_unitary(generator, angle) @ unitary.conj().T,
-        atol=1e-12,
-    )
+def _random_clifford_circuit(nqubits, n_gates, rng):
+    single = [gates.H, gates.S, gates.SDG, gates.SX, gates.SXDG, gates.X, gates.Z]
+    circuit = Circuit(nqubits)
+    for _ in range(n_gates):
+        if rng.random() < 0.4:
+            control, target = rng.choice(nqubits, size=2, replace=False)
+            circuit.add(gates.CNOT(int(control), int(target)))
+        else:
+            circuit.add(single[rng.integers(len(single))](int(rng.integers(nqubits))))
+    return circuit
 
 
-def test_conjugate_rotation_moves_sign_into_angle():
-    # H Y H^dag = -Y, so exp(-i a/2 Y) becomes exp(+i a/2 Y).
-    tableau = stim.Tableau.from_named_gate("H")
-    assert HSMPO._conjugate_rotation(("Y", 0.3), tableau) == ("Y", -0.3)
+def test_identity_and_images(stab_engine):
+    circuit = Circuit(2)
+    assert stab_engine.is_identity(circuit)
+    circuit.add(gates.CNOT(0, 1))
+    assert not stab_engine.is_identity(circuit)
+    circuit.add(gates.CNOT(0, 1))
+    assert stab_engine.is_identity(circuit)
+
+
+@pytest.mark.parametrize("seed", range(3))
+def test_random_clifford_times_its_inverse_is_identity(seed, stab_engine):
+    circuit = _random_clifford_circuit(3, 15, np.random.default_rng(seed))
+    assert not stab_engine.is_identity(circuit)
+    assert stab_engine.is_identity(circuit + circuit.invert())

@@ -95,11 +95,21 @@ def safe_qr(a, mode="reduced", **kwargs):
     differentiating through this wants ``jax.enable_x64``. Inputs that are not
     degenerate, which is almost all of them, are untouched.
 
-    Only reduced decompositions of 2d tall or square matrices are handled here;
-    anything else is delegated to jax.
+    A wide matrix ``A = [A1 | A2]``, ``A1`` square, is factorized as
+    ``A1 = Q R1`` and ``R = [R1 | Q^H A2]``: jax has no derivative rule for the
+    QR of a wide matrix, which quimb's compressions ask for, while this one
+    only needs the square QR's. ``Q`` is square and unitary, so ``Q R = A``
+    exactly.
+
+    Only reduced decompositions of 2d matrices are handled here; anything else
+    is delegated to jax.
     """
-    if mode != "reduced" or kwargs or a.ndim != 2 or a.shape[0] < a.shape[1]:
+    if mode != "reduced" or kwargs or a.ndim != 2:
         return jnp.linalg.qr(a, mode=mode, **kwargs)
+    rows, columns = a.shape
+    if rows < columns:
+        q, r_square = safe_qr(a[:, :rows])
+        return q, jnp.concatenate([r_square, _hermitian(q) @ a[:, rows:]], axis=1)
 
     finfo = jnp.finfo(a.dtype)
     nudge = jnp.sqrt(finfo.eps)
