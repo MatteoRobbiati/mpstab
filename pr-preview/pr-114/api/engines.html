@@ -1,0 +1,1395 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="QPU" href="qpu.html"><link rel="prev" title="Evolutors" href="evolutors.html">
+        <link rel="prefetch" href="../_static/logo/mpstab_logo_light.svg" as="image">
+        <link rel="prefetch" href="../_static/logo/mpstab_logo_dark.svg" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Engines - Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=7d1046be" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/katex-math.css?v=05624691" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  --color-brand-primary: #2f63c4;
+  --color-brand-content: #2f63c4;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  --color-brand-primary: #a7c7ff;
+  --color-brand-content: #a7c7ff;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  --color-brand-primary: #a7c7ff;
+  --color-brand-content: #a7c7ff;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">Documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/logo/mpstab_logo_light.svg" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/logo/mpstab_logo_dark.svg" alt="Dark Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">Documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quick Start Guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../methods/theory_background.html">Theoretical Background, a snapshot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods/fidelity_and_approximation.html">Fidelity and Approximation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../methods/hqsmpo/index.html">Hybrid quantum-classical execution: HQSMPO</a><input aria-label="Toggle navigation of Hybrid quantum-classical execution: HQSMPO" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../methods/hqsmpo/clifford_extraction_synthesis.html">Head Synthesis by Clifford Extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../methods/hqsmpo/rustiq_resynthesis.html">Hardware Resynthesis with rustiq</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/qibo_backend_provider.html">MPSTAB as a Qibo Backend Provider</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/working_with_engines.html">Working with Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/using_ansatze.html">Using Ansätze</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/ansatze_catalogue.html">Ansatz Catalogue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/dmrg_optimization.html">DMRG Optimization of Quantum Hamiltonians</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/introduction.html">A quick introduction to mpstab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/noise.html">Pauli noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/advanced_noise.html">Non-unital noise simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/error_mitigation.html">Data-driven error mitigation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/ground_states.html">Ground states with DMRG</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/state_metrics.html">State metrics on an HSMPO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/vqe_gradients.html">Training a VQE with analytic gradients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/echo.html">Echo benchmark: mpstab vs Pauli propagation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/free_fermions.html">Free fermions: an exact check at 100 qubits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/frameworks.html">mpstab, qibojit and PauliPropagation.jl: who wins where</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="evolutors.html">Evolutors</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qpu.html">QPU</a></li>
+<li class="toctree-l1"><a class="reference internal" href="noise.html">Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="error_mitigation.html">Error Mitigation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pauli.html">Paulis &amp; Observables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qibo_tools.html">Qibo tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Models &amp; Methods</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">About</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../publications.html">Publications</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/MatteoRobbiati/mpstab">GitHub repository</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/MatteoRobbiati/mpstab/blob/main/docs/api/engines.rst?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/MatteoRobbiati/mpstab/edit/main/docs/api/engines.rst" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="engines">
+<h1>Engines<a class="headerlink" href="#engines" title="Link to this heading">¶</a></h1>
+<p>Engines are the computational backends that perform low-level state operations. Each kind has an abstract interface, so a custom engine can be swapped in.</p>
+<p><strong>Two Engine Types</strong>:</p>
+<ol class="arabic simple">
+<li><p><strong>Stabilizer Engines</strong>: Handle Clifford gates efficiently</p></li>
+<li><p><strong>Tensor Network Engines</strong>: Manage non-Clifford effects via MPO</p></li>
+</ol>
+<section id="module-mpstab.engines.stabilizers.stim">
+<span id="stabilizer-engine"></span><h2>Stabilizer Engine<a class="headerlink" href="#module-mpstab.engines.stabilizers.stim" title="Link to this heading">¶</a></h2>
+<p>Stabilizers engine backed by stim.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.stim.StimEngine">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.engines.stabilizers.stim.</span></span><span class="sig-name descname"><span class="pre">StimEngine</span></span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/stim.html#StimEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.stim.StimEngine" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StabilizersEngine</span></code></p>
+<p>Clifford backpropagation of Pauli observables, powered by stim.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.stim.StimEngine.backpropagate">
+<span class="sig-name descname"><span class="pre">backpropagate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clifford_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Circuit</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/stim.html#StimEngine.backpropagate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.stim.StimEngine.backpropagate" title="Link to this definition">¶</a></dt>
+<dd><p>Evolve <code class="docutils literal notranslate"><span class="pre">observable</span></code> back through <code class="docutils literal notranslate"><span class="pre">clifford_circuit</span></code> (Heisenberg picture).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">(pauli_string,</span> <span class="pre">sign)</span></code> for <code class="docutils literal notranslate"><span class="pre">U^dag</span> <span class="pre">.</span> <span class="pre">O</span> <span class="pre">.</span> <span class="pre">U</span></code>, with <code class="docutils literal notranslate"><span class="pre">U</span></code> the circuit.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.stim.StimEngine.backpropagate_at">
+<span class="sig-name descname"><span class="pre">backpropagate_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakpoints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clifford_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Circuit</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/stim.html#StimEngine.backpropagate_at"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.stim.StimEngine.backpropagate_at" title="Link to this definition">¶</a></dt>
+<dd><p>Backpropagate each observable through its own prefix of
+<code class="docutils literal notranslate"><span class="pre">clifford_circuit</span></code> with one stim tableau pass.</p>
+<p>The circuit is simulated once, a segment at a time in breakpoint order,
+and each observable is conjugated by the inverse tableau of its prefix,
+so the cost is one pass over the circuit plus one conjugation per
+observable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – on a breakpoint outside <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">len(clifford_circuit.queue)]</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.stim.StimEngine.backpropagate_many">
+<span class="sig-name descname"><span class="pre">backpropagate_many</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clifford_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Circuit</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/stim.html#StimEngine.backpropagate_many"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.stim.StimEngine.backpropagate_many" title="Link to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#mpstab.engines.stabilizers.stim.StimEngine.backpropagate" title="mpstab.engines.stabilizers.stim.StimEngine.backpropagate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">backpropagate()</span></code></a> every observable through the same circuit.</p>
+<p>The circuit’s <code class="docutils literal notranslate"><span class="pre">U^dag</span></code> tableau is built once and cached, so a whole
+Hamiltonian costs one stim simulation plus one tableau lookup per term,
+and repeated calls on an unchanged circuit skip the simulation too.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.stim.StimEngine.instructions">
+<span class="sig-name descname"><span class="pre">instructions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Circuit</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/stim.html#StimEngine.instructions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.stim.StimEngine.instructions" title="Link to this definition">¶</a></dt>
+<dd><p>One stim instruction line per gate of <code class="docutils literal notranslate"><span class="pre">circuit</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code> for gates
+that leave the Pauli frame untouched.</p>
+<p>stim parses a whole program from text far faster than it appends
+instructions one call at a time, so circuits are assembled as text.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – on a non-Clifford rotation angle, or a gate with no stim
+    equivalent. Unsupported gates fail loudly rather than being
+    dropped, which would silently give a wrong Pauli frame.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.stim.circuit_instructions">
+<span class="sig-prename descclassname"><span class="pre">mpstab.engines.stabilizers.stim.</span></span><span class="sig-name descname"><span class="pre">circuit_instructions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Circuit</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/stim.html#circuit_instructions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.stim.circuit_instructions" title="Link to this definition">¶</a></dt>
+<dd><p>One stim instruction line per gate of <code class="docutils literal notranslate"><span class="pre">circuit</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code> for no-ops.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.stim.conjugate">
+<span class="sig-prename descclassname"><span class="pre">mpstab.engines.stabilizers.stim.</span></span><span class="sig-name descname"><span class="pre">conjugate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pauli</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tableau</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tableau</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/stim.html#conjugate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.stim.conjugate" title="Link to this definition">¶</a></dt>
+<dd><p>Conjugate a Pauli string by a Clifford tableau, <code class="docutils literal notranslate"><span class="pre">U</span> <span class="pre">P</span> <span class="pre">U^dag</span></code>, padding it
+with identities to the tableau’s width.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">(pauli,</span> <span class="pre">sign)</span></code> for the conjugated operator.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.stim.from_stim">
+<span class="sig-prename descclassname"><span class="pre">mpstab.engines.stabilizers.stim.</span></span><span class="sig-name descname"><span class="pre">from_stim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pauli</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PauliString</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/stim.html#from_stim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.stim.from_stim" title="Link to this definition">¶</a></dt>
+<dd><p>Split a <code class="docutils literal notranslate"><span class="pre">stim.PauliString</span></code> into an unsigned label and its <code class="docutils literal notranslate"><span class="pre">+/-1</span></code> sign.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.stim.gate_instruction">
+<span class="sig-prename descclassname"><span class="pre">mpstab.engines.stabilizers.stim.</span></span><span class="sig-name descname"><span class="pre">gate_instruction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/stim.html#gate_instruction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.stim.gate_instruction" title="Link to this definition">¶</a></dt>
+<dd><p>The stim instruction line for one Clifford qibo gate, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if it is
+a no-op on the Pauli frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – on a non-Clifford rotation angle, or a gate with no stim
+    equivalent.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p><strong>Stim Engine</strong>: Clifford backpropagation of Pauli observables with the C++
+<a class="reference external" href="https://github.com/quantumlib/Stim">Stim</a> simulator.</p>
+</section>
+<section id="module-mpstab.engines.tensor_networks.quimb">
+<span id="tensor-network-engine"></span><h2>Tensor Network Engine<a class="headerlink" href="#module-mpstab.engines.tensor_networks.quimb" title="Link to this heading">¶</a></h2>
+<p>Tensor-network engine backed by quimb.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.GATE_MAP">
+<span class="sig-prename descclassname"><span class="pre">mpstab.engines.tensor_networks.quimb.</span></span><span class="sig-name descname"><span class="pre">GATE_MAP</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'ccx':</span> <span class="pre">'CCX',</span> <span class="pre">'ccy':</span> <span class="pre">'CCY',</span> <span class="pre">'ccz':</span> <span class="pre">'CCZ',</span> <span class="pre">'cnot':</span> <span class="pre">'CNOT',</span> <span class="pre">'cswap':</span> <span class="pre">'CSWAP',</span> <span class="pre">'cx':</span> <span class="pre">'CX',</span> <span class="pre">'cy':</span> <span class="pre">'CY',</span> <span class="pre">'cz':</span> <span class="pre">'CZ',</span> <span class="pre">'fredkin':</span> <span class="pre">'FREDKIN',</span> <span class="pre">'fsim':</span> <span class="pre">'fsim',</span> <span class="pre">'h':</span> <span class="pre">'H',</span> <span class="pre">'iswap':</span> <span class="pre">'ISWAP',</span> <span class="pre">'measure':</span> <span class="pre">'measure',</span> <span class="pre">'rx':</span> <span class="pre">'RX',</span> <span class="pre">'rxx':</span> <span class="pre">'RXX',</span> <span class="pre">'ry':</span> <span class="pre">'RY',</span> <span class="pre">'ryy':</span> <span class="pre">'RYY',</span> <span class="pre">'rz':</span> <span class="pre">'RZ',</span> <span class="pre">'rzz':</span> <span class="pre">'RZZ',</span> <span class="pre">'s':</span> <span class="pre">'S',</span> <span class="pre">'swap':</span> <span class="pre">'SWAP',</span> <span class="pre">'t':</span> <span class="pre">'T',</span> <span class="pre">'toffoli':</span> <span class="pre">'TOFFOLI',</span> <span class="pre">'u3':</span> <span class="pre">'U3',</span> <span class="pre">'x':</span> <span class="pre">'X',</span> <span class="pre">'y':</span> <span class="pre">'Y',</span> <span class="pre">'z':</span> <span class="pre">'Z'}</span></span><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.GATE_MAP" title="Link to this definition">¶</a></dt>
+<dd><p>qibo gate names mapped to their quimb equivalents.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.engines.tensor_networks.quimb.</span></span><span class="sig-name descname"><span class="pre">QuimbEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">backend</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'numpy'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">svd_cutoff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code></p>
+<p>MPS evolution and MPO expectation values via quimb.</p>
+<p>States are quimb <code class="docutils literal notranslate"><span class="pre">MatrixProductState</span></code> objects and operators quimb
+<code class="docutils literal notranslate"><span class="pre">MatrixProductOperator</span></code> objects, so the MPS also feeds quimb’s DMRG.</p>
+<p>On the numpy backend the engine only supplies the representation hooks
+(<a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.state_sites" title="mpstab.engines.tensor_networks.quimb.QuimbEngine.state_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">state_sites()</span></code></a>, <a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_sites" title="mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">operator_sites()</span></code></a>, <a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_from_sites" title="mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_from_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">operator_from_sites()</span></code></a>)
+and every algorithm is the shared one of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code>. The jax and torch backends,
+which may need to differentiate through the state, run quimb’s own
+contractions and compressions instead.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_pauli_sum">
+<span class="sig-name descname"><span class="pre">apply_pauli_sum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paulis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coefficients</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_dimension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">MatrixProductState</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.apply_pauli_sum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_pauli_sum" title="Link to this definition">¶</a></dt>
+<dd><p>A new state <code class="docutils literal notranslate"><span class="pre">sum_t</span> <span class="pre">c_t</span> <span class="pre">P_t</span> <span class="pre">|state&gt;</span></code>.</p>
+<p>The terms are stacked into block-diagonal MPOs of
+<code class="xref py py-data docutils literal notranslate"><span class="pre">_PAULI_SUM_CHUNK</span></code> terms each, compressed exactly and summed (a
+sum of local strings keeps a small bond), and the result is applied to
+the state and compressed to <code class="docutils literal notranslate"><span class="pre">max_bond_dimension</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_rotation">
+<span class="sig-name descname"><span class="pre">apply_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_dimension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.apply_rotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_rotation" title="Link to this definition">¶</a></dt>
+<dd><p>Apply a <a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.rotation_operator" title="mpstab.engines.tensor_networks.quimb.QuimbEngine.rotation_operator"><code class="xref py py-meth docutils literal notranslate"><span class="pre">rotation_operator()</span></code></a> result to the state in place.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.bond_dimension">
+<span class="sig-name descname"><span class="pre">bond_dimension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.bond_dimension"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.bond_dimension" title="Link to this definition">¶</a></dt>
+<dd><p>The largest bond dimension of the MPS.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.build_circuit_mps">
+<span class="sig-name descname"><span class="pre">build_circuit_mps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_dimension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.build_circuit_mps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.build_circuit_mps" title="Link to this definition">¶</a></dt>
+<dd><p>Build the MPS by running <code class="docutils literal notranslate"><span class="pre">initial_state_circuit</span></code> through quimb.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.circuit_truncation_fidelity">
+<span class="sig-name descname"><span class="pre">circuit_truncation_fidelity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">circuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_dimension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.circuit_truncation_fidelity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.circuit_truncation_fidelity" title="Link to this definition">¶</a></dt>
+<dd><p>quimb’s <code class="docutils literal notranslate"><span class="pre">CircuitMPS.fidelity_estimate</span></code> after running <code class="docutils literal notranslate"><span class="pre">circuit</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.conjugate_operator">
+<span class="sig-name descname"><span class="pre">conjugate_operator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductOperator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_dimension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.conjugate_operator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.conjugate_operator" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">R^dag</span> <span class="pre">.</span> <span class="pre">operator</span> <span class="pre">.</span> <span class="pre">R</span></code> for <code class="docutils literal notranslate"><span class="pre">R</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">angle/2</span> <span class="pre">generator)</span></code>: the
+shared windowed kernel on the numpy backend, two compressed quimb
+MPO-MPO products otherwise (<code class="docutils literal notranslate"><span class="pre">R(angle)^dag</span> <span class="pre">==</span> <span class="pre">R(-angle)</span></code>).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.copy_state">
+<span class="sig-name descname"><span class="pre">copy_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.copy_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.copy_state" title="Link to this definition">¶</a></dt>
+<dd><p>An independent copy of the state.</p>
+<p>On the numpy backend the copy has its own tensors but shares their
+arrays: the shared kernels, like quimb’s own operations, replace a
+tensor’s array rather than write into it, so neither state can change
+the other. The cached canonical form is carried over, so the copy
+needs no re-canonicalization. Other backends get a deep copy.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.expval">
+<span class="sig-name descname"><span class="pre">expval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductOperator</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.expval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.expval" title="Link to this definition">¶</a></dt>
+<dd><p>Expectation value of <code class="docutils literal notranslate"><span class="pre">operator</span></code> on <code class="docutils literal notranslate"><span class="pre">state_circuit</span></code>, normalised.</p>
+<p>On the numpy backend this is the shared algorithm. Otherwise the whole
+<code class="docutils literal notranslate"><span class="pre">&lt;psi|O|psi&gt;</span></code> network is contracted by quimb: the operator MPO has
+upper (output) index <code class="docutils literal notranslate"><span class="pre">k{i}</span></code> and lower (input) index <code class="docutils literal notranslate"><span class="pre">b{i}</span></code>, so the
+ket is reindexed <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">-&gt;</span> <span class="pre">b</span></code> while the conjugated bra keeps <code class="docutils literal notranslate"><span class="pre">k{i}</span></code> to
+meet the output. Reindexing the bra instead would evaluate
+<code class="docutils literal notranslate"><span class="pre">&lt;psi|O^T|psi&gt;</span></code>, which differs for any operator with an odd number
+of Y’s.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.has_operator_sites">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">has_operator_sites</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.has_operator_sites" title="Link to this definition">¶</a></dt>
+<dd><p>jax and torch run quimb’s own, differentiable path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Only on numpy</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.has_site_view">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">has_site_view</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.has_site_view" title="Link to this definition">¶</a></dt>
+<dd><p>jax and torch run quimb’s own, differentiable path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Only on numpy</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.minimize_energy">
+<span class="sig-name descname"><span class="pre">minimize_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductOperator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond_dims</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_sweeps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbosity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.minimize_energy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.minimize_energy" title="Link to this definition">¶</a></dt>
+<dd><p>Two-site DMRG with quimb’s <code class="docutils literal notranslate"><span class="pre">DMRG2</span></code>, on a copy of <code class="docutils literal notranslate"><span class="pre">initial_state</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_from_sites">
+<span class="sig-name descname"><span class="pre">operator_from_sites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">like</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductOperator</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.operator_from_sites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_from_sites" title="Link to this definition">¶</a></dt>
+<dd><p>A quimb MPO from site arrays, with <code class="docutils literal notranslate"><span class="pre">like</span></code>’s index names and tags.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_site_arrays">
+<span class="sig-name descname"><span class="pre">operator_site_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductOperator</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.operator_site_arrays"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_site_arrays" title="Link to this definition">¶</a></dt>
+<dd><p>The MPO’s site tensors as numpy arrays ordered <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">right,</span> <span class="pre">k,</span> <span class="pre">b)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">k</span></code> the upper (output) and <code class="docutils literal notranslate"><span class="pre">b</span></code> the lower (input) index.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_sites">
+<span class="sig-name descname"><span class="pre">operator_sites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductOperator</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.operator_sites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_sites" title="Link to this definition">¶</a></dt>
+<dd><p>The MPO as <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">4,</span> <span class="pre">right)</span></code> arrays, middle index <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">out</span> <span class="pre">+</span> <span class="pre">in</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_expvals">
+<span class="sig-name descname"><span class="pre">pauli_expvals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paulis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.pauli_expvals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_expvals" title="Link to this definition">¶</a></dt>
+<dd><p>Normalised expectation values of many Pauli strings on one state: a
+real array on the numpy backend, a list of backend scalars otherwise,
+so jax and torch values stay traced for autodiff.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_mpo">
+<span class="sig-name descname"><span class="pre">pauli_mpo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pauli_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.pauli_mpo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_mpo" title="Link to this definition">¶</a></dt>
+<dd><p>Build the MPO for a Pauli string.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_rot">
+<span class="sig-name descname"><span class="pre">pauli_rot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_dimension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.pauli_rot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_rot" title="Link to this definition">¶</a></dt>
+<dd><p>Apply <code class="docutils literal notranslate"><span class="pre">exp(-i</span> <span class="pre">angle/2</span> <span class="pre">generator)</span></code> to the state in place, then
+compress: the shared windowed kernel on the numpy backend, quimb’s
+<code class="docutils literal notranslate"><span class="pre">gate_with_mpo</span></code> (which recompresses the whole chain, with the same
+truncation rule) otherwise.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_string_of">
+<span class="sig-name descname"><span class="pre">pauli_string_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductOperator</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.pauli_string_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_string_of" title="Link to this definition">¶</a></dt>
+<dd><p>The string a <a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_mpo" title="mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_mpo"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pauli_mpo()</span></code></a> result stands for; <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_sum_mpo">
+<span class="sig-name descname"><span class="pre">pauli_sum_mpo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">terms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">MatrixProductOperator</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.pauli_sum_mpo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_sum_mpo" title="Link to this definition">¶</a></dt>
+<dd><p>The MPO of <code class="docutils literal notranslate"><span class="pre">sum_P</span> <span class="pre">c_P</span> <span class="pre">P</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – if <code class="docutils literal notranslate"><span class="pre">terms</span></code> is empty.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions">
+<span class="sig-name descname"><span class="pre">pauli_transitions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bra_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ket_state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paulis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.pauli_transitions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions" title="Link to this definition">¶</a></dt>
+<dd><p>Transition amplitudes <code class="docutils literal notranslate"><span class="pre">&lt;bra|P|ket&gt;</span></code>, with <code class="docutils literal notranslate"><span class="pre">normalize</span></code> divided by the
+norms of both states: a complex array on the numpy backend, a list of
+backend scalars otherwise.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.rotation_operator">
+<span class="sig-name descname"><span class="pre">rotation_operator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.rotation_operator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.rotation_operator" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">exp(-i</span> <span class="pre">angle/2</span> <span class="pre">generator)</span></code> in a form <a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_rotation" title="mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_rotation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">apply_rotation()</span></code></a> accepts:
+a <code class="docutils literal notranslate"><span class="pre">(generator,</span> <span class="pre">angle)</span></code> tuple on the numpy backend, the backend MPO
+otherwise.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm">
+<span class="sig-name descname"><span class="pre">squared_norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.squared_norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&lt;psi|psi&gt;</span></code>: a float read off the canonical center on the numpy
+backend, quimb’s backend scalar otherwise so it stays differentiable.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.state_from_sites">
+<span class="sig-name descname"><span class="pre">state_from_sites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">MatrixProductState</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.state_from_sites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.state_from_sites" title="Link to this definition">¶</a></dt>
+<dd><p>A quimb MPS from <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">phys,</span> <span class="pre">right)</span></code> site arrays, two sites or more.
+The gauge (<code class="docutils literal notranslate"><span class="pre">center</span></code>) is not carried over: the next site view
+re-canonicalizes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.quimb.QuimbEngine.state_sites">
+<span class="sig-name descname"><span class="pre">state_sites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MatrixProductState</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">_CanonicalMPS</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/quimb.html#QuimbEngine.state_sites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.state_sites" title="Link to this definition">¶</a></dt>
+<dd><p>The MPS’s site arrays in mixed canonical form, read lazily and written
+back on <code class="docutils literal notranslate"><span class="pre">commit</span></code>. The orthogonality center is cached on the MPS, so
+consecutive operations do not re-canonicalize it; a state with no valid
+cache (fresh, or changed outside the engine) is canonicalized in place
+first, a gauge change that leaves the state itself untouched.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Quimb Engine</strong>: MPS states and MPO operators as
+<a class="reference external" href="https://quimb.readthedocs.io/">quimb</a> objects, on the numpy, jax or torch
+backend. On numpy it runs the shared algorithms of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code>; on jax and torch, quimb’s own
+differentiable contractions. Its MPS also feeds quimb’s DMRG.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.engines.Linalg">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.engines.</span></span><span class="sig-name descname"><span class="pre">Linalg</span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_mps_kernels.html#Linalg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.Linalg" title="Link to this definition">¶</a></dt>
+<dd><p>The array module and factorizations the kernels run on.</p>
+<p>Subclasses provide <a class="reference internal" href="#mpstab.engines.Linalg.qr" title="mpstab.engines.Linalg.qr"><code class="xref py py-meth docutils literal notranslate"><span class="pre">qr()</span></code></a> and <a class="reference internal" href="#mpstab.engines.Linalg.svd" title="mpstab.engines.Linalg.svd"><code class="xref py py-meth docutils literal notranslate"><span class="pre">svd()</span></code></a>; the truncated splits are
+built on them with the <code class="docutils literal notranslate"><span class="pre">&quot;rsum2&quot;</span></code> rule of <code class="xref py py-func docutils literal notranslate"><span class="pre">n_kept()</span></code>, so every backend
+truncates exactly alike.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.Linalg.asarray">
+<span class="sig-name descname"><span class="pre">asarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_mps_kernels.html#Linalg.asarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.Linalg.asarray" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">array</span></code> on this backend.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.Linalg.qr">
+<span class="sig-name descname"><span class="pre">qr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_mps_kernels.html#Linalg.qr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.Linalg.qr" title="Link to this definition">¶</a></dt>
+<dd><p>Thin QR <code class="docutils literal notranslate"><span class="pre">matrix</span> <span class="pre">=</span> <span class="pre">q</span> <span class="pre">&#64;</span> <span class="pre">r</span></code>, <code class="docutils literal notranslate"><span class="pre">q</span></code> with orthonormal columns.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.Linalg.split_left_isometry">
+<span class="sig-name descname"><span class="pre">split_left_isometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_mps_kernels.html#Linalg.split_left_isometry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.Linalg.split_left_isometry" title="Link to this definition">¶</a></dt>
+<dd><p>Truncated <code class="docutils literal notranslate"><span class="pre">matrix</span> <span class="pre">~</span> <span class="pre">iso</span> <span class="pre">&#64;</span> <span class="pre">rest</span></code> with <code class="docutils literal notranslate"><span class="pre">iso</span></code> orthonormal columns: the
+rank-<code class="docutils literal notranslate"><span class="pre">k</span></code> SVD truncation <code class="docutils literal notranslate"><span class="pre">U_k</span> <span class="pre">(S_k</span> <span class="pre">V_k^H)</span></code>, <code class="docutils literal notranslate"><span class="pre">k</span></code> from <code class="xref py py-func docutils literal notranslate"><span class="pre">n_kept()</span></code>.
+Singular values within roundoff of zero are dropped even at
+<code class="docutils literal notranslate"><span class="pre">cutoff=0</span></code>, as <code class="xref py py-func docutils literal notranslate"><span class="pre">_gram_rank()</span></code> does on the NumPy path, so both
+paths keep the same bonds.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.Linalg.split_right_isometry">
+<span class="sig-name descname"><span class="pre">split_right_isometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_mps_kernels.html#Linalg.split_right_isometry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.Linalg.split_right_isometry" title="Link to this definition">¶</a></dt>
+<dd><p>Truncated <code class="docutils literal notranslate"><span class="pre">matrix</span> <span class="pre">~</span> <span class="pre">rest</span> <span class="pre">&#64;</span> <span class="pre">iso</span></code> with <code class="docutils literal notranslate"><span class="pre">iso</span></code> orthonormal rows.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.Linalg.svd">
+<span class="sig-name descname"><span class="pre">svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_mps_kernels.html#Linalg.svd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.Linalg.svd" title="Link to this definition">¶</a></dt>
+<dd><p>Thin SVD <code class="docutils literal notranslate"><span class="pre">(u,</span> <span class="pre">s,</span> <span class="pre">vh)</span></code>, singular values descending.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.Linalg.to_numpy">
+<span class="sig-name descname"><span class="pre">to_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_mps_kernels.html#Linalg.to_numpy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.Linalg.to_numpy" title="Link to this definition">¶</a></dt>
+<dd><p>A host (numpy) copy of a backend array.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.engines.Linalg.xp">
+<span class="sig-name descname"><span class="pre">xp</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;module</span> <span class="pre">'numpy'</span> <span class="pre">from</span> <span class="pre">'/home/runner/work/mpstab/mpstab/.venv/lib/python3.13/site-packages/numpy/__init__.py'&gt;</span></span><a class="headerlink" href="#mpstab.engines.Linalg.xp" title="Link to this definition">¶</a></dt>
+<dd><p>creation, concatenation and
+contraction functions are taken from it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The array module (numpy, cupy, …)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.engines.SiteMPS">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.engines.</span></span><span class="sig-name descname"><span class="pre">SiteMPS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_sites.html#SiteMPS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.SiteMPS" title="Link to this definition">¶</a></dt>
+<dd><p>An MPS as <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">phys,</span> <span class="pre">right)</span></code> site arrays in mixed canonical form
+around <code class="docutils literal notranslate"><span class="pre">center</span></code>.</p>
+<p>The shared kernels replace site arrays rather than write into them, so
+<a class="reference internal" href="#mpstab.engines.SiteMPS.copy" title="mpstab.engines.SiteMPS.copy"><code class="xref py py-meth docutils literal notranslate"><span class="pre">copy()</span></code></a> shares the arrays and only copies the list.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.SiteMPS.commit">
+<span class="sig-name descname"><span class="pre">commit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_sites.html#SiteMPS.commit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.SiteMPS.commit" title="Link to this definition">¶</a></dt>
+<dd><p>Nothing to write back: the state is its own site view.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.SiteMPS.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.engines.SiteMPS" title="mpstab.engines.tensor_networks._sites.SiteMPS"><span class="pre">SiteMPS</span></a></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_sites.html#SiteMPS.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.SiteMPS.copy" title="Link to this definition">¶</a></dt>
+<dd><p>An independent copy sharing the (never written into) arrays.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.SiteMPS.max_bond">
+<span class="sig-name descname"><span class="pre">max_bond</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_sites.html#SiteMPS.max_bond"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.SiteMPS.max_bond" title="Link to this definition">¶</a></dt>
+<dd><p>The largest bond dimension.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.engines.SiteMPO">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.engines.</span></span><span class="sig-name descname"><span class="pre">SiteMPO</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pauli</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_sites.html#SiteMPO"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.SiteMPO" title="Link to this definition">¶</a></dt>
+<dd><p>An MPO as <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">4,</span> <span class="pre">right)</span></code> site arrays, the middle index
+<code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">out</span> <span class="pre">+</span> <span class="pre">in</span></code>, with the Pauli string it stands for when it is one.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.SiteMPO.max_bond">
+<span class="sig-name descname"><span class="pre">max_bond</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/_sites.html#SiteMPO.max_bond"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.SiteMPO.max_bond" title="Link to this definition">¶</a></dt>
+<dd><p>The largest bond dimension.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Building blocks for a new engine</strong>: the array backend the shared kernels run
+on, and a ready-made site-array state and operator.</p>
+<p id="module-mpstab.engines.tensor_networks.cutensornet">Tensor-network engine on NVIDIA GPUs, backed by cuTensorNet.</p>
+<p>States and operators live on the GPU as CuPy site arrays (<code class="xref py py-class docutils literal notranslate"><span class="pre">SiteMPS</span></code>,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">SiteMPO</span></code>). The engine supplies only the representation hooks of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code>; every algorithm (windowed Pauli
+rotations, expectation values, operator conjugation, transition amplitudes) is
+the shared one, run on the GPU through a <a class="reference internal" href="#mpstab.engines.Linalg" title="mpstab.engines.tensor_networks._mps_kernels.Linalg"><code class="xref py py-class docutils literal notranslate"><span class="pre">Linalg</span></code></a> whose
+QR and SVD are cuTensorNet’s tensor decompositions
+(<code class="docutils literal notranslate"><span class="pre">cuquantum.tensornet.tensor.decompose</span></code>). Expectation values of general
+operators are contracted as one network by cuTensorNet’s <code class="docutils literal notranslate"><span class="pre">contract</span></code>, with
+its path optimizer.</p>
+<p>Truncation uses the same <code class="docutils literal notranslate"><span class="pre">&quot;rsum2&quot;</span></code> rule as <code class="xref py py-class docutils literal notranslate"><span class="pre">QuimbEngine</span></code>
+(the singular values of each split are read back to the host to pick the kept
+rank), so both engines produce the same states up to floating-point roundoff.</p>
+<p>Needs <code class="docutils literal notranslate"><span class="pre">cupy</span></code> and <code class="docutils literal notranslate"><span class="pre">cuquantum</span></code>, both imported when the engine is first
+built: <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;mpstab[cutensornet]&quot;</span></code> (CUDA 12 wheels). The engine runs
+on CuPy’s current device; select another GPU with
+<code class="docutils literal notranslate"><span class="pre">cupy.cuda.Device(i).use()</span></code>.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuQuantumAPI">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.engines.tensor_networks.cutensornet.</span></span><span class="sig-name descname"><span class="pre">CuQuantumAPI</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cupy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contract</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decompose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">QRMethod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SVDMethod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destroy_handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuQuantumAPI"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuQuantumAPI" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The cupy and cuTensorNet entry points the engine uses: everything it
+calls on the GPU goes through these.</p>
+<p><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine" title="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine"><code class="xref py py-class docutils literal notranslate"><span class="pre">CuTensorNetEngine</span></code></a> builds one from the installed packages; passing
+another (<code class="docutils literal notranslate"><span class="pre">cuquantum=</span></code>) runs the engine on any implementation with the
+same signatures, e.g. a NumPy stand-in to test the engine without a GPU.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.engines.tensor_networks.cutensornet.</span></span><span class="sig-name descname"><span class="pre">CuTensorNetEngine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">svd_cutoff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'complex128'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reuse_handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cuquantum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuQuantumAPI" title="mpstab.engines.tensor_networks.cutensornet.CuQuantumAPI"><span class="pre">CuQuantumAPI</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code></p>
+<p>MPS evolution and MPO expectation values on an NVIDIA GPU via cuTensorNet.</p>
+<p>It covers what <a class="reference internal" href="evolutors.html#mpstab.evolutors.hsmpo.HSMPO" title="mpstab.evolutors.hsmpo.HSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HSMPO</span></code></a> and
+<a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO" title="mpstab.evolutors.hqsmpo.HQSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HQSMPO</span></code></a> need, including the head/tail
+split, the noisy estimators’ transition amplitudes and the analytic
+gradient with <code class="docutils literal notranslate"><span class="pre">method=&quot;flips&quot;</span></code>. DMRG, the adjoint gradient (which needs
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">apply_pauli_sum()</span></code>) and the
+plain-MPS baseline <a class="reference internal" href="evolutors.html#mpstab.evolutors.hsmpo.HSMPO.truncation_fidelity_pure_tn" title="mpstab.evolutors.hsmpo.HSMPO.truncation_fidelity_pure_tn"><code class="xref py py-attr docutils literal notranslate"><span class="pre">truncation_fidelity_pure_tn</span></code></a>
+stay with <code class="xref py py-class docutils literal notranslate"><span class="pre">QuimbEngine</span></code>.</p>
+<p>Initial states must be product states (one-qubit gates only), which is
+all <a class="reference internal" href="evolutors.html#mpstab.evolutors.hsmpo.HSMPO" title="mpstab.evolutors.hsmpo.HSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HSMPO</span></code></a> builds.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.bond_dimension">
+<span class="sig-name descname"><span class="pre">bond_dimension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mpstab.engines.SiteMPS" title="mpstab.engines.tensor_networks._sites.SiteMPS"><span class="pre">SiteMPS</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine.bond_dimension"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.bond_dimension" title="Link to this definition">¶</a></dt>
+<dd><p>The largest bond dimension of the state, shown in progress bars.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> (the default) when the engine does not report it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.build_circuit_mps">
+<span class="sig-name descname"><span class="pre">build_circuit_mps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_dimension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.engines.SiteMPS" title="mpstab.engines.tensor_networks._sites.SiteMPS"><span class="pre">SiteMPS</span></a></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine.build_circuit_mps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.build_circuit_mps" title="Link to this definition">¶</a></dt>
+<dd><p>The product state a qibo circuit of one-qubit gates prepares, as a
+bond-1 <code class="xref py py-class docutils literal notranslate"><span class="pre">SiteMPS</span></code> on the GPU (every site is normalized, so any
+center is canonical).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – if the circuit entangles any pair of qubits.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.copy_state">
+<span class="sig-name descname"><span class="pre">copy_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mpstab.engines.SiteMPS" title="mpstab.engines.tensor_networks._sites.SiteMPS"><span class="pre">SiteMPS</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.engines.SiteMPS" title="mpstab.engines.tensor_networks._sites.SiteMPS"><span class="pre">SiteMPS</span></a></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine.copy_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.copy_state" title="Link to this definition">¶</a></dt>
+<dd><p>A copy sharing the site arrays, which no operation writes into.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.linalg">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">linalg</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg" title="mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg"><span class="pre">CuTensorNetLinalg</span></a></span><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.linalg" title="Link to this definition">¶</a></dt>
+<dd><p>the
+kernels run on whatever arrays <a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.state_sites" title="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.state_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">state_sites()</span></code></a> hands them, with
+these routines. NumPy unless the engine keeps its arrays elsewhere.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The array module and factorizations of the engine’s site arrays</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_from_sites">
+<span class="sig-name descname"><span class="pre">operator_from_sites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">like</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.engines.SiteMPO" title="mpstab.engines.tensor_networks._sites.SiteMPO"><span class="pre">SiteMPO</span></a></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine.operator_from_sites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_from_sites" title="Link to this definition">¶</a></dt>
+<dd><p>The engine’s operator for <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">4,</span> <span class="pre">right)</span></code> site arrays, inverse of
+<a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_sites" title="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_sites"><code class="xref py py-meth docutils literal notranslate"><span class="pre">operator_sites()</span></code></a>. <code class="docutils literal notranslate"><span class="pre">like</span></code> is the operator the sites came from,
+whose metadata (index names, tags) the result may copy.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_site_arrays">
+<span class="sig-name descname"><span class="pre">operator_site_arrays</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mpstab.engines.SiteMPO" title="mpstab.engines.tensor_networks._sites.SiteMPO"><span class="pre">SiteMPO</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine.operator_site_arrays"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_site_arrays" title="Link to this definition">¶</a></dt>
+<dd><p>The MPO’s sites as numpy <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">right,</span> <span class="pre">out,</span> <span class="pre">in)</span></code> arrays.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_sites">
+<span class="sig-name descname"><span class="pre">operator_sites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mpstab.engines.SiteMPO" title="mpstab.engines.tensor_networks._sites.SiteMPO"><span class="pre">SiteMPO</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine.operator_sites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_sites" title="Link to this definition">¶</a></dt>
+<dd><p>The operator as <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">4,</span> <span class="pre">right)</span></code> site arrays on <a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.linalg" title="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.linalg"><code class="xref py py-attr docutils literal notranslate"><span class="pre">linalg</span></code></a>, the
+middle index <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">out</span> <span class="pre">+</span> <span class="pre">in</span></code>, in any gauge.</p>
+<p>The default converts <a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_site_arrays" title="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_site_arrays"><code class="xref py py-meth docutils literal notranslate"><span class="pre">operator_site_arrays()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.pauli_mpo">
+<span class="sig-name descname"><span class="pre">pauli_mpo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pauli_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">object</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.engines.SiteMPO" title="mpstab.engines.tensor_networks._sites.SiteMPO"><span class="pre">SiteMPO</span></a></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine.pauli_mpo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.pauli_mpo" title="Link to this definition">¶</a></dt>
+<dd><p>The bond-1 <code class="xref py py-class docutils literal notranslate"><span class="pre">SiteMPO</span></code> of a Pauli string.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.pauli_string_of">
+<span class="sig-name descname"><span class="pre">pauli_string_of</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mpstab.engines.SiteMPO" title="mpstab.engines.tensor_networks._sites.SiteMPO"><span class="pre">SiteMPO</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine.pauli_string_of"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.pauli_string_of" title="Link to this definition">¶</a></dt>
+<dd><p>The Pauli string an operator built by <a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.pauli_mpo" title="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.pauli_mpo"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pauli_mpo()</span></code></a> stands for, or
+<code class="docutils literal notranslate"><span class="pre">None</span></code> for any other operator. A known string lets <code class="xref py py-meth docutils literal notranslate"><span class="pre">expval()</span></code>
+take the windowed path instead of a full contraction.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.process_start_method">
+<span class="sig-name descname"><span class="pre">process_start_method</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'spawn'</span></span><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.process_start_method" title="Link to this definition">¶</a></dt>
+<dd><p>CUDA cannot be used in a child forked after the parent initialized it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.state_from_sites">
+<span class="sig-name descname"><span class="pre">state_from_sites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sites</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.engines.SiteMPS" title="mpstab.engines.tensor_networks._sites.SiteMPS"><span class="pre">SiteMPS</span></a></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine.state_from_sites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.state_from_sites" title="Link to this definition">¶</a></dt>
+<dd><p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">SiteMPS</span></code> on the given site arrays.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.state_sites">
+<span class="sig-name descname"><span class="pre">state_sites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mpstab.engines.SiteMPS" title="mpstab.engines.tensor_networks._sites.SiteMPS"><span class="pre">SiteMPS</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mpstab.engines.SiteMPS" title="mpstab.engines.tensor_networks._sites.SiteMPS"><span class="pre">SiteMPS</span></a></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetEngine.state_sites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.state_sites" title="Link to this definition">¶</a></dt>
+<dd><p>The state itself: a <code class="xref py py-class docutils literal notranslate"><span class="pre">SiteMPS</span></code> is its own canonical view.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.engines.tensor_networks.cutensornet.</span></span><span class="sig-name descname"><span class="pre">CuTensorNetLinalg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cuquantum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuQuantumAPI" title="mpstab.engines.tensor_networks.cutensornet.CuQuantumAPI"><span class="pre">CuQuantumAPI</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reuse_handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetLinalg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mpstab.engines.Linalg" title="mpstab.engines.tensor_networks._mps_kernels.Linalg"><code class="xref py py-class docutils literal notranslate"><span class="pre">Linalg</span></code></a></p>
+<p>The kernels’ factorizations on the GPU: CuPy arrays, QR and SVD by
+cuTensorNet’s tensor decompositions. The truncated splits are the
+<a class="reference internal" href="#mpstab.engines.Linalg" title="mpstab.engines.tensor_networks._mps_kernels.Linalg"><code class="xref py py-class docutils literal notranslate"><span class="pre">Linalg</span></code></a> defaults, so truncation follows the shared
+<code class="docutils literal notranslate"><span class="pre">&quot;rsum2&quot;</span></code> rule.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.asarray">
+<span class="sig-name descname"><span class="pre">asarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetLinalg.asarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.asarray" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">array</span></code> on this backend.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetLinalg.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.close" title="Link to this definition">¶</a></dt>
+<dd><p>Destroy the handles this backend created.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.options">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">options</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.options" title="Link to this definition">¶</a></dt>
+<dd><p>the current device’s handle,
+so switching devices with <code class="docutils literal notranslate"><span class="pre">cupy.cuda.Device(i).use()</span></code> is followed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The options of every cuTensorNet call</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.qr">
+<span class="sig-name descname"><span class="pre">qr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetLinalg.qr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.qr" title="Link to this definition">¶</a></dt>
+<dd><p>Thin QR <code class="docutils literal notranslate"><span class="pre">matrix</span> <span class="pre">=</span> <span class="pre">q</span> <span class="pre">&#64;</span> <span class="pre">r</span></code>, <code class="docutils literal notranslate"><span class="pre">q</span></code> with orthonormal columns.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.svd">
+<span class="sig-name descname"><span class="pre">svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetLinalg.svd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.svd" title="Link to this definition">¶</a></dt>
+<dd><p>Thin SVD <code class="docutils literal notranslate"><span class="pre">(u,</span> <span class="pre">s,</span> <span class="pre">vh)</span></code>, singular values descending.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.to_numpy">
+<span class="sig-name descname"><span class="pre">to_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/cutensornet.html#CuTensorNetLinalg.to_numpy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.to_numpy" title="Link to this definition">¶</a></dt>
+<dd><p>A host (numpy) copy of a backend array.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>cuTensorNet Engine</strong>: the same algorithms on an NVIDIA GPU, with CuPy site
+arrays and the QR, SVD and network contractions of NVIDIA’s
+<a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/">cuTensorNet</a>.
+Install with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;mpstab[cutensornet]&quot;</span></code>. No DMRG and no adjoint
+gradient (<code class="docutils literal notranslate"><span class="pre">method=&quot;flips&quot;</span></code> works), and initial states
+must be product states.</p>
+</section>
+<section id="native-engines">
+<h2>Native Engines<a class="headerlink" href="#native-engines" title="Link to this heading">¶</a></h2>
+<p>Pure-Python implementations of the two interfaces, kept as readable examples
+of what an engine does rather than for performance. They give the same
+expectation values as stim and quimb, but are slower and cover less: the
+native tensor-network engine has no operator-side conjugation (so no head/tail
+split in <a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO" title="mpstab.evolutors.hqsmpo.HQSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HQSMPO</span></code></a>) and no DMRG.</p>
+<p id="module-mpstab.engines.stabilizers.native.engine">Pure-Python stabilizers engine.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.native.engine.GATE_TABLEAUS">
+<span class="sig-prename descclassname"><span class="pre">mpstab.engines.stabilizers.native.engine.</span></span><span class="sig-name descname"><span class="pre">GATE_TABLEAUS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'cx':</span> <span class="pre">'CNOT',</span> <span class="pre">'cz':</span> <span class="pre">'CZ',</span> <span class="pre">'gpi2':</span> <span class="pre">'GPI2',</span> <span class="pre">'h':</span> <span class="pre">'H',</span> <span class="pre">'rx':</span> <span class="pre">'RX',</span> <span class="pre">'ry':</span> <span class="pre">'RY',</span> <span class="pre">'rz':</span> <span class="pre">'RZ',</span> <span class="pre">'s':</span> <span class="pre">'S',</span> <span class="pre">'sdg':</span> <span class="pre">'Sdg',</span> <span class="pre">'swap':</span> <span class="pre">'SWAP',</span> <span class="pre">'x':</span> <span class="pre">'X',</span> <span class="pre">'y':</span> <span class="pre">'Y',</span> <span class="pre">'z':</span> <span class="pre">'Z'}</span></span><a class="headerlink" href="#mpstab.engines.stabilizers.native.engine.GATE_TABLEAUS" title="Link to this definition">¶</a></dt>
+<dd><p>qibo gate names mapped to the tableau class in
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">tableaus</span></code> that implements them.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.native.engine.NativeStabilizersEngine">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.engines.stabilizers.native.engine.</span></span><span class="sig-name descname"><span class="pre">NativeStabilizersEngine</span></span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/native/engine.html#NativeStabilizersEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.native.engine.NativeStabilizersEngine" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">StabilizersEngine</span></code></p>
+<p>Clifford backpropagation by composing per-gate tableaus.</p>
+<p>A pure-Python example of the <code class="xref py py-class docutils literal notranslate"><span class="pre">StabilizersEngine</span></code> interface, written
+to be read rather than to be fast: use <code class="xref py py-class docutils literal notranslate"><span class="pre">StimEngine</span></code>
+for real workloads.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.stabilizers.native.engine.NativeStabilizersEngine.backpropagate">
+<span class="sig-name descname"><span class="pre">backpropagate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clifford_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Circuit</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/stabilizers/native/engine.html#NativeStabilizersEngine.backpropagate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.stabilizers.native.engine.NativeStabilizersEngine.backpropagate" title="Link to this definition">¶</a></dt>
+<dd><p>Evolve <code class="docutils literal notranslate"><span class="pre">observable</span></code> back through <code class="docutils literal notranslate"><span class="pre">clifford_circuit</span></code>, applying each
+gate’s inverse in reverse order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">(pauli_string,</span> <span class="pre">sign)</span></code> for <code class="docutils literal notranslate"><span class="pre">U^dag</span> <span class="pre">.</span> <span class="pre">O</span> <span class="pre">.</span> <span class="pre">U</span></code>, with <code class="docutils literal notranslate"><span class="pre">U</span></code> the circuit.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Native Stabilizers Engine</strong>: backpropagates a Pauli string by composing one
+tableau per gate, on the XZ-encoded Pauli arithmetic of
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.engines.stabilizers.native.pauli_string</span></code>.</p>
+<p id="module-mpstab.engines.tensor_networks.native.engine">Pure-Python tensor-network engine.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">mpstab.engines.tensor_networks.native.engine.</span></span><span class="sig-name descname"><span class="pre">NativeTensorNetworkEngine</span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/native/engine.html#NativeTensorNetworkEngine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code></p>
+<p>MPS evolution and expectation values on the in-package tensor network.</p>
+<p>A pure-Python example of the <code class="xref py py-class docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code> interface, written
+to be read rather than to be fast: use
+<code class="xref py py-class docutils literal notranslate"><span class="pre">QuimbEngine</span></code> for real workloads.</p>
+<p>Its states are in Vidal form, not the mixed canonical site arrays the
+shared algorithms of <code class="xref py py-class docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code> run on, so it provides no
+site view and overrides the state-side algorithms with its own. Operator
+conjugation, and so the whole head/tail split of
+<a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.HQSMPO" title="mpstab.evolutors.hqsmpo.HQSMPO"><code class="xref py py-class docutils literal notranslate"><span class="pre">HQSMPO</span></code></a>, and transition amplitudes need an
+engine with a site view, such as <code class="xref py py-class docutils literal notranslate"><span class="pre">QuimbEngine</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.build_circuit_mps">
+<span class="sig-name descname"><span class="pre">build_circuit_mps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_dimension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/native/engine.html#NativeTensorNetworkEngine.build_circuit_mps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.build_circuit_mps" title="Link to this definition">¶</a></dt>
+<dd><p>Build a <code class="xref py py-class docutils literal notranslate"><span class="pre">CircuitMPS</span></code> in the product state a qibo circuit of
+one-qubit gates prepares, simulating each qubit on its own.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.expval">
+<span class="sig-name descname"><span class="pre">expval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">CircuitMPS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PauliMPO</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/native/engine.html#NativeTensorNetworkEngine.expval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.expval" title="Link to this definition">¶</a></dt>
+<dd><p>Expectation value of <code class="docutils literal notranslate"><span class="pre">operator</span></code> on <code class="docutils literal notranslate"><span class="pre">state_circuit</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.pauli_mpo">
+<span class="sig-name descname"><span class="pre">pauli_mpo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pauli_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">object</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/native/engine.html#NativeTensorNetworkEngine.pauli_mpo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.pauli_mpo" title="Link to this definition">¶</a></dt>
+<dd><p>Build the <code class="xref py py-class docutils literal notranslate"><span class="pre">PauliMPO</span></code> for a Pauli string.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.pauli_rot">
+<span class="sig-name descname"><span class="pre">pauli_rot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">CircuitMPS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bond_dimension</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/native/engine.html#NativeTensorNetworkEngine.pauli_rot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.pauli_rot" title="Link to this definition">¶</a></dt>
+<dd><p>Apply <code class="docutils literal notranslate"><span class="pre">exp(-i</span> <span class="pre">angle/2</span> <span class="pre">generator)</span></code> to the state.</p>
+<p>The bond cap comes from the <code class="xref py py-class docutils literal notranslate"><span class="pre">CircuitMPS</span></code> itself, set at
+construction, so <code class="docutils literal notranslate"><span class="pre">max_bond_dimension</span></code> is ignored here.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.squared_norm">
+<span class="sig-name descname"><span class="pre">squared_norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_circuit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">CircuitMPS</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="reference internal" href="../_modules/mpstab/engines/tensor_networks/native/engine.html#NativeTensorNetworkEngine.squared_norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.squared_norm" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&lt;psi|psi&gt;</span></code>, the expectation value of the identity.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p><strong>Native Tensor Network Engine</strong>: an MPS in Vidal canonical form on a small
+in-package tensor-network layer
+(<code class="xref py py-mod docutils literal notranslate"><span class="pre">mpstab.engines.tensor_networks.native.circuit_mps</span></code>), evolved by
+applying MPOs and re-splitting by SVD.</p>
+</section>
+<section id="selecting-engines">
+<h2>Selecting Engines<a class="headerlink" href="#selecting-engines" title="Link to this heading">¶</a></h2>
+<p>Engines are automatically selected based on your circuit type and parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qibo</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">gates</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab</span><span class="w"> </span><span class="kn">import</span> <span class="n">HSMPO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.models.ansatze</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardwareEfficient</span>
+
+<span class="n">clifford_circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="n">nqubits</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="c1"># Add only Clifford gates</span>
+<span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+     <span class="n">clifford_circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+     <span class="n">clifford_circuit</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gates</span><span class="o">.</span><span class="n">CNOT</span><span class="p">(</span><span class="n">q0</span><span class="o">=</span><span class="n">q</span><span class="o">%</span><span class="mi">10</span><span class="p">,</span> <span class="n">q1</span><span class="o">=</span><span class="p">(</span><span class="n">q</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="mi">10</span><span class="p">))</span>
+
+<span class="c1"># Clifford circuit - uses stabilizer engine only</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span><span class="n">ansatz</span><span class="o">=</span><span class="n">clifford_circuit</span><span class="p">)</span>
+
+<span class="c1"># Constructing a circuit with also magic gates</span>
+<span class="n">mixed_circuit</span> <span class="o">=</span> <span class="n">HardwareEfficient</span><span class="p">(</span>
+     <span class="n">nqubits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+     <span class="n">nlayers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Mixed circuit with bond limit - uses both engines</span>
+<span class="n">simulator</span> <span class="o">=</span> <span class="n">HSMPO</span><span class="p">(</span>
+    <span class="n">ansatz</span><span class="o">=</span><span class="n">mixed_circuit</span><span class="p">,</span>
+    <span class="n">max_bond_dimension</span><span class="o">=</span><span class="mi">32</span>  <span class="c1"># Enables tensor network engine</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>For detailed guidance, see <a class="reference internal" href="../user_guide/working_with_engines.html"><span class="doc">Working with Engines</span></a></p>
+</section>
+<section id="engine-interface">
+<h2>Engine Interface<a class="headerlink" href="#engine-interface" title="Link to this heading">¶</a></h2>
+<p>All engines implement standardized interfaces for compatibility.</p>
+<p>Base Engine Classes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mpstab.engines</span><span class="w"> </span><span class="kn">import</span> <span class="n">StabilizersEngine</span><span class="p">,</span> <span class="n">TensorNetworkEngine</span>
+</pre></div>
+</div>
+<p>The evolutors never look inside an engine’s states or operators: everything
+they need goes through these methods. <code class="docutils literal notranslate"><span class="pre">tests/test_engine_agnostic.py</span></code>
+enforces this with an engine whose states and operators expose nothing.</p>
+<p>A tensor-network engine splits into a <em>representation</em>, which is
+engine-specific, and the <em>algorithms</em>, which are implemented once in
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code> as concrete methods. The
+algorithms (windowed Pauli rotations, expectation values, operator
+conjugation, transition amplitudes) are the kernels of
+<code class="docutils literal notranslate"><span class="pre">mpstab.engines.tensor_networks._mps_kernels</span></code>. They run on the site arrays
+the representation exposes, with the array module and factorizations of the
+engine’s <code class="xref py py-attr docutils literal notranslate"><span class="pre">linalg</span></code>: NumPy and LAPACK
+for quimb, CuPy and cuTensorNet for the GPU engine. Every engine therefore
+truncates with the same <code class="docutils literal notranslate"><span class="pre">&quot;rsum2&quot;</span></code> rule
+(<code class="xref py py-attr docutils literal notranslate"><span class="pre">svd_cutoff</span></code>).</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">TensorNetworkEngine</span></code> methods</p></th>
+<th class="head"><p>Role</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">build_circuit_mps</span></code>, <code class="docutils literal notranslate"><span class="pre">pauli_mpo</span></code></p></td>
+<td><p>Abstract: build a state and a Pauli-string operator.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">state_sites</span></code>, <code class="docutils literal notranslate"><span class="pre">state_from_sites</span></code></p></td>
+<td><p>Representation: the state as <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">phys,</span> <span class="pre">right)</span></code> arrays in mixed
+canonical form, which every state-side algorithm runs on, and back
+from such arrays.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">operator_sites</span></code>, <code class="docutils literal notranslate"><span class="pre">operator_from_sites</span></code>, <code class="docutils literal notranslate"><span class="pre">operator_site_arrays</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pauli_string_of</span></code></p></td>
+<td><p>Representation: operators as <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">4,</span> <span class="pre">right)</span></code> arrays and back, and
+out of the engine as numpy <code class="docutils literal notranslate"><span class="pre">(left,</span> <span class="pre">right,</span> <span class="pre">out,</span> <span class="pre">in)</span></code> arrays (the
+head/tail split of <code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> and its measurement routes).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">linalg</span></code>, <code class="docutils literal notranslate"><span class="pre">copy_state</span></code>, <code class="docutils literal notranslate"><span class="pre">bond_dimension</span></code></p></td>
+<td><p>Representation, with defaults: NumPy arrays, a deep copy, no bond
+report.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">svd_cutoff</span></code>, <code class="docutils literal notranslate"><span class="pre">truncation_cutoff</span></code></p></td>
+<td><p>The <code class="docutils literal notranslate"><span class="pre">&quot;rsum2&quot;</span></code> cutoff every shared algorithm truncates with
+(<code class="docutils literal notranslate"><span class="pre">None</span></code> keeps quimb’s default, <code class="docutils literal notranslate"><span class="pre">1e-10</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">process_start_method</span></code>, <code class="docutils literal notranslate"><span class="pre">worker_context</span></code></p></td>
+<td><p>How the processes of <code class="docutils literal notranslate"><span class="pre">noisy_expectation</span></code> and <code class="docutils literal notranslate"><span class="pre">gradient</span></code> start:
+<code class="docutils literal notranslate"><span class="pre">&quot;spawn&quot;</span></code> for an engine holding a GPU context.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">has_site_view</span></code>, <code class="docutils literal notranslate"><span class="pre">has_operator_sites</span></code>, <code class="docutils literal notranslate"><span class="pre">has_pauli_sum</span></code></p></td>
+<td><p>Whether the shared algorithms apply; by default, whether the hooks
+above are implemented. An engine without them keeps its own
+<code class="docutils literal notranslate"><span class="pre">expval</span></code> and <code class="docutils literal notranslate"><span class="pre">conjugate_operator</span></code>. With a site view and Pauli sums,
+the adjoint gradient runs fused on the shared kernels.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">expval</span></code>, <code class="docutils literal notranslate"><span class="pre">pauli_expvals</span></code>, <code class="docutils literal notranslate"><span class="pre">pauli_rot</span></code>, <code class="docutils literal notranslate"><span class="pre">squared_norm</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pauli_transitions</span></code>, <code class="docutils literal notranslate"><span class="pre">rotation_operator</span></code>, <code class="docutils literal notranslate"><span class="pre">apply_rotation</span></code>,
+<code class="docutils literal notranslate"><span class="pre">conjugate_operator</span></code>, <code class="docutils literal notranslate"><span class="pre">conjugate_operator_many</span></code>, <code class="docutils literal notranslate"><span class="pre">site_arrays</span></code></p></td>
+<td><p>Concrete, shared: implemented on the site view. An engine may still
+override them, as <code class="docutils literal notranslate"><span class="pre">QuimbEngine</span></code> does on jax and torch to stay
+differentiable, and the native engine does to run its own Vidal-form
+algorithms.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">apply_pauli_sum</span></code></p></td>
+<td><p>Optional: the adjoint gradient (<code class="docutils literal notranslate"><span class="pre">HSMPO.gradient(method=&quot;adjoint&quot;)</span></code>);
+<code class="docutils literal notranslate"><span class="pre">method=&quot;flips&quot;</span></code> does without it. <code class="docutils literal notranslate"><span class="pre">QuimbEngine</span></code> only.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pauli_sum_mpo</span></code>, <code class="docutils literal notranslate"><span class="pre">minimize_energy</span></code></p></td>
+<td><p>Optional: DMRG (<code class="docutils literal notranslate"><span class="pre">HSMPO.minimize_expectation</span></code>). <code class="docutils literal notranslate"><span class="pre">QuimbEngine</span></code> only.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">circuit_truncation_fidelity</span></code></p></td>
+<td><p>Optional: <code class="docutils literal notranslate"><span class="pre">HSMPO.truncation_fidelity_pure_tn</span></code>. <code class="docutils literal notranslate"><span class="pre">QuimbEngine</span></code> only.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>An optional method an engine does not implement raises <code class="docutils literal notranslate"><span class="pre">NotImplementedError</span></code>
+only when the feature that needs it is used.</p>
+<p>A stabilizers engine is where every Clifford circuit is simulated: the Clifford
+part of the circuit, and the residual a head resynthesis leaves behind. The
+evolutors, the noise compiler and the measurement routes only ask it for
+backpropagated Pauli strings, so <code class="docutils literal notranslate"><span class="pre">stim</span></code> is imported by <code class="docutils literal notranslate"><span class="pre">StimEngine</span></code> alone.
+Clifford circuits travel as qibo circuits (e.g.
+<a class="reference internal" href="evolutors.html#mpstab.evolutors.hqsmpo.ResynthesizedHead.residual_circuit" title="mpstab.evolutors.hqsmpo.ResynthesizedHead.residual_circuit"><code class="xref py py-attr docutils literal notranslate"><span class="pre">residual_circuit</span></code></a>), and
+signed Pauli products are plain Pauli algebra
+(<a class="reference internal" href="pauli.html#mpstab.pauli.pauli_product" title="mpstab.pauli.pauli_product"><code class="xref py py-func docutils literal notranslate"><span class="pre">mpstab.pauli.pauli_product()</span></code></a>).</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">StabilizersEngine</span></code> methods</p></th>
+<th class="head"><p>Needed for</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">backpropagate</span></code></p></td>
+<td><p>Required: dressing observables with the Clifford circuit.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">backpropagate_many</span></code></p></td>
+<td><p>Optional, with a generic default an engine may override to share work
+across observables.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">backpropagate_at</span></code></p></td>
+<td><p>Dressing each magic gate and noise event with the Clifford gates before
+it. The default replays each prefix through <code class="docutils literal notranslate"><span class="pre">backpropagate</span></code>;
+<code class="docutils literal notranslate"><span class="pre">StimEngine</span></code> overrides it with a single tableau pass.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">clifford_images</span></code>, <code class="docutils literal notranslate"><span class="pre">is_identity</span></code></p></td>
+<td><p>Concrete, built on <code class="docutils literal notranslate"><span class="pre">backpropagate_many</span></code>: comparing Clifford circuits,
+e.g. checking whether the resynthesis residual of <code class="docutils literal notranslate"><span class="pre">HQSMPO</span></code> is
+trivial.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../user_guide/working_with_engines.html"><span class="doc">Working with Engines</span></a> - Engine selection guide</p></li>
+<li><p><a class="reference internal" href="../tutorials/introduction.html"><span class="doc">A quick introduction to mpstab</span></a> - Practical examples</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="qpu.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">QPU</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="evolutors.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Evolutors</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Matteo Robbiati, Giulio Crognaletti, Mattia Robbiano, Roberto Di Lauro, Michele Grossi
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/MatteoRobbiati/mpstab" aria-label="GitHub">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Engines</a><ul>
+<li><a class="reference internal" href="#module-mpstab.engines.stabilizers.stim">Stabilizer Engine</a><ul>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.stim.StimEngine"><code class="docutils literal notranslate"><span class="pre">StimEngine</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.stim.StimEngine.backpropagate"><code class="docutils literal notranslate"><span class="pre">StimEngine.backpropagate()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.stim.StimEngine.backpropagate_at"><code class="docutils literal notranslate"><span class="pre">StimEngine.backpropagate_at()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.stim.StimEngine.backpropagate_many"><code class="docutils literal notranslate"><span class="pre">StimEngine.backpropagate_many()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.stim.StimEngine.instructions"><code class="docutils literal notranslate"><span class="pre">StimEngine.instructions()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.stim.circuit_instructions"><code class="docutils literal notranslate"><span class="pre">circuit_instructions()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.stim.conjugate"><code class="docutils literal notranslate"><span class="pre">conjugate()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.stim.from_stim"><code class="docutils literal notranslate"><span class="pre">from_stim()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.stim.gate_instruction"><code class="docutils literal notranslate"><span class="pre">gate_instruction()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-mpstab.engines.tensor_networks.quimb">Tensor Network Engine</a><ul>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.GATE_MAP"><code class="docutils literal notranslate"><span class="pre">GATE_MAP</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine"><code class="docutils literal notranslate"><span class="pre">QuimbEngine</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_pauli_sum"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.apply_pauli_sum()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.apply_rotation"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.apply_rotation()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.bond_dimension"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.bond_dimension()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.build_circuit_mps"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.build_circuit_mps()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.circuit_truncation_fidelity"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.circuit_truncation_fidelity()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.conjugate_operator"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.conjugate_operator()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.copy_state"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.copy_state()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.expval"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.expval()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.has_operator_sites"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.has_operator_sites</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.has_site_view"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.has_site_view</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.minimize_energy"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.minimize_energy()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_from_sites"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.operator_from_sites()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_site_arrays"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.operator_site_arrays()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.operator_sites"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.operator_sites()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_expvals"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_expvals()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_mpo"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_mpo()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_rot"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_rot()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_string_of"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_string_of()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_sum_mpo"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_sum_mpo()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.pauli_transitions"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.pauli_transitions()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.rotation_operator"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.rotation_operator()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.squared_norm"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.squared_norm()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.state_from_sites"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.state_from_sites()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.quimb.QuimbEngine.state_sites"><code class="docutils literal notranslate"><span class="pre">QuimbEngine.state_sites()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.engines.Linalg"><code class="docutils literal notranslate"><span class="pre">Linalg</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.engines.Linalg.asarray"><code class="docutils literal notranslate"><span class="pre">Linalg.asarray()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.Linalg.qr"><code class="docutils literal notranslate"><span class="pre">Linalg.qr()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.Linalg.split_left_isometry"><code class="docutils literal notranslate"><span class="pre">Linalg.split_left_isometry()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.Linalg.split_right_isometry"><code class="docutils literal notranslate"><span class="pre">Linalg.split_right_isometry()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.Linalg.svd"><code class="docutils literal notranslate"><span class="pre">Linalg.svd()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.Linalg.to_numpy"><code class="docutils literal notranslate"><span class="pre">Linalg.to_numpy()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.Linalg.xp"><code class="docutils literal notranslate"><span class="pre">Linalg.xp</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.engines.SiteMPS"><code class="docutils literal notranslate"><span class="pre">SiteMPS</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.engines.SiteMPS.commit"><code class="docutils literal notranslate"><span class="pre">SiteMPS.commit()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.SiteMPS.copy"><code class="docutils literal notranslate"><span class="pre">SiteMPS.copy()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.SiteMPS.max_bond"><code class="docutils literal notranslate"><span class="pre">SiteMPS.max_bond()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.engines.SiteMPO"><code class="docutils literal notranslate"><span class="pre">SiteMPO</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.engines.SiteMPO.max_bond"><code class="docutils literal notranslate"><span class="pre">SiteMPO.max_bond()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuQuantumAPI"><code class="docutils literal notranslate"><span class="pre">CuQuantumAPI</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.bond_dimension"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.bond_dimension()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.build_circuit_mps"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.build_circuit_mps()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.copy_state"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.copy_state()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.linalg"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.linalg</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_from_sites"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.operator_from_sites()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_site_arrays"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.operator_site_arrays()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.operator_sites"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.operator_sites()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.pauli_mpo"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.pauli_mpo()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.pauli_string_of"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.pauli_string_of()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.process_start_method"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.process_start_method</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.state_from_sites"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.state_from_sites()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetEngine.state_sites"><code class="docutils literal notranslate"><span class="pre">CuTensorNetEngine.state_sites()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg"><code class="docutils literal notranslate"><span class="pre">CuTensorNetLinalg</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.asarray"><code class="docutils literal notranslate"><span class="pre">CuTensorNetLinalg.asarray()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.close"><code class="docutils literal notranslate"><span class="pre">CuTensorNetLinalg.close()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.options"><code class="docutils literal notranslate"><span class="pre">CuTensorNetLinalg.options</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.qr"><code class="docutils literal notranslate"><span class="pre">CuTensorNetLinalg.qr()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.svd"><code class="docutils literal notranslate"><span class="pre">CuTensorNetLinalg.svd()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.cutensornet.CuTensorNetLinalg.to_numpy"><code class="docutils literal notranslate"><span class="pre">CuTensorNetLinalg.to_numpy()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#native-engines">Native Engines</a><ul>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.native.engine.GATE_TABLEAUS"><code class="docutils literal notranslate"><span class="pre">GATE_TABLEAUS</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.native.engine.NativeStabilizersEngine"><code class="docutils literal notranslate"><span class="pre">NativeStabilizersEngine</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.engines.stabilizers.native.engine.NativeStabilizersEngine.backpropagate"><code class="docutils literal notranslate"><span class="pre">NativeStabilizersEngine.backpropagate()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine"><code class="docutils literal notranslate"><span class="pre">NativeTensorNetworkEngine</span></code></a><ul>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.build_circuit_mps"><code class="docutils literal notranslate"><span class="pre">NativeTensorNetworkEngine.build_circuit_mps()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.expval"><code class="docutils literal notranslate"><span class="pre">NativeTensorNetworkEngine.expval()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.pauli_mpo"><code class="docutils literal notranslate"><span class="pre">NativeTensorNetworkEngine.pauli_mpo()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.pauli_rot"><code class="docutils literal notranslate"><span class="pre">NativeTensorNetworkEngine.pauli_rot()</span></code></a></li>
+<li><a class="reference internal" href="#mpstab.engines.tensor_networks.native.engine.NativeTensorNetworkEngine.squared_norm"><code class="docutils literal notranslate"><span class="pre">NativeTensorNetworkEngine.squared_norm()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#selecting-engines">Selecting Engines</a></li>
+<li><a class="reference internal" href="#engine-interface">Engine Interface</a></li>
+<li><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/katex.min.js?v=5cc8ed51"></script>
+    <script src="../_static/auto-render.min.js?v=af98beb9"></script>
+    <script src="../_static/katex_autorenderer.js?v=bebc588a"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    </body>
+</html>
