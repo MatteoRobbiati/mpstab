@@ -1,208 +1,176 @@
+<div align="center">
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/_static/logo/mpstab_logo_dark.svg">
-  <img width="300" alt="mpstab" src="./docs/_static/logo/mpstab_logo_light.svg">
+  <img width="320" alt="mpstab" src="./docs/_static/logo/mpstab_logo_light.svg">
 </picture>
+
+### Hybrid stabilizers tensor-networks quantum circuit simulator
+
+Clifford speed where the circuit is Clifford, tensor-network accuracy where it isn't.
+
+[![arXiv](https://img.shields.io/badge/arXiv-2607.24258-b31b1b.svg?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2607.24258)
+[![Tests](https://github.com/MatteoRobbiati/mpstab/actions/workflows/tests.yml/badge.svg)](https://github.com/MatteoRobbiati/mpstab/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/MatteoRobbiati/mpstab/graph/badge.svg)](https://codecov.io/gh/MatteoRobbiati/mpstab)
+[![Docs](https://img.shields.io/badge/docs-online-0a7bbb.svg?logo=readthedocs&logoColor=white)](https://matteorobbiati.github.io/mpstab/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-3776ab.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+
+[**Docs**](https://matteorobbiati.github.io/mpstab/) ·
+[**Quick start**](#-quick-start) ·
+[**Paper**](https://arxiv.org/abs/2607.24258) ·
+[**Issues**](https://github.com/MatteoRobbiati/mpstab/issues)
+
+</div>
 
 ---
 
-# MPSTAB: Hybrid Stabilizers-MPO Quantum Circuit Simulator
+**mpstab** simulates quantum circuits with the **hybrid stabilizer–Matrix Product Operator (HSMPO)** formalism
+([Mello, Santini & Collura, PRL 2024](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.133.150604)):
+Clifford gates are absorbed by a stabilizer tableau, and only the non-stabilizer part is carried by an MPO.
+Circuits that are both highly entangled and moderately non-Clifford become tractable.
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg)](tests/)
-[![Code Coverage](https://img.shields.io/badge/Coverage-See%20htmlcov-blue.svg)](htmlcov/index.html)
-[![Docs](https://img.shields.io/badge/Docs-Available-blue.svg)](https://matteorobbiati.github.io/mpstab/index.html)
+## ✨ Features
 
-## Overview
+| | |
+|---|---|
+| 🧬 **Hybrid evolution** | Stabilizer and tensor-network engines combined: in-house, [Stim](https://github.com/quantumlib/Stim) or [Quimb](https://quimb.readthedocs.io/) |
+| ⚙️ **Qibo native** | Use [Qibo](https://qibo.science/) circuits and observables, or `mpstab` as a Qibo backend |
+| 🌫️ **Fast noise** | Pauli, coherent, non-unital, crosstalk, idle, prep and readout noise, no density matrix |
+| 🛡️ **Error mitigation** | Clifford data regression (CDR, vnCDR) trained with HSMPO |
+| 📈 **Analytic gradients** | Every parameter in one forward and one backward pass |
+| 📊 **Metrics** | Fidelity lower bounds, truncation tracking, entanglement entropies |
+| 🧩 **Ansätze** | Ready-made circuits: hardware-efficient, kicked Ising, QFT, QPE, Grover, … |
 
-**MPSTAB** is a cutting-edge quantum circuit simulator implementing a hybrid **stabilizers-MPO** (Matrix Product Operator) formalism in pure Python. This package provides an efficient framework for simulating quantum circuits by leveraging the power of both stabilizer states and tensor network methods, enabling accurate simulation of larger quantum systems with reduced computational overhead.
-
-The simulator offers in-house stabilizers and tensor network engines, alongside with state-of-art Python packages such as [Stim](https://github.com/quantumlib/Stim) and [Quimb](https://quimb.readthedocs.io/).
-The quantum circuits and observables interface is inherited from the open-source Python project [Qibo](https://qibo.science/).
-
-
-## Key Features
-
-- 🎯 **Hybrid Formalism**: Combines stabilizer states with tensor networks for efficient simulation
-- 🚀 **Flexible engines**: Flexible backend support: from in-house Clifford simulator and Tensor Network engines to [Stim](https://github.com/quantumlib/Stim) and [Quimb](https://quimb.readthedocs.io/).
-- ⚙️ **[Qibo](https://qibo.science/) backend provider**: `mpstab` can be used as a backend provider for Qibo, a state-of-art full-stack quantum computing framework.
-- 📊 **Fidelity Tracking**: Built-in fidelity lower bounds and truncation monitoring
-- 🔧 **Pre-computed quantum circuit Ansätze**: Pre-built quantum circuits for variational algorithms
-- 🧮 **Arbitrary Observables**: Support for Pauli string expectation values
-- ⚡ **Differentiability**: Integrated with Quimb, `mpstab` inherits differentiability over the circuit executions
-
-## Installation
-
-### Using uv (Recommended)
-
-We recommend [uv](https://docs.astral.sh/uv/) for fast, reproducible environment management.
+## 📦 Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/MatteoRobbiati/mpstab.git
-cd mpstab
-
-# Install uv (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Create the virtual environment and install base dependencies
-uv sync
-
-# Activate the virtual environment
-source .venv/bin/activate      # macOS / Linux
-.venv\Scripts\activate         # Windows
+git clone https://github.com/MatteoRobbiati/mpstab.git && cd mpstab
+uv sync                    # or: pip install .
 ```
 
-#### Optional backends
+<details>
+<summary>Optional backends and dependency groups</summary>
 
-PyTorch and JAX are not installed by default. Add them with `--extra`:
+| What | uv | pip |
+|---|---|---|
+| PyTorch backend | `uv sync --extra pytorch` | `pip install ".[pytorch]"` |
+| JAX backend | `uv sync --extra jax` | `pip install ".[jax]"` |
+| Tests | `uv sync --group test` | |
+| Docs | `uv sync --group docs` | |
+| Dev tools | `uv sync --group dev` | |
+| Everything | `uv sync --all-extras --all-groups` | |
 
-```bash
-# PyTorch backend
-uv sync --extra pytorch
+Don't have [uv](https://docs.astral.sh/uv/)? `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
-# JAX backend
-uv sync --extra jax
+</details>
 
-# Both backends
-uv sync --extra pytorch --extra jax
-```
+## 🚀 Quick start
 
-#### Development dependencies
-
-Optional dependency groups (`dev`, `test`, `docs`, `benchmark`) are installed with `--group`:
-
-```bash
-# Testing
-uv sync --group test
-
-# Documentation
-uv sync --group docs
-
-# Development tools
-uv sync --group dev
-
-# Everything at once
-uv sync --all-extras --all-groups
-```
-
-### Using pip
-
-```bash
-git clone https://github.com/MatteoRobbiati/mpstab.git
-cd mpstab
-pip install .
-
-# With optional backends
-pip install ".[pytorch]"
-pip install ".[jax]"
-pip install ".[pytorch,jax]"
-```
-
-
-## Quick Start
-
-### Basic Circuit Simulation
+Energy and gradient of a 40-qubit J1-J2 Heisenberg chain, built with Qibo symbols:
 
 ```python
+from qibo.hamiltonians import SymbolicHamiltonian
+from qibo.symbols import X, Y, Z
+
 from mpstab import HSMPO
-from mpstab.models.ansatze import HardwareEfficient
+from mpstab.models.ansatze import HammingWeightPreserving
 
-# Create a quantum circuit ansatz
-ansatz = HardwareEfficient(nqubits=8, nlayers=3)
+n, j1, j2 = 40, 1.0, 0.5
 
-# Initialize the hybrid stabilizer MPO simulator
-surrogate = HSMPO(ansatz=ansatz, max_bond_dimension=16)
+# H = J1 Σ σ_i·σ_{i+1} + J2 Σ σ_i·σ_{i+2}, periodic boundaries
+form = sum(
+    j * sum(P(i) * P((i + d) % n) for P in (X, Y, Z))
+    for d, j in ((1, j1), (2, j2))
+    for i in range(n)
+)
+hamiltonian = SymbolicHamiltonian(form, nqubits=n)
 
-# Compute expectation value of a Pauli observable
-observable = "ZIZXIIIZ"
-expectation_value = surrogate.expectation(observable)
-print(f"<{observable}> = {expectation_value}")
+ansatz = HammingWeightPreserving(nqubits=n, nlayers=2)
+surrogate = HSMPO(ansatz, max_bond_dimension=64)
 
-# Access fidelity lower bound (indicates truncation error)
-fidelity = surrogate.fidelity_lower_bound
-print(f"Fidelity Lower Bound: {fidelity}")
+energy, fidelity = surrogate.expectation(hamiltonian, return_fidelity=True)
+gradient = surrogate.gradient(hamiltonian)  # all 320 derivatives, one backward pass
 ```
 
+<details>
+<summary><b>Noisy expectation values</b></summary>
 
-## Testing
+```python
+from qibo import gates
+from mpstab import HSMPO, DepolarizingError, NoiseModel, PauliError, ReadoutError
+from mpstab.models.ansatze import KickedIsing
 
-Run the complete test suite:
+surrogate = HSMPO(KickedIsing(nqubits=4, n_steps=1, theta_h=0.7, theta_z=0.3))
+
+noise = NoiseModel()
+noise.add(PauliError({"X": 1e-3, "Y": 1e-3, "Z": 1e-3}))
+noise.add(DepolarizingError(0.01), gates.CNOT)
+noise.add(ReadoutError(0.01, 0.03))
+
+result = surrogate.noisy_expectation("ZIIZ", noise, n_samples=500, seed=0)
+print(f"{result.mean:+.4f} ± {result.stderr:.4f}")
+```
+
+</details>
+
+<details>
+<summary><b>mpstab as a Qibo backend</b></summary>
+
+```python
+from qibo import Circuit, construct_backend, gates
+from qibo.hamiltonians import TFIM
+
+circuit = Circuit(8)
+circuit.add(gates.H(q) for q in range(8))
+circuit.add(gates.RY(q, theta=0.3) for q in range(8))
+circuit.add(gates.CNOT(0, 1))
+
+hamiltonian = TFIM(nqubits=8, h=0.5, backend=construct_backend("mpstab"), dense=False)
+print(hamiltonian.expectation(circuit))
+```
+
+</details>
+
+More in the [tutorials](https://matteorobbiati.github.io/mpstab/tutorials/index.html):
+noise, error mitigation, ground states, VQE gradients, state metrics, …
+
+## 🛠️ Development
 
 ```bash
-pytest
+uv sync --all-extras --all-groups
+pre-commit install                                      # formatting on every commit
+uv run pytest --cov=mpstab --cov-report=html            # tests + coverage
+uv run sphinx-build -b html docs docs/_build/html       # docs
 ```
 
-Or via uv:
+**Contributing** — PRs welcome! Fork, branch, and open a pull request with:
 
-```bash
-uv run pytest
+- ✅ tests for every new feature, all passing locally
+- 📝 Google-style docstrings for public functions and classes, docs updated with the API
+- ▶️ executable docs examples: every `::` block in `docs/**/*.rst` runs as a test
+  (`pytest tests/test_rst_code_blocks.py`), so each needs its own imports and variables
+
+## 📖 Citation
+
+If you use `mpstab`, please cite:
+
+```bibtex
+@misc{crognaletti2026mpstab,
+  title         = {MPStab: an hybrid stabilizers tensor-network quantum circuit simulator},
+  author        = {Giulio Crognaletti and Mattia Robbiano and Michele Grossi and Matteo Robbiati},
+  year          = {2026},
+  eprint        = {2607.24258},
+  archivePrefix = {arXiv},
+  primaryClass  = {quant-ph},
+  url           = {https://arxiv.org/abs/2607.24258},
+}
 ```
 
-Run with coverage report:
+## 👥 Authors
 
-```bash
-uv run pytest --cov=mpstab --cov-report=html
-```
+Matteo Robbiati · Giulio Crognaletti · Mattia Robbiano · Roberto Di Lauro · Michele Grossi
 
-
-## Development Workflow
-
-Code formatting is managed through [pre-commit](https://pre-commit.com/):
-
-```bash
-pip install pre-commit
-pre-commit install
-```
-
-Build the documentation with:
-
-```bash
-uv sync --group docs
-uv run sphinx-build -b html docs docs/_build/html
-```
-
-## Contribution Guidelines
-
-Contributions are welcome! Please follow these guidelines:
-
-1. **Code Style**: Use `pre-commit` to maintain consistent formatting. Run `pre-commit install` and let it automatically standardize your code.
-
-2. **Testing**:
-   - Write tests for all new features
-   - Ensure all tests pass locally: `pytest`
-   - Include tests in your pull request
-
-3. **Documentation**:
-   - Document all public functions and classes
-   - Update documentation when changing APIs
-   - Add docstrings following NumPy style
-   - **All code examples in documentation must be executable**: every `::`
-     block in `docs/**/*.rst` runs as a test (`pytest tests/test_rst_code_blocks.py`),
-     so give each block its own imports and variables
-
-4. **Pull Request Process**:
-   - Fork the repository
-   - Create a feature branch
-   - Commit your changes with clear messages
-   - Open a pull request with a descriptive title
-   - Wait for review from a core team member
-
-
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
-## Authors
-
-- **Matteo Robbiati** - Core development
-- **Giulio Crognaletti** - Core development
-- **Mattia Robbiano** - Core development
-- **Roberto Di Lauro** - Core development
-
-## Support & Feedback
-
-For issues, feature requests, or contributions, please open an issue on [GitHub Issues](https://github.com/MatteoRobbiati/mpstab/issues).
-
-Questions and discussions are welcome in the [GitHub Discussions](https://github.com/MatteoRobbiati/mpstab/discussions) forum.
+Questions or ideas? Open an [issue](https://github.com/MatteoRobbiati/mpstab/issues) or a
+[discussion](https://github.com/MatteoRobbiati/mpstab/discussions).
+Released under the [Apache 2.0 License](LICENSE).
