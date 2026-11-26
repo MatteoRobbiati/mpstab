@@ -35,6 +35,12 @@ repository.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Hybrid quantum-classical execution
+
+   best_split
+
+.. toctree::
+   :maxdepth: 1
    :caption: Benchmarks
 
    echo

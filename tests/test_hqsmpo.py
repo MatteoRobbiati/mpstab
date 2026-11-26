@@ -304,7 +304,7 @@ def test_split_scan_untruncated_is_exact():
     reference = expectation_with_qibo(mpstab_ansatz=ansatz, observable_str="IZIX")
     for point in hs.split_scan("IZIX"):
         assert point.result.value == pytest.approx(reference, abs=1e-6)
-        assert point.error_estimate == pytest.approx(0.0, abs=1e-6)
+        assert point.truncation_score == pytest.approx(0.0, abs=1e-6)
 
 
 def test_split_scan_max_bond_dimension_overrides_default():
@@ -317,14 +317,14 @@ def test_split_scan_max_bond_dimension_overrides_default():
     assert scan[0].result.truncation_l2 == pytest.approx(reference.truncation_l2)
 
 
-def test_split_point_error_estimate():
+def test_split_candidate_truncation_score():
     hs = HQSMPO(HardwareEfficient(nqubits=6, nlayers=2), max_bond_dimension=2)
     for point in hs.split_scan({"ZZIIII": 0.7, "IXIYIZ": -1.2}):
         result = point.result
         expected = result.truncation_l2 + 1.9 * np.sqrt(
             max(0.0, 1.0 - result.state_fidelity)
         )
-        assert point.error_estimate == pytest.approx(expected)
+        assert point.truncation_score == pytest.approx(expected)
 
 
 def test_split_scan_cuts_sorted_and_deduplicated():
@@ -379,11 +379,11 @@ def test_split_scan_native_engine_not_supported():
         hs.split_scan("ZZZZ")
 
 
-def test_best_split_minimises_error_estimate():
+def test_best_split_minimises_truncation_score():
     hs = HQSMPO(HardwareEfficient(nqubits=6, nlayers=2), max_bond_dimension=2)
     scan = hs.split_scan("ZZZZZZ")
     best = hs.best_split(scan=scan)
-    assert best.error_estimate == min(point.error_estimate for point in scan)
+    assert best.truncation_score == min(point.truncation_score for point in scan)
     assert best == hs.best_split("ZZZZZZ")  # same result without a cached scan
 
 
@@ -417,6 +417,62 @@ def test_best_split_needs_observable_or_scan():
         hs.best_split()
     with pytest.raises(ValueError):
         hs.best_split(scan=[])
+
+
+def test_reference_scan_matches_looser_instance():
+    # The reference is the scan an instance at twice the bond and the lower
+    # cutoff gives; building it must leave this instance untouched.
+    observable = {"ZZIIII": 0.7, "IXIYIZ": -1.2}
+    ansatz = HardwareEfficient(nqubits=6, nlayers=2)
+    hs = HQSMPO(ansatz, max_bond_dimension=2)
+    engine, mps = hs.tn_engine, hs.original_circuit_mps
+    reference = hs.reference_scan(observable, svd_cutoff=1e-13)
+
+    looser = HQSMPO(
+        ansatz, max_bond_dimension=4, tn_engine=QuimbEngine(svd_cutoff=1e-13)
+    )
+    for a, b in zip(reference, looser.split_scan(observable)):
+        assert a.cut_index == b.cut_index
+        assert a.result.value == pytest.approx(b.result.value, abs=1e-12)
+    assert hs.max_bond_dimension == 2
+    assert hs.tn_engine is engine and engine.svd_cutoff is None
+    assert hs.original_circuit_mps is mps
+
+
+def test_reference_scan_scales_tail_override_and_keeps_uncapped():
+    hs = HQSMPO(HardwareEfficient(nqubits=6, nlayers=2))  # untruncated
+    scan = hs.reference_scan("Z" * 6, cuts=[0], max_bond_dimension=1)
+    direct = hs.split_scan("Z" * 6, cuts=[0], max_bond_dimension=2)
+    assert scan[0].result.value == pytest.approx(direct[0].result.value, abs=1e-8)
+    with pytest.raises(ValueError):
+        hs.reference_scan("Z" * 6, bond_factor=0)
+
+
+def test_best_split_reference_minimises_distance():
+    observable = {"ZZIIII": 0.7, "IXIYIZ": -1.2}
+    hs = HQSMPO(HardwareEfficient(nqubits=6, nlayers=2), max_bond_dimension=2)
+    scan = hs.split_scan(observable)
+    reference = hs.reference_scan(observable)
+    distance = {
+        a.cut_index: abs(a.result.value - b.result.value)
+        for a, b in zip(scan, reference)
+    }
+    expected = min(distance, key=lambda k: (distance[k], k))
+
+    assert hs.best_split(observable, reference=True).cut_index == expected
+    assert hs.best_split(scan=scan, reference=reference).cut_index == expected
+
+
+def test_best_split_reference_errors():
+    observable = "ZZZZZZ"
+    hs = HQSMPO(HardwareEfficient(nqubits=6, nlayers=2), max_bond_dimension=2)
+    scan = hs.split_scan(observable)
+    with pytest.raises(ValueError, match="not both"):
+        hs.best_split(observable, key=lambda p: 0.0, reference=True)
+    with pytest.raises(ValueError, match="misses"):
+        hs.best_split(scan=scan, reference=hs.reference_scan(observable, cuts=[0]))
+    with pytest.raises(ValueError, match="observable"):
+        hs.best_split(scan=scan, reference=True)
 
 
 def test_resynthesize_head_is_qibo_circuit():
