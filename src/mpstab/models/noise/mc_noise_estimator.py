@@ -33,6 +33,7 @@ first difference.
 
 from __future__ import annotations
 
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
@@ -104,7 +105,10 @@ def noisy_expectation(
             identical for any value; each extra process costs a start-up of
             about a second, so it pays off only when there are many patterns or
             the MPS is large. Transition amplitudes are evaluated in this
-            process.
+            process. Workers start the way the tensor-network engine asks
+            (:attr:`~mpstab.engines.TensorNetworkEngine.process_start_method`):
+            ``"spawn"`` for a GPU engine, which needs the calling script's
+            ``if __name__ == "__main__":`` guard.
 
     Returns:
         The :class:`NoisyExpectation`.
@@ -410,13 +414,23 @@ def _pattern_values(compiled, patterns, dressed, n_workers: int = 1):
         values, fidelities = _evaluate_patterns(*args, unique)
     else:
         blocks = np.array_split(unique, n_workers)
-        with ProcessPoolExecutor(max_workers=n_workers) as pool:
+        context = _worker_context(hsmpo.tn_engine)
+        with ProcessPoolExecutor(max_workers=n_workers, mp_context=context) as pool:
             results = list(
                 pool.map(_evaluate_patterns, *zip(*[(*args, b) for b in blocks]))
             )
         values = np.concatenate([v for v, _ in results])
         fidelities = np.concatenate([f for _, f in results])
     return values[inverse], fidelities
+
+
+def _worker_context(engine):
+    """
+    The ``multiprocessing`` context the engine's worker processes start in,
+    from its ``process_start_method``; ``None`` for the platform default.
+    """
+    method = engine.process_start_method
+    return None if method is None else multiprocessing.get_context(method)
 
 
 class _Chain:

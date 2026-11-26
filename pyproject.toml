@@ -25,6 +25,7 @@ dependencies = [
 [project.optional-dependencies]
 pytorch = ["torch"]
 jax = ["jax"]
+cutensornet = ["cupy-cuda12x", "cuquantum-python-cu12"]
 rustiq = ["rustiq @ git+https://github.com/smartiel/rustiq.git"]
 
 [project.urls]
