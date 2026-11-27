@@ -4,7 +4,7 @@ rotations.
 
 ``rustiq`` is optional and not on PyPI: this module imports without it, and
 synthesising raises an ``ImportError`` with the install hint
-``pip install "mpstab[rustiq]"``.
+``pip install git+https://github.com/smartiel/rustiq.git``.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ def _require_rustiq():
     if pauli_network_synthesis is None:
         raise ImportError(
             "rustiq is required for Pauli-network resynthesis. Install it with: "
-            'pip install "mpstab[rustiq]"'
+            "pip install git+https://github.com/smartiel/rustiq.git"
         )
 
 

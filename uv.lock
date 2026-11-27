@@ -1302,7 +1302,7 @@ wheels = [
 
 [[package]]
 name = "mpstab"
-version = "0.0.1"
+version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },
@@ -1317,9 +1317,6 @@ jax = [
 ]
 pytorch = [
     { name = "torch" },
-]
-rustiq = [
-    { name = "rustiq" },
 ]
 
 [package.dev-dependencies]
@@ -1342,6 +1339,9 @@ docs = [
     { name = "sphinxcontrib-bibtex" },
     { name = "sphinxcontrib-katex" },
 ]
+rustiq = [
+    { name = "rustiq" },
+]
 test = [
     { name = "matplotlib" },
     { name = "pytest" },
@@ -1354,11 +1354,10 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "qibo", specifier = ">=0.3.6" },
     { name = "quimb", specifier = ">=1.12.1" },
-    { name = "rustiq", marker = "extra == 'rustiq'", git = "https://github.com/smartiel/rustiq.git" },
     { name = "stim", specifier = ">=1.15.0" },
     { name = "torch", marker = "extra == 'pytorch'" },
 ]
-provides-extras = ["pytorch", "jax", "rustiq"]
+provides-extras = ["pytorch", "jax"]
 
 [package.metadata.requires-dev]
 benchmark = [{ name = "pytest-benchmark", extras = ["histogram"], specifier = ">=4.0.0" }]
@@ -1377,6 +1376,7 @@ docs = [
     { name = "sphinxcontrib-bibtex", specifier = ">=2.5.0" },
     { name = "sphinxcontrib-katex", specifier = ">=0.9.9" },
 ]
+rustiq = [{ name = "rustiq", git = "https://github.com/smartiel/rustiq.git" }]
 test = [
     { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "pytest", specifier = ">=7.2.1" },

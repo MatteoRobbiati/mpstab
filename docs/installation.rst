@@ -13,7 +13,11 @@ Quick Install
 Using pip
 ~~~~~~~~~
 
-Install directly from GitHub::
+Install the latest release from PyPI::
+
+    pip install mpstab
+
+or the development version from GitHub::
 
     pip install git+https://github.com/MatteoRobbiati/mpstab.git
 
@@ -69,11 +73,14 @@ PyTorch and JAX are **not installed by default**. Install them on demand:
 
 The foldable low-level-rustiq resynthesis path (see
 :doc:`methods/hqsmpo/rustiq_resynthesis`) needs the optional ``rustiq`` package, built
-from source (it ships no PyPI wheels):
+from source (it is not on PyPI, so it needs a Rust toolchain):
 
 ::
 
-    uv sync --extra rustiq
+    pip install git+https://github.com/smartiel/rustiq.git
+
+    # or, in the development environment
+    uv sync --group rustiq
 
 Dependency Groups
 -----------------

@@ -1,11 +1,11 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
 name = "mpstab"
-version = "0.0.1"
-description = "Hybrid stabilizers - tensor network simulator for quantum circuits"
+version = "0.1.0"
+description = "Hybrid stabilizer tensor-network simulator for quantum circuits"
 authors = [
     {name = "Matteo Robbiati"},
     {name = "Giulio Crognaletti"},
@@ -14,6 +14,18 @@ authors = [
     {name = "Michele Grossi"},
 ]
 readme = "README.md"
+license = "Apache-2.0"
+keywords = ["quantum computing", "quantum circuits", "simulation", "stabilizer", "tensor networks", "MPO", "qibo"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Physics",
+]
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "numpy>=2.0.0",
@@ -25,13 +37,12 @@ dependencies = [
 [project.optional-dependencies]
 pytorch = ["torch"]
 jax = ["jax"]
-rustiq = ["rustiq @ git+https://github.com/smartiel/rustiq.git"]
 
 [project.urls]
-Repository = "https://github.com/MatteoRobbiati/mpstab/"
-
-[tool.hatch.metadata]
-allow-direct-references = true
+Documentation = "https://matteorobbiati.github.io/mpstab/"
+Repository = "https://github.com/MatteoRobbiati/mpstab"
+Issues = "https://github.com/MatteoRobbiati/mpstab/issues"
+Paper = "https://arxiv.org/abs/2607.24258"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mpstab"]
@@ -46,6 +57,10 @@ test = [
     "matplotlib>=3.10.0",
     "pytest>=7.2.1",
     "pytest-cov==4.0.0",
+]
+# rustiq is not on PyPI, so it lives in a dependency group (never in the published metadata)
+rustiq = [
+    "rustiq @ git+https://github.com/smartiel/rustiq.git",
 ]
 benchmark = [
     "pytest-benchmark[histogram]>=4.0.0",

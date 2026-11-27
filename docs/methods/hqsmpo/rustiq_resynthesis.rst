@@ -8,9 +8,9 @@ the circuit you would actually run on a real device; it is never used for the
 classical expectation value, which always applies the exact rotations (to the
 state MPS, or -- for this feature -- to a statevector for verification).
 
-Install the optional dependency (built from source; it ships no PyPI wheels)::
+Install the optional dependency (not on PyPI: it is built from source and needs a Rust toolchain)::
 
-    pip install "mpstab[rustiq]"
+    pip install git+https://github.com/smartiel/rustiq.git
 
 Why "foldable"?
 ---------------

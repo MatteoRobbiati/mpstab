@@ -719,9 +719,10 @@ def _resynthesize(
             raise
         warnings.warn(
             "rustiq is not installed; falling back to the CNOT-ladder "
-            "resynthesis (no gate-count saving). Install it with pip install "
-            '"mpstab[rustiq]" for the optimized head, or use '
-            'head_synthesis="extraction", which needs no extra dependency.',
+            "resynthesis (no gate-count saving). Install it with "
+            "pip install git+https://github.com/smartiel/rustiq.git for the "
+            'optimized head, or use head_synthesis="extraction", which needs no '
+            "extra dependency.",
             stacklevel=3,
         )
         synthesis = CnotLadderSynthesis()

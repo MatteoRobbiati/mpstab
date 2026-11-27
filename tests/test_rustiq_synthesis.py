@@ -165,5 +165,5 @@ def test_rustiq_import_error_has_install_hint(monkeypatch):
     # What the module-level guarded import leaves behind without rustiq.
     monkeypatch.setattr(rustiq_synthesis, "pauli_network_synthesis", None)
 
-    with pytest.raises(ImportError, match="mpstab\\[rustiq\\]"):
+    with pytest.raises(ImportError, match="smartiel/rustiq.git"):
         RustiqSynthesis().synthesize(["X"], [0.1])

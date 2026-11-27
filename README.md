@@ -1,20 +1,21 @@
 <div align="center">
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./docs/_static/logo/mpstab_logo_dark.svg">
-  <img width="320" alt="mpstab" src="./docs/_static/logo/mpstab_logo_light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MatteoRobbiati/mpstab/main/docs/_static/logo/mpstab_logo_dark.png">
+  <img width="320" alt="mpstab" src="https://raw.githubusercontent.com/MatteoRobbiati/mpstab/main/docs/_static/logo/mpstab_logo_light.png">
 </picture>
 
 ### Hybrid stabilizers tensor-networks quantum circuit simulator
 
 Clifford speed where the circuit is Clifford, tensor-network accuracy where it isn't.
 
+[![PyPI](https://img.shields.io/pypi/v/mpstab.svg?logo=pypi&logoColor=white)](https://pypi.org/project/mpstab/)
 [![arXiv](https://img.shields.io/badge/arXiv-2607.24258-b31b1b.svg?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2607.24258)
 [![Tests](https://github.com/MatteoRobbiati/mpstab/actions/workflows/tests.yml/badge.svg)](https://github.com/MatteoRobbiati/mpstab/actions/workflows/tests.yml)
 [![codecov](https://codecov.io/gh/MatteoRobbiati/mpstab/graph/badge.svg)](https://codecov.io/gh/MatteoRobbiati/mpstab)
 [![Docs](https://img.shields.io/badge/docs-online-0a7bbb.svg?logo=readthedocs&logoColor=white)](https://matteorobbiati.github.io/mpstab/)
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776ab.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](https://github.com/MatteoRobbiati/mpstab/blob/main/LICENSE)
 
 [**Docs**](https://matteorobbiati.github.io/mpstab/) ·
 [**Quick start**](#-quick-start) ·
@@ -45,17 +46,24 @@ Circuits that are both highly entangled and moderately non-Clifford become tract
 ## 📦 Installation
 
 ```bash
+pip install mpstab
+```
+
+Optional backends: `pip install "mpstab[pytorch]"` or `pip install "mpstab[jax]"`.
+
+<details>
+<summary>From source, with optional backends and dependency groups</summary>
+
+```bash
 git clone https://github.com/MatteoRobbiati/mpstab.git && cd mpstab
 uv sync                    # or: pip install .
 ```
-
-<details>
-<summary>Optional backends and dependency groups</summary>
 
 | What | uv | pip |
 |---|---|---|
 | PyTorch backend | `uv sync --extra pytorch` | `pip install ".[pytorch]"` |
 | JAX backend | `uv sync --extra jax` | `pip install ".[jax]"` |
+| rustiq resynthesis | `uv sync --group rustiq` | `pip install git+https://github.com/smartiel/rustiq.git` |
 | Tests | `uv sync --group test` | |
 | Docs | `uv sync --group docs` | |
 | Dev tools | `uv sync --group dev` | |
@@ -67,7 +75,9 @@ Don't have [uv](https://docs.astral.sh/uv/)? `curl -LsSf https://astral.sh/uv/in
 
 ## 🚀 Quick start
 
-Energy and gradient of a 40-qubit J1-J2 Heisenberg chain, built with Qibo symbols:
+Energy and gradient of a 40-qubit J1-J2 Heisenberg chain, built with Qibo symbols.
+A statevector would need 2⁴⁰ amplitudes; the HSMPO keeps the Clifford part in a tableau
+and only the rest in a bond-dimension-64 MPO:
 
 ```python
 from qibo.hamiltonians import SymbolicHamiltonian
@@ -86,9 +96,11 @@ form = sum(
 )
 hamiltonian = SymbolicHamiltonian(form, nqubits=n)
 
+# 2-layer Hamming-weight-preserving ansatz, simulated with MPO bond dimension ≤ 64
 ansatz = HammingWeightPreserving(nqubits=n, nlayers=2)
 surrogate = HSMPO(ansatz, max_bond_dimension=64)
 
+# fidelity: lower bound on the fidelity of the truncated MPO state
 energy, fidelity = surrogate.expectation(hamiltonian, return_fidelity=True)
 gradient = surrogate.gradient(hamiltonian)  # all 320 derivatives, one backward pass
 ```
@@ -173,4 +185,4 @@ Matteo Robbiati · Giulio Crognaletti · Mattia Robbiano · Roberto Di Lauro · 
 
 Questions or ideas? Open an [issue](https://github.com/MatteoRobbiati/mpstab/issues) or a
 [discussion](https://github.com/MatteoRobbiati/mpstab/discussions).
-Released under the [Apache 2.0 License](LICENSE).
+Released under the [Apache 2.0 License](https://github.com/MatteoRobbiati/mpstab/blob/main/LICENSE).
