@@ -1040,9 +1040,10 @@
             <span class="k">raise</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
             <span class="s2">&quot;rustiq is not installed; falling back to the CNOT-ladder &quot;</span>
-            <span class="s2">&quot;resynthesis (no gate-count saving). Install it with pip install &quot;</span>
-            <span class="s1">&#39;&quot;mpstab[rustiq]&quot; for the optimized head, or use &#39;</span>
-            <span class="s1">&#39;head_synthesis=&quot;extraction&quot;, which needs no extra dependency.&#39;</span><span class="p">,</span>
+            <span class="s2">&quot;resynthesis (no gate-count saving). Install it with &quot;</span>
+            <span class="s2">&quot;pip install git+https://github.com/smartiel/rustiq.git for the &quot;</span>
+            <span class="s1">&#39;optimized head, or use head_synthesis=&quot;extraction&quot;, which needs no &#39;</span>
+            <span class="s2">&quot;extra dependency.&quot;</span><span class="p">,</span>
             <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">synthesis</span> <span class="o">=</span> <span class="n">CnotLadderSynthesis</span><span class="p">()</span>

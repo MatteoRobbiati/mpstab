@@ -298,7 +298,7 @@
 
 <span class="sd">``rustiq`` is optional and not on PyPI: this module imports without it, and</span>
 <span class="sd">synthesising raises an ``ImportError`` with the install hint</span>
-<span class="sd">``pip install &quot;mpstab[rustiq]&quot;``.</span>
+<span class="sd">``pip install git+https://github.com/smartiel/rustiq.git``.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -320,7 +320,7 @@
     <span class="k">if</span> <span class="n">pauli_network_synthesis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
             <span class="s2">&quot;rustiq is required for Pauli-network resynthesis. Install it with: &quot;</span>
-            <span class="s1">&#39;pip install &quot;mpstab[rustiq]&quot;&#39;</span>
+            <span class="s2">&quot;pip install git+https://github.com/smartiel/rustiq.git&quot;</span>
         <span class="p">)</span>
 
 
